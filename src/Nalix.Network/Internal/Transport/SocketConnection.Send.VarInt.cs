@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Abstractions.Diagnostics;
 using System;
 using System.Diagnostics;
 using System.Net.Sockets;
@@ -37,7 +38,7 @@ internal sealed partial class SocketConnection
 #if DEBUG
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "stackalloc varint", Length = data.Length, RemoteEndpoint = _socket.RemoteEndPoint });
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"stackalloc varint length={data.Length} remote-endpoint={_socket.RemoteEndPoint}"));
                 }
 #endif
                 Span<byte> frameS = stackalloc byte[totalLength];
@@ -70,7 +71,10 @@ internal sealed partial class SocketConnection
                     {
                         if (Internal.Security.ThrottledEventGate.TryAcquire(ref s_sendVarIntErrorTicks, ref s_sendVarIntErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
                         {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "varint send error", Endpoint = _endpointString, Exception = ex, SuppressedCount = suppressed });
+                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"varint send error endpoint={_endpointString} suppressed-count={suppressed}", ex));
+        };
                         }
                     }
                 }
@@ -111,7 +115,10 @@ internal sealed partial class SocketConnection
                 {
                     if (Internal.Security.ThrottledEventGate.TryAcquire(ref s_sendVarIntErrorTicks, ref s_sendVarIntErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "varint send error", Endpoint = _endpointString, Exception = ex, SuppressedCount = suppressed });
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"varint send error endpoint={_endpointString} suppressed-count={suppressed}", ex));
+        };
                     }
                 }
             }
@@ -179,7 +186,10 @@ internal sealed partial class SocketConnection
                 {
                     if (Internal.Security.ThrottledEventGate.TryAcquire(ref s_sendVarIntErrorTicks, ref s_sendVarIntErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "varint send error", Endpoint = _endpointString, Exception = ex, SuppressedCount = suppressed });
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"varint send error endpoint={_endpointString} suppressed-count={suppressed}", ex));
+        };
                     }
                 }
             }
@@ -221,7 +231,10 @@ internal sealed partial class SocketConnection
                     {
                         if (Internal.Security.ThrottledEventGate.TryAcquire(ref s_sendVarIntErrorTicks, ref s_sendVarIntErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
                         {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "varint send error", Endpoint = self._endpointString, Exception = ex, SuppressedCount = suppressed });
+                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"varint send error endpoint={self._endpointString} suppressed-count={suppressed}", ex));
+        };
                         }
                     }
                 }

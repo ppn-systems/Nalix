@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Abstractions.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -223,7 +224,7 @@ public sealed partial class ConnectionGuard
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "cleanup-scanned", Scanned = scanned, Removed = removed, SubnetRemoved = subnetRemoved, MapCount = _map.Count });
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.ConnectionGuard:Internal", $"cleanup-scanned scanned={scanned} removed={removed} subnet-removed={subnetRemoved} map-count={_map.Count}"));
                 }
             }
 
@@ -233,7 +234,7 @@ public sealed partial class ConnectionGuard
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new { Message = "cleanup-error", Exception = ex });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.ConnectionGuard:Internal", "cleanup-error", ex));
             }
         }
     }
@@ -270,7 +271,7 @@ public sealed partial class ConnectionGuard
             _ = Interlocked.Exchange(ref _globalConnections, actualTotal);
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Security.LimitDriftCorrected))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Security.LimitDriftCorrected, new { Reported = reported, Actual = actualTotal });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Security.LimitDriftCorrected, new DiagnosticLog("NW.ConnectionGuard:Internal", $" reported={reported} actual={actualTotal}"));
             }
         }
     }
@@ -340,7 +341,7 @@ public sealed partial class ConnectionGuard
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "failed to initialize FileSystemWatcher, relying on 60s periodic polling.", Exception = ex });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.ConnectionGuard:Internal", "failed to initialize FileSystemWatcher, relying on 60s periodic polling.", ex));
             }
         }
     }
@@ -369,7 +370,10 @@ public sealed partial class ConnectionGuard
                     {
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
                         {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new { Message = "hot-reload error in OnFileChanged handler", Exception = ex });
+                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.ConnectionGuard:OnFileChanged", "hot-reload error in OnFileChanged handler", ex));
+        };
                         }
                     }
                     finally
@@ -422,7 +426,7 @@ public sealed partial class ConnectionGuard
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new { Message = "error checking file changes for hot reload.", Exception = ex });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.ConnectionGuard:Internal", "error checking file changes for hot reload.", ex));
             }
         }
     }

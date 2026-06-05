@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Abstractions.Diagnostics;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
@@ -121,7 +122,7 @@ public sealed partial class Connection :
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "created remote={RemoteEndpoint} id={ConnectionId}", Args = new object[] { this.NetworkEndpoint, this.ID } });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Connection:UnknownMethod", $"created remote=remote-endpoint={this.NetworkEndpoint} id=connection-id={this.ID}"));
         }
     }
 
@@ -320,7 +321,7 @@ public sealed partial class Connection :
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "disconnect request", Id = this.ID, Remote = this.NetworkEndpoint, Reason = reason });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Connection:Disconnect", $"disconnect request id={this.ID} remote={this.NetworkEndpoint} reason={reason}"));
         }
 
         this.Dispose();
@@ -383,7 +384,7 @@ public sealed partial class Connection :
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "close-event-error", Context = "this.Dispose", Exception = ex });
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.Connection:Dispose", "close-event-error", ex));
                 }
             }
             finally
@@ -482,7 +483,7 @@ public sealed partial class Connection :
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "{Component}-dispose-error", Context = "this.Dispose", Args = new object[] { component }, Exception = ex });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.Connection:Internal", $"component={component}-dispose-error", ex));
             }
         }
     }
@@ -645,7 +646,7 @@ public sealed partial class Connection :
                     {
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                         {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "close-handler-error", Context = "OnCloseEventDispatchBridge", Exception = handlerEx });
+                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.Connection:Internal", "close-handler-error", handlerEx));
                         }
                     }
                 }

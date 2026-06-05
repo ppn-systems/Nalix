@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Abstractions.Diagnostics;
 using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -132,7 +133,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "ConnectionGuard init", MaxPerEndpoint = _maxPerEndpoint, Inactivity = _inactivityThreshold, Cleanup = _cleanupInterval });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.ConnectionGuard:entry", $"ConnectionGuard init max-per-endpoint={_maxPerEndpoint} inactivity={_inactivityThreshold} cleanup={_cleanupInterval}"));
         }
     }
 
@@ -189,7 +190,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Security.Banned))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Security.Banned, new { Address = address, BannedUntil = new DateTime(banUntilTicks, DateTimeKind.Utc) });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Security.Banned, new DiagnosticLog("NW.ConnectionGuard:BanEndpoint", $" address={address} banned-until={new DateTime(banUntilTicks, DateTimeKind.Utc)}"));
         }
     }
 
@@ -289,7 +290,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
                 {
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Connections.Rejected))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Connections.Rejected, new { Endpoint = endPoint, Current = result.CurrentConnections, Limit = _maxPerEndpoint, SuppressedCount = suppressed });
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Connections.Rejected, new DiagnosticLog("NW.ConnectionGuard:TryAccept", $" endpoint={endPoint} current={result.CurrentConnections} limit={_maxPerEndpoint} suppressed-count={suppressed}"));
                     }
                 }
             }
@@ -298,7 +299,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "allow endpoint", Endpoint = endPoint, Current = result.CurrentConnections, Limit = _maxPerEndpoint });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.ConnectionGuard:TryAccept", $"allow endpoint endpoint={endPoint} current={result.CurrentConnections} limit={_maxPerEndpoint}"));
             }
         }
 
@@ -323,7 +324,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "received-null args/connection/endpoint" });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.ConnectionGuard:OnConnectionClosed", "received-null args/connection/endpoint"));
             }
             return;
         }
@@ -332,7 +333,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "received-empty-address" });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.ConnectionGuard:OnConnectionClosed", "received-empty-address"));
             }
             return;
         }
@@ -382,7 +383,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Connections.Closed))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Connections.Closed, new { Endpoint = key.Address, SuppressedCount = suppressed });
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Connections.Closed, new DiagnosticLog("NW.ConnectionGuard:OnConnectionClosed", $" endpoint={key.Address} suppressed-count={suppressed}"));
                 }
             }
         }
@@ -527,7 +528,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
                 {
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Security.Banned))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Security.Banned, new { key.Address, BannedUntil = new DateTime(bannedUntil, DateTimeKind.Utc), SuppressedCount = suppressed });
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Security.Banned, new DiagnosticLog("NW.ConnectionGuard:Internal", $" address={key.Address} banned-until={new DateTime(bannedUntil, DateTimeKind.Utc)} suppressed-count={suppressed}"));
                     }
                 }
 
@@ -593,7 +594,10 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
                         {
                             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Security.DdosDetected))
                             {
-                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Security.DdosDetected, new { key.Address, entry.BanCount, BannedUntil = new DateTime(banUntilTicks, DateTimeKind.Utc), SuppressedCount = suppressed });
+                                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Security.DdosDetected))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Security.DdosDetected, new DiagnosticLog("NW.ConnectionGuard:Internal", $" address={key.Address} ban-count={entry.BanCount} banned-until={new DateTime(banUntilTicks, DateTimeKind.Utc)} suppressed-count={suppressed}"));
+        };
                             }
                         }
                     }
@@ -744,7 +748,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "cleared-queue", key.Address, Reason = "oversized" });
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.ConnectionGuard:Internal", $"cleared-queue address={key.Address} reason={"oversized"}"));
                 }
             }
 
@@ -794,14 +798,14 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "ConnectionGuard disposed" });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.ConnectionGuard:Dispose", "ConnectionGuard disposed"));
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Critical))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Critical, new { Message = "ConnectionGuard dispose-error", Exception = ex });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Critical, new DiagnosticLog("NW.ConnectionGuard:Dispose", "ConnectionGuard dispose-error", ex));
             }
         }
 

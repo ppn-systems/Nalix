@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Abstractions.Diagnostics;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -200,7 +201,7 @@ internal static class AsyncCallback
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "callback-null skipping" });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.AsyncCallback:Invoke", "callback-null skipping"));
             }
             return false;
         }
@@ -474,7 +475,10 @@ internal static class AsyncCallback
         {
             if (Security.ThrottledEventGate.TryAcquire(ref ticks, ref suppressedCount, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = message, Event = eventName, SuppressedCount = suppressed, Endpoint = GET_ENDPOINT_SAFE(args) });
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.AsyncCallback:Internal", $"message event={eventName} suppressed-count={suppressed} endpoint={GET_ENDPOINT_SAFE(args)}"));
+        };
             }
         }
     }
@@ -486,7 +490,10 @@ internal static class AsyncCallback
         {
             if (Security.ThrottledEventGate.TryAcquire(ref ticks, ref suppressedCount, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = message, Event = eventName, SuppressedCount = suppressed, Endpoint = GET_ENDPOINT_SAFE(args), Exception = ex });
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.AsyncCallback:Internal", $"message event={eventName} suppressed-count={suppressed} endpoint={GET_ENDPOINT_SAFE(args)}", ex));
+        };
             }
         }
     }

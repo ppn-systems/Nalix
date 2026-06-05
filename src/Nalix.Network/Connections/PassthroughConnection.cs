@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Abstractions.Diagnostics;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
@@ -327,7 +328,10 @@ public sealed class PassthroughConnection :
                         {
                             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                             {
-                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "close-handler-error", Exception = ex });
+                                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.PassthroughConnection:Dispose", "close-handler-error", ex));
+        };
                             }
                         }
                     }
@@ -342,7 +346,7 @@ public sealed class PassthroughConnection :
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "close-event-error", Exception = ex });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.PassthroughConnection:Dispose", "close-event-error", ex));
             }
         }
 

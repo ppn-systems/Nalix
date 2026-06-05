@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Abstractions.Diagnostics;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
@@ -31,14 +32,14 @@ public abstract partial class WebSocketListenerBase
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "activate-request", Port = _port });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.WebSocketListenerBase:Activate", $"activate-request port={_port}"));
         }
 
         if (!_lock.Wait(0, CancellationToken.None))
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "activate-skipped lock-busy", Port = _port });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.WebSocketListenerBase:Activate", $"activate-skipped lock-busy port={_port}"));
             }
             return;
         }
@@ -51,7 +52,7 @@ public abstract partial class WebSocketListenerBase
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "ignored-activate", this.State });
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.WebSocketListenerBase:Activate", $"ignored-activate state={this.State}"));
                 }
                 return;
             }
@@ -81,7 +82,7 @@ public abstract partial class WebSocketListenerBase
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "start", Protocol = _protocol, Port = _port, Path = _path });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.WebSocketListenerBase:Activate", $"start protocol={_protocol} port={_port} path={_path}"));
             }
 
             if (_config.EnableTimeout)
@@ -120,7 +121,7 @@ public abstract partial class WebSocketListenerBase
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "cancel", Port = _port });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.WebSocketListenerBase:Activate", $"cancel port={_port}"));
             }
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
@@ -128,7 +129,7 @@ public abstract partial class WebSocketListenerBase
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Critical))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Critical, new { Message = "critical-error", Port = _port, Exception = ex });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Critical, new DiagnosticLog("NW.WebSocketListenerBase:Activate", $"critical-error port={_port}", ex));
             }
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
@@ -151,7 +152,7 @@ public abstract partial class WebSocketListenerBase
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "deactivate-request", Port = _port });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.WebSocketListenerBase:Deactivate", $"deactivate-request port={_port}"));
         }
 
         int prev = Interlocked.CompareExchange(ref _state, (int)ListenerState.STOPPING, (int)ListenerState.RUNNING);
@@ -199,7 +200,7 @@ public abstract partial class WebSocketListenerBase
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "stop", Protocol = _protocol, Port = _port });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.WebSocketListenerBase:Deactivate", $"stop protocol={_protocol} port={_port}"));
             }
         }
         finally
@@ -237,7 +238,7 @@ public abstract partial class WebSocketListenerBase
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "bound to prefix", Prefix = prefix });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.WebSocketListenerBase:Initialize", $"bound to prefix prefix={prefix}"));
         }
     }
 

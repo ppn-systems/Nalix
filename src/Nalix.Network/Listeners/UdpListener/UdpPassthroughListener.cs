@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Abstractions.Diagnostics;
 using System;
 using System.Collections.Concurrent;
 using System.Net;
@@ -191,7 +192,7 @@ public sealed class UdpPassthroughListener : UdpListenerBase
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "rate-limit-drop", IpEndPoint = ipEndPoint });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpPassthroughListener:OnConnectionClosed", $"rate-limit-drop ip-end-point={ipEndPoint}"));
             }
 
             lease.Dispose();

@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Abstractions.Diagnostics;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -74,7 +75,7 @@ public abstract partial class Protocol : IProtocol
 
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "disconnect id={ArgsConnectionID}", Context = "PostProcessMessage", Args = new object[] { args.Connection.ID } });
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Protocol:PostProcessMessage", $"disconnect id=args-connection-i-d={args.Connection.ID}"));
                 }
             }
         }
@@ -91,7 +92,7 @@ public abstract partial class Protocol : IProtocol
 
         if (args.Connection != null)
         {
-            if (Internal.Security.ThrottledEventGate.TryAcquire(ref s_postFailTicks, ref s_postFailSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed)) { if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error)) { DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "post-fail", Id = args.Connection.ID, Suppressed = suppressed, Exception = ex }); } }
+            if (Internal.Security.ThrottledEventGate.TryAcquire(ref s_postFailTicks, ref s_postFailSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed)) { if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error)) { DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.Protocol:HandlePostProcessError", $"post-fail id={args.Connection.ID} suppressed={suppressed}", ex)); } }
 
             // Give the derived protocol a chance to observe the failure before the socket closes.
             this.OnConnectionError(args.Connection, ex);
@@ -113,7 +114,10 @@ public abstract partial class Protocol : IProtocol
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
             string state = isEnabled ? "enabled" : "disabled";
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new { Message = "accepting={State}", Context = "SetConnectionAcceptance", Args = new object[] { state } });
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.Protocol:SetConnectionAcceptance", $"accepting=state={state}"));
+        };
         }
     }
 }

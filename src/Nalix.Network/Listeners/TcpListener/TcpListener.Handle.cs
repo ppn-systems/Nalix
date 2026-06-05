@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Abstractions.Diagnostics;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -54,14 +55,14 @@ public abstract partial class TcpListenerBase
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "new-connection", ConnectionNetworkEndpoint = connection.NetworkEndpoint });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:ProcessConnection", $"new-connection connection-network-endpoint={connection.NetworkEndpoint}"));
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new { Message = "process-error", ConnectionNetworkEndpoint = connection.NetworkEndpoint, Exception = ex });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.TcpListenerBase:ProcessConnection", $"process-error connection-network-endpoint={connection.NetworkEndpoint}", ex));
             }
 
             // Disconnect the connection immediately if an error occurs -> prevent resource leaks.
@@ -110,7 +111,7 @@ public abstract partial class TcpListenerBase
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "close-connection", ArgsConnectionNetworkEndpoint = args.Connection.NetworkEndpoint });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:HandleConnectionClose", $"close-connection args-connection-network-endpoint={args.Connection.NetworkEndpoint}"));
         }
 
         args.Connection.Dispose();
@@ -284,7 +285,10 @@ public abstract partial class TcpListenerBase
             {
                 // Log in Trace (not Error) because this is expected failure in error-recovery path.
                 // WHY not rethrow: Currently in cleanup path -> the second exception will obscure the original exception.
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "accept-error", Exception = ex });
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:SafeCloseSocket", "accept-error", ex));
+        };
             }
         }
     }
@@ -342,7 +346,7 @@ public abstract partial class TcpListenerBase
                 // This is an early exit for all OS-level errors (Interrupted, OperationAborted, etc.)
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "accept-failed", args.SocketError });
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TcpListenerBase:HandleAccept", $"accept-failed socket-error={args.SocketError}"));
                 }
 
                 this.RebindAcceptContext((PooledSocketAsyncEventArgs)args);
@@ -356,7 +360,7 @@ public abstract partial class TcpListenerBase
                 // No socket to log endpoint, logging warning is sufficient.
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "accept-socket-null", Port = _port });
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TcpListenerBase:HandleAccept", $"accept-socket-null port={_port}"));
                 }
 
                 this.RebindAcceptContext((PooledSocketAsyncEventArgs)args);
@@ -378,7 +382,7 @@ public abstract partial class TcpListenerBase
                     this.Metrics.RECORD_REJECTED();
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "channel-full - dropped socket directly", Port = _port });
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TcpListenerBase:if", $"channel-full - dropped socket directly port={_port}"));
                     }
                     SafeCloseSocket(socket);
                     this.RebindAcceptContext((PooledSocketAsyncEventArgs)args);
@@ -391,7 +395,10 @@ public abstract partial class TcpListenerBase
                     {
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                         {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "untrusted-proxy-rejected", RemoteEndpoint = remoteEp });
+                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TcpListenerBase:if", $"untrusted-proxy-rejected remote-endpoint={remoteEp}"));
+        };
                         }
 
                         this.Metrics.RECORD_REJECTED();
@@ -427,7 +434,7 @@ public abstract partial class TcpListenerBase
                 // Listener is disposed of while accept is running -> this is expected shutdown case.
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "disposed-during-accept", RemoteEndpoint = socket.RemoteEndPoint?.ToString() ?? "<null>" });
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TcpListenerBase:if", $"disposed-during-accept remote-endpoint={socket.RemoteEndPoint?.ToString() ?? "<null>"}"));
                 }
 
                 if (connection != null)
@@ -446,7 +453,7 @@ public abstract partial class TcpListenerBase
                 this.Metrics.RECORD_ERROR();
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new { Message = "accept-error", Port = _port, Exception = ex });
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.TcpListenerBase:if", $"accept-error port={_port}", ex));
                 }
 
                 if (connection != null)
@@ -622,7 +629,7 @@ public abstract partial class TcpListenerBase
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new { Message = "accept-error", Port = _port, Exception = ex });
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.TcpListenerBase:AcceptNext", $"accept-error port={_port}", ex));
                 }
 
                 // Delay 50ms to avoid CPU spinning during persistent errors (eg, file descriptor explosion).
@@ -706,7 +713,10 @@ public abstract partial class TcpListenerBase
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
                 {
                     // Token cancelled -> shutdown graceful -> exit loop.
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "shutdown-requested", Port = _port });
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync", $"shutdown-requested port={_port}"));
+        };
                 }
 
                 break;
@@ -734,7 +744,7 @@ public abstract partial class TcpListenerBase
                 this.Metrics.RECORD_ERROR();
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "transient-socket-error", SocketError = ex.SocketErrorCode, Port = _port, Exception = ex });
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync", $"transient-socket-error socket-error={ex.SocketErrorCode} port={_port}", ex));
                 }
 
                 // Transient OS-level error -> record metric + delay + retry.
@@ -748,7 +758,7 @@ public abstract partial class TcpListenerBase
                 this.Metrics.RECORD_ERROR();
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new { Message = "accept-error", Port = _port, Exception = ex });
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync", $"accept-error port={_port}", ex));
                 }
 
                 // Unexpected error -> record + log + delay 50ms to avoid CPU spin.
@@ -760,7 +770,7 @@ public abstract partial class TcpListenerBase
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "accepted", ConnectionNetworkEndpoint = connection.NetworkEndpoint, Port = _port });
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync", $"accepted connection-network-endpoint={connection.NetworkEndpoint} port={_port}"));
                 }
 
                 // Send the connection to process channel -> consumer thread for processing.
@@ -771,7 +781,7 @@ public abstract partial class TcpListenerBase
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "loop-exited", Port = _port });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync", $"loop-exited port={_port}"));
         }
     }
 
@@ -919,14 +929,14 @@ public abstract partial class TcpListenerBase
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "listener-endpoint-disposed", Port = _port, Type = ode.GetType().Name, Exception = ex });
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync", $"listener-endpoint-disposed port={_port} type={ode.GetType().Name}", ex));
                 }
             }
             catch (Exception lookupEx) when (ExceptionClassifier.IsNonFatal(lookupEx))
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "listener-endpoint-lookup-failed", Port = _port, Exception = lookupEx });
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync", $"listener-endpoint-lookup-failed port={_port}", lookupEx));
                 }
             }
             throw new NetworkException($"TryAccept failed. Listener={remote}", ex);

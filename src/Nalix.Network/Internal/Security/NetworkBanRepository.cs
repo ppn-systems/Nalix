@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Abstractions.Diagnostics;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -63,7 +64,7 @@ internal sealed class NetworkBanRepository
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "ban file corrupted or unreadable, renaming to .corrupt file={FilePath}", Args = new object[] { _filePath }, Exception = ex });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.NetworkBanRepository:Load", $"ban file corrupted or unreadable, renaming to .corrupt file=file-path={_filePath}", ex));
             }
 
             try
@@ -103,7 +104,7 @@ internal sealed class NetworkBanRepository
 
         if (records.Count > 0 && DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new { Message = "Loaded {RecordsCount} persisted bans.", Args = new object[] { records.Count } });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.NetworkBanRepository:Load", $"Loaded records-count={records.Count} persisted bans."));
         }
     }
 
@@ -156,7 +157,7 @@ internal sealed class NetworkBanRepository
 
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "Persisted {SnapshotCount} bans to disk.", Args = new object[] { snapshot.Count } });
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.NetworkBanRepository:Save", $"Persisted snapshot-count={snapshot.Count} bans to disk."));
                 }
             }
         }
@@ -166,7 +167,7 @@ internal sealed class NetworkBanRepository
             _ = Interlocked.Exchange(ref _persistenceDirty, 1);
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "failed to save banned ips.", Exception = ex });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.NetworkBanRepository:Save", "failed to save banned ips.", ex));
             }
         }
     }

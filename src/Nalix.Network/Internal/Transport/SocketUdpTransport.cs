@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Abstractions.Diagnostics;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -165,7 +166,10 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                     {
                         string exceptionType = ex.GetType().Name;
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "dualmode-not-applied", ExceptionType = exceptionType, Exception = ex });
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketUdpTransport:Initialize", $"dualmode-not-applied exception-type={exceptionType}", ex));
+        };
                     }
                 }
             }
@@ -182,7 +186,10 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
                     System.Net.Sockets.SocketError socketError = ex.SocketErrorCode;
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "dontfragment-not-applied", SocketError = socketError, Exception = ex });
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketUdpTransport:Initialize", $"dontfragment-not-applied socket-error={socketError}", ex));
+        };
                 }
             }
             catch (NotSupportedException ex)
@@ -190,7 +197,10 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
                     string exceptionType = ex.GetType().Name;
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "dontfragment-not-supported", ExceptionType = exceptionType, Exception = ex });
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketUdpTransport:Initialize", $"dontfragment-not-supported exception-type={exceptionType}", ex));
+        };
                 }
             }
             catch (ObjectDisposedException ex)
@@ -198,7 +208,10 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
                     string exceptionType = ex.GetType().Name;
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "dontfragment-object-disposed", ExceptionType = exceptionType, Exception = ex });
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketUdpTransport:Initialize", $"dontfragment-object-disposed exception-type={exceptionType}", ex));
+        };
                 }
             }
             catch (InvalidOperationException ex)
@@ -206,7 +219,10 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
                     string exceptionType = ex.GetType().Name;
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "dontfragment-invalid-op", ExceptionType = exceptionType, Exception = ex });
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketUdpTransport:Initialize", $"dontfragment-invalid-op exception-type={exceptionType}", ex));
+        };
                 }
             }
 
@@ -222,7 +238,10 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                     {
                         string exceptionType = ex.GetType().Name;
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "udp-connreset-ioctl-not-applied", ExceptionType = exceptionType, Exception = ex });
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketUdpTransport:Initialize", $"udp-connreset-ioctl-not-applied exception-type={exceptionType}", ex));
+        };
                     }
                 }
             }

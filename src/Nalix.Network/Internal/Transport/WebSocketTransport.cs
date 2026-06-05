@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Abstractions.Diagnostics;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -286,7 +287,7 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "receive-loop-faulted-{Phase}", Phase = phase, Exception = ex });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.WebSocketTransport:Internal", $"receive-loop-faulted-{phase} phase={phase}", ex));
         }
     }
 
