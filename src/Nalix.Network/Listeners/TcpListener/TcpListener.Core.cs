@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Abstractions.Diagnostics;
 using System;
 using System.Diagnostics;
 using System.Net.Sockets;
@@ -9,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
@@ -275,9 +275,10 @@ public abstract partial class TcpListenerBase : IListener
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                         {
                             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.using:cb", $"lock-release-ignored port={self._port} reason={"SemaphoreFullException"}", ex));
-        };
+                            {
+                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.using:cb", $"lock-release-ignored port={self._port} reason={"SemaphoreFullException"}", ex));
+                            }
+                            ;
                         }
                     }
                     catch (ObjectDisposedException ex)
@@ -285,9 +286,10 @@ public abstract partial class TcpListenerBase : IListener
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                         {
                             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.using:cb", $"lock-release-ignored port={self._port} reason={"ObjectDisposedException"}", ex));
-        };
+                            {
+                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.using:cb", $"lock-release-ignored port={self._port} reason={"ObjectDisposedException"}", ex));
+                            }
+                            ;
                         }
                     }
                     catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -295,9 +297,10 @@ public abstract partial class TcpListenerBase : IListener
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
                         {
                             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.using:cb", $"lock-release-error port={self._port}", ex));
-        };
+                            {
+                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.using:cb", $"lock-release-error port={self._port}", ex));
+                            }
+                            ;
                         }
                     }
                 }

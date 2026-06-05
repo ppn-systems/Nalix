@@ -1,12 +1,12 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Abstractions.Diagnostics;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Environment.Memory;
 using Nalix.Environment.Time;
@@ -127,12 +127,13 @@ internal sealed partial class SocketConnection
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
                 Exception e = (ex as AggregateException)?.Flatten() ?? ex;
-                if (Internal.Security.ThrottledEventGate.TryAcquire(ref s_receiveVarIntFaultedTicks, ref s_receiveVarIntFaultedSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
+                if (Security.ThrottledEventGate.TryAcquire(ref s_receiveVarIntFaultedTicks, ref s_receiveVarIntFaultedSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
                 {
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"receive varint faulted endpoint={_owner.NetworkEndpoint.Address} suppressed-count={suppressed}", e));
-        };
+                    {
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"receive varint faulted endpoint={_owner.NetworkEndpoint.Address} suppressed-count={suppressed}", e));
+                    }
+                    ;
                 }
             }
         }

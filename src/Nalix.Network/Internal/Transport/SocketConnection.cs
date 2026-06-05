@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Abstractions.Diagnostics;
 using System;
 using System.Buffers.Binary;
 using System.Diagnostics;
@@ -11,6 +10,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
@@ -399,9 +399,10 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
                                 if (Security.ThrottledEventGate.TryAcquire(ref s_evictedFragmentsTicks, ref s_evictedFragmentsSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
                                 {
                                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.SocketConnection:Internal", $"evicted stale fragment stream(s) evicted-count={evicted} endpoint={_owner.NetworkEndpoint.Address} suppressed-count={suppressed}"));
-        };
+                                    {
+                                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.SocketConnection:Internal", $"evicted stale fragment stream(s) evicted-count={evicted} endpoint={_owner.NetworkEndpoint.Address} suppressed-count={suppressed}"));
+                                    }
+                                    ;
                                 }
                             }
                         }
@@ -508,9 +509,10 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
             if (Security.ThrottledEventGate.TryAcquire(ref s_receiveFaultedTicks, ref s_receiveFaultedSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"receive faulted endpoint={_owner.NetworkEndpoint.Address} suppressed-count={suppressed}", e));
-        };
+                {
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"receive faulted endpoint={_owner.NetworkEndpoint.Address} suppressed-count={suppressed}", e));
+                }
+                ;
             }
         }
     }
@@ -717,9 +719,10 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
             if (Security.ThrottledEventGate.TryAcquire(ref s_fragmentErrorTicks, ref s_fragmentErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"fragment-error endpoint={_owner?.NetworkEndpoint.Address} suppressed-count={suppressed}", ex));
-        };
+                {
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"fragment-error endpoint={_owner?.NetworkEndpoint.Address} suppressed-count={suppressed}", ex));
+                }
+                ;
             }
         }
     }

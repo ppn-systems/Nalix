@@ -8,9 +8,9 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
-using Nalix.Abstractions.Diagnostics;
 using Nalix.Environment.Random;
 using Nalix.Environment.Time;
 using Nalix.Framework.Options;
@@ -430,7 +430,7 @@ public partial class TaskManager
 
             if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Start", $"worker-start-dedicated id={id} name={name} group={group} os-priority={osPriority} tag={options.Tag ?? "-"}"));
+                Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager", $"worker-start-dedicated id={id} name={name} group={group} os-priority={osPriority} tag={options.Tag ?? "-"}"));
             }
         }
         else
@@ -438,7 +438,7 @@ public partial class TaskManager
             st.Task = this.EXECUTE_WORKER_ASYNC(st, gate, cts);
             if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Start", $"worker-start id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}"));
+                Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager", $"worker-start id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}"));
             }
         }
     }
@@ -471,7 +471,7 @@ public partial class TaskManager
                     {
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                         {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Start", $"worker-reject name={name} group={group} error=group-cap"));
+                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager", $"worker-reject name={name} group={group} error=group-cap"));
                         }
 
                         _ = _workers.TryRemove(id, out _);
@@ -484,7 +484,7 @@ public partial class TaskManager
                         {
                             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                             {
-                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Start", $"cts-dispose-error-reject id={id}", ex));
+                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager", $"cts-dispose-error-reject id={id}", ex));
                             }
                         }
 

@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Abstractions.Diagnostics;
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -11,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Network.Connections;
@@ -286,9 +286,10 @@ public abstract partial class TcpListenerBase
                 // Log in Trace (not Error) because this is expected failure in error-recovery path.
                 // WHY not rethrow: Currently in cleanup path -> the second exception will obscure the original exception.
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:SafeCloseSocket", "accept-error", ex));
-        };
+                {
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:SafeCloseSocket", "accept-error", ex));
+                }
+                ;
             }
         }
     }
@@ -396,9 +397,10 @@ public abstract partial class TcpListenerBase
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                         {
                             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TcpListenerBase:if", $"untrusted-proxy-rejected remote-endpoint={remoteEp}"));
-        };
+                            {
+                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TcpListenerBase:if", $"untrusted-proxy-rejected remote-endpoint={remoteEp}"));
+                            }
+                            ;
                         }
 
                         this.Metrics.RECORD_REJECTED();
@@ -714,9 +716,10 @@ public abstract partial class TcpListenerBase
                 {
                     // Token cancelled -> shutdown graceful -> exit loop.
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync", $"shutdown-requested port={_port}"));
-        };
+                    {
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync", $"shutdown-requested port={_port}"));
+                    }
+                    ;
                 }
 
                 break;
@@ -947,7 +950,10 @@ public abstract partial class TcpListenerBase
             // If `contextOwned` = false: InitializeConnection has already returned.
             // If `contextOwned` = true: an exception occurred before the ownership transfer.
             // This pattern completely eliminates the possibility of double-returns and simultaneous leaks.
-            if (contextOwned)
+            // If an async accept is pending, do not return to the pool immediately.
+            // The async completion handler (AsyncAcceptCompleted) will return it to the pool
+            // once the OS has aborted/completed the operation.
+            if (contextOwned && !context.IsAsyncPending)
             {
                 _pool.Return(context);
             }

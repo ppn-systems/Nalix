@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Abstractions.Diagnostics;
 using System;
 using System.Buffers.Binary;
 using System.Diagnostics;
@@ -9,6 +8,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
@@ -149,9 +149,10 @@ internal sealed partial class SocketConnection
                         if (Security.ThrottledEventGate.TryAcquire(ref s_sendStackallocErrorTicks, ref s_sendStackallocErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
                         {
                             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"stackalloc-error endpoint={_endpointString} suppressed-count={suppressed}", ex));
-        };
+                            {
+                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"stackalloc-error endpoint={_endpointString} suppressed-count={suppressed}", ex));
+                            }
+                            ;
                         }
                     }
                 }
@@ -239,9 +240,10 @@ internal sealed partial class SocketConnection
                     if (Security.ThrottledEventGate.TryAcquire(ref s_sendPooledErrorTicks, ref s_sendPooledErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
                     {
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"pooled-error endpoint={_endpointString} suppressed-count={suppressed}", ex));
-        };
+                        {
+                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"pooled-error endpoint={_endpointString} suppressed-count={suppressed}", ex));
+                        }
+                        ;
                     }
                 }
             }
@@ -416,9 +418,10 @@ internal sealed partial class SocketConnection
                     if (Security.ThrottledEventGate.TryAcquire(ref s_sendErrorTicks, ref s_sendErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
                     {
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"send error endpoint={self._endpointString} suppressed-count={suppressed}", ex));
-        };
+                        {
+                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"send error endpoint={self._endpointString} suppressed-count={suppressed}", ex));
+                        }
+                        ;
                     }
                 }
             }
@@ -434,9 +437,10 @@ internal sealed partial class SocketConnection
                     if (Security.ThrottledEventGate.TryAcquire(ref s_sendErrorTicks, ref s_sendErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
                     {
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"send error endpoint={self._endpointString} suppressed-count={suppressed}", ex));
-        };
+                        {
+                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"send error endpoint={self._endpointString} suppressed-count={suppressed}", ex));
+                        }
+                        ;
                     }
                 }
             }

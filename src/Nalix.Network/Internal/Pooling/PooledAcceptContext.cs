@@ -43,14 +43,42 @@ internal sealed class PooledAcceptContext : IPoolable
             return;
         }
 
-        _ = e.SocketError == SocketError.Success
+        PooledAcceptContext? context = (e as PooledSocketAsyncEventArgs)?.Context;
+        if (context != null)
+        {
+            context._isAsyncPending = false;
+        }
+
+        bool wasResolved = e.SocketError == SocketError.Success
             ? e.AcceptSocket is Socket acceptedSocket
                 ? tcs.TrySetResult(acceptedSocket)
                 : tcs.TrySetException(new InternalErrorException("TryAccept completed successfully without a socket."))
             : tcs.TrySetException(new SocketException((int)e.SocketError));
+
+        if (!wasResolved && context != null)
+        {
+            if (e.AcceptSocket is Socket socketToClose)
+            {
+                try
+                {
+                    socketToClose.Close();
+                }
+                catch
+                {
+                    // Ignore
+                }
+            }
+            s_pool.Return(context);
+        }
     };
 
     private SocketAsyncEventArgs? _args;
+    private volatile bool _isAsyncPending;
+
+    /// <summary>
+    /// Gets a value indicating whether an asynchronous accept operation is currently pending.
+    /// </summary>
+    public bool IsAsyncPending => _isAsyncPending;
 
     /// <summary>The SAEA currently bound to this context.</summary>
     /// <exception cref="InvalidOperationException"></exception>
@@ -190,6 +218,7 @@ internal sealed class PooledAcceptContext : IPoolable
             // Asynchronous completion keeps the cancellation registration alive
             // until the accept task settles, then disposes it on the continuation
             // so the cancellation callback cannot outlive the accept task.
+            _isAsyncPending = true;
             _ = tcs.Task.ContinueWith(
                 static (_, state) =>
                 {
@@ -214,6 +243,7 @@ internal sealed class PooledAcceptContext : IPoolable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ResetForPool()
     {
+        _isAsyncPending = false;
         if (_args != null)
         {
             _args.Completed -= AsyncAcceptCompleted;

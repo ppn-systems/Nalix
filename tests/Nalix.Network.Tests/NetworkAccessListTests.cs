@@ -46,7 +46,7 @@ public sealed class NetworkAccessListTests
 
         try
         {
-            NetworkAccessList accessList = new(null, proxyOptions);
+            NetworkAccessList accessList = new(proxyOptions);
 
             accessList.IsBlacklisted(IPAddress.Parse("1.2.3.4")).Should().BeTrue();
             accessList.IsBlacklisted(IPAddress.Parse("5.6.7.8")).Should().BeTrue();
@@ -93,7 +93,7 @@ public sealed class NetworkAccessListTests
 
         try
         {
-            NetworkAccessList accessList = new(null, proxyOptions);
+            NetworkAccessList accessList = new(proxyOptions);
 
             accessList.IsBlacklisted(IPAddress.Parse("192.168.1.5")).Should().BeTrue();
             accessList.IsBlacklisted(IPAddress.Parse("192.168.1.99")).Should().BeTrue();
@@ -141,7 +141,7 @@ public sealed class NetworkAccessListTests
 
         try
         {
-            NetworkAccessList accessList = new(null, proxyOptions);
+            NetworkAccessList accessList = new(proxyOptions);
 
             accessList.IsTrustedProxy(IPAddress.Parse("10.0.0.50")).Should().BeTrue();
             accessList.IsTrustedProxy(IPAddress.Parse("192.168.100.5")).Should().BeTrue();
@@ -174,7 +174,7 @@ public sealed class NetworkAccessListTests
 
         try
         {
-            NetworkAccessList accessList = new(null, proxyOptions);
+            NetworkAccessList accessList = new(proxyOptions);
 
             File.Exists(blacklistPath).Should().BeTrue();
             File.Exists(proxyPath).Should().BeTrue();

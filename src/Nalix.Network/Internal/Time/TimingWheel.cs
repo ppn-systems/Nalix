@@ -1,15 +1,15 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Abstractions.Diagnostics;
 using System;
-using System.Globalization;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
@@ -365,9 +365,10 @@ internal sealed class TimingWheel : IActivatable
             {
                 string exceptionType = ex.GetType().Name;
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", $"cts-cancel-ignored reason-exception-type={exceptionType}", ex));
-        };
+                {
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", $"cts-cancel-ignored reason-exception-type={exceptionType}", ex));
+                }
+                ;
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -388,9 +389,10 @@ internal sealed class TimingWheel : IActivatable
             {
                 string exceptionType = ex.GetType().Name;
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", $"cts-dispose-ignored reason-exception-type={exceptionType}", ex));
-        };
+                {
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", $"cts-dispose-ignored reason-exception-type={exceptionType}", ex));
+                }
+                ;
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -671,10 +673,11 @@ internal sealed class TimingWheel : IActivatable
                             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                             {
                                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-        {
-            string idleMsStr = idleMs.ToString(CultureInfo.InvariantCulture);
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Internal", $"timeout remote={connection.NetworkEndpoint.Address} idle-ms={idleMsStr}"));
-        };
+                                {
+                                    string idleMsStr = idleMs.ToString(CultureInfo.InvariantCulture);
+                                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Internal", $"timeout remote={connection.NetworkEndpoint.Address} idle-ms={idleMsStr}"));
+                                }
+                                ;
                             }
 
                             try
@@ -686,9 +689,10 @@ internal sealed class TimingWheel : IActivatable
                                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                                 {
                                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.TimingWheelBucket:Internal", $"close-error remote={connection.NetworkEndpoint.Address}", ex));
-        };
+                                    {
+                                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.TimingWheelBucket:Internal", $"close-error remote={connection.NetworkEndpoint.Address}", ex));
+                                    }
+                                    ;
                                 }
                             }
 

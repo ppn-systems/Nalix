@@ -38,32 +38,38 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
     private static readonly Action<ILogger, string?, Exception?> s_startedTcpServerMessage =
         LoggerMessage.Define<string?>(
             LogLevel.Information,
-            new EventId(1000, nameof(NetworkApplication)),
-            "Started Nalix TCP server for protocol {ProtocolType}.");
+            default,
+            "[HT.NetworkApplication] TCP server-started protocol={ProtocolType}");
+
+    private static readonly Action<ILogger, string?, Exception?> s_startedWebSocketServerMessage =
+        LoggerMessage.Define<string?>(
+            LogLevel.Information,
+            default,
+            "[HT.NetworkApplication] WebSocket server-started protocol={ProtocolType}");
 
     private static readonly Action<ILogger, string?, Exception?> s_startedUdpServerMessage =
         LoggerMessage.Define<string?>(
             LogLevel.Information,
-            new EventId(1004, nameof(NetworkApplication)),
-            "Started Nalix UDP server for protocol {ProtocolType}.");
+            default,
+            "[HT.NetworkApplication] UDP server-started protocol={ProtocolType}");
 
     private static readonly Action<ILogger, Exception?> s_stopListenerFailedMessage =
         LoggerMessage.Define(
             LogLevel.Warning,
-            new EventId(1001, nameof(NetworkApplication)),
-            "Failed to stop Nalix listener cleanly.");
+            default,
+            "[HT.NetworkApplication] failed-stop-listener");
 
     private static readonly Action<ILogger, Exception?> s_disposeProtocolFailedMessage =
         LoggerMessage.Define(
             LogLevel.Warning,
-            new EventId(1002, nameof(NetworkApplication)),
-            "Failed to dispose Nalix protocol cleanly.");
+            default,
+            "[HT.NetworkApplication] failed-dispose-protocol");
 
     private static readonly Action<ILogger, Exception?> s_stopDispatcherFailedMessage =
         LoggerMessage.Define(
             LogLevel.Warning,
-            new EventId(1003, nameof(NetworkApplication)),
-            "Failed to stop the Nalix packet dispatcher cleanly.");
+            default,
+            "[HT.NetworkApplication] failed-stop-packet-dispatcher");
 
     #endregion Static Fields
 
@@ -209,13 +215,17 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
 
                     server.Listener.Activate(cancellationToken);
 
-                    if (server.IsUdp)
+                    if (server.Transport == NetworkTransport.UDP)
                     {
                         s_startedUdpServerMessage(_logger, server.ProtocolType.FullName, null);
                     }
-                    else
+                    else if (server.Transport == NetworkTransport.TCP)
                     {
                         s_startedTcpServerMessage(_logger, server.ProtocolType.FullName, null);
+                    }
+                    else if (server.Transport == NetworkTransport.WEBSOCKET)
+                    {
+                        s_startedWebSocketServerMessage(_logger, server.ProtocolType.FullName, null);
                     }
                 }
             }

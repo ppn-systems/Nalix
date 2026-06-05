@@ -1,12 +1,12 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Abstractions.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Runtime.CompilerServices;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.IO;
@@ -110,17 +110,18 @@ internal sealed class NetworkAccessList
     {
         try
         {
+            AccessListState currentState = _state;
             List<IPNetwork>? proxies;
             HashSet<IPAddress>? ips;
             List<IPNetwork>? networks;
 
             try
             {
-                proxies = this.LoadTrustedProxies(_proxyConfig);
+                proxies = this.LoadTrustedProxies(_proxyConfig, currentState?.TrustedProxies);
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                proxies = _state.TrustedProxies; // Retain old state on failure
+                proxies = currentState.TrustedProxies; // Retain old state on failure
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
                     DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.AccessListState:Reload", "reload-trusted-proxies-failed retaining-old-state=true", ex));
@@ -129,12 +130,12 @@ internal sealed class NetworkAccessList
 
             try
             {
-                (ips, networks) = this.LoadBlacklistedIps(_blacklistConfig);
+                (ips, networks) = this.LoadBlacklistedIps(_blacklistConfig, currentState?.BlacklistedIps, currentState?.BlacklistedNetworks);
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                ips = _state.BlacklistedIps; // Retain old state on failure
-                networks = _state.BlacklistedNetworks;
+                ips = currentState.BlacklistedIps; // Retain old state on failure
+                networks = currentState.BlacklistedNetworks;
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
                     DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.AccessListState:Reload", "reload-blacklists-failed retaining-old-state=true", ex));
@@ -152,7 +153,7 @@ internal sealed class NetworkAccessList
         }
     }
 
-    private List<IPNetwork> LoadTrustedProxies(TrustedProxyOptions proxyConfig)
+    private List<IPNetwork> LoadTrustedProxies(TrustedProxyOptions proxyConfig, List<IPNetwork>? existingProxies = null)
     {
         string path = Path.Combine(Directories.ConfigurationDirectory, proxyConfig.StoreFileName);
         if (!File.Exists(path))
@@ -161,7 +162,9 @@ internal sealed class NetworkAccessList
         }
         List<IPNetwork> networks = NetworkStore.Load(path, proxyConfig.MaxTrustedProxies);
 
-        if (networks.Count > 0 && DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
+        bool hasChanges = existingProxies == null || !AreNetworksEqual(networks, existingProxies);
+
+        if (networks.Count > 0 && hasChanges && DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
             DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.AccessListState:LoadTrustedProxies", $"loaded networks-count={networks.Count} source=disk"));
         }
@@ -169,7 +172,7 @@ internal sealed class NetworkAccessList
         return networks;
     }
 
-    private (HashSet<IPAddress>, List<IPNetwork>) LoadBlacklistedIps(ConnectionBlacklistStoreOptions blacklistConfig)
+    private (HashSet<IPAddress>, List<IPNetwork>) LoadBlacklistedIps(ConnectionBlacklistStoreOptions blacklistConfig, HashSet<IPAddress>? existingIps = null, List<IPNetwork>? existingNetworks = null)
     {
         HashSet<IPAddress> ips = new();
         List<IPNetwork> netList = new();
@@ -199,12 +202,32 @@ internal sealed class NetworkAccessList
             }
         }
 
-        if (networks.Count > 0 && DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
+        bool hasChanges = existingIps == null || existingNetworks == null || !ips.SetEquals(existingIps) || !AreNetworksEqual(netList, existingNetworks);
+
+        if (networks.Count > 0 && hasChanges && DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
             DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.AccessListState:LoadTrustedProxies", $"loaded networks-count={networks.Count} blacklisted-ips-count={ips.Count} blacklisted-networks-count={netList.Count} source=disk"));
         }
 
         return (ips, netList);
+    }
+
+    private static bool AreNetworksEqual(List<IPNetwork> a, List<IPNetwork> b)
+    {
+        if (a.Count != b.Count)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < a.Count; i++)
+        {
+            if (!a[i].Equals(b[i]))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     #endregion Loading Methods

@@ -7,18 +7,18 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Options;
-using Nalix.Abstractions.Diagnostics;
-using System.Globalization;
 
 namespace Nalix.Framework.Tasks;
 
@@ -278,13 +278,6 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
             this.ENQUEUE_WORKER(st);
         }
 
-        if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Started))
-        {
-            string action = startedFast ? "start-fast" : "queued";
-            Listener.Write(DiagnosticsEvents.Tasks.Started, new DiagnosticLog("FW.TaskManager:Start",
-                $"{action} id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}"));
-        }
-
         return st;
     }
 
@@ -370,7 +363,7 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
         if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Started))
         {
             string intervalMs = interval.TotalMilliseconds.ToString("0.000", CultureInfo.InvariantCulture);
-            Listener.Write(DiagnosticsEvents.Tasks.Started, new DiagnosticLog("FW.TaskManager:Start",
+            Listener.Write(DiagnosticsEvents.Tasks.Started, new DiagnosticLog("FW.TaskManager",
                 $"recurring name={name} interval-ms={intervalMs} non-reentrant={options.NonReentrant} tag={options.Tag ?? "-"}"));
         }
         return st;

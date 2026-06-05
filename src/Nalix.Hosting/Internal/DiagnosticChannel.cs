@@ -32,7 +32,7 @@ internal sealed class DiagnosticChannel :
     private static readonly Dictionary<string, LogLevel> s_eventLevels = new(StringComparer.Ordinal)
     {
         // Framework.Tasks
-        [Framework.DiagnosticsEvents.Tasks.Started] = LogLevel.Debug,
+        [Framework.DiagnosticsEvents.Tasks.Started] = LogLevel.Trace,
         [Framework.DiagnosticsEvents.Tasks.Failed] = LogLevel.Warning,
         [Framework.DiagnosticsEvents.Tasks.Completed] = LogLevel.Debug,
         [Framework.DiagnosticsEvents.Tasks.Disposed] = LogLevel.Information,

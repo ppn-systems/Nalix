@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Abstractions.Diagnostics;
 using System;
 using System.Diagnostics;
 using System.Globalization;
@@ -10,8 +9,8 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
-
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
@@ -100,9 +99,10 @@ public abstract partial class UdpListenerBase : IListener
             {
                 string protocolType = this.Protocol.GetType().Name;
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.UdpListenerBase:Activate", $"listening port=port={_port} protocol=protocol-type={protocolType}"));
-        };
+                {
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.UdpListenerBase:Activate", $"listening port=port={_port} protocol=protocol-type={protocolType}"));
+                }
+                ;
             }
 
             // Dispatch parallel SAEA receive workers via TaskManager
