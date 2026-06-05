@@ -1,7 +1,4 @@
-using System;
-using System.Linq;
 using Nalix.Codec.LZ4;
-using Xunit;
 
 namespace Nalix.Codec.Tests.LZ4;
 
@@ -12,8 +9,8 @@ public class LZ4OverlapTests
     {
         // Arrange: Create a payload with long repeating pattern (RLE-like)
         // This will force the encoder to use a match with offset = 1 and large length.
-        byte[] original = Enumerable.Repeat((byte)'A', 1000).ToArray();
-        
+        byte[] original = [.. Enumerable.Repeat((byte)'A', 1000)];
+
         int maxCompressedLength = LZ4BlockEncoder.GetMaxLength(original.Length);
         byte[] compressed = new byte[maxCompressedLength];
         byte[] decompressed = new byte[original.Length];

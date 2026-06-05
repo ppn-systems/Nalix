@@ -2,8 +2,6 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
 
-using Nalix.Abstractions.Networking.Packets;
-
 namespace Nalix.Network.Tests.HostingScan;
 
 [GenerateFormatter]

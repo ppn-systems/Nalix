@@ -3,7 +3,6 @@
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -156,7 +155,7 @@ public sealed class PacketRegistryGenerator : IIncrementalGenerator
         {
             string typeName = packet.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             string fullName = packet.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
-            
+
             _ = sb.AppendLine($"        global::{KnownNames.PacketBaseNamespace}.{KnownNames.PacketRegistryName}.RegisterGenerated<{typeName}>(");
             _ = sb.AppendLine($"            \"{ESCAPE(fullName)}\",");
             _ = sb.AppendLine($"            static raw => {typeName}.Deserialize(raw));");

@@ -21,9 +21,10 @@ public interface IPacketRegistry
     int DeserializerCount { get; }
 
     /// <summary>
-    /// Returns <see langword="true"/> if a deserializer is registered for the magic number.
+    /// Returns <see langword="true"/> if a deserializer is registered for the specified operation code.
     /// </summary>
-    bool IsKnownMagic(uint magic);
+    /// <param name="opcode">The 16-bit operation code to look up.</param>
+    bool IsKnownOpCode(ushort opcode);
 
     /// <summary>
     /// Returns <see langword="true"/> if a deserializer is registered for <typeparamref name="TPacket"/>.
@@ -31,12 +32,12 @@ public interface IPacketRegistry
     bool IsRegistered<TPacket>() where TPacket : IPacket;
 
     /// <summary>
-    /// Attempts to deserialize a packet by resolving the magic number from the raw buffer
+    /// Deserializes a packet by resolving the operation code from the raw buffer
     /// and dispatching to the matching deserializer.
     /// </summary>
     /// <param name="raw">
-    /// The raw byte span. The first four bytes are interpreted as a little-endian
-    /// 32-bit magic number.
+    /// The raw byte span. The first two bytes are interpreted as a little-endian
+    /// 16-bit operation code.
     /// </param>
     /// <returns>
     /// The deserialized packet.
@@ -45,7 +46,7 @@ public interface IPacketRegistry
     IPacket Deserialize(ReadOnlySpan<byte> raw);
 
     /// <summary>
-    /// Attempts to deserialize a packet without throwing for unknown magic or short input.
+    /// Attempts to deserialize a packet without throwing for unknown OpCode or short input.
     /// </summary>
     /// <param name="raw">Raw incoming packet bytes.</param>
     /// <param name="packet">The resolved packet when successful.</param>

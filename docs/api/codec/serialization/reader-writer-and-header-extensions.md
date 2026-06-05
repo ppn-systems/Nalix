@@ -90,7 +90,6 @@ Individual fields are accessed through the returned `PacketHeader` struct:
 
 ```csharp
 PacketHeader header = span.ReadHeaderLE();
-uint magic = header.MagicNumber;
 ushort opCode = header.OpCode;
 PacketFlags flags = header.Flags;
 PacketPriority priority = header.Priority;

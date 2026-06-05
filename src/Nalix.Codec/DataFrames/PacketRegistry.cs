@@ -264,7 +264,7 @@ public static class PacketRegistry
     }
 
     /// <summary>
-    /// Attempts to deserialize a packet without throwing for unknown magic or short input.
+    /// Attempts to deserialize a packet without throwing for unknown OpCode or short input.
     /// Generated fast dispatchers are authoritative once registered; the dictionary fallback is used only when no
     /// generated dispatcher exists.
     /// </summary>

@@ -1,7 +1,7 @@
+using Nalix.Abstractions.Networking.Packets;
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames;
@@ -22,7 +22,9 @@ public sealed class PacketRegistryTests : IDisposable
 
 
         if (!PacketRegistry.IsBuilt)
+        {
             PacketRegistry.Build();
+        }
     }
 
     public void Dispose()
@@ -37,7 +39,7 @@ public sealed class PacketRegistryTests : IDisposable
             type: ControlType.PING,
             sequenceId: 42,
             reasonCode: ProtocolReason.NONE);
-        var h = original.Header;
+        PacketHeader h = original.Header;
         h.OpCode = 0x0001;
         original.Header = h;
 
@@ -63,21 +65,15 @@ public sealed class PacketRegistryTests : IDisposable
     {
         Control packet = new();
         packet.Initialize(ControlType.PONG, sequenceId: 99);
-        var h2 = packet.Header;
-        h2.OpCode = 0x0002;
-        packet.Header = h2;
         packet.ResetForPool();
 
         packet.Initialize(ControlType.PING, sequenceId: 7);
-        var h3 = packet.Header;
-        h3.OpCode = 0x0003;
-        packet.Header = h3;
         byte[] bytes = packet.Serialize();
 
         IPacket result = PacketRegistry.Deserialize(bytes);
 
         Control control = Assert.IsType<Control>(result);
-        Assert.Equal(0x0003, control.Header.OpCode);
+        Assert.Equal(Control.StaticOpCode, control.Header.OpCode);
         Assert.Equal(7u, control.Header.SequenceId);
         Assert.Equal(ControlType.PING, control.Type);
     }
@@ -170,7 +166,7 @@ public sealed class PacketRegistryTests : IDisposable
         original.Initialize(ControlType.PING, 7, PacketFlags.SYSTEM, ProtocolReason.NONE);
 
         byte[] bytes = original.Serialize();
-        Control destination = new();
+        _ = new Control();
 
         IPacket packet = PacketRegistry.Deserialize(bytes);
         Control result = Assert.IsType<Control>(packet);
@@ -186,9 +182,9 @@ public sealed class PacketRegistryTests : IDisposable
     {
         byte[] buf = new byte[PacketConstants.HeaderSize];
         System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(buf.AsSpan(4), 0xFFFF);
-
-        Control destination = new();
-        bool ok = PacketRegistry.TryDeserialize(buf, out IPacket? packet);
+        _ = new
+        Control();
+        bool ok = PacketRegistry.TryDeserialize(buf, out IPacket? _);
 
         Assert.False(ok);
     }

@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 using Nalix.Abstractions.Exceptions;
 using Nalix.Codec.Serialization;
-using Xunit;
 
 namespace Nalix.Codec.Tests.Serialization;
 

@@ -8,7 +8,7 @@ namespace Nalix.Codec.Tests.DataFrames;
 
 public sealed class FragmentStreamIdTests
 {
-    private static readonly object s_gate = new();
+    private static readonly Lock s_gate = new();
     private static readonly FieldInfo s_counterField =
         typeof(FragmentStreamId).GetField("s_counter", BindingFlags.NonPublic | BindingFlags.Static)!;
 

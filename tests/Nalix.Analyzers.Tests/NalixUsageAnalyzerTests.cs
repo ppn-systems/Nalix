@@ -56,7 +56,7 @@ public static class DeserializeUtility
 namespace Demo;
 using Nalix.Codec.DataFrames;
 
-public sealed class MyPacket : PacketBase<MyPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class MyPacket : PacketBase<MyPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -70,7 +70,7 @@ public sealed class MyPacket : PacketBase<MyPacket>, Nalix.Abstractions.Networki
 namespace Demo;
 using Nalix.Codec.DataFrames;
 
-public sealed class MyPacket : PacketBase<MyPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class MyPacket : PacketBase<MyPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -98,7 +98,7 @@ public sealed class WrongPacket : PacketBase<OtherPacket>
 {
 }
 
-public sealed class OtherPacket : PacketBase<OtherPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class OtherPacket : PacketBase<OtherPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -109,13 +109,11 @@ public sealed class OtherPacket : PacketBase<OtherPacket>, Nalix.Abstractions.Ne
 namespace Demo;
 using Nalix.Codec.DataFrames;
 
-public sealed class WrongPacket : PacketBase<WrongPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class WrongPacket : PacketBase<WrongPacket>
 {
-    public static ushort StaticOpCode => 9999;
-
 }
 
-public sealed class OtherPacket : PacketBase<OtherPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class OtherPacket : PacketBase<OtherPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -141,7 +139,7 @@ public sealed class WrongPacket : PacketBase<WrongPacket>, IPacketDeserializer<O
     public static new WrongPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<WrongPacket>.Deserialize(buffer);
 }
 
-public sealed class OtherPacket : PacketBase<OtherPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class OtherPacket : PacketBase<OtherPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -159,7 +157,7 @@ public sealed class WrongPacket : PacketBase<WrongPacket>, IPacketDeserializer<W
     public static new WrongPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<WrongPacket>.Deserialize(buffer);
 }
 
-public sealed class OtherPacket : PacketBase<OtherPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class OtherPacket : PacketBase<OtherPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -220,7 +218,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -250,7 +248,7 @@ using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -282,7 +280,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -311,7 +309,7 @@ using Nalix.Codec.DataFrames;
 using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 using Nalix.Abstractions.Middleware;
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -340,7 +338,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -420,7 +418,7 @@ public sealed class DemoController
     }
 }
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -443,7 +441,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 using Nalix.Abstractions.Middleware;
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -480,7 +478,7 @@ public sealed class DemoController
     public void HandleB(DemoPacket packet, IConnection connection) { }
 }
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -506,7 +504,7 @@ public sealed class DemoController
     public void Handle(DemoPacket packet, IConnection connection) { }
 }
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -532,7 +530,7 @@ public sealed class DemoController
     public void Handle(DemoPacket packet) { }
 }
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -554,14 +552,14 @@ using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Di
 using Nalix.Abstractions.Middleware;
 using Nalix.Abstractions.Middleware;
 
-public sealed class PacketA : PacketBase<PacketA>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class PacketA : PacketBase<PacketA>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
     public static new PacketA Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<PacketA>.Deserialize(buffer);
 }
 
-public sealed class PacketB : PacketBase<PacketB>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class PacketB : PacketBase<PacketB>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -801,7 +799,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 using Nalix.Abstractions.Middleware;
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -830,7 +828,7 @@ using Nalix.Codec.DataFrames;
 using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 using Nalix.Abstractions.Middleware;
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -891,7 +889,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -927,7 +925,7 @@ using Nalix.Codec.DataFrames;
 
 public sealed class Helper { }
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -957,7 +955,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -1024,7 +1022,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -1071,7 +1069,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -1105,7 +1103,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -1135,7 +1133,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -1162,7 +1160,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -1192,14 +1190,14 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
     public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
 }
 
-public sealed class OtherPacket : PacketBase<OtherPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class OtherPacket : PacketBase<OtherPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -1235,14 +1233,14 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
     public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
 }
 
-public sealed class OtherPacket : PacketBase<OtherPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class OtherPacket : PacketBase<OtherPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -1414,7 +1412,7 @@ public static class Setup
 namespace Demo;
 using Nalix.Codec.DataFrames;
 
-public sealed class MissingDeserializePacket : PacketBase<MissingDeserializePacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class MissingDeserializePacket : PacketBase<MissingDeserializePacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -1431,7 +1429,7 @@ public sealed class MissingDeserializePacket : PacketBase<MissingDeserializePack
 namespace Demo;
 using Nalix.Codec.DataFrames;
 
-public sealed class BadDeserializePacket : PacketBase<BadDeserializePacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class BadDeserializePacket : PacketBase<BadDeserializePacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -1454,7 +1452,7 @@ using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -1512,7 +1510,7 @@ using Nalix.Codec.DataFrames;
 using Nalix.Network.Routing; using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 using Nalix.Abstractions.Middleware;
 
-public sealed class DemoPacket : PacketBase<DemoPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -1552,7 +1550,7 @@ using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
 
 [SerializePackable(SerializeLayout.Explicit)]
-public sealed class MyPacket : PacketBase<MyPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class MyPacket : PacketBase<MyPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 

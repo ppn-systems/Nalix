@@ -1,14 +1,4 @@
 // Licensed under the Apache License, Version 2.0.
-using System;
-using Nalix.Abstractions.Networking.Packets;
-using Nalix.Codec.ProtocolFrames;
-using Nalix.Abstractions.Exceptions;
-using Nalix.Abstractions.Serialization;
-using Nalix.Codec.Serialization;
-using Nalix.Abstractions.Primitives;
-using Nalix.Framework.Identifiers;
-using Xunit;
-
 namespace Nalix.Codec.Tests.Serialization;
 
 public sealed class LiteSerializerObjectTests

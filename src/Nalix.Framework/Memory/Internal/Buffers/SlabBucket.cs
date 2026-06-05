@@ -201,11 +201,15 @@ internal sealed class SlabBucket : IDisposable
 
         // Emergency fallback: if manager rejected growth, allocate one anyway 
         // to prevent consumer failure, but this should be rare.
-        this.AllocateAndEnqueue(1);
-
-        if (this.TryRent(out array))
+        // We use a small retry loop because another thread might steal the array we just enqueued.
+        for (int i = 0; i < 3; i++)
         {
-            return array;
+            this.AllocateAndEnqueue(1);
+
+            if (this.TryRent(out array))
+            {
+                return array;
+            }
         }
 
         this.THROW_ALLOCATION_FAILED();

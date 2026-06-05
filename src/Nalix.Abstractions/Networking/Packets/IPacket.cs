@@ -29,7 +29,7 @@ public interface IPacket
     int Length { get; }
 
     /// <summary>
-    /// Gets or sets the standard 10-byte packet header.
+    /// Gets or sets the standard 6-byte packet header.
     /// </summary>
     [SerializeHeader(0)]
     PacketHeader Header { get; set; }

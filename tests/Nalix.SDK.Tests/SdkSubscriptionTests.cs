@@ -164,6 +164,7 @@ public sealed class SdkSubscriptionTests
 
         public int DeserializerCount => 1;
         public bool IsKnownMagic(uint magic) => true;
+        public bool IsKnownOpCode(ushort opcode) => true;
         public bool IsRegistered<TPacket>() where TPacket : IPacket => true;
         public IPacket Deserialize(ReadOnlySpan<byte> raw) => Next;
         public bool TryDeserialize(ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet)

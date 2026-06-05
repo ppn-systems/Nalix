@@ -34,8 +34,8 @@ public enum PacketHeaderOffset
     SequenceId = Priority + sizeof(byte),
 
     /// <summary>
-    /// Represents the end offset of the packet header fields in the serialized data.
-    /// This value is equal to the offset of the last field and can be used to determine the total header size.
+    /// Represents the exclusive end offset of the packet header fields in the serialized data.
+    /// This value equals the total header size (6 bytes).
     /// </summary>
     Region = SequenceId + sizeof(ushort),
 

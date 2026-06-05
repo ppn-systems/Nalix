@@ -582,7 +582,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
         BufferLease lease = BufferLease.CopyFrom(rawPayloadSpan);
         lease.IsReliable = true;
 
-        // Safety: The application protocol (FramePipeline) requires a 10-byte header.
+        // Safety: The application protocol (FramePipeline) requires a valid packet header.
         // If the payload is too small, it's a malformed packet that would cause OOB reads.
         if (payloadLen < PacketConstants.HeaderSize)
         {

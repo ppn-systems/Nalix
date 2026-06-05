@@ -1,11 +1,8 @@
-
-using System;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames;
-using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Codec.ProtocolFrames;
-using Xunit;
 
 namespace Nalix.Codec.Tests.DataFrames;
 
@@ -18,7 +15,7 @@ public sealed partial class DataFramesPublicApiTests
         Control packet = new();
 
         packet.Initialize(ControlType.PING, 42, PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, ProtocolReason.TIMEOUT);
-        var h = packet.Header;
+        PacketHeader h = packet.Header;
         h.OpCode = 123;
         packet.Header = h;
 
@@ -35,7 +32,7 @@ public sealed partial class DataFramesPublicApiTests
     {
         Control packet = new();
         packet.Initialize(ControlType.ERROR, 7, PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, ProtocolReason.INTERNAL_ERROR);
-        var h2 = packet.Header;
+        PacketHeader h2 = packet.Header;
         h2.OpCode = 555;
         packet.Header = h2;
         packet.Header = new PacketHeader { Flags = PacketFlags.SYSTEM };
@@ -81,7 +78,7 @@ public sealed partial class DataFramesPublicApiTests
             arg0: 1000,
             arg1: 2000,
             arg2: 33);
-        var h3 = packet.Header;
+        PacketHeader h3 = packet.Header;
         h3.OpCode = 77;
         packet.Header = h3;
 
@@ -105,7 +102,7 @@ public sealed partial class DataFramesPublicApiTests
     {
         Control packet = new();
         packet.Initialize(ControlType.PING, 42, PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, ProtocolReason.TIMEOUT);
-        var h4 = packet.Header;
+        PacketHeader h4 = packet.Header;
         h4.OpCode = 123;
         packet.Header = h4;
 
@@ -129,7 +126,7 @@ public sealed partial class DataFramesPublicApiTests
             arg0: 1000,
             arg1: 2000,
             arg2: 33);
-        var h5 = packet.Header;
+        PacketHeader h5 = packet.Header;
         h5.OpCode = 77;
         packet.Header = h5;
 
@@ -174,7 +171,7 @@ public sealed partial class DataFramesPublicApiTests
             ProtocolReason.TIMEOUT,
             Bytes32.Zero,
             PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
-        var h = packet.Header;
+        PacketHeader h = packet.Header;
         h.Flags = PacketFlags.SYSTEM;
         packet.Header = h;
 
@@ -215,8 +212,8 @@ public sealed partial class DataFramesPublicApiTests
     {
         byte[] transcript = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-        Bytes32 first = Nalix.Codec.Security.Hashing.Keccak256.HashDataToFixed(transcript);
-        Bytes32 second = Nalix.Codec.Security.Hashing.Keccak256.HashDataToFixed(transcript);
+        Bytes32 first = Security.Hashing.Keccak256.HashDataToFixed(transcript);
+        Bytes32 second = Security.Hashing.Keccak256.HashDataToFixed(transcript);
 
         Assert.Equal(first, second);
     }

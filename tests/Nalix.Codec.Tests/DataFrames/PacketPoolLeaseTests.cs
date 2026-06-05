@@ -2,10 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Codec.DataFrames;
-using Nalix.Framework.Memory.Objects;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
-using Xunit;
+using Nalix.Framework.Memory.Objects;
 
 namespace Nalix.Codec.Tests.DataFrames;
 

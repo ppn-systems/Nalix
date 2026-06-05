@@ -113,7 +113,7 @@ public sealed class OrderUpdate : PacketBase<OrderUpdate>
 
 ### Case C: SerializeOrder and the Header
 
-`[SerializeOrder]` values are relative to the start of the payload. The system header (magic number, opcode, protocol metadata) is managed internally by `PacketBase<T>`. Always start your payload order from 0.
+`[SerializeOrder]` values are relative to the start of the payload. The system header (opcode, flags, priority, sequence id) is managed internally by `PacketBase<T>`. Always start your payload order from 0.
 
 ```csharp
 [SerializePackable(SerializeLayout.Explicit)]
@@ -129,7 +129,7 @@ public sealed class RegionalPacket : PacketBase<RegionalPacket>
 ```
 
 !!! note "Header layout"
-    `[SerializeOrder]` values do not overlap with the system header. The header fields (magic, opcode, protocol, priority) are managed by the framework. Always start payload fields from order `0`.
+    `[SerializeOrder]` values do not overlap with the system header. The header fields (opcode, flags, priority, sequence id) are managed by the framework. Always start payload fields from order `0`.
 
 ---
 
@@ -182,11 +182,11 @@ public sealed class PingRequest : PacketBase<PingRequest>
 
 ## 6. Edge Cases & Wire Integrity
 
-### Magic Numbers: Ensuring Type Safety
+### OpCode Validation: Ensuring Type Safety
 
-Every packet in Nalix includes a hidden **Magic Number** derived from its full type name. During deserialization, `PacketBase<T>.Deserialize` validates this number before attempting to read the payload.
+Every packet in Nalix defines a static **OpCode** via the `IPacketStaticOpcode` interface. During deserialization, `PacketBase<T>.Deserialize` validates the OpCode in the wire header against `TSelf.StaticOpCode` before attempting to read the payload.
 
-If you attempt to deserialize a `PingRequest` buffer into a `TradePacket` object, the system will throw a `SerializationFailureException` due to a magic number mismatch. This prevents silent data corruption and type-conversion bugs.
+If you attempt to deserialize a `PingRequest` buffer into a `TradePacket` object, the system will throw a `SerializationFailureException` due to an OpCode mismatch. This prevents silent data corruption and type-conversion bugs.
 
 ### Handling Serialization Failures
 
@@ -194,7 +194,7 @@ Network data can be malformed, truncated, or malicious. Nalix protects the hot p
 
 - **Buffer Too Small**: The incoming data is shorter than the fixed-size header or the expected static payload.
 - **Dynamic Size Limit Exceeded**: A string or array exceeds the limit set by `[SerializeDynamicSize]`.
-- **Magic Number Mismatch**: The incoming packet's type identity does not match the target deserialization class.
+- **OpCode Mismatch**: The incoming packet's OpCode does not match the target deserialization class.
 
 #### Best Practice: Defensive Dispatch
 

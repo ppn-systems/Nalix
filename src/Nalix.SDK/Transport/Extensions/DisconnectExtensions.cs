@@ -37,7 +37,7 @@ public static class DisconnectExtensions
             {
                 // Send the DISCONNECT frame to alert the server to clean up instantly
                 await session.SendControlAsync(
-                    
+
                     type: ControlType.DISCONNECT,
                     configure: ctrl => ctrl.Reason = reason,
                     ct: ct).ConfigureAwait(false);

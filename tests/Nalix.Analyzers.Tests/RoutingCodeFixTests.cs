@@ -140,7 +140,7 @@ public sealed class Example
 namespace Demo;
 using Nalix.Codec.DataFrames;
 
-public sealed class RegistryPacket : PacketBase<RegistryPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class RegistryPacket : PacketBase<RegistryPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -159,7 +159,7 @@ public sealed class Example
 namespace Demo;
 using Nalix.Codec.DataFrames;
 
-public sealed class RegistryPacket : PacketBase<RegistryPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class RegistryPacket : PacketBase<RegistryPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 

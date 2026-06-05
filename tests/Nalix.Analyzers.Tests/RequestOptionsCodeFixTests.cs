@@ -21,7 +21,7 @@ using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 
-public sealed class LoginPacket : PacketBase<LoginPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class LoginPacket : PacketBase<LoginPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -48,7 +48,7 @@ using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 
-public sealed class LoginPacket : PacketBase<LoginPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class LoginPacket : PacketBase<LoginPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -89,7 +89,7 @@ using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 
-public sealed class LoginPacket : PacketBase<LoginPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class LoginPacket : PacketBase<LoginPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 
@@ -116,7 +116,7 @@ using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 
-public sealed class LoginPacket : PacketBase<LoginPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+public sealed class LoginPacket : PacketBase<LoginPacket>, IPacketStaticOpcode
 {
     public static ushort StaticOpCode => 9999;
 

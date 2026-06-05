@@ -20,7 +20,7 @@ This page covers the core `Nalix.Codec.DataFrames` abstractions that sit underne
 
 | Type | Public members |
 | --- | --- |
-| `FrameBase` | `Header`, `MagicNumber`, `OpCode`, `Flags`, `Priority`, `SequenceId`, `Length`, `Serialize()`, `Serialize(Span<byte>)`, `ResetForPool()` |
+| `FrameBase` | `Header`, `OpCode`, `Flags`, `Priority`, `SequenceId`, `Length`, `Serialize()`, `Serialize(Span<byte>)`, `ResetForPool()` |
 | `PacketBase<TSelf>` | frame members plus `GenerateReport()`, `WriteReportData(Utf8JsonWriter)`, `Deserialize(ReadOnlySpan<byte>)`, `Create()` |
 | `FrameTransformer` | low-level payload transform helpers and size calculations |
 | `FrameCipher` | shared framed packet encrypt/decrypt helper |
@@ -32,8 +32,7 @@ This page covers the core `Nalix.Codec.DataFrames` abstractions that sit underne
 
 It exposes the `Header` property (a `PacketHeader` struct) and convenience facade properties for direct field access:
 
-- `Header` — the full 10-byte `PacketHeader` struct
-- `MagicNumber` — facade over `Header.MagicNumber`
+- `Header` — the full 6-byte `PacketHeader` struct
 - `OpCode` — facade over `Header.OpCode`
 - `Flags` — facade over `Header.Flags`
 - `Priority` — facade over `Header.Priority`
@@ -54,7 +53,7 @@ It also defines the common packet lifecycle methods:
 
 It adds the behavior most application packets want by default:
 
-- automatic `MagicNumber` generation from the concrete type name through an internal FNV-1a hash of the full type name
+- automatic `OpCode` assignment from `TSelf.StaticOpCode` (defined via `IPacketStaticOpcode`)
 - cached reflection metadata for ordered serializable properties
 - automatic `Length` calculation for fixed-size and dynamic-size payloads
 - `LiteSerializer`-based `Serialize(...)` and `Deserialize(...)`

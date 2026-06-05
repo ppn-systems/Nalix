@@ -15,11 +15,28 @@ Defines the reserved OpCodes for Nalix system and protocol-level internal packet
 
 | Member | Value | Description |
 | :--- | :--- | :--- |
-| `SESSION_INIT` | `0x0000` | Client initiates the handshake and sends its ephemeral public key. |
-| `SYSTEM_CONTROL` | `0x0001` | Used for system-level control packets like PING, PONG, ERROR, DISCONNECT. |
-| `SESSION_SIGNAL` | `0x0002` | Unified packet flow for session management (resume, ack, reject). |
-| `SESSION_PROOF` | `0x0003` | Client confirms the derived transcript and proves possession. |
-| `SYSTEM_TIMESYNC` | `0x0004` | Time synchronization and PING packets. |
+| `SESSION_INIT` | `0x0000` | Client initiates the session handshake and sends its ephemeral public key. |
+| `SYSTEM_CONTROL` | `0x0001` | System-level control packet, such as ping, pong, error, or disconnect. |
+| `SESSION_SIGNAL` | `0x0002` | Unified packet flow for session management, including resume, acknowledgement, and rejection. |
+| `SESSION_PROOF` | `0x0003` | Client confirms the derived transcript and proves possession of the negotiated session material. |
+| `SYSTEM_TIMESYNC` | `0x0004` | System time synchronization packet used for latency and clock-offset estimation. |
+| `SESSION_TOFU` | `0x0005` | Trust On First Use packet used to bind or verify the remote session identity. |
+| `SESSION_CHALLENGE` | `0x0006` | Session challenge packet used for cryptographic validation. |
+| `SESSION_ESTABLISHED` | `0x0007` | Session acknowledgement packet indicating that the secure session has been established. |
+| `SYSTEM_DIRECTIVE` | `0x0008` | System directive packet used to send framework-level commands or runtime instructions. |
+| `TUNNEL_REQUEST` | `0x00F3` | Tunnel request packet. |
+| `TUNNEL_PROVIDE_ACK` | `0x00F4` | Tunnel provisioning acknowledgement. |
+| `TUNNEL_CONNECT_ACK` | `0x00F5` | Tunnel connection request acknowledgement. |
+| `TUNNEL_READY` | `0x00F6` | Tunnel readiness notification sent when a tunnel endpoint is prepared for traffic forwarding. |
+| `TUNNEL_PROVIDE` | `0x00F7` | Tunnel provisioning packet used to provide tunnel endpoint or relay metadata. |
+| `TUNNEL_CONNECT` | `0x00F8` | Tunnel connection request used to establish a logical tunnel between peers or relay endpoints. |
+| `TRAVERSAL_REFLECTOR_INIT` | `0x00F9` | Reflector initialization packet used to start NAT traversal reflector coordination. |
+| `TRAVERSAL_REFLECTOR_ALLOCATED` | `0x00FA` | Reflector allocation response containing the assigned relay or reflector endpoint information. |
+| `TRAVERSAL_PEER_SIGNAL` | `0x00FB` | Peer signaling packet used to exchange traversal candidates or coordination metadata. |
+| `TRAVERSAL_NAT_PROBE_ACK` | `0x00FC` | NAT probe acknowledgement packet used to confirm that a traversal probe was received. |
+| `TRAVERSAL_NAT_PROBE` | `0x00FD` | NAT probe packet used to test direct peer reachability. |
+| `RUNTIME_OBSERVATION` | `0x00FE` | Runtime observation packet used for diagnostics, metrics, or internal runtime inspection. |
+| `OBSERVABILITY_ACCESS` | `0x00FF` | Observability access packet used to request or authorize access to framework-level telemetry. |
 
 ### PacketPriority
 
@@ -54,12 +71,11 @@ Represents the positions of fields in the serialization order.
 
 | Member | Offset | Type | Description |
 | :--- | :--- | :--- | :--- |
-| `MagicNumber` | `0` | `int` | Unique identifier for the packet format or protocol. |
-| `OpCode` | `4` | `ushort` | Operation code specifying the command or type of the packet. |
-| `Flags` | `6` | `byte` | State or processing options for the packet. |
-| `Priority` | `7` | `byte` | Relative processing priority of the packet. |
-| `SequenceId` | `8` | `ushort` | Used for packet sequence correlation. |
-| `Region` | `10` | - | End offset of the packet header fields. |
+| `OpCode` | `0` | `ushort` | Operation code specifying the command or type of the packet. |
+| `Flags` | `2` | `byte` | State or processing options for the packet. |
+| `Priority` | `3` | `byte` | Relative processing priority of the packet. |
+| `SequenceId` | `4` | `ushort` | Used for packet sequence correlation. |
+| `Region` | `6` | - | End offset (exclusive) of the packet header fields; equal to the total header size. |
 | `MaxValue` | `255` | - | The maximum numeric value reserved for the enum. |
 
 ### PacketContextState
@@ -345,7 +361,7 @@ This page is an enum reference first. Enums alone are not a full wire protocol s
 
 | Topic | Current Status | Source Anchors |
 | :--- | :--- | :--- |
-| Packet header binary layout | **Defined**: fixed 10 bytes, contiguous offsets, no padding (`MagicNumber[0..3]`, `OpCode[4..5]`, `Flags[6]`, `Priority[7]`, `SequenceId[8..9]`). | `src/Nalix.Abstractions/Networking/Packets/PacketHeaderOffset.cs`, `src/Nalix.Abstractions/Networking/Packets/PacketConstants.cs`, `src/Nalix.Codec/Extensions/HeaderExtensions.cs`, `src/Nalix.Codec/DataFrames/FrameBase.cs` |
+| Packet header binary layout | **Defined**: fixed 6 bytes, contiguous offsets, no padding (`OpCode[0..1]`, `Flags[2]`, `Priority[3]`, `SequenceId[4..5]`). | `src/Nalix.Abstractions/Networking/Packets/PacketHeaderOffset.cs`, `src/Nalix.Abstractions/Networking/Packets/PacketConstants.cs`, `src/Nalix.Codec/Extensions/HeaderExtensions.cs`, `src/Nalix.Codec/DataFrames/FrameBase.cs` |
 | Header endianness | **Defined**: header read helpers are little-endian (`ReadHeaderLE` / `WriteHeaderLE` using `MemoryMarshal`). | `src/Nalix.Environment/Extensions/HeaderExtensions.cs` |
 | TCP framing | **Defined**: stream is length-prefixed with `UInt16 LE` where prefix value is total frame size (including the 2-byte prefix). | `src/Nalix.SDK/Transport/Internal/Tcp/TcpFrameSender.cs`, `src/Nalix.SDK/Transport/Internal/Tcp/TcpFrameReader.cs`, `src/Nalix.Network/Internal/Transport/SocketConnection.Send.cs`, `src/Nalix.Network/Internal/Transport/SocketConnection.cs` |
 | UDP framing | **Defined**: outbound datagram is `[SessionToken(8 bytes) | Payload]`; token is `Snowflake` in little-endian layout. | `src/Nalix.SDK/Transport/UdpSession.cs`, `src/Nalix.Network/Listeners/UdpListener/UdpListener.Receive.cs`, `src/Nalix.Framework/Identifiers/Snowflake.Serialization.cs` |

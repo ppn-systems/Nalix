@@ -1,3 +1,4 @@
+using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
@@ -83,12 +84,12 @@ public sealed class DataFramesSignalAndTransformEdgeTests
     }
 
     [Fact]
-    public void DirectiveInitializeOverloadWithoutOpcodeKeepsSystemControlOpcode()
+    public void DirectiveInitializeOverloadWithoutOpcodeKeepsDirectiveOpcode()
     {
         Directive packet = new();
         packet.Initialize(ControlType.REDIRECT, ProtocolReason.THROTTLED, ProtocolAdvice.SLOW_DOWN, sequenceId: 9, controlFlags: ControlFlags.SLOW_DOWN, arg0: 1, arg1: 2, arg2: 3);
 
-        Assert.Equal((ushort)ProtocolOpCode.SYSTEM_CONTROL, packet.Header.OpCode);
+        Assert.Equal((ushort)ProtocolOpCode.SYSTEM_DIRECTIVE, packet.Header.OpCode);
         Assert.Equal(ControlType.REDIRECT, packet.Type);
         Assert.Equal(ProtocolReason.THROTTLED, packet.Reason);
         Assert.Equal(ProtocolAdvice.SLOW_DOWN, packet.Action);
@@ -128,8 +129,8 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         src.Span.AsHeaderRef() = new PacketHeader { Flags = PacketFlags.COMPRESSED };
         payload.CopyTo(src.Span[FrameTransformer.Offset..]);
 
-        using var encrypted = FrameCipher.EncryptFrame(src, key, null, CipherSuiteType.Chacha20Poly1305);
-        using var decrypted = FrameCipher.DecryptFrame(encrypted, key, CipherSuiteType.Chacha20Poly1305, out _);
+        using IBufferLease encrypted = FrameCipher.EncryptFrame(src, key, null, CipherSuiteType.Chacha20Poly1305);
+        using IBufferLease decrypted = FrameCipher.DecryptFrame(encrypted, key, CipherSuiteType.Chacha20Poly1305, out _);
 
         PacketFlags flags = decrypted.Span.AsHeaderRef().Flags;
         Assert.True(flags.HasFlag(PacketFlags.COMPRESSED));
@@ -151,8 +152,8 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         src.Span.AsHeaderRef() = new PacketHeader { Flags = PacketFlags.ENCRYPTED };
         payload.CopyTo(src.Span[FrameTransformer.Offset..]);
 
-        using var compressed = FrameCompression.CompressFrame(src);
-        using var decompressed = FrameCompression.DecompressFrame(compressed);
+        using IBufferLease compressed = FrameCompression.CompressFrame(src);
+        using IBufferLease decompressed = FrameCompression.DecompressFrame(compressed);
 
         PacketFlags flags = decompressed.Span.AsHeaderRef().Flags;
         Assert.True(flags.HasFlag(PacketFlags.ENCRYPTED));

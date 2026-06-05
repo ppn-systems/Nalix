@@ -172,7 +172,7 @@ public sealed partial class PacketBaseLengthTests
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    internal sealed partial class StringPacket : PacketBase<StringPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+    internal sealed partial class StringPacket : PacketBase<StringPacket>, IPacketStaticOpcode
     {
         public static ushort StaticOpCode => 9999;
         [SerializeOrder(0)]
@@ -181,7 +181,7 @@ public sealed partial class PacketBaseLengthTests
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    internal sealed partial class ChildPacket : PacketBase<ChildPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+    internal sealed partial class ChildPacket : PacketBase<ChildPacket>, IPacketStaticOpcode
     {
         public static ushort StaticOpCode => 9999;
         [SerializeOrder(0)]
@@ -190,7 +190,7 @@ public sealed partial class PacketBaseLengthTests
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    internal sealed partial class ParentPacket : PacketBase<ParentPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+    internal sealed partial class ParentPacket : PacketBase<ParentPacket>, IPacketStaticOpcode
     {
         public static ushort StaticOpCode => 9999;
         public ChildPacket? Child { get; set; }
@@ -198,7 +198,7 @@ public sealed partial class PacketBaseLengthTests
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    internal sealed partial class ListPacket : PacketBase<ListPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+    internal sealed partial class ListPacket : PacketBase<ListPacket>, IPacketStaticOpcode
     {
         public static ushort StaticOpCode => 9999;
         public List<int>? Values { get; set; }
@@ -206,7 +206,7 @@ public sealed partial class PacketBaseLengthTests
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    internal sealed partial class DictionaryPacket : PacketBase<DictionaryPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+    internal sealed partial class DictionaryPacket : PacketBase<DictionaryPacket>, IPacketStaticOpcode
     {
         public static ushort StaticOpCode => 9999;
         public Dictionary<string, int>? Values { get; set; }
@@ -214,7 +214,7 @@ public sealed partial class PacketBaseLengthTests
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    internal sealed partial class StringDictionaryPacket : PacketBase<StringDictionaryPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+    internal sealed partial class StringDictionaryPacket : PacketBase<StringDictionaryPacket>, IPacketStaticOpcode
     {
         public static ushort StaticOpCode => 9999;
         public Dictionary<string, string>? Values { get; set; }
@@ -222,7 +222,7 @@ public sealed partial class PacketBaseLengthTests
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    internal sealed partial class DynamicHintStringPacket : PacketBase<DynamicHintStringPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
+    internal sealed partial class DynamicHintStringPacket : PacketBase<DynamicHintStringPacket>, IPacketStaticOpcode
     {
         public static ushort StaticOpCode => 9999;
         [SerializeDynamicSize(64)]

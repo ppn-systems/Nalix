@@ -1,11 +1,12 @@
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.DataFrames;
 using Nalix.Codec.ProtocolFrames;
-using Nalix.Environment.Memory;
 using Nalix.Codec.Transforms;
+using Nalix.Environment.Memory;
 
 namespace Nalix.Codec.Tests.DataFrames;
 
@@ -16,9 +17,6 @@ public sealed partial class DataFramesPublicApiTests
     {
         Control packet = new();
         packet.Initialize(ControlType.PONG, 88, PacketFlags.RELIABLE, ProtocolReason.NONE);
-        var h = packet.Header;
-        h.OpCode = 33;
-        packet.Header = h;
         byte[] bytes = packet.Serialize();
 
         IPacket deserialized = PacketRegistry.Deserialize(bytes);
@@ -49,13 +47,13 @@ public sealed partial class DataFramesPublicApiTests
     [Theory]
     [InlineData(PacketConstants.HeaderSize)]
     [InlineData(PacketConstants.HeaderSize + 10)]
-    public void DeserializeWhenHeaderMagicIsUnknownThrowsInvalidOperationException(int bufferLength)
+    public void DeserializeWhenOpcodeIsUnknownThrowsInvalidOperationException(int bufferLength)
     {
         byte[] raw = new byte[bufferLength];
         BitConverter.GetBytes(0xDEADBEEFu).CopyTo(raw, 0);
 
         InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => PacketRegistry.Deserialize(raw));
-        Assert.StartsWith("Cannot deserialize packet: Magic", ex.Message);
+        Assert.StartsWith("Cannot deserialize packet: OpCode 48879 is not registered", ex.Message);
     }
 
 

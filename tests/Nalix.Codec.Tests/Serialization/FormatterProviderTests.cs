@@ -1,14 +1,9 @@
-using Nalix.Environment.Extensions;
-using Nalix.Environment.Memory;
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
 using Nalix.Abstractions.Exceptions;
-using Nalix.Framework.Memory.Buffers;
 using Nalix.Codec.Serialization;
-using Xunit;
+using Nalix.Environment.Memory;
 
 namespace Nalix.Codec.Tests.Serialization;
 
@@ -54,10 +49,7 @@ public sealed class FormatterProviderTests
     }
 
     [Fact]
-    public void GetWhenMemoryElementTypeIsManagedThrowsSerializationFailureException()
-    {
-        Assert.Throws<SerializationFailureException>(() => FormatterProvider.Get<Memory<string>>());
-    }
+    public void GetWhenMemoryElementTypeIsManagedThrowsSerializationFailureException() => _ = Assert.Throws<SerializationFailureException>(FormatterProvider.Get<Memory<string>>);
 
     [Fact]
     public void RegisterOverridesFormatterCacheForTargetType()
@@ -76,7 +68,7 @@ public sealed class FormatterProviderTests
     [Fact]
     public void RegisterComplexWhenTypeIsUnsupportedThrowsSerializationFailureException()
     {
-        Assert.Throws<SerializationFailureException>(() =>
+        _ = Assert.Throws<SerializationFailureException>(() =>
             FormatterProvider.RegisterComplex<IUnsupported>(new UnsupportedFormatter()));
     }
 

@@ -61,7 +61,7 @@ flowchart LR
 
 ### Key components
 
-- `FrameBase` / `PacketBase<TSelf>` — base abstractions for headers, auto-magic, serialization, and pooling.
+- `FrameBase` / `PacketBase<TSelf>` — base abstractions for headers, static opcode, serialization, and pooling.
 - `SerializePackableAttribute` / `SerializeOrderAttribute` / `SerializeIgnoreAttribute` / `SerializeHeaderAttribute` / `SerializeDynamicSizeAttribute` — low-level serialization layout controls.
 - `LiteSerializer` / `FormatterProvider` / `IFormatter<T>` — serializer entry points and formatter resolution.
 - `PacketRegistry` — process-wide registry for packet discovery and deserialization.

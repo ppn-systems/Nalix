@@ -8,15 +8,15 @@ This page covers packet discovery and registry APIs in `Nalix.Codec.DataFrames`.
 
 ## Core Concepts
 
-In Nalix, the `PacketRegistry` is a process-wide, immutable, thread-safe catalog of packet types and their associated deserializers. It is optimized for ultra-fast lookup via the packet's **Magic Number** (auto-generated hash of the type name).
+In Nalix, the `PacketRegistry` is a process-wide, thread-safe catalog of packet types and their associated deserializers. It is optimized for ultra-fast lookup via the packet's **OpCode** (a `ushort` statically defined by each packet type through `IPacketStaticOpcode`).
 
 ### 1. Automatic Discovery (Source Generation)
 
 Nalix uses a C# Source Generator to automatically detect types inheriting from `PacketBase<TSelf>` or implementing `IPacket`. The generator produces calls to `PacketRegistry.RegisterGenerated(...)` which are executed during assembly initialization.
 
-### 2. Frozen Catalog
+### 2. Finalized Catalog
 
-The registry must be "built" before it can be used for deserialization. Calling `PacketRegistry.Build()` freezes the internal catalog, making it read-only and thread-safe for high-performance dispatch.
+The registry must be "built" before it can be used for deserialization. Calling `PacketRegistry.Build()` finalizes the internal lookup table, making it read-only and thread-safe for high-performance dispatch.
 
 ## Main types
 
@@ -26,7 +26,7 @@ The registry must be "built" before it can be used for deserialization. Calling 
 
 | Type | Public members |
 | --- | --- |
-| `PacketRegistry` | `Configure(IObjectPoolManager)`, `RegisterGenerated(PacketDispatch)`, `RegisterGenerated(uint, string, PacketDeserializer)`, `Build()`, `IsKnownMagic`, `TryDeserialize`, `IsBuilt`, `DeserializerCount` |
+| `PacketRegistry` | `Configure(IObjectPoolManager)`, `RegisterGenerated(PacketDispatch)`, `RegisterGenerated<TPacket>(string, PacketDeserializer)`, `Build()`, `IsKnownOpCode`, `TryDeserialize`, `IsBuilt`, `DeserializerCount` |
 
 ## Usage
 
@@ -59,7 +59,7 @@ if (PacketRegistry.TryDeserialize(bufferLease.Span, out IPacket? packet))
 
 ## Practical notes
 
-- **Magic Numbers**: Magic numbers are 4-byte hashes derived from the packet's full type name. They provide collision-resistant identification without the overhead of strings.
+- **OpCodes**: Each packet type defines a static `ushort` operation code via the `IPacketStaticOpcode` interface. The registry uses this code for O(1) lookup without dictionary overhead.
 - **Built-in Packets**: Built-in frames like `SessionInit`, `Control`, and `SessionResume` are automatically registered by the framework.
 - **Threading**: `PacketRegistry` is thread-safe after `Build()` is called.
 

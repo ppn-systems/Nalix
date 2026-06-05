@@ -13,7 +13,7 @@ In a large networking project, manually registering every packet type is error-p
 ## How it works
  
 1. **Discovery**: Scans for non-abstract classes that inherit from `PacketBase<TSelf>` and have the `[Packet]` attribute (or metadata).
-2. **Hash Table Optimization**: It calculates an optimal hash table size and a mask to ensure O(1) lookup of packets by their magic number (OpCode).
+2. **Direct Table Lookup**: It registers each packet's static `ushort` OpCode into a direct-indexed table, ensuring O(1) dispatch without hash computation.
 3. **Dispatch Logic**: It generates a high-performance `TryDeserialize` method that avoids dictionary lookups and delegate overhead.
 4. **Auto-Initialization**: Uses a `[ModuleInitializer]` to call the registration logic automatically as soon as the assembly is loaded.
  

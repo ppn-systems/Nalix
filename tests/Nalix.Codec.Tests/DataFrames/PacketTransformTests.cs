@@ -5,10 +5,10 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
-using Nalix.Environment.Extensions;
-using Nalix.Environment.Memory;
 using Nalix.Codec.Security;
 using Nalix.Codec.Transforms;
+using Nalix.Environment.Extensions;
+using Nalix.Environment.Memory;
 using Nalix.Environment.Random;
 
 namespace Nalix.Codec.Tests.DataFrames;

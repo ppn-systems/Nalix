@@ -155,7 +155,8 @@ public sealed class ExtensionsCoverageTests
     [Fact]
     public async Task WithTimeoutWhenReferenceTypeTaskDoesNotCompleteReturnsNull()
     {
-        Task<string> task = Task.Delay(1000).ContinueWith(_ => "done", TaskScheduler.Default);
+        // Increase delay to 5000ms to ensure 50ms timeout wins
+        Task<string> task = Task.Delay(5000).ContinueWith(_ => "done", TaskScheduler.Default);
 
         string? result = await task.WithTimeout(50);
 
