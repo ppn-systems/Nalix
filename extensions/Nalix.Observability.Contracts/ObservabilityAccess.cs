@@ -26,8 +26,8 @@ namespace Nalix.Observability.Contracts;
 [DebuggerDisplay("OBSERVABILITY_ACCESS Stage={Stage}, Granted={AccessLevel}, Reason={Reason}")]
 public sealed partial class ObservabilityAccess : PacketBase<ObservabilityAccess>, IPacketValidatable, IPacketStaticOpcode
 {
+    /// <inheritdoc/>
     public static ushort StaticOpCode => (ushort)ProtocolOpCode.OBSERVABILITY_ACCESS;
-
 
     /// <summary>
     /// Gets or sets the access packet lifecycle stage.

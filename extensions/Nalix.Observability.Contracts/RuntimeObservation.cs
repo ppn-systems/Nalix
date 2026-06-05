@@ -25,8 +25,8 @@ namespace Nalix.Observability.Contracts;
 [DebuggerDisplay("RUNTIME_OBSERVATION Stage={Stage}, Target={Target}, Reason={Reason}")]
 public sealed partial class RuntimeObservation : PacketBase<RuntimeObservation>, IPacketValidatable, IPacketStaticOpcode
 {
+    /// <inheritdoc/>
     public static ushort StaticOpCode => (ushort)ProtocolOpCode.RUNTIME_OBSERVATION;
-
 
     /// <summary>
     /// Gets or sets the observation packet lifecycle stage.

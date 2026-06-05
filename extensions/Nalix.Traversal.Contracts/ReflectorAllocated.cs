@@ -6,7 +6,6 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
-using Nalix.Traversal.Protocols;
 
 namespace Nalix.Traversal.Packets;
 
@@ -21,7 +20,7 @@ public sealed partial class ReflectorAllocated : PacketBase<ReflectorAllocated>,
 {
     /// <inheritdoc/>
     public static ushort StaticOpCode => (ushort)ProtocolOpCode.TRAVERSAL_REFLECTOR_ALLOCATED;
-    
+
     /// <summary>
     /// The generated Reflector Token that both peers must use to wrap their UDP datagrams.
     /// </summary>

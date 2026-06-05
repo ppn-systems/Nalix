@@ -6,7 +6,6 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
-using Nalix.Traversal.Protocols;
 
 namespace Nalix.Traversal.Packets;
 
@@ -30,20 +29,26 @@ public enum SignalType : byte
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed partial class PeerSignal : PacketBase<PeerSignal>, IFixedSizeSerializable, IPacketStaticOpcode
 {
+    /// <inheritdoc/>
     public static ushort StaticOpCode => (ushort)ProtocolOpCode.TRAVERSAL_PEER_SIGNAL;
-    
+
+    /// <inheritdoc/>
     [SerializeOrder(0)]
     public SignalType Type { get; set; }
 
+    /// <inheritdoc/>
     [SerializeOrder(1)]
     public ushort Port { get; set; }
 
+    /// <inheritdoc/>
     [SerializeOrder(2)]
     public ulong TargetPeerId { get; set; }
 
+    /// <inheritdoc/>
     [SerializeOrder(3)]
     public ulong AddressHigh { get; set; }
 
+    /// <inheritdoc/>
     [SerializeOrder(4)]
     public ulong AddressLow { get; set; }
 

@@ -3,8 +3,6 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 using Nalix.Environment.Time;
 
 namespace Nalix.Tunneling.Internal;
@@ -88,11 +86,14 @@ internal sealed class TokenBucket
     /// <param name="cancellationToken">A token to cancel the wait operation.</param>
     public async ValueTask ConsumeOrWaitAsync(int amount, CancellationToken cancellationToken = default)
     {
-        if (amount > _capacity) amount = (int)_capacity;
+        if (amount > _capacity)
+        {
+            amount = (int)_capacity;
+        }
 
         while (true)
         {
-            long delayTicks = 0;
+            long delayTicks;
             lock (_lock)
             {
                 long now = Clock.MonoTicksNow();
@@ -104,7 +105,11 @@ internal sealed class TokenBucket
                     if (generated > 0)
                     {
                         _tokens += generated;
-                        if (_tokens > _capacity) _tokens = _capacity;
+                        if (_tokens > _capacity)
+                        {
+                            _tokens = _capacity;
+                        }
+
                         _lastRefillTicks = now;
                     }
                 }
@@ -117,8 +122,11 @@ internal sealed class TokenBucket
 
                 long missingTokens = amount - _tokens;
                 // WaitTime(ms) = (missingTokens * 1000) / _fillRate
-                long delayMs = (missingTokens * 1000) / _fillRate;
-                if (delayMs <= 0) delayMs = 1;
+                long delayMs = missingTokens * 1000 / _fillRate;
+                if (delayMs <= 0)
+                {
+                    delayMs = 1;
+                }
 
                 delayTicks = delayMs;
             }

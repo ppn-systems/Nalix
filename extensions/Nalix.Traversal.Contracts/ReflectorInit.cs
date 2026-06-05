@@ -6,7 +6,6 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
-using Nalix.Traversal.Protocols;
 
 namespace Nalix.Traversal.Packets;
 

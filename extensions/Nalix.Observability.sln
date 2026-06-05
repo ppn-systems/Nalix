@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.6.11819.183 stable
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Observability.Contracts", "Nalix.Observability.Contracts\Nalix.Observability.Contracts.csproj", "{172E1E22-70B9-7CB7-BF69-781B8C923499}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Observability", "Nalix.Observability\Nalix.Observability.csproj", "{51EA18FC-AB76-18FF-F194-0F4BB8304B1A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{172E1E22-70B9-7CB7-BF69-781B8C923499}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{172E1E22-70B9-7CB7-BF69-781B8C923499}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{172E1E22-70B9-7CB7-BF69-781B8C923499}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{172E1E22-70B9-7CB7-BF69-781B8C923499}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51EA18FC-AB76-18FF-F194-0F4BB8304B1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51EA18FC-AB76-18FF-F194-0F4BB8304B1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51EA18FC-AB76-18FF-F194-0F4BB8304B1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51EA18FC-AB76-18FF-F194-0F4BB8304B1A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FF2BA425-1D8E-4D42-B572-C925944C6DE1}
+	EndGlobalSection
+EndGlobal

@@ -8,12 +8,12 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
+using Nalix.Codec.Pooling;
 using Nalix.Environment.Memory;
 using Nalix.Framework;
 using Nalix.Framework.Injection;
 using Nalix.Observability.Contracts;
 using Nalix.Observability.Internal;
-using Nalix.Codec.Pooling;
 
 namespace Nalix.Observability;
 

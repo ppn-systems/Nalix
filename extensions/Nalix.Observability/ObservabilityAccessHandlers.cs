@@ -7,9 +7,9 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
+using Nalix.Codec.Pooling;
 using Nalix.Environment.IO;
 using Nalix.Observability.Contracts;
-using Nalix.Codec.Pooling;
 
 namespace Nalix.Observability;
 

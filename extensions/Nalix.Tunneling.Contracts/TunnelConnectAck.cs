@@ -3,9 +3,9 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
-using Nalix.Tunneling.Protocols;
 
 namespace Nalix.Tunneling;
 
@@ -18,16 +18,21 @@ namespace Nalix.Tunneling;
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed partial class TunnelConnectAck : PacketBase<TunnelConnectAck>, IFixedSizeSerializable, IPacketStaticOpcode
 {
+    /// <inheritdoc/>
     public static ushort StaticOpCode => (ushort)ProtocolOpCode.TUNNEL_CONNECT_ACK;
-    
+
+    /// <inheritdoc/>
     [SerializeOrder(0)]
     public bool Success { get; set; }
 
+    /// <inheritdoc/>
     [SerializeOrder(1)]
     public byte Reason { get; set; }
 
+    /// <inheritdoc/>
     public TunnelConnectAck() => this.ResetForPool();
 
+    /// <inheritdoc/>
     public override void ResetForPool()
     {
         base.ResetForPool();

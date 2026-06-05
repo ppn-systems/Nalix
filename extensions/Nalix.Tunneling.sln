@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.6.11819.183
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Tunneling.Contracts", "Nalix.Tunneling.Contracts\Nalix.Tunneling.Contracts.csproj", "{45D1FA76-6536-6C26-AFE4-BBFC8A7523F1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Tunneling", "Nalix.Tunneling\Nalix.Tunneling.csproj", "{4EB8803D-C2E9-5795-6A29-F035259D8794}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{45D1FA76-6536-6C26-AFE4-BBFC8A7523F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45D1FA76-6536-6C26-AFE4-BBFC8A7523F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45D1FA76-6536-6C26-AFE4-BBFC8A7523F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45D1FA76-6536-6C26-AFE4-BBFC8A7523F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4EB8803D-C2E9-5795-6A29-F035259D8794}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4EB8803D-C2E9-5795-6A29-F035259D8794}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4EB8803D-C2E9-5795-6A29-F035259D8794}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4EB8803D-C2E9-5795-6A29-F035259D8794}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BA39018D-575A-4205-B45D-E7012A568E28}
+	EndGlobalSection
+EndGlobal

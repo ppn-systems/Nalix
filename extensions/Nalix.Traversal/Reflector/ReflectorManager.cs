@@ -3,12 +3,11 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
-using System.Threading;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
+using Nalix.Environment.Random;
 using Nalix.Traversal.Internal;
 using Nalix.Traversal.Options;
-using Nalix.Environment.Random;
 
 namespace Nalix.Traversal.Reflector;
 

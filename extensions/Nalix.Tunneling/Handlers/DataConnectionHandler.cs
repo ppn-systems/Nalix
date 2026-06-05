@@ -4,8 +4,8 @@
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
-using Nalix.Tunneling.Protocols;
 
 namespace Nalix.Tunneling.Handlers;
 

@@ -19,7 +19,9 @@ namespace Nalix.Traversal.Packets;
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed partial class NatProbe : PacketBase<NatProbe>, IFixedSizeSerializable, IPacketStaticOpcode
 {
+    /// <inheritdoc/>
     public static ushort StaticOpCode => (ushort)ProtocolOpCode.TRAVERSAL_NAT_PROBE;
+
     /// <summary>
     /// The ID of the peer sending the probe, used for validation.
     /// </summary>

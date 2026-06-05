@@ -3,8 +3,8 @@
 
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Codec.Pooling;
-using Nalix.Tunneling.Protocols;
 
 namespace Nalix.Tunneling.Handlers;
 

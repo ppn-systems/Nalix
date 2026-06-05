@@ -56,7 +56,7 @@ internal sealed class TokenBucket
             {
                 // Use integer math instead of double for performance in hot path.
                 // Overflow only happens if session is idle for > 100 days at 1MB/s.
-                long generated = (deltaTicks * _fillRate) / Stopwatch.Frequency;
+                long generated = deltaTicks * _fillRate / Stopwatch.Frequency;
 
                 if (generated > 0)
                 {

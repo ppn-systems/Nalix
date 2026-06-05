@@ -5,9 +5,8 @@ using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Codec.Pooling;
-
-using Nalix.Tunneling.Protocols;
 
 namespace Nalix.Tunneling.Handlers;
 
@@ -73,7 +72,7 @@ public sealed class ConsumerHandler
         }
 
         // 4. Wait for the Provider to establish the new data connection
-        IConnection? providerDataConnection = null;
+        IConnection? providerDataConnection;
         try
         {
             // Timeout to prevent hanging tasks if provider ignores the request

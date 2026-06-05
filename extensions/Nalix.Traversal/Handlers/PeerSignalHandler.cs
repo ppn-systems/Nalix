@@ -10,7 +10,6 @@ using Nalix.Abstractions.Security;
 using Nalix.Codec.Pooling;
 using Nalix.Runtime.Extensions;
 using Nalix.Traversal.Packets;
-using Nalix.Traversal.Protocols;
 
 namespace Nalix.Traversal.Handlers;
 

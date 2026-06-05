@@ -8,7 +8,6 @@ using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Codec.Pooling;
 using Nalix.Runtime.Extensions;
 using Nalix.Traversal.Packets;
-using Nalix.Traversal.Protocols;
 using Nalix.Traversal.Reflector;
 
 namespace Nalix.Traversal.Handlers;
