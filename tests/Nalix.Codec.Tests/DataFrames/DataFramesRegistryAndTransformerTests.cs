@@ -55,7 +55,7 @@ public sealed partial class DataFramesPublicApiTests
         BitConverter.GetBytes(0xDEADBEEFu).CopyTo(raw, 0);
 
         InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => PacketRegistry.Deserialize(raw));
-        Assert.StartsWith("Cannot deserialize packet: Magic", ex.Message);
+        Assert.StartsWith("Cannot deserialize packet: OpCode", ex.Message);
     }
 
 

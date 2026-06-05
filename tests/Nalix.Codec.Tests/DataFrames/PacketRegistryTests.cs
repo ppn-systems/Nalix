@@ -64,20 +64,20 @@ public sealed class PacketRegistryTests : IDisposable
         Control packet = new();
         packet.Initialize(ControlType.PONG, sequenceId: 99);
         var h2 = packet.Header;
-        h2.OpCode = 0x0002;
+        h2.OpCode = Control.StaticOpCode;
         packet.Header = h2;
         packet.ResetForPool();
 
         packet.Initialize(ControlType.PING, sequenceId: 7);
         var h3 = packet.Header;
-        h3.OpCode = 0x0003;
+        h3.OpCode = Control.StaticOpCode;
         packet.Header = h3;
         byte[] bytes = packet.Serialize();
 
         IPacket result = PacketRegistry.Deserialize(bytes);
 
         Control control = Assert.IsType<Control>(result);
-        Assert.Equal(0x0003, control.Header.OpCode);
+        Assert.Equal(Control.StaticOpCode, control.Header.OpCode);
         Assert.Equal(7u, control.Header.SequenceId);
         Assert.Equal(ControlType.PING, control.Type);
     }

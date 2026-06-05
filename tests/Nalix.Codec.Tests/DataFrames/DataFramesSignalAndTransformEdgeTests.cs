@@ -83,12 +83,12 @@ public sealed class DataFramesSignalAndTransformEdgeTests
     }
 
     [Fact]
-    public void DirectiveInitializeOverloadWithoutOpcodeKeepsSystemControlOpcode()
+    public void DirectiveInitializeOverloadWithoutOpcodeKeepsSystemDirectiveOpcode()
     {
         Directive packet = new();
         packet.Initialize(ControlType.REDIRECT, ProtocolReason.THROTTLED, ProtocolAdvice.SLOW_DOWN, sequenceId: 9, controlFlags: ControlFlags.SLOW_DOWN, arg0: 1, arg1: 2, arg2: 3);
 
-        Assert.Equal((ushort)ProtocolOpCode.SYSTEM_CONTROL, packet.Header.OpCode);
+        Assert.Equal((ushort)ProtocolOpCode.SYSTEM_DIRECTIVE, packet.Header.OpCode);
         Assert.Equal(ControlType.REDIRECT, packet.Type);
         Assert.Equal(ProtocolReason.THROTTLED, packet.Reason);
         Assert.Equal(ProtocolAdvice.SLOW_DOWN, packet.Action);

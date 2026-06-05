@@ -26,7 +26,7 @@ public sealed class AsyncCallbackDispatchTests
     private sealed class TestOpCodeExtractor : IOpCodeExtractor
     {
         public ushort Extract(System.ReadOnlySpan<byte> payload) =>
-            payload.Length >= 6 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[4..]) : (ushort)0;
+            payload.Length >= 2 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[0..]) : (ushort)0;
     }
 
     [Fact]

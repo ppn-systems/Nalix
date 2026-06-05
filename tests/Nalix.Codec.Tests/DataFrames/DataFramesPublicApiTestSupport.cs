@@ -64,7 +64,7 @@ public sealed partial class DataFramesPublicApiTests
         Control packet = new();
         packet.Initialize(ControlType.PING, 55, PacketFlags.SYSTEM | PacketFlags.RELIABLE, ProtocolReason.NONE);
         var h = packet.Header;
-        h.OpCode = 14;
+        h.OpCode = Control.StaticOpCode;
         packet.Header = h;
         return packet;
     }
@@ -74,7 +74,7 @@ public sealed partial class DataFramesPublicApiTests
         Directive packet = new();
         packet.Initialize(ControlType.REDIRECT, ProtocolReason.THROTTLED, ProtocolAdvice.SLOW_DOWN, 12, PacketFlags.SYSTEM | PacketFlags.RELIABLE, ControlFlags.SLOW_DOWN, 9, 8, 7);
         var h = packet.Header;
-        h.OpCode = 91;
+        h.OpCode = Directive.StaticOpCode;
         packet.Header = h;
         return packet;
     }

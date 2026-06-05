@@ -161,7 +161,7 @@ public sealed class PolicyRateLimiterTests : IDisposable
     private sealed class TestOpCodeExtractor : IOpCodeExtractor
     {
         public ushort Extract(ReadOnlySpan<byte> payload) =>
-            payload.Length >= 6 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[4..]) : (ushort)0;
+            payload.Length >= 2 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[0..]) : (ushort)0;
     }
 
     private sealed class ConnectedSocketScope : IDisposable
