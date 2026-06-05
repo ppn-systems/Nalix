@@ -159,4 +159,46 @@ public static partial class Directories
         s_basePathOverride = path;
         RESET_LAZIES();
     }
+
+    /// <summary>
+    /// Safely writes content to a new file, setting restricted permissions (0600 on Unix) for private files.
+    /// Returns false if the file already exists or fails to write.
+    /// </summary>
+    /// <param name="path">The absolute path of the file to write.</param>
+    /// <param name="content">The string content to write.</param>
+    /// <param name="isPrivate">Whether to restrict file permissions to the owner only (0600 on Unix).</param>
+    /// <returns>True if the file was written successfully; otherwise, false.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when path is null or whitespace.</exception>
+    public static bool TryWriteNewFile(string path, string content, bool isPrivate)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new ArgumentNullException(nameof(path));
+        }
+
+        try
+        {
+            FileStreamOptions options = new()
+            {
+                Mode = FileMode.CreateNew,
+                Access = FileAccess.Write,
+                Share = FileShare.Read
+            };
+
+            if (isPrivate && !OperatingSystem.IsWindows())
+            {
+                options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+            }
+
+            using FileStream stream = new(path, options);
+            using StreamWriter writer = new(stream);
+            writer.WriteLine(content);
+            return true;
+        }
+        catch (IOException) when (File.Exists(path))
+        {
+            return false;
+        }
+    }
 }
+

@@ -143,17 +143,9 @@ public sealed class ObservabilityAccessHandlers
         {
             byte[] rawBytes = RandomNumberGenerator.GetBytes(Bytes32.Size);
             string hexStr = Convert.ToHexString(rawBytes).ToLowerInvariant();
-            try
-            {
-                File.WriteAllText(keyPath, hexStr + System.Environment.NewLine);
-                s_adminKey = new Bytes32(rawBytes);
-                return;
-            }
-            catch
-            {
-                s_adminKey = new Bytes32(rawBytes);
-                return;
-            }
+            _ = Directories.TryWriteNewFile(keyPath, hexStr, isPrivate: true);
+            s_adminKey = new Bytes32(rawBytes);
+            return;
         }
 
         try
@@ -198,14 +190,7 @@ public sealed class ObservabilityAccessHandlers
             {
                 byte[] rawBytes = RandomNumberGenerator.GetBytes(Bytes32.Size);
                 string hexStr = Convert.ToHexString(rawBytes).ToLowerInvariant();
-                try
-                {
-                    File.WriteAllText(keyPath, hexStr + System.Environment.NewLine);
-                }
-                catch
-                {
-                    // Ignore write failures on recovery path
-                }
+                _ = Directories.TryWriteNewFile(keyPath, hexStr, isPrivate: true);
                 s_adminKey = new Bytes32(rawBytes);
                 return;
             }

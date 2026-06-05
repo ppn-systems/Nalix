@@ -75,13 +75,17 @@ public sealed class ReflectorProtocol : IProtocol, IFrameProcessor, IOpCodeExtra
             // Identify sender and get target
             // NOTE: In a real system, we'd need to verify sender's identity,
             // but since ReflectorToken is unguessable (e.g. 64-bit random), possessing the token is sufficient.
-            if (session.PeerAConnection == null || session.PeerAConnection.NetworkEndpoint.Address == senderConnection.NetworkEndpoint.Address)
+            if (session.PeerAConnection == null ||
+                (session.PeerAConnection.NetworkEndpoint.Address == senderConnection.NetworkEndpoint.Address &&
+                 session.PeerAConnection.NetworkEndpoint.Port == senderConnection.NetworkEndpoint.Port))
             {
                 // Sender is likely PeerA. Update its connection.
                 session.PeerAConnection = senderConnection;
                 targetConnection = session.PeerBConnection;
             }
-            else if (session.PeerBConnection == null || session.PeerBConnection.NetworkEndpoint.Address == senderConnection.NetworkEndpoint.Address)
+            else if (session.PeerBConnection == null ||
+                     (session.PeerBConnection.NetworkEndpoint.Address == senderConnection.NetworkEndpoint.Address &&
+                      session.PeerBConnection.NetworkEndpoint.Port == senderConnection.NetworkEndpoint.Port))
             {
                 // Sender is likely PeerB. Update its connection.
                 session.PeerBConnection = senderConnection;

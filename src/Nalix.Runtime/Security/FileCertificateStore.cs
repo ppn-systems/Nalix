@@ -7,6 +7,7 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Security.Asymmetric;
+using Nalix.Environment.IO;
 
 namespace Nalix.Runtime.Security;
 
@@ -86,7 +87,7 @@ public sealed class FileCertificateStore : ICertificateStore
             _ = Directory.CreateDirectory(directory);
         }
 
-        if (!TRY_WRITE_NEW_FILE(path, privateKey.ToString(), isPrivate: true))
+        if (!Directories.TryWriteNewFile(path, privateKey.ToString(), isPrivate: true))
         {
             return;
         }
@@ -95,33 +96,6 @@ public sealed class FileCertificateStore : ICertificateStore
             directory ?? string.Empty,
             Path.GetFileNameWithoutExtension(path) + ".public");
 
-        _ = TRY_WRITE_NEW_FILE(publicPath, publicKey.ToString(), isPrivate: false);
-    }
-
-    private static bool TRY_WRITE_NEW_FILE(string path, string content, bool isPrivate)
-    {
-        try
-        {
-            FileStreamOptions options = new()
-            {
-                Mode = FileMode.CreateNew,
-                Access = FileAccess.Write,
-                Share = FileShare.Read
-            };
-
-            if (isPrivate && !OperatingSystem.IsWindows())
-            {
-                options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-            }
-
-            using FileStream stream = new(path, options);
-            using StreamWriter writer = new(stream);
-            writer.WriteLine(content);
-            return true;
-        }
-        catch (IOException) when (File.Exists(path))
-        {
-            return false;
-        }
+        _ = Directories.TryWriteNewFile(publicPath, publicKey.ToString(), isPrivate: false);
     }
 }

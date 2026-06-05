@@ -62,12 +62,8 @@ public sealed class TunnelSession : IAsyncDisposable
         Socket consumerSocket = consumerSocketTransport.Unwrap();
         Socket providerSocket = providerSocketTransport.Unwrap();
 
-        // Start bi-directional piping
-        _pipeTask = this.StartTunnelAndCleanupAsync(consumerSocket, providerSocket);
-
-        // Recover stolen packets from the sockets
-        _ = RecoverStolenDataAsync(_consumerConnection, providerSocket);
-        _ = RecoverStolenDataAsync(providerDataConnection, consumerSocket);
+        // Start bi-directional piping and recover stolen data
+        _pipeTask = this.StartTunnelAndCleanupAsync(consumerSocket, providerSocket, providerDataConnection);
     }
 
     private static async Task RecoverStolenDataAsync(IConnection sourceConnection, Socket destinationSocket)
@@ -129,10 +125,15 @@ public sealed class TunnelSession : IAsyncDisposable
         _consumerConnection.Dispose();
     }
 
-    private async Task StartTunnelAndCleanupAsync(Socket consumerSocket, Socket providerSocket)
+    private async Task StartTunnelAndCleanupAsync(Socket consumerSocket, Socket providerSocket, IConnection providerDataConnection)
     {
         try
         {
+            // Recover stolen packets from the sockets concurrently and wait for them to finish before piping starts
+            Task recoverConsumer = RecoverStolenDataAsync(_consumerConnection, providerSocket);
+            Task recoverProvider = RecoverStolenDataAsync(providerDataConnection, consumerSocket);
+            await Task.WhenAll(recoverConsumer, recoverProvider).ConfigureAwait(false);
+
             await TunnelPipe.StartAsync(consumerSocket, providerSocket, _options, _cts.Token).ConfigureAwait(false);
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
