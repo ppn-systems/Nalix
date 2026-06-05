@@ -158,20 +158,9 @@ public sealed class SdkSubscriptionTests
         public void RaiseDisconnect(Exception ex) => OnDisconnected?.Invoke(this, ex);
     }
 
-    private sealed class FakePacketRegistry : IPacketRegistry
+    private sealed class FakePacketRegistry
     {
         public IPacket Next { get; set; } = new Control();
-
-        public int DeserializerCount => 1;
-        public bool IsKnownMagic(uint magic) => true;
-        public bool IsKnownOpCode(ushort opcode) => true;
-        public bool IsRegistered<TPacket>() where TPacket : IPacket => true;
-        public IPacket Deserialize(ReadOnlySpan<byte> raw) => Next;
-        public bool TryDeserialize(ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet)
-        {
-            packet = Next;
-            return true;
-        }
     }
 
     private sealed class TrackingDisposable : IDisposable

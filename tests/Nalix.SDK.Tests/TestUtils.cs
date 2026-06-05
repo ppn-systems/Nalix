@@ -192,37 +192,13 @@ internal sealed class FakeSession(bool isConnected) : TransportSession
     protected override void Dispose(bool disposing) { }
 }
 
-internal sealed class FakePacketRegistry : IPacketRegistry
+internal sealed class FakePacketRegistry
 {
     private readonly ConcurrentQueue<IPacket> _queue = new();
-    private IPacket? _lastDequeued;
 
-    public int DeserializerCount => 1;
-    public bool IsKnownMagic(uint magic) => true;
-    public bool IsKnownOpCode(ushort opcode) => true;
-    public bool IsRegistered<TPacket>() where TPacket : IPacket => true;
     public void Enqueue(IPacket packet) => _queue.Enqueue(packet);
-    public bool TryDequeue(out IPacket? packet)
-    {
-        bool ok = _queue.TryDequeue(out packet);
-        if (ok) _lastDequeued = packet;
-        return ok;
-    }
-
-    public IPacket Deserialize(ReadOnlySpan<byte> raw) => _lastDequeued ?? new Control();
-    public bool TryDeserialize(ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet)
-    {
-        packet = _lastDequeued ?? new Control();
-        return true;
-    }
+    public bool TryDequeue(out IPacket? packet) => _queue.TryDequeue(out packet);
 }
-
-
-
-
-
-
-
 
 
 

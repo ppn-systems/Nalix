@@ -160,8 +160,8 @@ internal static unsafe class MemOps
                 }
 
                 // Find the first differing byte inside this 32-byte block.
-                int mask = ~System.Runtime.Intrinsics.X86.Avx2.MoveMask(cmp); // 1 where bytes differ
-                                                                              // mask is 32-bit, each bit corresponds to a byte
+                // 1 where bytes differ. Mask is 32-bit, each bit corresponds to a byte.
+                int mask = ~System.Runtime.Intrinsics.X86.Avx2.MoveMask(cmp);
                 int idx = System.Numerics.BitOperations.TrailingZeroCount(mask);
                 return count + idx;
             }

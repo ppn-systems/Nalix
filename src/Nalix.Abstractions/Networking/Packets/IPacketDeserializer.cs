@@ -11,14 +11,14 @@ namespace Nalix.Abstractions.Networking.Packets;
 /// <typeparam name="TPacket">Packet type implementing <see cref="IPacket"/>.</typeparam>
 public interface IPacketDeserializer<TPacket> where TPacket : IPacket
 {
-/// <summary>
-/// Deserializes a packet instance from the specified byte buffer.
-/// </summary>
-/// <param name="buffer">A read-only span containing the serialized packet bytes.</param>
-/// <returns>A new <typeparamref name="TPacket"/> instance.</returns>
+    /// <summary>
+    /// Deserializes a packet instance from the specified byte buffer.
+    /// </summary>
+    /// <param name="buffer">A read-only span containing the serialized packet bytes.</param>
+    /// <returns>A new <typeparamref name="TPacket"/> instance.</returns>
 #if NET7_0_OR_GREATER
-static abstract TPacket Deserialize(ReadOnlySpan<byte> buffer);
+    static abstract TPacket Deserialize(ReadOnlySpan<byte> buffer);
 #else
-TPacket Deserialize(ReadOnlySpan<byte> buffer);
+    TPacket Deserialize(ReadOnlySpan<byte> buffer);
 #endif
 }
