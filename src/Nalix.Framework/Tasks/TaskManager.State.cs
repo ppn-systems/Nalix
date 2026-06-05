@@ -486,4 +486,21 @@ public partial class TaskManager
 
         public void Dispose() { }
     }
+
+    private sealed class WorkerStartBatch
+    {
+        public readonly string Group;
+        public readonly WorkerPriority Priority;
+        public readonly string Tag;
+        public int Count;
+        public readonly object Lock = new();
+        public Task? FlushTask;
+
+        public WorkerStartBatch(string group, WorkerPriority priority, string tag)
+        {
+            Group = group;
+            Priority = priority;
+            Tag = tag;
+        }
+    }
 }

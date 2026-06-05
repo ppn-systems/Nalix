@@ -238,7 +238,7 @@ public abstract partial class WebSocketListenerBase
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.WebSocketListenerBase:Initialize", $"bound to prefix prefix={prefix}"));
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.WebSocketListenerBase:Initialize", $"listener-bound prefix={prefix}"));
         }
     }
 

@@ -39,19 +39,19 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
         LoggerMessage.Define<string?>(
             LogLevel.Information,
             default,
-            "[HT.NetworkApplication] TCP server-started protocol={ProtocolType}");
+            "[HT.NetworkApplication] tcp-started protocol={ProtocolType}");
 
     private static readonly Action<ILogger, string?, Exception?> s_startedWebSocketServerMessage =
         LoggerMessage.Define<string?>(
             LogLevel.Information,
             default,
-            "[HT.NetworkApplication] WebSocket server-started protocol={ProtocolType}");
+            "[HT.NetworkApplication] websocket-started protocol={ProtocolType}");
 
     private static readonly Action<ILogger, string?, Exception?> s_startedUdpServerMessage =
         LoggerMessage.Define<string?>(
             LogLevel.Information,
             default,
-            "[HT.NetworkApplication] UDP server-started protocol={ProtocolType}");
+            "[HT.NetworkApplication] udp-started protocol={ProtocolType}");
 
     private static readonly Action<ILogger, Exception?> s_stopListenerFailedMessage =
         LoggerMessage.Define(

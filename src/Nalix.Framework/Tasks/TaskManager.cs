@@ -47,6 +47,7 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
     private readonly ConcurrentDictionary<string, Gate> _groupGates;
     private readonly ConcurrentDictionary<ISnowflake, WorkerState> _workers;
     private readonly ConcurrentDictionary<string, RecurringState> _recurring;
+    private readonly ConcurrentDictionary<(string Group, WorkerPriority Priority, string Tag), WorkerStartBatch> _startBatches;
 
     private int _workerErrorCount;
     private int _runningWorkerCount;
@@ -169,6 +170,7 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
 
         _workers = new();
         _recurring = new();
+        _startBatches = new();
         _cleanupCts = new();
         _groupGates = new(StringComparer.Ordinal);
         _pendingWorkers = new();

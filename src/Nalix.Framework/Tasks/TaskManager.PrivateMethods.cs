@@ -428,17 +428,27 @@ public partial class TaskManager
             };
             thread.Start();
 
-            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+            bool isDebugEnabled = Listener.IsEnabled(DiagnosticsEvents.Tasks.Started);
+            if (isDebugEnabled)
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager", $"worker-start-dedicated id={id} name={name} group={group} os-priority={osPriority} tag={options.Tag ?? "-"}"));
+                Listener.Write(DiagnosticsEvents.Tasks.Started, new DiagnosticLog("FW.TaskManager", $"worker-start-dedicated id={id} name={name} group={group} os-priority={osPriority} tag={options.Tag ?? "-"}"));
+            }
+            else if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+            {
+                this.LOG_WORKER_START_AGGREGATED(group, options.Priority, options.Tag ?? "-");
             }
         }
         else
         {
             st.Task = this.EXECUTE_WORKER_ASYNC(st, gate, cts);
-            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+            bool isDebugEnabled = Listener.IsEnabled(DiagnosticsEvents.Tasks.Started);
+            if (isDebugEnabled)
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager", $"worker-start id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}"));
+                Listener.Write(DiagnosticsEvents.Tasks.Started, new DiagnosticLog("FW.TaskManager", $"worker-start id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}"));
+            }
+            else if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+            {
+                this.LOG_WORKER_START_AGGREGATED(group, options.Priority, options.Tag ?? "-");
             }
         }
     }
@@ -1137,6 +1147,32 @@ public partial class TaskManager
             {
                 DiagnosticsEvents.Source.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"failed-adjust-concurrency from={previousLimit} to={newLimit}", ex));
             }
+        }
+    }
+
+    private void LOG_WORKER_START_AGGREGATED(string group, WorkerPriority priority, string tag)
+    {
+        (string Group, WorkerPriority Priority, string Tag) key = (group, priority, tag);
+        WorkerStartBatch batch = _startBatches.GetOrAdd(key, static k => new WorkerStartBatch(k.Group, k.Priority, k.Tag));
+
+        lock (batch.Lock)
+        {
+            batch.Count++;
+            batch.FlushTask ??= Task.Run(async () =>
+            {
+                await Task.Delay(100).ConfigureAwait(false);
+                int count;
+                lock (batch.Lock)
+                {
+                    count = batch.Count;
+                    batch.Count = 0;
+                    batch.FlushTask = null;
+                }
+                if (count > 0 && Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+                {
+                    Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager", $"workers-started group={batch.Group} count={count} priority={batch.Priority.ToString().ToLowerInvariant()} tag={batch.Tag}"));
+                }
+            });
         }
     }
 }
