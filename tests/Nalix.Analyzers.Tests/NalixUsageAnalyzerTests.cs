@@ -1302,7 +1302,7 @@ public static class Setup
     {
         var builder = new NetworkApplicationBuilder();
         builder.ConfigureBufferPoolManager(new BufferPoolManager());
-        builder.ConfigureConnectionHub(new ConnectionHub(null));
+        builder.ConfigureConnectionHub(new ConnectionHub());
         builder.BindTcp<DefaultProtocol>();
         _ = builder.Build();
     }
@@ -1329,7 +1329,7 @@ public static class Setup
     {
         _ = new NetworkApplicationBuilder()
             .ConfigureBufferPoolManager(new BufferPoolManager())
-            .ConfigureConnectionHub(new ConnectionHub(null))
+            .ConfigureConnectionHub(new ConnectionHub())
             .BindTcp<DefaultProtocol>()
             .Bind()
             .Build();

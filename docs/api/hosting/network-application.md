@@ -152,7 +152,7 @@ Protocol types can expose a constructor that accepts `IPacketDispatch`; otherwis
 ```csharp
 var app = NetworkApplication.CreateBuilder()
     .ConfigureLogging(logger)
-    .ConfigureConnectionHub(new ConnectionHub(logger: logger))
+    .ConfigureConnectionHub(new ConnectionHub())
     .ConfigureBufferPoolManager(new BufferPoolManager())
     .Configure<NetworkSocketOptions>(options =>
     {
