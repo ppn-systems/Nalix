@@ -3,12 +3,14 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
+using Nalix.Runtime.Dispatching;
 
 namespace Nalix.Runtime.Extensions;
 
@@ -61,6 +63,41 @@ public static class ConnectionExtensions
             arg2: options.Arg2);
 
         await sender.SendAsync(directive).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Serializes and sends a packet over the specified transport asynchronously, applying the necessary framing (encryption/compression).
+    /// </summary>
+    /// <typeparam name="TPacket">The type of the packet.</typeparam>
+    /// <param name="connection">The connection to send the packet on.</param>
+    /// <param name="packet">The packet to send.</param>
+    /// <param name="transport">The transport to use (defaults to TCP).</param>
+    /// <param name="enableEncrypt">Whether to encrypt the packet (defaults to true).</param>
+    /// <param name="ct">The cancellation token.</param>
+    /// <returns>A task representing the asynchronous send operation.</returns>
+    public static ValueTask SendAsync<TPacket>(
+        this IConnection connection,
+        TPacket packet,
+        NetworkTransport transport = NetworkTransport.TCP,
+        bool enableEncrypt = true,
+        CancellationToken ct = default)
+        where TPacket : IPacket
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        if (packet == null)
+        {
+            throw new ArgumentNullException(nameof(packet));
+        }
+
+        IConnection.ITransport activeTransport = transport switch
+        {
+            NetworkTransport.UDP => connection.UDP,
+            NetworkTransport.TCP => connection.TCP,
+            NetworkTransport.WEBSOCKET => connection.TCP,
+            _ => connection.TCP
+        };
+
+        return PacketSender.SEND_CORE_ASYNC(connection, activeTransport, packet, enableEncrypt, ct);
     }
 }
 

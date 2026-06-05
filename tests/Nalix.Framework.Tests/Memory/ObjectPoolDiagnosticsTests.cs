@@ -275,6 +275,62 @@ public sealed class ObjectPoolDiagnosticsTests
 
         public static T? GetProperty<T>(object payload, string name)
         {
+            if (payload is Nalix.Abstractions.Diagnostics.DiagnosticLog log)
+            {
+                if (name == "Tag")
+                {
+                    if (log.Tag is T tTag) return tTag;
+                    return default;
+                }
+                if (name == "Exception")
+                {
+                    if (log.Exception is T tEx) return tEx;
+                    return default;
+                }
+
+                string kebabName = name switch
+                {
+                    "Type" => "type",
+                    "WindowGets" => "window-gets",
+                    "WindowMisses" => "window-misses",
+                    "Reason" => "reason",
+                    _ => name.ToLowerInvariant()
+                };
+                
+                string search = kebabName + "=";
+                int idx = log.Message.IndexOf(search, StringComparison.Ordinal);
+                if (idx >= 0)
+                {
+                    int start = idx + search.Length;
+                    int end = log.Message.IndexOf(' ', start);
+                    string valStr = end >= 0 ? log.Message[start..end] : log.Message[start..];
+                    
+                    if (typeof(T) == typeof(string))
+                    {
+                        if (name == "Reason")
+                        {
+                            if (valStr == "capacity-pressure") valStr = "CapacityPressure";
+                            else if (valStr == "high-window-miss-rate") valStr = "HighWindowMissRate";
+                        }
+                        return (T)(object)valStr;
+                    }
+                    if (typeof(T) == typeof(long))
+                    {
+                        if (long.TryParse(valStr, System.Globalization.CultureInfo.InvariantCulture, out long lVal))
+                        {
+                            return (T)(object)lVal;
+                        }
+                    }
+                    if (typeof(T) == typeof(int))
+                    {
+                        if (int.TryParse(valStr, System.Globalization.CultureInfo.InvariantCulture, out int iVal))
+                        {
+                            return (T)(object)iVal;
+                        }
+                    }
+                }
+            }
+
             PropertyInfo? property = payload.GetType().GetProperty(name);
             if (property == null) return default;
             

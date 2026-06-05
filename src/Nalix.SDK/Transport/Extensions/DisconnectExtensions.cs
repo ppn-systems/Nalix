@@ -24,7 +24,7 @@ public static class DisconnectExtensions
     /// <returns>A task representing the async disconnect sequence.</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="session"/> is null.</exception>
     public static async ValueTask DisconnectGracefullyAsync(
-        this TcpSession session,
+        this TransportSession session,
         ProtocolReason reason = ProtocolReason.NONE,
         bool closeLocalConnection = true,
         CancellationToken ct = default)
@@ -37,7 +37,7 @@ public static class DisconnectExtensions
             {
                 // Send the DISCONNECT frame to alert the server to clean up instantly
                 await session.SendControlAsync(
-                    opCode: (ushort)ProtocolOpCode.SYSTEM_CONTROL,
+
                     type: ControlType.DISCONNECT,
                     configure: ctrl => ctrl.Reason = reason,
                     ct: ct).ConfigureAwait(false);

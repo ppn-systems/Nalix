@@ -33,7 +33,7 @@ flowchart LR
 ```
 
 !!! success "Why the order matters"
-    Most network components assume validated options and shared services (like `ILogger` or `IPacketRegistry`) already exist in the `InstanceManager`. Resolve early to fail fast.
+    Most network components assume validated options and shared services (like `ILogger`) already exist in the `InstanceManager`. Resolve early to fail fast.
 
 ---
 

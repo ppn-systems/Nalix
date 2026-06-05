@@ -12,8 +12,8 @@ using Nalix.Environment.Memory;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
-using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
+using Nalix.Runtime.Routing;
 using Nalix.Runtime.Sessions;
 
 namespace Nalix.Hosting.Internal;
@@ -99,7 +99,7 @@ internal static class ServiceRegistrar
             return;
         }
 
-        ConnectionHub hub = new(logger: state.Logger);
+        ConnectionHub hub = new();
         try
         {
             InstanceManager.Instance.Register<IConnectionHub>(hub);

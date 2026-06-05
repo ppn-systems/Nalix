@@ -5,6 +5,8 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.ProtocolFrames;
@@ -32,9 +34,9 @@ public static class HandshakeExtensions
     /// Anonymous handshakes are forbidden for security reasons. The client MUST provide the expected 
     /// server public key in the session options to prevent Man-in-the-Middle (MitM) attacks.
     /// </para>
-    /// Upon a successful handshake, the session's encryption settings (<see cref="TransportOptions.Secret"/>, 
-    /// <see cref="TransportOptions.Algorithm"/>, and <see cref="TransportOptions.EncryptionEnabled"/>) 
-    /// are automatically updated to enable secure communication using ChaCha20Poly1305.
+    /// Upon a successful handshake, the session's encryption settings (<see cref="SessionState.Secret"/>, 
+    /// <see cref="SessionState.EncryptionEnabled"/>, etc.) are permanently updated to enforce AEAD 
+    /// encryption for all subsequent outbound and inbound packets.
     /// </remarks>
     /// <param name="session">The connected transport session to perform the handshake on.</param>
     /// <param name="ct">A cancellation token that can be used to abort the handshake process.</param>
@@ -56,22 +58,18 @@ public static class HandshakeExtensions
         Csprng.Fill(clientNonceBytes);
         Bytes32 clientNonce = new(clientNonceBytes);
 
-        using Handshake clientHello = new(HandshakeStage.CLIENT_HELLO, clientKey.PublicKey, clientNonce);
+        using SessionInit clientHello = new();
+        clientHello.Initialize(clientKey.PublicKey, clientNonce);
 
-        using Handshake serverHello = await session.RequestAsync<Handshake>(
+        using SessionChallenge serverHello = await session.RequestAsync<SessionChallenge>(
             clientHello,
             options: RequestOptions.Default.WithTimeout(5000),
-            predicate: p => p.Stage is HandshakeStage.SERVER_HELLO or HandshakeStage.ERROR,
+            predicate: null,
             ct: ct).ConfigureAwait(false);
-
-        if (serverHello.Stage == HandshakeStage.ERROR)
-        {
-            throw new NetworkException($"Handshake failed: {serverHello.Reason}");
-        }
 
         if (!serverHello.Validate(out string? reason))
         {
-            throw new NetworkException($"Malformed Handshake SERVER_HELLO packet: {reason}");
+            throw new NetworkException($"Malformed SessionChallenge packet: {reason}");
         }
 
         Bytes32 sharedSecretEE = X25519.Agreement(clientKey.PrivateKey, serverHello.PublicKey);
@@ -83,18 +81,18 @@ public static class HandshakeExtensions
 
         if (string.IsNullOrEmpty(session.Options.ServerPublicKey))
         {
-            using KeyExchange keyRequest = new();
-            keyRequest.Initialize(KeyExchangeStage.REQUEST);
+            using Control request = new();
+            request.Initialize(ControlType.PUBLIC_KEY_REQUEST, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
 
-            using KeyExchange keyResponse = await session.RequestAsync<KeyExchange>(
-                keyRequest,
+            using SessionTofu keyResponse = await session.RequestAsync<SessionTofu>(
+                request,
                 options: RequestOptions.Default.WithTimeout(5000),
-                predicate: p => p.Stage == KeyExchangeStage.RESPONSE,
+                predicate: null,
                 ct: ct).ConfigureAwait(false);
 
             if (!keyResponse.Validate(out string? keyReason))
             {
-                throw new NetworkException($"Malformed KeyExchange response: {keyReason}");
+                throw new NetworkException($"Malformed SessionTofu response: {keyReason}");
             }
 
             string fetchedKeyHex = keyResponse.PublicKey.ToString();
@@ -124,7 +122,7 @@ public static class HandshakeExtensions
         Bytes32 expectedProof = HandshakeX25519.ComputeServerProof(masterSecret, transcriptHash);
         if (serverHello.Proof != expectedProof)
         {
-            throw new NetworkException("Handshake SERVER_HELLO proof is invalid. Possible Man-in-the-Middle attack.");
+            throw new NetworkException("SessionChallenge proof is invalid. Possible Man-in-the-Middle attack.");
         }
 
         Bytes32 sessionKey = HandshakeX25519.DeriveSessionKey(masterSecret, clientNonce, serverHello.Nonce, transcriptHash);
@@ -133,48 +131,41 @@ public static class HandshakeExtensions
         // The server applies encryption immediately after receiving CLIENT_FINISH, 
         // meaning SERVER_FINISH will be ENCRYPTED. 
         // If we don't set the secret/algorithm here, the background reader will fail to decrypt it.
-        session.Options.Secret = sessionKey;
+        session.State.Secret = sessionKey;
         session.Options.Algorithm = CipherSuiteType.Chacha20Poly1305;
 
-        using Handshake clientFinish = new(HandshakeStage.CLIENT_FINISH, Bytes32.Zero, Bytes32.Zero, HandshakeX25519.ComputeClientProof(masterSecret, transcriptHash))
-        {
-            TranscriptHash = transcriptHash
-        };
+        using SessionProof clientFinish = new();
+        clientFinish.Initialize(HandshakeX25519.ComputeClientProof(masterSecret, transcriptHash));
 
         // Note: RequestAsync uses encrypt: false by default for the request itself, 
-        // which is correct as the server expects CLIENT_FINISH as PLAIN.
+        // which is correct as the server expects SESSION_PROOF as PLAIN.
         try
         {
-            using Handshake serverFinish = await session.RequestAsync<Handshake>(
+            using SessionEstablished serverFinish = await session.RequestAsync<SessionEstablished>(
                 clientFinish,
                 options: RequestOptions.Default.WithTimeout(5000),
-                predicate: p => p.Stage is HandshakeStage.SERVER_FINISH or HandshakeStage.ERROR,
+                predicate: null,
                 ct: ct).ConfigureAwait(false);
-
-            if (serverFinish.Stage == HandshakeStage.ERROR)
-            {
-                throw new NetworkException($"Handshake failed during finish: {serverFinish.Reason}");
-            }
 
             if (!serverFinish.Validate(out string? finishReason))
             {
-                throw new NetworkException($"Malformed Handshake SERVER_FINISH packet: {finishReason}");
+                throw new NetworkException($"Malformed SessionEstablished packet: {finishReason}");
             }
 
             Bytes32 expectedFinish = HandshakeX25519.ComputeServerFinishProof(masterSecret, transcriptHash);
             if (serverFinish.Proof != expectedFinish)
             {
-                throw new NetworkException("Handshake SERVER_FINISH proof is invalid.");
+                throw new NetworkException("SessionEstablished proof is invalid.");
             }
 
             // Finalize state
-            session.Options.EncryptionEnabled = true;
-            session.Options.SessionToken = serverFinish.SessionToken;
+            session.State.EncryptionEnabled = true;
+            session.State.SessionToken = serverFinish.SessionToken;
         }
         catch
         {
-            session.Options.Secret = Bytes32.Zero;
-            session.Options.EncryptionEnabled = false;
+            session.State.Secret = Bytes32.Zero;
+            session.State.EncryptionEnabled = false;
             session.Options.Algorithm = CipherSuiteType.Chacha20Poly1305;
             throw;
         }

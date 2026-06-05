@@ -79,6 +79,7 @@ public sealed class TokenBucketLimiterTests
         options.MaxSoftViolations = 2;
         options.SoftViolationWindowSeconds = 10;
         options.HardLockoutSeconds = 60;
+        options.RefillTokensPerSecond = 0.001; // Extremely slow refill to prevent flakiness
         
         using var limiter = new TokenBucketLimiter(options);
         var endpoint = new TestEndpoint("3.3.3.3");

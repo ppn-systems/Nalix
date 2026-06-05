@@ -22,7 +22,7 @@ When `UdpListenerBase` receives a datagram, it expects the first 8 bytes to be t
 In source, the listener validates:
 
 - the datagram is at least 8 bytes long
-- the payload is at least the 10-byte Nalix packet header
+- the payload is at least the 6-byte Nalix packet header
 - the packet flags include `PacketFlags.UNRELIABLE`
 - the token resolves to a connection in `ConnectionHub`
 - the remote endpoint still matches the connection's pinned endpoint
@@ -74,12 +74,6 @@ public sealed class SampleUdpListener : UdpListenerBase
         // - session state
         // - region / shard ownership
         return connection.Secret.IsAllZeros == false;
-    }
-
-    public override void ProcessFrame(object? sender, IConnectEventArgs args)
-    {
-        // Custom frame logic or forward to protocol
-        this.Protocol.ProcessMessage(sender, args);
     }
 }
 ```

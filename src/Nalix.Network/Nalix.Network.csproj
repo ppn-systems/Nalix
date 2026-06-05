@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
@@ -32,6 +32,5 @@ Designed for latency-sensitive workloads, it emphasizes efficient socket I/O, pr
 	<ItemGroup>
 		<ProjectReference Include="..\Nalix.Framework\Nalix.Framework.csproj" />
 		<ProjectReference Include="..\Nalix.Abstractions\Nalix.Abstractions.csproj" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.8" />
 	</ItemGroup>
 </Project>

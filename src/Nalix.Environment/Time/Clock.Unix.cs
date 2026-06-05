@@ -3,6 +3,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace Nalix.Environment.Time;
@@ -62,14 +63,26 @@ public static partial class Clock
 
         // Check for overflow before casting so the caller sees a clear exception
         // instead of a silent wraparound.
-        return seconds > uint.MaxValue
-            ? throw new OverflowException(
-                "Unix timestamp exceeds UInt32.MaxValue. This typically occurs after year 2106.")
-            : seconds < 0
-            ? throw new OverflowException(
-                "Unix timestamp is negative, indicating time before Unix epoch.")
-            : (uint)seconds;
+        if (seconds > uint.MaxValue)
+        {
+            THROW_OVERFLOW_MAX();
+        }
+
+        if (seconds < 0)
+        {
+            THROW_OVERFLOW_MIN();
+        }
+
+        return (uint)seconds;
     }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_OVERFLOW_MAX() => throw new OverflowException("Unix timestamp exceeds UInt32.MaxValue. This typically occurs after year 2106.");
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_OVERFLOW_MIN() => throw new OverflowException("Unix timestamp is negative, indicating time before Unix epoch.");
 
     /// <summary>
     /// Current Unix timestamp (milliseconds) as long.

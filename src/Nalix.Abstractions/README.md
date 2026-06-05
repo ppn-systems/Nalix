@@ -8,7 +8,7 @@
 
 | Namespace | Purpose | Key Types |
 | :--- | :--- | :--- |
-| `Nalix.Abstractions` | Root namespace for core lifecycle, activation, and memory management | `IPoolable`, `IBufferLease`, `IBufferPoolManager`, `IObjectPoolManager`, `IActivatable`, `IWithLogging` |
+| `Nalix.Abstractions` | Root namespace for core lifecycle, activation, and memory management | `IPoolable`, `IBufferLease`, `IBufferPoolManager`, `IObjectPoolManager`, `IActivatable` |
 | `Nalix.Abstractions.Networking` | Essential network connection management and transport configurations | `IConnection`, `IConnectionHub`, `INetworkEndpoint`, `NetworkTransport` |
 | `Nalix.Abstractions.Networking.Packets` | Rich packet modeling, metadata attributes, and deserializers | `IPacket`, `IPacketContext`, `PacketOpcodeAttribute`, `PacketTransportAttribute`, `IPacketSender` |
 | `Nalix.Abstractions.Networking.Protocols` | Low-level protocol codes and routing advice | `ProtocolOpCode`, `ProtocolAdvice`, `ControlFlags`, `ProtocolReason` |
@@ -20,7 +20,6 @@
 | `Nalix.Abstractions.Exceptions` | Classifiers and exception models tailored for high-speed networking | `BaseException`, `CipherException`, `NetworkException`, `ExceptionClassifier` |
 | `Nalix.Abstractions.Diagnostics` | Core observability and performance telemetry contracts | `CoreTelemetryTarget` |
 | `Nalix.Abstractions.Middleware` | Cross-cutting packet interceptor and pipeline stages | `IPacketMiddleware`, `MiddlewareStage`, `MiddlewareOrderAttribute` |
-| `Nalix.Abstractions.Microsoft` | Extensions extending standard Microsoft logging infrastructure | `ThrottleLogExtensions` |
 
 ## Installation
 

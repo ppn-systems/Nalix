@@ -233,9 +233,18 @@ public readonly partial struct Snowflake : ISnowflake
             if (now == s_lastTimestamp)
             {
                 s_sequence++;
-                // If sequence overflows 14 bits (16384), we could wait or just wrap.
-                // Given the benchmark of 2.87us, we can't exceed 16k in a second easily.
-                s_sequence &= 0x3FFF;
+
+                if (s_sequence > 0x3FFF)
+                {
+                    SpinWait spinWait = new();
+                    while (now == s_lastTimestamp)
+                    {
+                        spinWait.SpinOnce();
+                        now = Clock.UnixSecondsNowUInt32();
+                    }
+                    s_lastTimestamp = now;
+                    s_sequence = 0;
+                }
             }
             else
             {

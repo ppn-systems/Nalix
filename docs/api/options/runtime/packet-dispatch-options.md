@@ -17,8 +17,7 @@
 
 | Property | Meaning | Default |
 | --- | --- | ---: |
-| `Logging` | Optional logger used by dispatch setup/execution logs. | `null` |
-| `DispatchLoopCount` | Explicit worker-loop count. `null` means auto-select during `Activate()`. | `null` |
+| `Drain` | Sub-options controlling dispatch loop drain behavior. | See below |
 | `Drain.MaxDrainPerWakeMultiplier` | Multiplier used to compute per-wake drain budget. | `5` |
 | `Drain.MinDrainPerWake` | Lower clamp for per-wake drain budget. | `64` |
 | `Drain.MaxDrainPerWake` | Upper clamp for per-wake drain budget. | `2048` |
@@ -29,7 +28,6 @@
 
 | Method | Behavior |
 | --- | --- |
-| `WithLogging(ILogger logger)` | Attaches logger used by dispatch diagnostics. |
 | `WithErrorHandling(Action<Exception, ushort> errorHandler)` | Registers global dispatch error callback. |
 | `WithMiddleware(IPacketMiddleware<TPacket> middleware)` | Adds packet middleware to handler pipeline. Throws on `null`. |
 | `WithDispatchLoopCount(int? loopCount)` | Sets explicit worker-loop count (`1..64`) or `null` for auto mode. |
@@ -56,10 +54,9 @@ Worker-loop count is resolved by `PacketDispatchChannel.Activate()`:
 ```csharp
 PacketDispatchChannel dispatch = new(options =>
 {
-    options.WithLogging(logger)
-           .WithErrorHandling((ex, opcode) =>
+    options.WithErrorHandling((ex, opcode) =>
            {
-               logger.Error($"dispatch-error opcode=0x{opcode:X4}", ex);
+               // Custom error hook for handler exceptions
            })
            .WithDispatchLoopCount(null)
            .WithMiddleware(new PermissionMiddleware())
@@ -68,6 +65,10 @@ PacketDispatchChannel dispatch = new(options =>
            .WithHandler(() => new AccountHandlers());
 });
 ```
+
+!!! info "Diagnostics"
+    Runtime diagnostics are emitted via `DiagnosticListener` (`"Runtime"`, event source
+    `Nalix.Runtime.DiagnosticsEvents.Source`). No per-instance logger attachment is needed.
 
 ## Related APIs
 

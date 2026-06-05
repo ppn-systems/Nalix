@@ -9,7 +9,7 @@ This page covers the public serialization surface in `Nalix.Codec.Serialization`
 - `src/Nalix.Codec/Serialization/LiteSerializer.cs`
 - `src/Nalix.Abstractions/Primitives`
 - `src/Nalix.Codec/Serialization/Formatters/Collections`
-- `src/Nalix.Analyzers.Generators/SerializeFormatterGenerator.cs`
+- `analyzers/Nalix.Analyzers.Generators/SerializeFormatterGenerator.cs`
 
 ## Main types
 

@@ -45,7 +45,7 @@ public class WebSocketTransportTests : IDisposable
         private sealed class StubOpCodeExtractor : Nalix.Abstractions.Networking.Protocols.IOpCodeExtractor
         {
             public ushort Extract(ReadOnlySpan<byte> payload) =>
-                payload.Length >= 6 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[4..]) : (ushort)0;
+                payload.Length >= 2 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[0..]) : (ushort)0;
         }
 
         public override IFrameProcessor FrameProcessor { get; }
@@ -107,7 +107,6 @@ public class WebSocketTransportTests : IDisposable
         {
             Address = "127.0.0.1",
             Port = port,
-            EncryptionEnabled = false,
             CompressionEnabled = false
         };
 
@@ -186,7 +185,6 @@ public class WebSocketTransportTests : IDisposable
             {
                 Address = "127.0.0.1",
                 Port = port,
-                EncryptionEnabled = false,
                 CompressionEnabled = false
             };
 
@@ -272,7 +270,6 @@ public class WebSocketTransportTests : IDisposable
             {
                 Address = "127.0.0.1",
                 Port = port,
-                EncryptionEnabled = false,
                 CompressionEnabled = false
             };
 
@@ -354,7 +351,6 @@ public class WebSocketTransportTests : IDisposable
             {
                 Address = "127.0.0.1",
                 Port = port,
-                EncryptionEnabled = false,
                 CompressionEnabled = false
             };
 
@@ -421,7 +417,6 @@ public class WebSocketTransportTests : IDisposable
             {
                 Address = "127.0.0.1",
                 Port = port,
-                EncryptionEnabled = false,
                 CompressionEnabled = false
             };
 
@@ -468,7 +463,6 @@ public class WebSocketTransportTests : IDisposable
             {
                 Address = "127.0.0.1",
                 Port = port,
-                EncryptionEnabled = false,
                 CompressionEnabled = false
             };
 

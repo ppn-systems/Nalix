@@ -155,7 +155,8 @@ public sealed class ExtensionsCoverageTests
     [Fact]
     public async Task WithTimeoutWhenReferenceTypeTaskDoesNotCompleteReturnsNull()
     {
-        Task<string> task = Task.Delay(1000).ContinueWith(_ => "done", TaskScheduler.Default);
+        // Increase delay to 5000ms to ensure 50ms timeout wins
+        Task<string> task = Task.Delay(5000).ContinueWith(_ => "done", TaskScheduler.Default);
 
         string? result = await task.WithTimeout(50);
 
@@ -212,18 +213,15 @@ public sealed class ExtensionsCoverageTests
     public void HeaderExtensionsWhenBufferContainsValuesReadsExpectedFields()
     {
         byte[] buffer = new byte[(int)PacketHeaderOffset.Region];
-        const uint magic = 0xA1B2C3D4;
         const ushort opCode = 0x7788;
         const ushort sequence = 0x1234;
 
-        BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan((int)PacketHeaderOffset.MagicNumber), magic);
         BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan((int)PacketHeaderOffset.OpCode), opCode);
         buffer[(int)PacketHeaderOffset.Flags] = (byte)PacketFlags.ENCRYPTED;
         buffer[(int)PacketHeaderOffset.Priority] = (byte)PacketPriority.HIGH;
         BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan((int)PacketHeaderOffset.SequenceId), sequence);
 
         PacketHeader header = buffer.AsSpan().AsHeaderRef();
-        Assert.Equal(magic, header.MagicNumber);
         Assert.Equal(opCode, header.OpCode);
         Assert.Equal(PacketFlags.ENCRYPTED, header.Flags);
         Assert.Equal(PacketPriority.HIGH, header.Priority);
@@ -236,7 +234,6 @@ public sealed class ExtensionsCoverageTests
         byte[] buffer = new byte[(int)PacketHeaderOffset.Region];
         PacketHeader header = new()
         {
-            MagicNumber = 0xA1B2C3D4,
             OpCode = 0x7788,
             Flags = PacketFlags.RELIABLE,
             Priority = PacketPriority.HIGH,
@@ -246,7 +243,6 @@ public sealed class ExtensionsCoverageTests
         buffer.AsSpan().AsHeaderRef() = header;
 
         PacketHeader read = buffer.AsSpan().AsHeaderRef();
-        Assert.Equal(header.MagicNumber, read.MagicNumber);
         Assert.Equal(header.OpCode, read.OpCode);
         Assert.Equal(header.Flags, read.Flags);
         Assert.Equal(header.Priority, read.Priority);

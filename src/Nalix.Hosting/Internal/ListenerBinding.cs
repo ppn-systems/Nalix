@@ -23,11 +23,6 @@ internal readonly struct ListenerBinding
     public NetworkTransport Transport { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the listener uses UDP transport.
-    /// </summary>
-    public bool IsUdp => this.Transport == NetworkTransport.UDP;
-
-    /// <summary>
     /// Gets the network listener responsible for accepting connections
     /// or receiving datagrams.
     /// </summary>

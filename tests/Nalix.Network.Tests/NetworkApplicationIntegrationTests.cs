@@ -26,17 +26,15 @@ public sealed class NetworkApplicationIntegrationTests
         byte[] bytes = pkt.Serialize();
 
         // 3. Verify
-        // Offset 0: MagicNumber (4 bytes)
-        // Offset 4: OpCode (2 bytes)
-        ushort readOpCode = BitConverter.ToUInt16(bytes, 4);
+        // Offset 0: OpCode (2 bytes)
+        ushort readOpCode = BitConverter.ToUInt16(bytes, 0);
 
         Console.WriteLine($"[TEST] Serialized bytes: {BitConverter.ToString(bytes)}");
         Console.WriteLine($"[TEST] Expected OpCode: 0x{pkt.Header.OpCode:X4}, Read: 0x{readOpCode:X4}");
 
         Assert.Equal(pkt.Header.OpCode, readOpCode);
 
-        uint magic = BitConverter.ToUInt32(bytes, 0);
-        Assert.Equal(pkt.Header.MagicNumber, magic);
+
     }
 
     [Fact]
@@ -86,12 +84,13 @@ public sealed class NetworkApplicationIntegrationTests
         try
         {
             // 2. Setup Client
-            using TcpSession client = new(new TransportOptions
+            var options = new TransportOptions
             {
                 Address = "127.0.0.1",
                 Port = (ushort)port,
-                EncryptionEnabled = false
-            });
+                CompressionEnabled = false
+            };
+            using TcpSession client = new(options);
 
             await client.ConnectAsync();
 
@@ -102,7 +101,7 @@ public sealed class NetworkApplicationIntegrationTests
             pkt.Header = h2;
 
 #if DEBUG
-            Console.WriteLine($"[TEST] Sending packet: OpCode={pkt.Header.OpCode}, MagicNumber={pkt.Header.MagicNumber}");
+            Console.WriteLine($"[TEST] Sending packet: OpCode={pkt.Header.OpCode}");
 #endif
             // Disambiguate SendAsync by specifying CancellationToken
             await client.SendAsync(pkt, ct: default);
@@ -151,7 +150,7 @@ public sealed class IntegrationTestProtocol : Protocol
     private sealed class StubOpCodeExtractor : Nalix.Abstractions.Networking.Protocols.IOpCodeExtractor
     {
         public ushort Extract(ReadOnlySpan<byte> payload) =>
-            payload.Length >= 6 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[4..]) : (ushort)0;
+            payload.Length >= 2 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[0..]) : (ushort)0;
     }
 
     public override IFrameProcessor FrameProcessor => _frameProcessor;

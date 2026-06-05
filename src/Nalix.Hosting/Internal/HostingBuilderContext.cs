@@ -8,8 +8,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
+using Nalix.Runtime.Routing;
 
 namespace Nalix.Hosting.Internal;
 

@@ -104,9 +104,8 @@ Control the session lifecycle via `SessionStoreOptions`:
 
 | Option | Description | Default Value |
 | :---: | :---: | :---: |
-| `SessionTtl` | How long a session remains resumable after creation. | `00:30:00` (30 minutes) |
-| `AutoSaveOnUnregister` | Whether sessions are automatically saved when a connection is unregistered. | `true` |
-| `MinAttributesForPersistence` | Minimum attribute count required to persist a session (anti-DDoS filter). Persistence is skipped when `Attributes.Count <= MinAttributesForPersistence`. | `4` |
+| `SessionTtl` | How long a session remains resumable after creation. | `00:05:00` (5 minutes) |
+| `MinAttributesForPersistence` | Minimum attribute count required to persist a session (anti-DDoS filter). Persistence is skipped when `Attributes.Count <= MinAttributesForPersistence`. | `10` |
 
 !!! tip
     For multi-node (Distributed) deployments, you should replace the default `InMemorySessionStore` with a custom implementation bridging to a persistent store like Redis or Aerospike to ensure session state is shared across all shards.

@@ -35,13 +35,13 @@ public static class PingExtensions
 
         ushort seq = unchecked((ushort)Interlocked.Increment(ref s_pingSequence));
 
-        // Use NewControl fluent builder which also handles Timestamp/MonoTicks setup
-        Control ping = session.NewControl((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.PING).WithSeq(seq).Build();
+        // Use NewTimeSync fluent builder which also handles Timestamp/MonoTicks setup
+        TimeSync ping = session.NewTimeSync(ControlType.PING).WithSeq(seq).Build();
         try
         {
             long startTicks = ping.MonoTicks;
 
-            using Control pong = await session.RequestAsync<Control>(
+            using TimeSync pong = await session.RequestAsync<TimeSync>(
                 ping,
                 options: RequestOptions.Default.WithTimeout(timeoutMs),
                 predicate: p => p.Type == ControlType.PONG && p.SequenceId == seq,

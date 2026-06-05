@@ -10,9 +10,9 @@ Nalix uses one packet model across runtime and SDK code. Shared contracts preven
 
 - `src/Nalix.Abstractions/Networking/Packets/IPacket.cs`
 - `src/Nalix.Abstractions/Networking/Packets/IPacketHeader.cs`
+- `src/Nalix.Abstractions/Networking/Packets/IPacketStaticOpcode.cs`
 - `src/Nalix.Abstractions/Networking/Packets/IPacketContext.cs`
 - `src/Nalix.Abstractions/Networking/Packets/IPacketDeserializer.cs`
-- `src/Nalix.Abstractions/Networking/Packets/IPacketRegistry.cs`
 - `src/Nalix.Abstractions/Networking/Packets/IPacketSender.cs`
 - `src/Nalix.Abstractions/Networking/Packets/PacketDeserializer.cs`
 - `src/Nalix.Abstractions/Networking/Packets/IPacketTimestamped.cs`
@@ -25,19 +25,9 @@ Nalix uses one packet model across runtime and SDK code. Shared contracts preven
 
 `IPacket` is the wire contract. It includes:
 
-- standard header metadata via `Header` (`MagicNumber`, `OpCode`, `Flags`, `Priority`, `SequenceId`)
+- standard header metadata via `Header` (`OpCode`, `Flags`, `Priority`, `SequenceId`)
 - `Length`
 - serialization methods (`Serialize()`, `Serialize(Span<byte>)`)
-
-### `IPacketRegistry`
-
-`IPacketRegistry` provides read-only deserializer lookup for dispatch and client receive paths:
-
-- `DeserializerCount`
-- `IsKnownMagic(uint)`
-- `IsRegistered<TPacket>()`
-- `Deserialize(ReadOnlySpan<byte>)`
-- `TryDeserialize(ReadOnlySpan<byte>, out IPacket?)`
 
 ### `IPacketContext<TPacket>`
 
@@ -57,6 +47,7 @@ Metadata-aware send contract:
 
 ### Supporting Contracts
 
+- `IPacketStaticOpcode`: forces a packet type to define a static `ushort` OpCode via `static abstract ushort StaticOpCode { get; }`. Used by `PacketBase<TSelf>` and `PacketRegistry` for compile-time OpCode resolution without reflection.
 - `PacketDeserializer`: delegate from raw bytes to `IPacket`
 - `IPacketDeserializer<TPacket>`:
   - `Deserialize(ReadOnlySpan<byte> buffer)` — returns a new `TPacket` instance

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -6,7 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
-using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.IO;
@@ -27,14 +27,14 @@ namespace Nalix.Network.Internal.Security;
 /// </summary>
 internal sealed class NetworkBanRepository
 {
-    private readonly ILogger? _logger;
+
     private readonly ConnectionBanStoreOptions _storeConfig;
     private readonly string _filePath;
     private int _persistenceDirty;
 
-    public NetworkBanRepository(ILogger? logger = null)
+    public NetworkBanRepository()
     {
-        _logger = logger;
+
         _storeConfig = ConfigurationManager.Instance.Get<ConnectionBanStoreOptions>();
         _storeConfig.Validate();
         _filePath = Path.Combine(Directories.DataDirectory, _storeConfig.StoreFileName);
@@ -54,7 +54,40 @@ internal sealed class NetworkBanRepository
         }
 
         DateTime now = Clock.NowUtc();
-        List<NetworkBanRecord> records = NetworkBanStore.Load(_filePath, _storeConfig.MaxPersistedBans, _storeConfig.BanCountDecayWindow, now.Ticks);
+        List<NetworkBanRecord> records;
+
+        try
+        {
+            records = NetworkBanStore.Load(_filePath, _storeConfig.MaxPersistedBans, _storeConfig.BanCountDecayWindow, now.Ticks);
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
+            {
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.NetworkBanRepository:Load", $"ban file corrupted or unreadable, renaming to .corrupt file=file-path={_filePath}", ex));
+            }
+
+            try
+            {
+                if (File.Exists(_filePath))
+                {
+                    string corruptPath = _filePath + $".corrupt.{now:yyyyMMddHHmmss}";
+                    File.Move(_filePath, corruptPath, overwrite: true);
+                }
+            }
+            catch (Exception renameEx) when (ExceptionClassifier.IsNonFatal(renameEx))
+            {
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
+                {
+                    // renameEx, "[NW.NetworkBanRepository] failed to rename corrupt file");
+                }
+            }
+
+            // Force save current memory state to a fresh file
+            this.Save(map, force: true);
+
+            return;
+        }
 
         foreach (NetworkBanRecord record in records)
         {
@@ -69,9 +102,9 @@ internal sealed class NetworkBanRepository
             _ = map.TryAdd(SocketEndpoint.FromNetworkEndpoint(record.Endpoint), entry);
         }
 
-        if (records.Count > 0 && _logger != null && _logger.IsEnabled(LogLevel.Information))
+        if (records.Count > 0 && DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
-            _logger.LogInformation("[NW.NetworkBanRepository] Loaded {RecordsCount} persisted bans.", records.Count);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.NetworkBanRepository:Load", $"Loaded records-count={records.Count} persisted bans."));
         }
     }
 
@@ -122,9 +155,9 @@ internal sealed class NetworkBanRepository
             {
                 NetworkBanStore.Save(_filePath, snapshot, snapshot.Count);
 
-                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    _logger.LogDebug("[NW.NetworkBanRepository] Persisted {SnapshotCount} bans to disk.", snapshot.Count);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.NetworkBanRepository:Save", $"Persisted snapshot-count={snapshot.Count} bans to disk."));
                 }
             }
         }
@@ -132,10 +165,17 @@ internal sealed class NetworkBanRepository
         {
             // Restore dirty flag if save failed
             _ = Interlocked.Exchange(ref _persistenceDirty, 1);
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                _logger.LogError(ex, "[NW.NetworkBanRepository] failed to save banned ips.");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.NetworkBanRepository:Save", "failed to save banned ips.", ex));
             }
         }
     }
 }
+
+
+
+
+
+
+

@@ -184,9 +184,6 @@ nav:
           - Buffer Pooling Configuration: guides/low-level/buffer-pooling-configuration.md
       - Advanced:
           - Dynamic Concurrency Adjustment: guides/advanced/dynamic-concurrency-adjustment.md
-      - Tools:
-        - Overview: guides/tools/index.md
-        - Identity Certificate Tool: guides/tools/certificate-tool.md
   - Packages:
       - Overview: packages/index.md
       - Nalix.Abstractions: packages/nalix-abstractions.md

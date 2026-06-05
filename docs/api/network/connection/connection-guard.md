@@ -44,7 +44,7 @@ flowchart TD
 ```csharp
 namespace Nalix.Network.RateLimiting;
 
-public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable, IWithLogging<ConnectionGuard>
+public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 ```
 
 #### Constructors
@@ -60,8 +60,6 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 * `public void OnConnectionClosed(object? sender, IConnectEventArgs args)`  
   Event handler triggered when a connection closes to release the slot for the client IP and decrement global metrics.
 
-* `public ConnectionGuard WithLogging(ILogger logger)`  
-  Attaches a logger instance to log rejections and warnings.
 
 * `public string GenerateReport()`  
   Generates a formatted text diagnostics status report showing active IPs and connection counts.

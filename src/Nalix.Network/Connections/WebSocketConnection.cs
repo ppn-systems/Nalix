@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -6,8 +6,8 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.WebSockets;
 using System.Threading;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
@@ -39,7 +39,6 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     private static readonly ConnectionGuardOptions s_limitOptions = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
     private static readonly NetworkCallbackOptions s_callbackOptions = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
 
-    private readonly ILogger? _logger;
     private readonly WebSocket _webSocket;
     private readonly SemaphoreSlim _sendLock = new(1, 1);
 
@@ -73,15 +72,13 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     /// <param name="webSocket">The underlying WebSocket instance.</param>
     /// <param name="remoteEndPoint">The remote endpoint of the client.</param>
     /// <param name="packetClassifier">The opcode extractor for classifying incoming packets.</param>
-    /// <param name="logger">The logger instance.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="webSocket"/> is null.</exception>
-    public WebSocketConnection(WebSocket webSocket, IOpCodeExtractor packetClassifier, EndPoint remoteEndPoint, ILogger? logger = null)
+    public WebSocketConnection(WebSocket webSocket, IOpCodeExtractor packetClassifier, EndPoint remoteEndPoint)
     {
         ArgumentNullException.ThrowIfNull(webSocket);
         ArgumentNullException.ThrowIfNull(remoteEndPoint);
         ArgumentNullException.ThrowIfNull(packetClassifier);
 
-        _logger = logger;
         _webSocket = webSocket;
 
         this.Secret = Bytes32.Zero;
@@ -92,9 +89,9 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
         _argsPool = new LocalPool<ConnectionEventArgs>(s_pool);
         _contextPool = new LocalPool<PooledConnectEventContext>(s_pool);
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            _logger.LogTrace("[NW.WebSocketConnection] created remote={RemoteEndpoint} id={ConnectionId}", this.NetworkEndpoint, this.ID);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.WebSocketConnection:UnknownMethod", $"created remote-endpoint={this.NetworkEndpoint} connection-id={this.ID}"));
         }
     }
 
@@ -205,7 +202,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
     #region Internal Helpers
 
-    internal ILogger? Logger => _logger;
+
     internal WebSocket WebSocket => _webSocket;
     internal SemaphoreSlim SendLock => _sendLock;
 
@@ -223,7 +220,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
         ConnectionEventArgs args = this.AcquireEventArgs();
         args.Initialize(this);
 
-        if (!Internal.Transport.AsyncCallback.Invoke(OnPostProcessEventBridge, this, args))
+        if (!Internal.Transport.AsyncCallback.Invoke(OnPostProcessEventBridge, this, args, CallbackLane.Post))
         {
             args.Dispose();
         }
@@ -237,9 +234,9 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
             _ = Interlocked.Decrement(ref _pendingProcessCallbacks);
             lease.Dispose();
 
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                _logger.LogWarning("[NW.WebSocketConnection] receive throttle triggered remote={RemoteEndpoint}", this.NetworkEndpoint);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.WebSocketConnection:TriggerProcessEvent", $"receive throttle triggered remote-endpoint={this.NetworkEndpoint}"));
             }
             return;
         }
@@ -247,7 +244,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
         ConnectionEventArgs args = this.AcquireEventArgs();
         args.Initialize(lease, this);
 
-        if (!Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, releasePendingPacketOnCompletion: true))
+        if (!Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, CallbackLane.Process, releasePendingPacketOnCompletion: true))
         {
             ((IPooledConnectContextPool)this).ReleasePendingPacket();
             _ = args.ExchangeLease(null);
@@ -309,9 +306,9 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     /// <inheritdoc/>
     public void Disconnect(string? reason = null)
     {
-        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            _logger.LogDebug("[NW.WebSocketConnection] disconnect request id={ConnectionId} remote={RemoteEndpoint} reason={Reason}", this.ID, this.NetworkEndpoint, reason);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.WebSocketConnection:Disconnect", $"disconnect request connection-id={this.ID} remote-endpoint={this.NetworkEndpoint} reason={reason}"));
         }
         this.Dispose();
     }
@@ -351,9 +348,9 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                     {
-                        _logger.LogError(ex, "[NW.WebSocketConnection] Close event error");
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.WebSocketConnection:Dispose", "Close event error", ex));
                     }
                 }
                 finally

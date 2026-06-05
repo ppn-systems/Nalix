@@ -42,20 +42,13 @@ flowchart LR
 
 Nalix includes industrial-strength handlers for standard protocol features. You can explore their implementations in the `src/Nalix.Runtime/Handlers` directory.
 
-### `KeyExchangeHandlers`
-
-Manages the server-side **TOFU Key Exchange** flow (`ProtocolOpCode.KEY_EXCHANGE`).
-
-- **Stage Resolution**: Processes the `KeyExchangeStage.REQUEST` from the client and replies with a `KeyExchangeStage.RESPONSE` containing the server's public key (`HandshakeHandlers.ServerPublicKey`).
-- **Security Check**: Enforces that key exchange must occur strictly before the session handshake. If `ConnectionAttributes.HandshakeEstablished` is already present, the connection is instantly closed due to a state violation.
-- **Attributes**: Marked with `[ReservedOpcodePermitted]`, `[PacketEncryption(false)]`, and `[PacketPermission(PermissionLevel.NONE)]` as it runs before secure communications are established.
-
 ### `HandshakeHandlers`
 
-Manages the server-side **X25519 Handshake** flow.
+Manages the server-side **X25519 Handshake** flow using session protocol frames.
 
-- **Stage Resolution**: Orchestrates `CLIENT_HELLO` and `CLIENT_FINISH` stages.
-- **Security**: Generates ephemeral keys, computes transcript hashes, and derives the session key.
+- **Session Init**: `HandleSessionInitAsync(IPacketContext<SessionInit>)` processes the client's `SessionInit` frame, generates server ephemeral keys, computes the shared secret, and replies with `SessionChallenge`.
+- **Session Proof**: `HandleSessionProofAsync(IPacketContext<SessionProof>)` verifies the client's proof, derives the session key, sets `connection.Secret` and `connection.Algorithm`, persists resumable session state, and replies with `SessionEstablished`.
+- **Security**: Marked with `[ReservedOpcodePermitted]`, `[PacketEncryption(false)]`, and `[PacketPermission(PermissionLevel.NONE)]` as the handshake runs before secure communications are established.
 - **Session Integration**: Automatically creates a resumable session entry upon a successful handshake.
 
 ### `SessionHandlers`

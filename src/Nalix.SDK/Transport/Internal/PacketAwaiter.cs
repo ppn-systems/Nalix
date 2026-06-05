@@ -37,7 +37,7 @@ internal static class PacketAwaiter
     public static async Task<TPkt> AwaitAsync<TPkt>(
         TransportSession client, Func<TPkt, bool> predicate,
         int timeoutMs, Func<CancellationToken, Task> sendAsync, CancellationToken ct)
-        where TPkt : class, IPacket
+        where TPkt : class, IPacket, IPacketStaticOpcode
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(predicate);
@@ -61,6 +61,7 @@ internal static class PacketAwaiter
             _ = tcs.TrySetCanceled(linkedCts.Token);
         });
 
+#pragma warning disable CS0618 // Type or member is obsolete
         IDisposable subscription = client.OnOnce<TPkt>(
             predicate: packet =>
             {
@@ -79,6 +80,7 @@ internal static class PacketAwaiter
                 _ = tcs.TrySetResult(packet);
             },
             disposeAfter: false);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         void DisconnectHandler(object? _, Exception ex)
         {

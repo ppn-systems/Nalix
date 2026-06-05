@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -8,8 +8,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Memory;
@@ -99,7 +99,7 @@ public abstract partial class TcpListenerBase
             while (node is not null)
             {
                 ProxyHeaderContext? next = node.Next;
-                this.SafeCloseSocket(node.Socket!);
+                SafeCloseSocket(node.Socket!);
                 node = next;
             }
             _proxyHead = null;
@@ -142,7 +142,7 @@ public abstract partial class TcpListenerBase
 
                 // Timeout reached
                 this.DetachProxyContext(node);
-                this.SafeCloseSocket(node.Socket!);
+                SafeCloseSocket(node.Socket!);
                 // SafeCloseSocket will trigger OnProxyReadCompleted with error/0 bytes if a receive is pending
                 // So we don't clean up the state here, let OnProxyReadCompleted handle it.
 
@@ -198,9 +198,9 @@ public abstract partial class TcpListenerBase
                     this.DetachProxyContext(state);
                 }
 
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
                 {
-                    this.Logger.LogTrace("[NW.TcpListenerBase:OnProxyReadCompleted] invalid-proxy-header-drop remote={StateSocketRemoteEndPoint}", state.Socket?.RemoteEndPoint);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", $"invalid-proxy-header-drop state-socket-remote-end-point={state.Socket?.RemoteEndPoint}"));
                 }
 
                 this.ReleaseProxyContext(state, args, success: false);
@@ -237,9 +237,9 @@ public abstract partial class TcpListenerBase
 
         if (!_limiter.TryAccept(effectiveIp))
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                this.Logger.LogTrace("[NW.TcpListenerBase:OnProxyReadCompleted] proxy-rate-limit-drop remote={EffectiveIp}", effectiveIp);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", $"proxy-rate-limit-drop effective-ip={effectiveIp}"));
             }
 
             this.ReleaseProxyContext(state, args, success: false);
@@ -256,9 +256,9 @@ public abstract partial class TcpListenerBase
         }
         catch (ObjectDisposedException)
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                this.Logger.LogTrace("[NW.TcpListenerBase:OnProxyReadCompleted] socket-disposed-during-init");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", "socket-disposed-during-init"));
             }
         }
         catch (SocketException ex) when (
@@ -267,16 +267,16 @@ public abstract partial class TcpListenerBase
             SocketError.ConnectionAborted or
             SocketError.OperationAborted)
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                this.Logger.LogTrace(ex, "[NW.TcpListenerBase:OnProxyReadCompleted] socket-error-during-init: {SocketError}", ex.SocketErrorCode);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", $"socket-error-during-init socket-error={ex.SocketErrorCode}", ex));
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
             {
-                this.Logger.LogError(ex, "[NW.TcpListenerBase:OnProxyReadCompleted] init-error");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", "init-error", ex));
             }
         }
 
@@ -361,6 +361,7 @@ public abstract partial class TcpListenerBase
         }
 
         state.RemovedFromList = true;
+        _ = Interlocked.Decrement(ref _pendingProxyConnections);
 
         if (state.Prev != null)
         {
@@ -442,7 +443,7 @@ public abstract partial class TcpListenerBase
 
         if (!success && state.Socket != null)
         {
-            this.SafeCloseSocket(state.Socket);
+            SafeCloseSocket(state.Socket);
         }
 
         _pool.Return(state);

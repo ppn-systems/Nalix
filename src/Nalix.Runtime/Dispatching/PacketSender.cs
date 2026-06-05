@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -14,8 +14,7 @@ using Nalix.Environment.Configuration;
 using Nalix.Environment.Memory;
 
 #if DEBUG
-using Nalix.Framework.Injection;
-using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Diagnostics;
 #endif
 
 namespace Nalix.Runtime.Dispatching;
@@ -32,9 +31,6 @@ public sealed class PacketSender : IPacketSender
     private IConnection? _connection;
     private PacketMetadata _attributes;
 
-#if DEBUG
-    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-#endif
     private static readonly CompressionOptions s_options = ConfigurationManager.Instance.Get<CompressionOptions>();
 
     #endregion Fields
@@ -77,7 +73,7 @@ public sealed class PacketSender : IPacketSender
 
         CancellationToken safeToken = ct == default ? _token : ct;
 
-        return SEND_CORE_ASYNC(this.GET_CONNECTION_OR_THROW(), _attributes, packet, needEncrypt, safeToken);
+        return SEND_CORE_ASYNC(this.GET_CONNECTION_OR_THROW(), GetTransport(this.GET_CONNECTION_OR_THROW(), _attributes), packet, needEncrypt, safeToken);
     }
 
     /// <inheritdoc/>
@@ -87,29 +83,31 @@ public sealed class PacketSender : IPacketSender
 
         CancellationToken safeToken = ct == default ? _token : ct;
 
-        return SEND_CORE_ASYNC(this.GET_CONNECTION_OR_THROW(), _attributes, packet, forceEncrypt, safeToken);
+        return SEND_CORE_ASYNC(this.GET_CONNECTION_OR_THROW(), GetTransport(this.GET_CONNECTION_OR_THROW(), _attributes), packet, forceEncrypt, safeToken);
     }
 
     #endregion APIs
 
     #region Private Methods
 
-    private static async ValueTask SEND_CORE_ASYNC(IConnection connection, PacketMetadata attributes, IPacket packet, bool needEncrypt, CancellationToken ct)
+    internal static async ValueTask SEND_CORE_ASYNC(IConnection connection, IConnection.ITransport transport, IPacket packet, bool needEncrypt, CancellationToken ct)
     {
         int packetLength = packet.Length;
 
 #if DEBUG
-        if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            string packetType = packet.GetType().Name;
-            s_logger.LogDebug("[RT.PacketSender] Start SEND_CORE_ASYNC | Packet={PacketType}, Length={Length}, NeedEncrypt={NeedEncrypt}", packetType, packetLength, needEncrypt);
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Debug,
+                new DiagnosticLog(
+                    "RT.PacketSender:SendCoreAsync",
+                    $"send-core-async packet={packet.GetType().Name} length={packetLength} encrypt={needEncrypt}"));
         }
 #endif
 
         // Serialize into a pooled buffer first so the subsequent compression/encryption
         // branches can reuse the same payload without reserializing the packet.
         BufferLease rawLease = BufferLease.Rent(packetLength);
-        IConnection.ITransport transport = GetTransport(connection, attributes);
 
         try
         {

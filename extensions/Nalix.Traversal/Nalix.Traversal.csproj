@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+
+		<Nullable>enable</Nullable>
+		<IsPackable>true</IsPackable>
+		<IsTrimmable>false</IsTrimmable>
+		<OutputType>Library</OutputType>
+		<Deterministic>true</Deterministic>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<DisableImplicitMicrosoftCSharpReference>true</DisableImplicitMicrosoftCSharpReference>
+
+		<Description><![CDATA[
+Nalix.Traversal provides NAT traversal, STUN signaling, and UDP hole punching capabilities for Nalix networks.
+		]]></Description>
+
+	</PropertyGroup>
+
+	<Import Project="..\..\src\Nalix.Build.props" />
+	<Import Project="..\..\src\Package.Build.props" />
+
+	<ItemGroup>
+		<ProjectReference Include="..\Nalix.Traversal.Contracts\Nalix.Traversal.Contracts.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Hosting\Nalix.Hosting.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Runtime\Nalix.Runtime.csproj" />
+	</ItemGroup>
+</Project>

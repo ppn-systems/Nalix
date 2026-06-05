@@ -61,11 +61,12 @@ flowchart LR
 
 ### Key components
 
-- `FrameBase` / `PacketBase<TSelf>` — base abstractions for headers, auto-magic, serialization, and pooling.
+- `FrameBase` / `PacketBase<TSelf>` — base abstractions for headers, static opcode, serialization, and pooling.
 - `SerializePackableAttribute` / `SerializeOrderAttribute` / `SerializeIgnoreAttribute` / `SerializeHeaderAttribute` / `SerializeDynamicSizeAttribute` — low-level serialization layout controls.
 - `LiteSerializer` / `FormatterProvider` / `IFormatter<T>` — serializer entry points and formatter resolution.
 - `PacketRegistry` — process-wide registry for packet discovery and deserialization.
-- `Handshake` — default handshake frame used to exchange ephemeral keys, nonces, proofs, and transcript hash.
+- `SessionInit` / `SessionChallenge` / `SessionProof` / `SessionEstablished` — session protocol frames for the X25519 handshake flow.
+- `SessionTofu` — Trust-On-First-Use frame for retrieving the server's static public key.
 - `SessionResume` — unified session signal packet for resume request/response flows (uses `SessionResumeStage` for stage disambiguation).
 - `Control` — built-in frame type.
 - `FragmentHeader` / `FragmentAssembler` / `FragmentOptions` — chunk large payloads and reassemble them safely.
@@ -79,20 +80,19 @@ flowchart LR
 
 ```csharp
 using Nalix.Codec.DataFrames;
-using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.ProtocolFrames;
 using Nalix.Environment.Memory;
 
 // Initialize the registry (usually called by NetworkApplicationBuilder)
 PacketRegistry.Build(); // Freeze the registry
 
-// Handshake frame
-Handshake hs = new(
-    HandshakeStage.CLIENT_HELLO,
+// Session init frame (first step of handshake)
+var init = SessionInit.Create();
+init.Initialize(
     new Bytes32(publicKeyBytes),
     new Bytes32(nonceBytes),
-    flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
-hs.UpdateTranscriptHash("nalix-default-handshake"u8);
-byte[] bytes = hs.Serialize();
+    PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+byte[] bytes = init.Serialize();
 ```
 
 ## Key API pages

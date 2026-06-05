@@ -25,6 +25,7 @@
 | `0x13` | `TIMESYNCRESPONSE` | Server responding with high-resolution time. |
 | `0x14` | `CIPHER_UPDATE` | Request to change the active cipher suite algorithm. |
 | `0x15` | `CIPHER_UPDATE_ACK` | Acknowledges a cipher suite update request. |
+| `0x16` | `PUBLIC_KEY_REQUEST` | Client requests the server's static public key (TOFU). |
 | `0xFE` | `RESERVED1` | Reserved for future extension. |
 | `0xFF` | `RESERVED2` | Reserved for future extension. |
 

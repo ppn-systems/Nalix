@@ -13,7 +13,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Nalix.Codec\Nalix.Codec.csproj" />
-    <Analyzer Include="..\..\build\bin\$(Configuration)\Nalix.Analyzers.Generators\netstandard2.0\Nalix.Analyzers.Generators.dll" Condition="Exists('..\..\build\bin\$(Configuration)\Nalix.Analyzers.Generators\netstandard2.0\Nalix.Analyzers.Generators.dll')" />
   </ItemGroup>
 
 </Project>

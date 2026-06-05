@@ -21,8 +21,10 @@ using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 
-public sealed class LoginPacket : PacketBase<LoginPacket>
+public sealed class LoginPacket : PacketBase<LoginPacket>, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
 
@@ -46,8 +48,10 @@ using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 
-public sealed class LoginPacket : PacketBase<LoginPacket>
+public sealed class LoginPacket : PacketBase<LoginPacket>, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
 
@@ -85,8 +89,10 @@ using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 
-public sealed class LoginPacket : PacketBase<LoginPacket>
+public sealed class LoginPacket : PacketBase<LoginPacket>, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
 
@@ -110,8 +116,10 @@ using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 
-public sealed class LoginPacket : PacketBase<LoginPacket>
+public sealed class LoginPacket : PacketBase<LoginPacket>, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
 
@@ -137,6 +145,7 @@ public sealed class Example
             expectedEquivalenceKey: "Nalix.RequestOptions.Retry.SetZero");
     }
 }
+
 
 
 

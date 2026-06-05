@@ -4,7 +4,7 @@ The Configuration Generator automates the binding of `.ini` configuration files 
  
 ## Source Mapping
  
-- `src/Nalix.Analyzers.Generators/ConfigurationGenerator.cs`
+- `analyzers/Nalix.Analyzers.Generators/ConfigurationGenerator.cs`
  
 ## Overview
  

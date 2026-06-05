@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -7,7 +7,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
-using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Diagnostics;
+
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -38,10 +39,7 @@ public abstract partial class UdpListenerBase
             try { _socket.DualMode = true; }
             catch (Exception ex) when (ex is SocketException or NotSupportedException or ObjectDisposedException or InvalidOperationException)
             {
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
-                {
-                    this.Logger.LogDebug(ex, "[NW.UdpListenerBase:Initialize] dualmode-not-applied port={Port} reason={ExceptionType}", _port, ex.GetType().Name);
-                }
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug)) { DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.UdpListenerBase:Initialize", $"dualmode-not-applied port={_port} exception-type={ex.GetType().Name}", ex)); }
             }
         }
 
@@ -54,10 +52,7 @@ public abstract partial class UdpListenerBase
         // ReceiveFromAsync can populate it without an address-family mismatch.
         _anyEndPoint = new IPEndPoint(bindAddress, 0);
 
-        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
-        {
-            this.Logger.LogDebug("[NW.UdpListenerBase:Initialize] init-ok port={Port} af={Af} reuse={OptionsReuseAddress} buf={OptionsBufferSize}", _port, af, _options.ReuseAddress, _options.BufferSize);
-        }
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug)) { DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.UdpListenerBase:Initialize", $"init-ok port={_port} af={af} options-reuse-address={_options.ReuseAddress} options-buffer-size={_options.BufferSize}")); }
     }
 
     /// <summary>
@@ -92,10 +87,10 @@ public abstract partial class UdpListenerBase
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
         }
 
-        // 1. CHUNG: Tắt phân mảnh gói tin (IP Fragmentation). 
-        // Các UDP Protocol thời gian thực (Enterprise) luôn giữ size < MTU (1400 bytes).
-        // Nếu gói tin vô tình trượt qua ngưỡng này, thà bị Drop nguyên cục còn hơn để HĐH 
-        // cắt nhỏ ra, làm tăng độ trễ (latency spikes) do chờ gom nối ghép (Reassembly).
+        // 1. CHUNG: T?t phân m?nh gói tin (IP Fragmentation). 
+        // Các UDP Protocol th?i gian th?c (Enterprise) luôn gi? size < MTU (1400 bytes).
+        // N?u gói tin vô tình tru?t qua ngu?ng này, thà b? Drop nguyên c?c còn hon d? HÐH 
+        // c?t nh? ra, làm tang d? tr? (latency spikes) do ch? gom n?i ghép (Reassembly).
         try
         {
             socket.DontFragment = true;
@@ -109,11 +104,11 @@ public abstract partial class UdpListenerBase
             // Socket lifetime race: ignore to preserve existing non-fatal behavior.
         }
 
-        // 2. WINDOWS: Sửa lỗi WSAECONNRESET kinh điển của UDP trên Windows.
-        // Bình thường nếu Server gửi trả 1 gói UDP cho IP Client, nhưng Client đã tắt mạng (nguồn không tới), 
-        // Windows sẽ nhận được ICMP Port Unreachable. Ngay lập tức nó ném 1 lỗi SocketException(ConnectionReset)
-        // vào thẳng hàm ReceiveFromAsync GẦN NHẤT. Làm sập hoặc gián đoạn luồng nhận của bao người khác!
-        // SIO_UDP_CONNRESET = -1744830452 vô hiệu hóa cơ chế báo lỗi vớ vẩn này.
+        // 2. WINDOWS: S?a l?i WSAECONNRESET kinh di?n c?a UDP trên Windows.
+        // Bình thu?ng n?u Server g?i tr? 1 gói UDP cho IP Client, nhung Client dã t?t m?ng (ngu?n không t?i), 
+        // Windows s? nh?n du?c ICMP Port Unreachable. Ngay l?p t?c nó ném 1 l?i SocketException(ConnectionReset)
+        // vào th?ng hàm ReceiveFromAsync G?N NH?T. Làm s?p ho?c gián do?n lu?ng nh?n c?a bao ngu?i khác!
+        // SIO_UDP_CONNRESET = -1744830452 vô hi?u hóa co ch? báo l?i v? v?n này.
         if (OperatingSystem.IsWindows())
         {
             try
@@ -124,13 +119,9 @@ public abstract partial class UdpListenerBase
             }
             catch (SocketException ex)
             {
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
-                {
-                    this.Logger.LogError(ex,
-                        "Failed to set SIO_UDP_CONNRESET. " +
-                        "UDP sockets on Windows may throw SocketException(ConnectionReset) when receiving datagrams from unreachable clients.");
-                }
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error)) { DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.UdpListenerBase:ConfigureSocket", "Failed to set SIO_UDP_CONNRESET.", ex)); }
             }
         }
     }
 }
+

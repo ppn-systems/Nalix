@@ -51,11 +51,12 @@ public sealed class SdkSubscriptionTests
     {
         FakeSession session = new();
 
-        _ = Assert.Throws<ArgumentNullException>(() => TcpSessionSubscriptions.On<Control>(null!, _ => { }));
+        _ = Assert.Throws<ArgumentNullException>(() => TransportSessionSubscriptions.On<Control>(null!, _ => { }));
         _ = Assert.Throws<ArgumentNullException>(() => session.On<Control>(null!));
     }
 
     [Fact]
+#pragma warning disable CS0618
     public void TcpSessionSubscriptionsOnOnce_FiresOnlyOnceEvenWhenMultipleMessagesArrive()
     {
         FakeSession session = new();
@@ -72,6 +73,7 @@ public sealed class SdkSubscriptionTests
 
         Assert.Equal(1, count);
     }
+#pragma warning restore CS0618
 
     [Fact]
     public void TcpSessionSubscriptionsOn_WhenPredicateThrows_DoesNotPropagateToCaller()
@@ -156,19 +158,9 @@ public sealed class SdkSubscriptionTests
         public void RaiseDisconnect(Exception ex) => OnDisconnected?.Invoke(this, ex);
     }
 
-    private sealed class FakePacketRegistry : IPacketRegistry
+    private sealed class FakePacketRegistry
     {
         public IPacket Next { get; set; } = new Control();
-
-        public int DeserializerCount => 1;
-        public bool IsKnownMagic(uint magic) => true;
-        public bool IsRegistered<TPacket>() where TPacket : IPacket => true;
-        public IPacket Deserialize(ReadOnlySpan<byte> raw) => Next;
-        public bool TryDeserialize(ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet)
-        {
-            packet = Next;
-            return true;
-        }
     }
 
     private sealed class TrackingDisposable : IDisposable

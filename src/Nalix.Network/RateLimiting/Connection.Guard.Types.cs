@@ -15,6 +15,11 @@ public sealed partial class ConnectionGuard
         public int CurrentConnections { get; init; }
     }
 
+    internal readonly struct SubnetAllowResult
+    {
+        public bool Allowed { get; init; }
+    }
+
     /// <summary>
     /// Immutable snapshot of connection tracking data for an endpoint.
     /// Used as the value type for CAS-style updates within a locked <see cref="ConnectionLimitEntry"/>.
@@ -49,8 +54,8 @@ public sealed partial class ConnectionGuard
     /// <c>lock(entry)</c> to avoid torn reads/writes under concurrent access.
     /// </para>
     /// <para>
-    /// <see cref="RecentConnectionTimestamps"/> is a <see cref="System.Collections.Concurrent.ConcurrentQueue{T}"/>
-    /// and can be trimmed lock-free; enqueues happen inside the lock alongside the Info update.
+    /// <see cref="RecentConnectionTimestamps"/> is a standard <see cref="System.Collections.Generic.Queue{T}"/>
+    /// protected by <see cref="SpinLock"/>. It is NOT thread-safe on its own and must be accessed under the lock.
     /// </para>
     /// </summary>
     internal sealed class ConnectionLimitEntry
@@ -95,6 +100,11 @@ public sealed partial class ConnectionGuard
         public long SuppressedClosedCount;
 
         /// <summary>
+        /// Last time a connection was successfully accepted (for burst detection).
+        /// </summary>
+        public long LastAcceptTimeTicks;
+
+        /// <summary>
         /// Mutable connection info. Access only inside <c>SpinLock</c>.
         /// </summary>
         public ConnectionLimitInfo Info;
@@ -107,6 +117,15 @@ public sealed partial class ConnectionGuard
         /// <summary>
         /// Sliding-window timestamps for rate limiting.
         /// </summary>
+        public readonly System.Collections.Generic.Queue<long> RecentConnectionTimestamps = new();
+    }
+
+    internal sealed class SubnetLimitEntry
+    {
+        public bool IsRemoved;
+        public long LastSeenAtTicks;
+        public int CurrentConnections;
+        public SpinLock SpinLock = new(false);
         public readonly System.Collections.Generic.Queue<long> RecentConnectionTimestamps = new();
     }
 }

@@ -1,6 +1,7 @@
+using Nalix.Abstractions.Networking.Packets;
 using System.Security.Cryptography;
 using System.Text;
-using Nalix.Abstractions.Networking.Packets;
+
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
 using Nalix.Environment.Extensions;
@@ -196,7 +197,7 @@ internal sealed class Program
         Require(clone.IntList!.SequenceEqual(packet.IntList), "list mismatch");
         Require(clone.StringLongDict!["b"] == 200L, "dict mismatch");
         Require(clone.Tuple3.Equals(packet.Tuple3), "tuple field mismatch");
-        return Result(bytes, $"{clone.SequenceId}|{clone.IntList.Count}|{clone.StringLongDict.Count}|{clone.Tuple3.Id}");
+        return Result(bytes, $"{clone.SequenceId}|{clone.IntList?.Count}|{clone.StringLongDict?.Count}|{clone.Tuple3.Id}");
     }
 
     private static ScenarioResult PacketNestedGraph()
@@ -216,7 +217,7 @@ internal sealed class Program
         GraphPacket clone = GraphPacket.Deserialize(bytes);
         Require(clone.Nodes![0].Meta.Id == 101, "node meta mismatch");
         Require(clone.Nodes[1].Nodes![0].Name == "GrandChild", "deep node mismatch");
-        return Result(bytes, $"{clone.Name}|{clone.Nodes.Count}|{clone.Nodes[1].Nodes.Count}");
+        return Result(bytes, $"{clone.Name}|{clone.Nodes?.Count}|{clone.Nodes?[1].Nodes?.Count}");
     }
 
     private static ScenarioResult PacketLargePayload()
@@ -251,13 +252,12 @@ internal sealed class Program
         Require(packet.Length >= bytes.Length, "enum length underflow");
         EnumListPacket clone = EnumListPacket.Deserialize(bytes);
         Require(clone.Priorities!.SequenceEqual(packet.Priorities), "enum mismatch");
-        return Result(bytes, String.Join(',', clone.Priorities));
+        return Result(bytes, String.Join(',', clone.Priorities ?? []));
     }
 
     private static ScenarioResult PacketGeneratedRegistry()
     {
-        PacketRegistry.RegisterGenerated(
-            PacketRegistry.Compute(typeof(ComplexCollectionPacket)),
+        PacketRegistry.RegisterGenerated<ComplexCollectionPacket>(
             typeof(ComplexCollectionPacket).FullName!,
             static raw => PacketBase<ComplexCollectionPacket>.Deserialize(raw));
         PacketRegistry.Build();
@@ -380,8 +380,10 @@ public struct NodeMeta
 [Packet]
 [GenerateFormatter]
 [SerializePackable(SerializeLayout.Sequential)]
-public sealed partial class ComplexCollectionPacket : PacketBase<ComplexCollectionPacket>
+public sealed partial class ComplexCollectionPacket : PacketBase<ComplexCollectionPacket>, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
     [SerializeOrder(0)]
     public List<Int32>? IntList { get; set; }
 
@@ -403,8 +405,10 @@ public sealed partial class ComplexCollectionPacket : PacketBase<ComplexCollecti
 
 [GenerateFormatter]
 [SerializePackable(SerializeLayout.Sequential)]
-public sealed partial class GraphPacket : PacketBase<GraphPacket>
+public sealed partial class GraphPacket : PacketBase<GraphPacket>, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
     public String Name { get; set; } = String.Empty;
     public List<GraphPacket>? Nodes { get; set; }
     public NodeMeta Meta { get; set; }
@@ -415,8 +419,10 @@ public sealed partial class GraphPacket : PacketBase<GraphPacket>
 
 [GenerateFormatter]
 [SerializePackable(SerializeLayout.Sequential)]
-public sealed partial class LargeDataPacket : PacketBase<LargeDataPacket>
+public sealed partial class LargeDataPacket : PacketBase<LargeDataPacket>, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
     public List<String>? Payload { get; set; }
 
     public static new LargeDataPacket Deserialize(ReadOnlySpan<Byte> buffer)
@@ -425,8 +431,10 @@ public sealed partial class LargeDataPacket : PacketBase<LargeDataPacket>
 
 [GenerateFormatter]
 [SerializePackable(SerializeLayout.Sequential)]
-public sealed partial class NullStressPacket : PacketBase<NullStressPacket>
+public sealed partial class NullStressPacket : PacketBase<NullStressPacket>, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
     public List<String>? Items { get; set; }
 
     public static new NullStressPacket Deserialize(ReadOnlySpan<Byte> buffer)
@@ -435,10 +443,13 @@ public sealed partial class NullStressPacket : PacketBase<NullStressPacket>
 
 [GenerateFormatter]
 [SerializePackable(SerializeLayout.Sequential)]
-public sealed partial class EnumListPacket : PacketBase<EnumListPacket>
+public sealed partial class EnumListPacket : PacketBase<EnumListPacket>, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
     public List<PacketPriority>? Priorities { get; set; }
 
     public static new EnumListPacket Deserialize(ReadOnlySpan<Byte> buffer)
         => PacketBase<EnumListPacket>.Deserialize(buffer);
 }
+

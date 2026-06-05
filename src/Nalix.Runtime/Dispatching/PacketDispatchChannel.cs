@@ -9,9 +9,9 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
@@ -22,10 +22,11 @@ using Nalix.Environment.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Network.Routing;
 using Nalix.Runtime.Internal.Compilation;
+using Nalix.Runtime.Internal.Diagnostics;
 using Nalix.Runtime.Internal.Routing;
 using Nalix.Runtime.Middleware;
+using Nalix.Runtime.Routing;
 
 namespace Nalix.Runtime.Dispatching;
 
@@ -40,8 +41,8 @@ public sealed class PacketDispatchChannel
 {
     #region Fields
 
-    private static readonly ThrottleKey s_keyExecute = new("dispatch.execute");
-    private static readonly ThrottleKey s_keyExecutePrep = new("dispatch.execute_prep");
+    private static readonly Internal.Diagnostics.ThrottleKey s_keyExecute = new("dispatch.execute");
+    private static readonly Internal.Diagnostics.ThrottleKey s_keyExecutePrep = new("dispatch.execute_prep");
 
     private readonly DispatchChannel<IPacket> _dispatch;
 
@@ -184,9 +185,11 @@ public sealed class PacketDispatchChannel
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                this.Logging.LogError(ex, "[RT.PacketDispatchChannel:Deactivate] deactivate-error");
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Error,
+                    new DiagnosticLog("RT.PacketDispatchChannel:Deactivate", "deactivate-error", ex));
             }
         }
         finally
@@ -197,9 +200,11 @@ public sealed class PacketDispatchChannel
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Warning))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    this.Logging.LogWarning(ex, "[RT.PacketDispatchChannel:Deactivate] linked-cts-dispose-failed");
+                    DiagnosticsEvents.Source.Write(
+                        DiagnosticsEvents.Internal.Warning,
+                        new DiagnosticLog("RT.PacketDispatchChannel:Deactivate", "linked-cts-dispose-failed", ex));
                 }
             }
 
@@ -209,9 +214,11 @@ public sealed class PacketDispatchChannel
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Warning))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    this.Logging.LogWarning(ex, "[RT.PacketDispatchChannel:Deactivate] local-cts-dispose-failed");
+                    DiagnosticsEvents.Source.Write(
+                        DiagnosticsEvents.Internal.Warning,
+                        new DiagnosticLog("RT.PacketDispatchChannel:Deactivate", "local-cts-dispose-failed", ex));
                 }
             }
         }
@@ -515,9 +522,11 @@ public sealed class PacketDispatchChannel
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                this.Logging.LogError(ex, "[RT.PacketDispatchChannel:DispatchWorkerLoopAsync] fatal-loop-error index={Index}", index);
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Error,
+                    new DiagnosticLog("RT.PacketDispatchChannel:DispatchWorkerLoopAsync", $"fatal-loop-error index={index}", ex));
             }
         }
         finally
@@ -545,13 +554,11 @@ public sealed class PacketDispatchChannel
             // 2. Resolve the handler using the parsed opcode
             if (!this.Options.TryResolveHandler(opcode, out handler))
             {
-                if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Warning))
-                {
-                    connection.ThrottledWarn(
-                        this.Logging,
-                        s_keyExecute,
-                        $"[RT.{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] no-handler opcode={opcode}");
-                }
+                connection.ThrottledDiagnosticWarning(
+                    DiagnosticsEvents.Internal.Warning,
+                    s_keyExecute,
+                    "RT.PacketDispatchChannel:ExecutePacketAsync",
+                    $"no-handler opcode={opcode}");
 
                 lease.Dispose();
                 connection.IncrementErrorCount();
@@ -596,13 +603,12 @@ public sealed class PacketDispatchChannel
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             connection.IncrementErrorCount();
-            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Error))
-            {
-                connection.ThrottledError(
-                    this.Logging,
-                    s_keyExecutePrep,
-                    "[RT.PacketDispatchChannel:ExecutePacketAsync] prepare-error ep=" + connection.NetworkEndpoint, ex);
-            }
+            connection.ThrottledDiagnosticError(
+                DiagnosticsEvents.Internal.Error,
+                s_keyExecutePrep,
+                "RT.PacketDispatchChannel:ExecutePacketAsync",
+                $"prepare-error ep={connection.NetworkEndpoint}",
+                ex);
             lease.Dispose();
             return ValueTask.CompletedTask;
         }
@@ -630,7 +636,7 @@ public sealed class PacketDispatchChannel
             }
 
             // Slow-path: async completion (AwaitDispatchAsync handles Return/Dispose)
-            return AwaitPacketHandlerCompletionAsync(this, connection, lease, packet, pending, ct);
+            return AwaitPacketHandlerCompletionAsync(connection, lease, packet, pending, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -640,13 +646,11 @@ public sealed class PacketDispatchChannel
         {
             connection.IncrementErrorCount();
 
-            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Error))
-            {
-                connection.ThrottledError(
-                    this.Logging,
-                    s_keyExecute,
-                    "[RT.PacketDispatchChannel:ExecutePacketAsync] handler-error ep=" + connection.NetworkEndpoint);
-            }
+            connection.ThrottledDiagnosticError(
+                DiagnosticsEvents.Internal.Error,
+                s_keyExecute,
+                "RT.PacketDispatchChannel:ExecutePacketAsync",
+                $"handler-error ep={connection.NetworkEndpoint}");
         }
 
         // 5. Cleanup for synchronous errors/cancellation
@@ -660,7 +664,7 @@ public sealed class PacketDispatchChannel
     }
 
     private static async ValueTask AwaitPacketHandlerCompletionAsync(
-        PacketDispatchChannel owner, IConnection connection,
+        IConnection connection,
         IBufferLease lease, IPacket packet, ValueTask pending, CancellationToken ct)
     {
         try
@@ -674,13 +678,11 @@ public sealed class PacketDispatchChannel
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             connection.IncrementErrorCount();
-            if (owner.Logging != null && owner.Logging.IsEnabled(LogLevel.Error))
-            {
-                connection.ThrottledError(
-                    owner.Logging,
-                    s_keyExecute,
-                    $"[RT.{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}");
-            }
+            connection.ThrottledDiagnosticError(
+                DiagnosticsEvents.Internal.Error,
+                s_keyExecute,
+                "RT.PacketDispatchChannel:ExecutePacketAsync",
+                $"handler-error ep={connection.NetworkEndpoint}");
         }
         finally
         {

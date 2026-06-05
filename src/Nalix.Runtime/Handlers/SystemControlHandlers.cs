@@ -4,16 +4,14 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
-using Nalix.Environment.Time;
-using Nalix.Framework.Injection;
 using Nalix.Runtime.Internal.RateLimiting;
 
 namespace Nalix.Runtime.Handlers;
@@ -24,8 +22,6 @@ namespace Nalix.Runtime.Handlers;
 [PacketController("Nalix.Control")]
 public sealed class SystemControlHandlers
 {
-    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-
     /// <summary>
     /// Handles incoming system control packets.
     /// </summary>
@@ -34,7 +30,7 @@ public sealed class SystemControlHandlers
     [ReservedOpcodePermitted]
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
-    [PacketOpcode((ushort)ProtocolOpCode.SYSTEM_CONTROL)]
+    [PacketOpcode(ProtocolOpCode.SYSTEM_CONTROL)]
     public static async ValueTask HandleAsync(IPacketContext<Control> context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -46,13 +42,13 @@ public sealed class SystemControlHandlers
                 HandleDisconnect(context, packet);
                 break;
             case ControlType.PING:
-                await HandlePing(context, packet).ConfigureAwait(false);
+                // Handled by SystemTimeSyncHandlers
                 break;
             case ControlType.CIPHER_UPDATE:
                 await HandleCipherUpdate(context, packet).ConfigureAwait(false);
                 break;
             case ControlType.TIMESYNCREQUEST:
-                await HandleTimeSyncRequest(context, packet).ConfigureAwait(false);
+                // Handled by SystemTimeSyncHandlers
                 break;
             case ControlType.ERROR:
                 HandleError(context, packet);
@@ -62,6 +58,9 @@ public sealed class SystemControlHandlers
                 break;
             case ControlType.NOTICE:
                 HandleNotice(context.Connection, packet);
+                break;
+            case ControlType.PUBLIC_KEY_REQUEST:
+                await HandlePublicKeyRequest(context, packet).ConfigureAwait(false);
                 break;
             // Server generally does not need to send back automatic replies for these
             case ControlType.PONG:              // PONG received if Server pings Client
@@ -109,38 +108,9 @@ public sealed class SystemControlHandlers
 
         using PacketScope<Control> lease = PacketFactory<Control>.Acquire();
         Control ack = lease.Value;
-        ack.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.CIPHER_UPDATE_ACK, packet.SequenceId, packet.Flags, packet.Reason);
+        ack.Initialize(ControlType.CIPHER_UPDATE_ACK, packet.SequenceId, packet.Flags, packet.Reason);
 
         await context.Sender.SendAsync(ack).ConfigureAwait(false);
-    }
-
-    private static async ValueTask HandlePing(IPacketContext<Control> context, Control ping)
-    {
-        using PacketScope<Control> lease = PacketFactory<Control>.Acquire();
-
-        // Prepare PONG response using pooled instance (zero allocation pattern)
-        Control pong = lease.Value;
-        pong.Initialize(
-            (ushort)ProtocolOpCode.SYSTEM_CONTROL,
-            ControlType.PONG,
-            ping.SequenceId,   // Echo back for latency tracking
-            ping.Flags,        // Preserve flags (protocol-specific behavior)
-            ProtocolReason.NONE);
-
-        // Send immediately to minimize RTT (no buffering / batching)
-        await context.Sender.SendAsync(pong).ConfigureAwait(false);
-    }
-
-    private static async ValueTask HandleTimeSyncRequest(IPacketContext<Control> context, Control req)
-    {
-        using PacketScope<Control> lease = PacketFactory<Control>.Acquire();
-        Control res = lease.Value;
-        res.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.TIMESYNCRESPONSE, req.SequenceId, req.Flags, ProtocolReason.NONE);
-
-        res.Timestamp = Clock.UnixMillisecondsNow(); // t3
-        res.MonoTicks = req.MonoTicks;               // echo t1'
-
-        await context.Sender.SendAsync(res).ConfigureAwait(false);
     }
 
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
@@ -166,9 +136,13 @@ public sealed class SystemControlHandlers
             return;
         }
 
-        if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
         {
-            s_logger.LogError("[RT.SystemControl] error ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Error,
+                new DiagnosticLog(
+                    "RT.SystemControlHandlers:HandleAsync",
+                    $"error ep={connection.NetworkEndpoint} reason={packet.Reason}"));
         }
     }
 
@@ -186,9 +160,13 @@ public sealed class SystemControlHandlers
             return;
         }
 
-        if (s_logger != null && s_logger.IsEnabled(LogLevel.Warning))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
         {
-            s_logger.LogWarning("[RT.SystemControl] fail ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Warning,
+                new DiagnosticLog(
+                    "RT.SystemControlHandlers:HandleAsync",
+                    $"fail ep={connection.NetworkEndpoint} reason={packet.Reason}"));
         }
     }
 
@@ -204,10 +182,36 @@ public sealed class SystemControlHandlers
             return;
         }
 
-        if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            s_logger.LogDebug("[RT.SystemControl] notice ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Debug,
+                new DiagnosticLog(
+                    "RT.SystemControlHandlers:HandleAsync",
+                    $"notice ep={connection.NetworkEndpoint} reason={packet.Reason}"));
         }
+    }
+
+    private static async ValueTask HandlePublicKeyRequest(IPacketContext<Control> context, Control packet)
+    {
+        IConnection connection = context.Connection;
+
+        // Key exchange must happen BEFORE handshake.
+        if (connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeEstablished))
+        {
+            connection.Disconnect("Key exchange requested after handshake was established (State Violation).");
+            return;
+        }
+
+        using PacketScope<SessionTofu> lease = PacketFactory<SessionTofu>.Acquire();
+        SessionTofu reply = lease.Value;
+        reply.Initialize(HandshakeHandlers.ServerPublicKey);
+
+        // Preserve reliability flag from the request
+        reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
+        reply.SequenceId = packet.SequenceId;
+
+        await context.Sender.SendAsync(reply).ConfigureAwait(false);
     }
 
     #endregion Private Methods

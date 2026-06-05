@@ -43,8 +43,7 @@ For most projects, middleware usually grows cleanly in this order:
 ```csharp
 PacketDispatchChannel dispatch = new(options =>
 {
-    options.WithLogging(logger)
-           .WithMiddleware(new PermissionMiddleware())
+    options.WithMiddleware(new PermissionMiddleware())
            .WithMiddleware(new SampleAuditMiddleware<IPacket>())
            .WithHandler(() => new SamplePingHandlers());
 });

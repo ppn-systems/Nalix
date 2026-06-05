@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Framework.Options;
@@ -33,7 +34,7 @@ public sealed class TaskManagerTests : IDisposable
         Assert.Equal("Workers: 0 running / 0 total | Recurring: 0", manager.Title);
         Assert.Equal(0, manager.WorkerErrorCount);
         Assert.Equal(0, manager.RecurringErrorCount);
-        Assert.True(manager.AverageWorkerExecutionTime >= 0);
+        Assert.True(manager.AverageWorkerUptime >= 0);
         Assert.True(manager.AverageRecurringExecutionTime >= 0);
     }
 
@@ -340,7 +341,7 @@ public sealed class TaskManagerTests : IDisposable
     }
 
     [Fact]
-    public async Task ScheduleWorkerAverageExecutionTimeTracksRuntimeInsteadOfEnqueueTime()
+    public async Task ScheduleWorkerAverageUptimeTracksRuntimeInsteadOfEnqueueTime()
     {
         using TaskManager manager = this.CreateManager(new TaskManagerOptions
         {
@@ -368,10 +369,10 @@ public sealed class TaskManagerTests : IDisposable
         _ = await completion.Task.WaitAsync(TimeSpan.FromSeconds(15));
 
         await TaskManagerTestHost.WaitUntilAsync(
-            () => manager.GetWorkers(runningOnly: false).Count == 1 && manager.AverageWorkerExecutionTime >= 100,
+            () => manager.GetWorkers(runningOnly: false).Count == 1 && manager.AverageWorkerUptime >= 100,
             TimeSpan.FromSeconds(15));
 
-        Assert.InRange(manager.AverageWorkerExecutionTime, 100, 3000);
+        Assert.InRange(manager.AverageWorkerUptime, 100, 3000);
     }
 
     [Fact]
@@ -694,7 +695,7 @@ public sealed class TaskManagerTests : IDisposable
         Assert.Contains("Recurring:", report);
         Assert.Contains("group-report", report);
         Assert.Contains("worker.report", manager.GetWorkers(runningOnly: false).Select(static workerHandle => workerHandle.Name));
-        Assert.True(manager.AverageWorkerExecutionTime >= 0);
+        Assert.True(manager.AverageWorkerUptime >= 0);
         Assert.True(manager.AverageRecurringExecutionTime >= 0);
 
         manager.CancelRecurring(recurring.Name);
@@ -750,6 +751,101 @@ public sealed class TaskManagerTests : IDisposable
 
         // Verify that global metrics/Title were updated
         Assert.True(manager.Title.Contains("Workers:"));
+    }
+
+    [Fact]
+    public async Task ScheduleWorker_WhenStartedDisabled_LogsAggregatedDispatcherMessage()
+    {
+        using TaskManager manager = this.CreateManager();
+        List<KeyValuePair<string, object?>> events = [];
+
+        using IDisposable subscription = DiagnosticsEvents.Source.Subscribe(
+            new DelegateObserver<KeyValuePair<string, object?>>(ev =>
+            {
+                lock (events)
+                {
+                    events.Add(ev);
+                }
+            }),
+            name => name == DiagnosticsEvents.Tasks.Dispatcher);
+
+        for (int i = 0; i < 4; i++)
+        {
+            _ = manager.ScheduleWorker(
+                $"worker.batch.{i}",
+                "group-batch-test",
+                (_, _) => ValueTask.CompletedTask,
+                new WorkerOptions { Tag = "batch-test" });
+        }
+
+        await Task.Delay(250).ConfigureAwait(false);
+
+        lock (events)
+        {
+            var dispatcherLogs = events.Where(ev => ev.Key == DiagnosticsEvents.Tasks.Dispatcher).ToList();
+            var batchLog = dispatcherLogs.FirstOrDefault(ev => ev.Value is DiagnosticLog log && log.Message.Contains("workers-started"));
+            Assert.NotNull(batchLog.Value);
+            var log = (DiagnosticLog)batchLog.Value!;
+            Assert.Contains("group=group-batch-test", log.Message);
+            Assert.Contains("count=4", log.Message);
+            Assert.Contains("priority=normal", log.Message);
+            Assert.Contains("tag=batch-test", log.Message);
+
+            var startedLogs = events.Where(ev => ev.Key == DiagnosticsEvents.Tasks.Started).ToList();
+            Assert.Empty(startedLogs);
+        }
+    }
+
+    [Fact]
+    public async Task ScheduleWorker_WhenStartedEnabled_LogsDetailedStartMessagesOnly()
+    {
+        using TaskManager manager = this.CreateManager();
+        List<KeyValuePair<string, object?>> events = [];
+
+        using IDisposable subscription = DiagnosticsEvents.Source.Subscribe(
+            new DelegateObserver<KeyValuePair<string, object?>>(ev =>
+            {
+                lock (events)
+                {
+                    events.Add(ev);
+                }
+            }),
+            name => name == DiagnosticsEvents.Tasks.Started || name == DiagnosticsEvents.Tasks.Dispatcher);
+
+        for (int i = 0; i < 4; i++)
+        {
+            _ = manager.ScheduleWorker(
+                $"worker.batch.{i}",
+                "group-batch-test",
+                (_, _) => ValueTask.CompletedTask,
+                new WorkerOptions { Tag = "batch-test" });
+        }
+
+        await Task.Delay(250).ConfigureAwait(false);
+
+        lock (events)
+        {
+            var startedLogs = events.Where(ev => ev.Key == DiagnosticsEvents.Tasks.Started).ToList();
+            Assert.Equal(4, startedLogs.Count);
+            foreach (var ev in startedLogs)
+            {
+                var log = (DiagnosticLog)ev.Value!;
+                Assert.Contains("worker-start", log.Message);
+                Assert.Contains("group=group-batch-test", log.Message);
+            }
+
+            var batchLog = events.FirstOrDefault(ev => ev.Key == DiagnosticsEvents.Tasks.Dispatcher && ev.Value is DiagnosticLog log && log.Message.Contains("workers-started"));
+            Assert.Null(batchLog.Value);
+        }
+    }
+
+    private sealed class DelegateObserver<T>(Action<T> onNext) : IObserver<T>
+    {
+        private readonly Action<T> _onNext = onNext;
+
+        public void OnNext(T value) => _onNext(value);
+        public void OnError(Exception error) { }
+        public void OnCompleted() { }
     }
 
     private TaskManager CreateManager(TaskManagerOptions? options = null) => _host.CreateManager(options);

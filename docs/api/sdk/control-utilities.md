@@ -51,7 +51,7 @@ Console.WriteLine($"server RTT: {rttMs:n2} ms");
 
 ```csharp
 public static ValueTask DisconnectGracefullyAsync(
-    this TcpSession session,
+    this TransportSession session,
     ProtocolReason reason = ProtocolReason.NONE,
     bool closeLocalConnection = true,
     CancellationToken ct = default)
@@ -79,7 +79,7 @@ await session.DisconnectGracefullyAsync(
 
 ```csharp
 public static ValueTask<(double RttMs, double AdjustedMs)> SyncTimeAsync(
-    this TcpSession session,
+    this TransportSession session,
     int timeoutMs = 5000,
     CancellationToken ct = default)
 ```

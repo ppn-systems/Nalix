@@ -75,8 +75,7 @@ public sealed class SamplePingHandlers
 ```csharp
 PacketDispatchChannel dispatch = new(options =>
 {
-    options.WithLogging(logger)
-           .WithHandler(() => new SamplePingHandlers());
+    options.WithHandler(() => new SamplePingHandlers());
 });
 
 dispatch.Activate();
@@ -131,7 +130,7 @@ When using the transport layer directly (outside of the Hosting builder), you mu
 ```csharp
 // Setup dependencies
 InstanceManager.Instance.Register<ILogger>(logger);
-IConnectionHub hub = new ConnectionHub(logger);
+IConnectionHub hub = new ConnectionHub();
 InstanceManager.Instance.Register<IConnectionHub>(hub);
 InstanceManager.Instance.Register<TaskManager>(new TaskManager());
 

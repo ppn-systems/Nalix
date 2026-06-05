@@ -8,7 +8,7 @@ using Nalix.Abstractions.Serialization;
 namespace Nalix.Abstractions.Primitives;
 
 /// <summary>
-/// Represents the standard 10-byte header of a Nalix packet.
+/// Represents the standard 6-byte header of a Nalix packet.
 /// Absolute field positions via <see cref="FieldOffsetAttribute"/> guarantee
 /// wire-compatible layout across all platforms.
 /// </summary>
@@ -21,11 +21,6 @@ public struct PacketHeader : IFixedSizeSerializable
     public const int Size = (int)PacketHeaderOffset.Region;
 
     static int IFixedSizeSerializable.Size => Size;
-
-    /// <summary>
-    /// Gets the magic number that identifies the packet format or protocol.
-    /// </summary>
-    [FieldOffset((int)PacketHeaderOffset.MagicNumber)] public uint MagicNumber;
 
     /// <summary>
     /// Gets the operation code that identifies the packet handler.

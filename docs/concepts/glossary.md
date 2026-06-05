@@ -52,7 +52,7 @@ Logic inserted before or around handler execution using the **`MiddlewarePipelin
 
 ## PacketBase\<T\>
 
-The base class for all Nalix packets. Provides system header management (magic, opcode, protocol, priority) and pooling support via `ResetForPool()`. PacketBase instances are recycled through the object pool to avoid per-packet allocations.
+The base class for all Nalix packets. Provides system header management (opcode, flags, priority, sequence id) and pooling support via `ResetForPool()`. PacketBase instances are recycled through the object pool to avoid per-packet allocations.
 
 ## PacketContext
 
@@ -66,7 +66,7 @@ The base class for all Nalix packets. Provides system header management (magic, 
 
 ## Packet Registry
 
-A process-wide, immutable catalog of packet deserializers. It is populated automatically by **Source Generators** and finalized via `PacketRegistry.Build()`. Provides O(1) lookup by magic number.
+A process-wide catalog of packet deserializers. It is populated automatically by **Source Generators** and finalized via `PacketRegistry.Build()`. Provides O(1) lookup by OpCode using a direct-indexed table.
 
 ## PacketBase<T>.Create()
 

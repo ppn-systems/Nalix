@@ -13,6 +13,7 @@ using System.Runtime.InteropServices.Marshalling;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Diagnostics;
 
 namespace Nalix.Environment.IO;
 
@@ -93,7 +94,7 @@ public static partial class Directories
 
                 if (Listener.IsEnabled(DiagnosticsEvents.IO.Directory))
                 {
-                    DiagnosticsEvents.Write(DiagnosticsEvents.IO.Directory, new { Action = "Created", Path = path, Caller = callerMemberName });
+                    DiagnosticsEvents.Write(DiagnosticsEvents.IO.Directory, new DiagnosticLog("ENV.Directories:Internal", $"directory-created path={path} caller={callerMemberName}"));
                 }
             }
         }
@@ -284,7 +285,7 @@ public static partial class Directories
 
         if (Path.IsPathRooted(name))
         {
-            throw new UnauthorizedAccessException($"Absolute path '{name}' is not allowed.");
+            THROW_ABSOLUTE_PATH_NOT_ALLOWED(name);
         }
 
         string baseFull = Path.GetFullPath(baseDir);
@@ -303,16 +304,28 @@ public static partial class Directories
             ? StringComparison.OrdinalIgnoreCase
             : StringComparison.Ordinal;
 
-        return Path.IsPathRooted(rel) ||
-               rel.Equals("..", comp) ||
-               rel.StartsWith(".." + sep, comp)
-            ? throw new UnauthorizedAccessException($"Path '{name}' escapes base directory.")
-            : full;
+        if (Path.IsPathRooted(rel) ||
+            rel.Equals("..", comp) ||
+            rel.StartsWith(".." + sep, comp))
+        {
+            THROW_PATH_ESCAPES_BASE_DIR(name);
+        }
+
+        return full;
     }
 
-    [EditorBrowsable(
-        EditorBrowsableState.Never)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_ABSOLUTE_PATH_NOT_ALLOWED(string name)
+        => throw new UnauthorizedAccessException($"Absolute path '{name}' is not allowed.");
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_PATH_ESCAPES_BASE_DIR(string name)
+        => throw new UnauthorizedAccessException($"Path '{name}' escapes base directory.");
+
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static bool SET_UNIX_FILE_MODE_COMPAT([DisallowNull] string path, UnixFileMode mode)
     {
         try

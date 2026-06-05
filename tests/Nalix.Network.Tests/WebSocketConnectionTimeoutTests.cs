@@ -42,7 +42,7 @@ public class WebSocketConnectionTimeoutTests : IDisposable
         private sealed class StubOpCodeExtractor : Nalix.Abstractions.Networking.Protocols.IOpCodeExtractor
         {
             public ushort Extract(ReadOnlySpan<byte> payload) =>
-                payload.Length >= 6 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[4..]) : (ushort)0;
+                payload.Length >= 2 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[0..]) : (ushort)0;
         }
 
         public override IFrameProcessor FrameProcessor { get; } = new NoOpFrameProcessor();
@@ -66,11 +66,6 @@ public class WebSocketConnectionTimeoutTests : IDisposable
     {
         public TestWebSocketListener(ushort port, string path, IProtocol protocol, IConnectionHub hub)
             : base(port, path, protocol, hub) { }
-
-        public override void ProcessFrame(object? sender, IConnectEventArgs args)
-        {
-            this.Protocol.ProcessMessage(sender, args);
-        }
     }
 
     private static ushort GetFreePort()
@@ -100,7 +95,6 @@ public class WebSocketConnectionTimeoutTests : IDisposable
             {
                 Address = "127.0.0.1",
                 Port = port,
-                EncryptionEnabled = false,
                 CompressionEnabled = false
             };
 
@@ -194,7 +188,6 @@ public class WebSocketConnectionTimeoutTests : IDisposable
                 {
                     Address = "127.0.0.1",
                     Port = port,
-                    EncryptionEnabled = false,
                     CompressionEnabled = false
                 };
 

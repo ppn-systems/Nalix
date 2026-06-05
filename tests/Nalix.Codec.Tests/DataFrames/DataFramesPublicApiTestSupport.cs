@@ -14,7 +14,9 @@ public sealed partial class DataFramesPublicApiTests
     static DataFramesPublicApiTests()
     {
         if (!PacketRegistry.IsBuilt)
+        {
             PacketRegistry.Build();
+        }
     }
 
     public enum TextFrameKind
@@ -24,8 +26,7 @@ public sealed partial class DataFramesPublicApiTests
     public enum PacketRoundTripKind
     {
         Control,
-        Directive,
-        Handshake
+        Directive
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1825:Avoid zero-length array allocations", Justification = "<Pending>")]
@@ -34,8 +35,7 @@ public sealed partial class DataFramesPublicApiTests
         return
         [
             PacketRoundTripKind.Control,
-            PacketRoundTripKind.Directive,
-            PacketRoundTripKind.Handshake
+            PacketRoundTripKind.Directive
         ];
     }
 
@@ -58,33 +58,20 @@ public sealed partial class DataFramesPublicApiTests
         {
             PacketRoundTripKind.Control => CreateControlPacket(),
             PacketRoundTripKind.Directive => CreateDirectivePacket(),
-            PacketRoundTripKind.Handshake => CreateHandshakePacket(),
             _ => throw new InvalidOperationException("Unexpected packet round-trip kind.")
         };
 
     private static Control CreateControlPacket()
     {
         Control packet = new();
-        packet.Initialize(14, ControlType.PING, 55, PacketFlags.SYSTEM | PacketFlags.RELIABLE, ProtocolReason.NONE);
+        packet.Initialize(ControlType.PING, 55, PacketFlags.SYSTEM | PacketFlags.RELIABLE, ProtocolReason.NONE);
         return packet;
     }
 
     private static Directive CreateDirectivePacket()
     {
         Directive packet = new();
-        packet.Initialize(91, ControlType.REDIRECT, ProtocolReason.THROTTLED, ProtocolAdvice.SLOW_DOWN, 12, PacketFlags.SYSTEM | PacketFlags.RELIABLE, ControlFlags.SLOW_DOWN, 9, 8, 7);
-        return packet;
-    }
-
-    private static Handshake CreateHandshakePacket()
-    {
-        Span<byte> pubKeyArr = stackalloc byte[32]; pubKeyArr[0] = 1; pubKeyArr[1] = 2; pubKeyArr[2] = 3; pubKeyArr[3] = 4;
-        Span<byte> nonceArr = stackalloc byte[32]; nonceArr[0] = 5; nonceArr[1] = 6; nonceArr[2] = 7; nonceArr[3] = 8;
-        Span<byte> proofArr = stackalloc byte[32]; proofArr[0] = 9; proofArr[1] = 10; proofArr[2] = 11; proofArr[3] = 12;
-        Span<byte> hashArr = stackalloc byte[32]; hashArr[0] = 13; hashArr[1] = 14; hashArr[2] = 15; hashArr[3] = 16;
-
-        Handshake packet = new(HandshakeStage.SERVER_HELLO, new Bytes32(pubKeyArr), new Bytes32(nonceArr), new Bytes32(proofArr), flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
-        packet.TranscriptHash = new Bytes32(hashArr);
+        packet.Initialize(ControlType.REDIRECT, ProtocolReason.THROTTLED, ProtocolAdvice.SLOW_DOWN, 12, PacketFlags.SYSTEM | PacketFlags.RELIABLE, ControlFlags.SLOW_DOWN, 9, 8, 7);
         return packet;
     }
 
@@ -97,7 +84,6 @@ public sealed partial class DataFramesPublicApiTests
                 {
                     Control expectedControl = Assert.IsType<Control>(expected);
                     Control actualControl = Assert.IsType<Control>(actual);
-                    Assert.Equal(expectedControl.Header.MagicNumber, actualControl.Header.MagicNumber);
                     Assert.Equal(expectedControl.Header.OpCode, actualControl.Header.OpCode);
                     Assert.Equal(expectedControl.Type, actualControl.Type);
                     Assert.Equal(expectedControl.Reason, actualControl.Reason);
@@ -120,19 +106,6 @@ public sealed partial class DataFramesPublicApiTests
                     Assert.Equal(expectedDirective.Header.SequenceId, actualDirective.Header.SequenceId);
                     break;
                 }
-            case PacketRoundTripKind.Handshake:
-                {
-                    Handshake expectedHandshake = Assert.IsType<Handshake>(expected);
-                    Handshake actualHandshake = Assert.IsType<Handshake>(actual);
-                    Assert.Equal(expectedHandshake.Header.OpCode, actualHandshake.Header.OpCode);
-                    Assert.Equal(expectedHandshake.Header.Flags, actualHandshake.Header.Flags);
-                    Assert.Equal(expectedHandshake.Stage, actualHandshake.Stage);
-                    Assert.Equal(expectedHandshake.PublicKey, actualHandshake.PublicKey);
-                    Assert.Equal(expectedHandshake.Nonce, actualHandshake.Nonce);
-                    Assert.Equal(expectedHandshake.Proof, actualHandshake.Proof);
-                    Assert.Equal(expectedHandshake.TranscriptHash, actualHandshake.TranscriptHash);
-                    break;
-                }
             default:
                 throw new InvalidOperationException("Unexpected packet round-trip kind.");
         }
@@ -146,6 +119,7 @@ public sealed partial class DataFramesPublicApiTests
         return payload;
     }
 }
+
 
 
 

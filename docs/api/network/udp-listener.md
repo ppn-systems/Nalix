@@ -47,7 +47,7 @@ flowchart TD
     Raw -->|Incoming Datagram| Loop
     Loop --> SizeCheck
     
-    SizeCheck -->|Valid Size > 10 bytes| FlagCheck
+    SizeCheck -->|Valid Size > 6 bytes| FlagCheck
     SizeCheck -.->|Invalid Size| Drop[Silent Discard]
     
     FlagCheck -->|Valid UNRELIABLE flag| Token
@@ -78,7 +78,7 @@ UDP is vulnerable to spoofing and reflection attacks. Nalix hardens the listener
 
 ### Stage 1: Protocol & Token Validation
 
-- **Minimum Size Guard**: Any datagram shorter than the 8-byte session token is dropped immediately. The payload itself must also be at least 10 bytes.
+- **Minimum Size Guard**: Any datagram shorter than the 8-byte session token is dropped immediately. The payload itself must also be at least 6 bytes (the standard Nalix packet header size).
 - **Flag Verification**: The listener validates `payload[6]` (the `PacketFlags` byte) to ensure it carries the `PacketFlags.UNRELIABLE` mask identifying a UDP frame.
 - **Session Lookup**: The first 8 bytes (`SessionToken`) are resolved through `TryResolveConnection(...)` against the active `IConnectionHub`.
 
@@ -91,7 +91,7 @@ Even if an attacker steals a `SessionToken`, the listener verifies that the sour
 Due to UDP's nature, an attacker could capture a valid packet and replay it iteratively.
 
 - Nalix uses the connection's `UdpReplayWindow`.
-- It parses the 16-bit `SequenceId` at offset 8.
+- It parses the 16-bit `SequenceId` at offset 4.
 - If the packet sequence is historical or already observed within the window, the datagram is rejected.
 
 ## 3. Buffer Lifecycle & Pipeline Handoff

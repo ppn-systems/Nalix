@@ -9,11 +9,11 @@ The source of truth for diagnostic metadata is
 
 ## Source Mapping
 
-- `src/Nalix.Analyzers/Diagnostics/DiagnosticDescriptors.cs`
-- `src/Nalix.Analyzers/Analyzers/NalixUsageAnalyzer.cs`
-- `src/Nalix.Analyzers/Analyzers/NalixUsageAnalyzer.InvocationAnalysis.cs`
-- `src/Nalix.Analyzers/Analyzers/NalixUsageAnalyzer.SymbolSet.cs`
-- `src/Nalix.Analyzers.CodeFixes/*.cs`
+- `analyzers/Nalix.Analyzers/Diagnostics/DiagnosticDescriptors.cs`
+- `analyzers/Nalix.Analyzers/Analyzers/NalixUsageAnalyzer.cs`
+- `analyzers/Nalix.Analyzers/Analyzers/NalixUsageAnalyzer.InvocationAnalysis.cs`
+- `analyzers/Nalix.Analyzers/Analyzers/NalixUsageAnalyzer.SymbolSet.cs`
+- `analyzers/Nalix.Analyzers.CodeFixes/*.cs`
 
 ## Analyzer Workflow
 

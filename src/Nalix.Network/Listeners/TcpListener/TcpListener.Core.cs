@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -7,12 +7,11 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
-using Nalix.Environment.Options;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Internal.Pooling;
@@ -32,8 +31,10 @@ public abstract partial class TcpListenerBase : IListener
     #region Fields
 
     private readonly ushort _port;
+
     private readonly SemaphoreSlim _lock;
     private readonly IConnectionHub _hub;
+    private readonly IProtocol _protocol;
 
     private readonly NetworkSocketOptions _config;
     private readonly ProxyProtocolOptions _proxyConfig;
@@ -43,6 +44,7 @@ public abstract partial class TcpListenerBase : IListener
     private int _state;
     private int _isDisposed;
     private int _stopInitiated;
+    private int _pendingProxyConnections;
 
     private Socket? _listener;
     private CancellationTokenSource? _cts;
@@ -51,19 +53,6 @@ public abstract partial class TcpListenerBase : IListener
     private CancellationTokenRegistration _cancelReg;
 
     #endregion Fields
-
-    #region Protected APIs
-
-    /// <inheritdoc/>
-    protected ILogger? Logger { get; init; }
-
-    /// <inheritdoc/>
-    protected IProtocol Protocol { get; init; }
-
-    /// <inheritdoc/>
-    protected SequenceOptions SequenceOptions { get; init; }
-
-    #endregion Protected APIs
 
     #region Properties
 
@@ -106,15 +95,14 @@ public abstract partial class TcpListenerBase : IListener
 
         _hub = hub;
         _port = port;
-        this.Protocol = protocol;
+        _protocol = protocol;
         _state = (int)ListenerState.STOPPED;
 
         // Fetch infrastructure instances via InstanceManager for proper test isolation
-        this.Logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-        this.SequenceOptions = ConfigurationManager.Instance.Get<SequenceOptions>();
 
         _config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
         _proxyConfig = ConfigurationManager.Instance.Get<ProxyProtocolOptions>();
+
         _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
         _pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
         _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
@@ -159,7 +147,7 @@ public abstract partial class TcpListenerBase : IListener
             return;
         }
 
-        async Task cb(object? state)
+        static async Task cb(object? state)
         {
             if (state is not TcpListenerBase self)
             {
@@ -185,16 +173,16 @@ public abstract partial class TcpListenerBase : IListener
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                     {
-                        this.Logger.LogDebug(ex, "[NW.TcpListenerBase:SCHEDULE_STOP] cts-cancel-ignored port={Port} reason={ExceptionType}", self._port, ex.GetType().Name);
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.using:cb", $"cts-cancel-ignored port={self._port} exception-type={ex.GetType().Name}", ex));
                     }
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                     {
-                        this.Logger.LogWarning(ex, "[NW.TcpListenerBase:SCHEDULE_STOP] cts-cancel-failed port={Port}", self._port);
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.using:cb", $"cts-cancel-failed port={self._port}", ex));
                     }
                 }
 
@@ -205,16 +193,16 @@ public abstract partial class TcpListenerBase : IListener
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                     {
-                        this.Logger.LogDebug(ex, "[NW.TcpListenerBase:SCHEDULE_STOP] listener-close-ignored port={Port} reason={ExceptionType}", self._port, ex.GetType().Name);
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.using:cb", $"listener-close-ignored port={self._port} exception-type={ex.GetType().Name}", ex));
                     }
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                     {
-                        this.Logger.LogWarning(ex, "[NW.TcpListenerBase:SCHEDULE_STOP] listener-close-failed port={Port}", self._port);
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.using:cb", $"listener-close-failed port={self._port}", ex));
                     }
                 }
                 self._listener = null;
@@ -232,24 +220,24 @@ public abstract partial class TcpListenerBase : IListener
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                     {
-                        this.Logger.LogWarning(ex, "[NW.TcpListenerBase:SCHEDULE_STOP] cancel-group-failed port={Port}", self._port);
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.using:cb", $"cancel-group-failed port={self._port}", ex));
                     }
                 }
 
                 _ = Interlocked.Exchange(ref self._state, (int)ListenerState.STOPPED);
 
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Information))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Listeners.Stopped))
                 {
-                    this.Logger.LogInformation("[NW.TcpListenerBase:SCHEDULE_STOP] stopped port={Port}", self._port);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Listeners.Stopped, new DiagnosticLog("NW.using:cb", $" port={self._port}"));
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
                 {
-                    this.Logger.LogError(ex, "[NW.TcpListenerBase:SCHEDULE_STOP] stop-error port={Port}", self._port);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.using:cb", $"stop-error port={self._port}", ex));
                 }
             }
             finally
@@ -260,16 +248,16 @@ public abstract partial class TcpListenerBase : IListener
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                     {
-                        this.Logger.LogDebug(ex, "[NW.TcpListenerBase:SCHEDULE_STOP] cts-dispose-ignored port={Port} reason={ExceptionType}", self._port, ex.GetType().Name);
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.using:cb", $"cts-dispose-ignored port={self._port} exception-type={ex.GetType().Name}", ex));
                     }
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                     {
-                        this.Logger.LogWarning(ex, "[NW.TcpListenerBase:SCHEDULE_STOP] cts-dispose-failed port={Port}", self._port);
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.using:cb", $"cts-dispose-failed port={self._port}", ex));
                     }
                 }
                 self._cts = null;
@@ -284,23 +272,35 @@ public abstract partial class TcpListenerBase : IListener
                     }
                     catch (SemaphoreFullException ex)
                     {
-                        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                         {
-                            this.Logger.LogWarning(ex, "[NW.TcpListenerBase:SCHEDULE_STOP] lock-release-ignored port={Port} reason=SemaphoreFullException", self._port);
+                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
+                            {
+                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.using:cb", $"lock-release-ignored port={self._port} reason={"SemaphoreFullException"}", ex));
+                            }
+                            ;
                         }
                     }
                     catch (ObjectDisposedException ex)
                     {
-                        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                         {
-                            this.Logger.LogWarning(ex, "[NW.TcpListenerBase:SCHEDULE_STOP] lock-release-ignored port={Port} reason=ObjectDisposedException", self._port);
+                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
+                            {
+                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.using:cb", $"lock-release-ignored port={self._port} reason={"ObjectDisposedException"}", ex));
+                            }
+                            ;
                         }
                     }
                     catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
-                        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
                         {
-                            this.Logger.LogError(ex, "[NW.TcpListenerBase:SCHEDULE_STOP] lock-release-error port={Port}", self._port);
+                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
+                            {
+                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.using:cb", $"lock-release-error port={self._port}", ex));
+                            }
+                            ;
                         }
                     }
                 }
@@ -353,16 +353,16 @@ public abstract partial class TcpListenerBase : IListener
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                     {
-                        this.Logger.LogDebug(ex, "[NW.TcpListenerBase:Dispose] cancel-reg-dispose-ignored port={Port} reason={ExceptionType}", _port, ex.GetType().Name);
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.using:Dispose", $"cancel-reg-dispose-ignored port={_port} exception-type={ex.GetType().Name}", ex));
                     }
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                     {
-                        this.Logger.LogWarning(ex, "[NW.TcpListenerBase:Dispose] cancel-reg-dispose-failed port={Port}", _port);
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.using:Dispose", $"cancel-reg-dispose-failed port={_port}", ex));
                     }
                 }
 
@@ -372,16 +372,16 @@ public abstract partial class TcpListenerBase : IListener
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                     {
-                        this.Logger.LogDebug(ex, "[NW.TcpListenerBase:Dispose] cts-cancel-ignored port={Port} reason={ExceptionType}", _port, ex.GetType().Name);
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.using:Dispose", $"cts-cancel-ignored port={_port} exception-type={ex.GetType().Name}", ex));
                     }
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                     {
-                        this.Logger.LogWarning(ex, "[NW.TcpListenerBase:Dispose] cts-cancel-failed port={Port}", _port);
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.using:Dispose", $"cts-cancel-failed port={_port}", ex));
                     }
                 }
 
@@ -391,16 +391,16 @@ public abstract partial class TcpListenerBase : IListener
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                     {
-                        this.Logger.LogDebug(ex, "[NW.TcpListenerBase:Dispose] cts-dispose-ignored port={Port} reason={ExceptionType}", _port, ex.GetType().Name);
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.using:Dispose", $"cts-dispose-ignored port={_port} exception-type={ex.GetType().Name}", ex));
                     }
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                     {
-                        this.Logger.LogWarning(ex, "[NW.TcpListenerBase:Dispose] cts-dispose-failed port={Port}", _port);
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.using:Dispose", $"cts-dispose-failed port={_port}", ex));
                     }
                 }
 
@@ -413,16 +413,16 @@ public abstract partial class TcpListenerBase : IListener
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                     {
-                        this.Logger.LogDebug(ex, "[NW.TcpListenerBase:Dispose] listener-dispose-ignored port={Port} reason={ExceptionType}", _port, ex.GetType().Name);
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.using:Dispose", $"listener-dispose-ignored port={_port} exception-type={ex.GetType().Name}", ex));
                     }
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                     {
-                        this.Logger.LogWarning(ex, "[NW.TcpListenerBase:Dispose] listener-dispose-failed port={Port}", _port);
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.using:Dispose", $"listener-dispose-failed port={_port}", ex));
                     }
                 }
                 finally
@@ -432,9 +432,9 @@ public abstract partial class TcpListenerBase : IListener
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
                 {
-                    this.Logger.LogError(ex, "[NW.TcpListenerBase:Dispose] dispose-failed port={Port}", _port);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.using:Dispose", $"dispose-failed port={_port}", ex));
                 }
             }
 
@@ -457,9 +457,9 @@ public abstract partial class TcpListenerBase : IListener
             _lock.Dispose();
         }
 
-        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            this.Logger.LogDebug("[NW.TcpListenerBase:Dispose] disposed");
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.using:Dispose", $"TcpListenerBase disposed port={_port}"));
         }
     }
 

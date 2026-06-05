@@ -4,7 +4,10 @@ Nalix implements a high-security, zero-trust handshake protocol based on **X2551
 
 ## Source Mapping
 
-- `src/Nalix.Codec/DataFrames/SignalFrames/Handshake.cs`
+- `src/Nalix.Codec/ProtocolFrames/Session/SessionInit.cs`
+- `src/Nalix.Codec/ProtocolFrames/Session/SessionChallenge.cs`
+- `src/Nalix.Codec/ProtocolFrames/Session/SessionProof.cs`
+- `src/Nalix.Codec/ProtocolFrames/Session/SessionEstablished.cs`
 - `src/Nalix.Codec/Security/HandshakeX25519.cs`
 - `src/Nalix.Runtime/Handlers/HandshakeHandlers.cs`
 - `src/Nalix.SDK/Transport/Extensions/HandshakeExtensions.cs`
@@ -33,45 +36,45 @@ sequenceDiagram
 
     Note over SDK: Generate KeyPair & Nonce
     
-    SDK->>Srv: CLIENT_HELLO<br/>[ClientPubKey, Nonce]
+    SDK->>Srv: SessionInit<br/>[PublicKey, Nonce]
     
     Note over Srv: Resolve Handlers<br/>Generate SrvKeyPair<br/>Compute MasterSecret
     
-    Srv->>SDK: SERVER_HELLO<br/>[SrvPubKey, Nonce, Proof]
+    Srv->>SDK: SessionChallenge<br/>[PublicKey, Nonce, Proof]
     
     Note over SDK: Verify Proof<br/>Compute Secrets<br/>Derive SessionKey
     
-    SDK->>Srv: CLIENT_FINISH<br/>[Proof, Hash]
+    SDK->>Srv: SessionProof<br/>[Proof]
     
     Note over Srv: Verify Proof<br/>Create Session<br/>Finalize Cipher
     
-    Srv->>SDK: SERVER_FINISH<br/>[FinishProof, Token]
+    Srv->>SDK: SessionEstablished<br/>[Proof, SessionToken]
     
     Note over SDK: Verify Proof<br/>Enable AEAD Encryption
 ```
 
 ## Protocol Stages
 
-### 1. CLIENT_HELLO
+### 1. SessionInit
 
-The SDK initiates by sending its ephemeral public key and a cryptographically secure random nonce. No sensitive data is sent here.
+The SDK initiates by sending its ephemeral public key and a cryptographically secure random nonce via a `SessionInit` frame. No sensitive data is sent here.
 
-### 2. SERVER_HELLO
+### 2. SessionChallenge
 
-The server responds with its own ephemeral public key and a `Proof`. The proof is a keyed digest computed over the handshake transcript using the derived master secret (via `HandshakeX25519.ComputeServerProof`), proving the server possesses the corresponding private key without revealing it.
+The server responds with its own ephemeral public key and a `Proof` via a `SessionChallenge` frame. The proof is a keyed digest computed over the handshake transcript using the derived master secret (via `HandshakeX25519.ComputeServerProof`), proving the server possesses the corresponding private key without revealing it.
 
-### 3. CLIENT_FINISH
+### 3. SessionProof
 
-The SDK validates the server's proof. If valid, it computes its own `ClientProof` and sends it back. This confirms to the server that the client has successfully derived the same shared secret.
+The SDK validates the server's proof. If valid, it computes its own `ClientProof` and sends it back via a `SessionProof` frame. This confirms to the server that the client has successfully derived the same shared secret.
 
-### 4. SERVER_FINISH
+### 4. SessionEstablished
 
-Final confirmation. The server sends a `SessionToken`. The SDK uses that token for UDP datagram authentication, and the connection is now fully encrypted using the derived session key.
+Final confirmation. The server sends a `SessionEstablished` frame containing the `SessionToken`. The SDK uses that token for UDP datagram authentication, and the connection is now fully encrypted using the derived session key.
 
 ## Implementation Details
 
 - **Encryption**: `src/Nalix.Runtime/Handlers/HandshakeHandlers.cs` and `src/Nalix.SDK/Transport/Extensions/HandshakeExtensions.cs` set the active cipher to `CipherSuiteType.Chacha20Poly1305` for the established session.
-- **Resume Token**: `SERVER_FINISH` returns the current `SessionToken`, which the SDK later stores in `TransportOptions.SessionToken`.
+- **Resume Token**: `SessionEstablished` returns the current `SessionToken`, which the SDK later stores in `SessionState.SessionToken`.
 
 ## Related Topics
 

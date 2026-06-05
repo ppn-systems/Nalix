@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -9,8 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using Nalix.Abstractions;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Environment.Hashing;
 
@@ -22,7 +21,7 @@ namespace Nalix.Network.RateLimiting;
 /// on the hot path. Enforces Max Packets-Per-Second per IP to prevent DDoS floods.
 /// Intended to be registered as a singleton in the DI container.
 /// </summary>
-public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
+public sealed class DatagramGuard : IDisposable
 {
     // ── Packed into a single 64-bit value for Interlocked.CompareExchange ──
     // High 32 bits: secondOffset (uint)  |  Low 32 bits: count (uint)
@@ -62,7 +61,7 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
     private readonly ConcurrentDictionary<uint, WindowSlot> _ipv4Map;
     private readonly ConcurrentDictionary<string, WindowSlot> _ipv6Map;
 
-    private ILogger? _logger;
+
     private int _disposed;
 
     // Bit packing constants
@@ -115,20 +114,15 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
             Exception? ex = task.Exception?.GetBaseException();
             if (ex is not null && Volatile.Read(ref self._disposed) == 0)
             {
-                if (self._logger != null && self._logger.IsEnabled(LogLevel.Error))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
                 {
-                    self._logger.LogError(ex, "[NW.DatagramGuard] cleanup-loop-faulted");
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.IpComparer:GetHashCode", "cleanup-loop-faulted", ex));
                 }
             }
         }, this, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
     }
 
-    /// <inheritdoc/>
-    public DatagramGuard WithLogging(ILogger logger)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        return this;
-    }
+
 
     /// <summary>
     /// Checks if a packet from the specified <paramref name="endPoint"/> should be accepted.
@@ -251,16 +245,16 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
             catch (OperationCanceledException) { break; }
             catch (ObjectDisposedException ex)
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Security.CleanupError))
                 {
-                    _logger.LogWarning(ex, "[NW.DatagramGuard] Cleanup error.");
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Security.CleanupError, new DiagnosticLog("NW.IpComparer:CleanupLoopAsync", "", ex));
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
                 {
-                    _logger.LogError(ex, "[NW.DatagramGuard] Unexpected error in CleanupLoopAsync.");
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.IpComparer:CleanupLoopAsync", "Unexpected error in CleanupLoopAsync", ex));
                 }
             }
         }
@@ -295,9 +289,9 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
 
         if (removed > 0)
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                _logger.LogDebug("[NW.DatagramGuard] Evicted {Removed} idle windows. IPv4={Ipv4MapCount}, IPv6={Ipv6MapCount}", removed, _ipv4Map.Count, _ipv6Map.Count);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.IpComparer:EvictStaleWindows", $"Evicted idle windows removed={removed} ipv4-count={_ipv4Map.Count} ipv6-count={_ipv6Map.Count}"));
             }
         }
     }
@@ -320,9 +314,9 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
 
             if (_cleanupTask.IsCompleted && _cleanupTask.Exception?.GetBaseException() is Exception ex)
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    _logger.LogDebug(ex, "[NW.DatagramGuard] cleanup-task-completed-with-error during dispose");
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.IpComparer:Dispose", "cleanup-task-completed-with-error during dispose", ex));
                 }
             }
         }

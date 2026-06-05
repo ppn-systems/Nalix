@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 
 namespace Nalix.Codec.Pooling;
@@ -15,7 +16,7 @@ namespace Nalix.Codec.Pooling;
 /// <typeparam name="TPacket">The packet type.</typeparam>
 [SuppressMessage(
     "Design", "CA1000:Do not declare static members on generic types", Justification = "A generic packet pool is intentionally exposed as a per-packet-type static API.")]
-public static class PacketFactory<TPacket> where TPacket : PacketBase<TPacket>, new()
+public static class PacketFactory<TPacket> where TPacket : PacketBase<TPacket>, IPacketStaticOpcode, new()
 {
     #region APIs
 

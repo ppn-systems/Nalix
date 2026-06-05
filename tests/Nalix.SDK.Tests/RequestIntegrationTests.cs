@@ -32,6 +32,7 @@ public sealed class RequestIntegrationTests : IDisposable
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         builder.UseSecureConnections();
         builder.UseSystemControl();
+        builder.UseTimeSync();
 
         using NetworkApplication app = builder.Build();
         await app.ActivateAsync();
@@ -41,18 +42,20 @@ public sealed class RequestIntegrationTests : IDisposable
             var options = new TransportOptions
             {
                 Address = "127.0.0.1",
-                Port = (ushort)port,
-                EncryptionEnabled = false
+                Port = (ushort)port
             };
 
             using var session = new TcpSession(options);
             await session.ConnectAsync();
+#pragma warning disable CS0612
+            await session.HandshakeAsync();
+#pragma warning restore CS0612
 
-            // PING expects PONG (which is a Control packet with same Seq)
-            var ping = new Control();
-            ping.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.PING, 1234, PacketFlags.NONE, ProtocolReason.NONE);
+            // PING expects PONG (which is a TimeSync packet with same Seq)
+            var ping = new TimeSync();
+            ping.Initialize(ControlType.PING, 1234, PacketFlags.NONE);
 
-            Control response = await session.RequestAsync<Control>(
+            TimeSync response = await session.RequestAsync<TimeSync>(
                 ping,
                 options: RequestOptions.Default,
                 predicate: p => p.Type == ControlType.PONG && p.Header.SequenceId == 1234);
@@ -76,8 +79,7 @@ public sealed class RequestIntegrationTests : IDisposable
         var options = new TransportOptions
         {
             Address = "127.0.0.1",
-            Port = (ushort)port,
-            EncryptionEnabled = false
+            Port = (ushort)port
         };
 
         // Wait! If we don't start the server, ConnectAsync might fail.
@@ -90,11 +92,11 @@ public sealed class RequestIntegrationTests : IDisposable
             using var session = new TcpSession(options);
             await session.ConnectAsync();
 
-            var ping = new Control();
-            ping.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.PING, 1234, PacketFlags.NONE, ProtocolReason.NONE);
+            var ping = new TimeSync();
+            ping.Initialize(ControlType.PING, 1234, PacketFlags.NONE);
 
             await Assert.ThrowsAsync<TimeoutException>(async () =>
-                await session.RequestAsync<Control>(
+                await session.RequestAsync<TimeSync>(
                     ping,
                     options: RequestOptions.Default.WithTimeout(100).WithRetry(0),
                     predicate: _ => true));

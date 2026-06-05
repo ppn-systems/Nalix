@@ -286,7 +286,9 @@ public sealed class InstanceManagerTests : IDisposable
         }
     }
 
+#pragma warning disable CS0649 // Field is never assigned to
     private struct MyStruct { public int X; }
+#pragma warning restore CS0649
     private sealed class StructParamService(MyStruct s) { public MyStruct S { get; } = s; }
 
     private sealed class NullableStructParamService(MyStruct? s) { public MyStruct? S { get; } = s; }

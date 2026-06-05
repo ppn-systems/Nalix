@@ -43,7 +43,6 @@ public sealed class HandshakeIntegrationTests : IDisposable
             {
                 Address = "127.0.0.1",
                 Port = (ushort)port,
-                EncryptionEnabled = false,
                 ServerPublicKey = _serverPublicKey.ToString()
             });
 
@@ -53,10 +52,10 @@ public sealed class HandshakeIntegrationTests : IDisposable
             await session.HandshakeAsync();
 
             // Verify
-            Assert.True(session.Options.EncryptionEnabled);
-            Assert.NotEqual(Bytes32.Zero, session.Options.Secret);
+            Assert.True(session.State.EncryptionEnabled);
+            Assert.NotEqual(Bytes32.Zero, session.State.Secret);
             Assert.Equal(CipherSuiteType.Chacha20Poly1305, session.Options.Algorithm);
-            Assert.NotEqual(0UL, session.Options.SessionToken);
+            Assert.NotEqual(0UL, session.State.SessionToken);
         }
         finally
         {
@@ -89,18 +88,19 @@ public sealed class HandshakeIntegrationTests : IDisposable
             {
                 Address = "127.0.0.1",
                 Port = (ushort)port,
-                EncryptionEnabled = false,
                 ServerPublicKey = _serverPublicKey.ToString(),
                 ResumeEnabled = true
             });
 
+#pragma warning disable CS0612
             // 1. First connect (performs Handshake)
             bool resumed1 = await session.ConnectWithResumeAsync();
+#pragma warning restore CS0612
             Assert.False(resumed1);
-            Assert.NotEqual(0UL, session.Options.SessionToken);
+            Assert.NotEqual(0UL, session.State.SessionToken);
 
-            ulong token = session.Options.SessionToken;
-            Bytes32 secret = session.Options.Secret;
+            ulong token = session.State.SessionToken;
+            Bytes32 secret = session.State.Secret;
 
             // Manually store the session before disconnecting, since the
             // HandshakeHandlers static field may not have captured ISessionService
@@ -118,12 +118,14 @@ public sealed class HandshakeIntegrationTests : IDisposable
             await session.DisconnectAsync();
 
             // 2. Second connect (should resume)
+#pragma warning disable CS0612
             bool resumed2 = await session.ConnectWithResumeAsync();
+#pragma warning restore CS0612
             Assert.True(resumed2);
             
-            Assert.NotEqual(0UL, session.Options.SessionToken);
-            Assert.Equal(secret, session.Options.Secret);
-            Assert.True(session.Options.EncryptionEnabled);
+            Assert.NotEqual(0UL, session.State.SessionToken);
+            Assert.Equal(secret, session.State.Secret);
+            Assert.True(session.State.EncryptionEnabled);
         }
         finally
         {

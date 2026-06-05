@@ -106,6 +106,11 @@ public static class DiagnosticsEvents
         /// Fired when the random subsystem is initialized.
         /// </summary>
         public const string Init = "Random.Init";
+
+        /// <summary>
+        /// Fired when random generation encounters a failure or fallback.
+        /// </summary>
+        public const string Failure = "Random.Failure";
     }
 
     /// <summary>

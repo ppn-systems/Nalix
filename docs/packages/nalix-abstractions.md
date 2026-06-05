@@ -60,7 +60,7 @@ Middleware runs over packet contexts and can short-circuit outbound flows.
 
 - `IPacketMiddleware<TPacket>`
 - `IPacketContext<TPacket>`
-- `IPacketSender<TPacket>`
+- `IPacketSender`
 
 ### Quick example 
 
@@ -84,8 +84,8 @@ Base interfaces for encryption, hashing, and permission management.
 
 `**Key Components**`
 
-- `PermissionLevel` — Enum defining access levels (e.g. `USER`, `ADMIN`).
-- `IPacketPermission` — Metadata contract for packet-level permission checks.
+- `PermissionLevel` — Enum defining access levels (e.g. `USER`, `SYSTEM_ADMINISTRATOR`, `OWNER`).
+- `PacketPermissionAttribute` — Attribute for declaring packet-level permission requirements.
 
 ## Key API pages
 

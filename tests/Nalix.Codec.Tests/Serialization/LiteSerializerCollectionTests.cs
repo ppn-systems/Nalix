@@ -1,11 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Nalix.Codec.Serialization;
-using Xunit;
 
 namespace Nalix.Codec.Tests.Serialization;
 
@@ -36,7 +32,7 @@ public sealed class LiteSerializerCollectionTests
 
         Assert.NotNull(output);
         Assert.Equal(input.Count, output.Count);
-        foreach (var kvp in input)
+        foreach (KeyValuePair<string, int> kvp in input)
         {
             Assert.True(output.TryGetValue(kvp.Key, out int val));
             Assert.Equal(kvp.Value, val);
@@ -146,23 +142,23 @@ public sealed class LiteSerializerCollectionTests
     public void SerializeDeserialize_ValueTuples_Arity2Through5_RoundTripState()
     {
         // Arity 2
-        var t2 = (1, "two");
-        var r2 = LiteSerializerTestHelper.RoundTrip(t2);
+        (int, string) t2 = (1, "two");
+        (int, string) r2 = LiteSerializerTestHelper.RoundTrip(t2);
         Assert.Equal(t2, r2);
 
         // Arity 3
-        var t3 = (1, "two", 3.3f);
-        var r3 = LiteSerializerTestHelper.RoundTrip(t3);
+        (int, string, float) t3 = (1, "two", 3.3f);
+        (int, string, float) r3 = LiteSerializerTestHelper.RoundTrip(t3);
         Assert.Equal(t3, r3);
 
         // Arity 4
-        var t4 = (1, "two", 3.3f, 4L);
-        var r4 = LiteSerializerTestHelper.RoundTrip(t4);
+        (int, string, float, long) t4 = (1, "two", 3.3f, 4L);
+        (int, string, float, long) r4 = LiteSerializerTestHelper.RoundTrip(t4);
         Assert.Equal(t4, r4);
 
         // Arity 5
-        var t5 = (1, "two", 3.3f, 4L, true);
-        var r5 = LiteSerializerTestHelper.RoundTrip(t5);
+        (int, string, float, long, bool) t5 = (1, "two", 3.3f, 4L, true);
+        (int, string, float, long, bool) r5 = LiteSerializerTestHelper.RoundTrip(t5);
         Assert.Equal(t5, r5);
     }
 

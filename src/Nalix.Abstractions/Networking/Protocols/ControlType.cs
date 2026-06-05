@@ -84,6 +84,11 @@ public enum ControlType : byte
     CIPHER_UPDATE_ACK = 0x15,
 
     /// <summary>
+    /// Client requests the server's static public key (TOFU).
+    /// </summary>
+    PUBLIC_KEY_REQUEST = 0x16,
+
+    /// <summary>
     /// Reserved for future extension.
     /// </summary>
     RESERVED1 = 0xFE,

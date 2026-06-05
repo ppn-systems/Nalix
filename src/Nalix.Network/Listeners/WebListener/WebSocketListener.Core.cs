@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -7,8 +7,8 @@ using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
@@ -33,10 +33,11 @@ public abstract partial class WebSocketListenerBase : IListener
 
     private readonly ushort _port;
     private readonly string _path;
-    private readonly ILogger? _logger;
     private readonly IProtocol _protocol;
     private readonly SemaphoreSlim _lock;
     private readonly IConnectionHub _hub;
+    private readonly TimingWheel _timing;
+    private readonly ConnectionGuard _limiter;
     private readonly NetworkWebSocketOptions _config;
     private readonly ForwardedHeadersOptions _forwardedConfig;
 
@@ -47,8 +48,6 @@ public abstract partial class WebSocketListenerBase : IListener
     private CancellationTokenSource? _cts;
     private CancellationTokenRegistration _cancelReg;
     private IWorkerHandle[]? _acceptWorkers;
-    private readonly TimingWheel _timing;
-    private readonly ConnectionGuard _limiter;
 
     #endregion Fields
 
@@ -98,7 +97,6 @@ public abstract partial class WebSocketListenerBase : IListener
 
         _state = (int)ListenerState.STOPPED;
 
-        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
         _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
         _config = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
@@ -136,7 +134,7 @@ public abstract partial class WebSocketListenerBase : IListener
             return;
         }
 
-        async Task cb(object? state)
+        static async Task cb(object? state)
         {
             if (state is not WebSocketListenerBase self)
             {
@@ -183,9 +181,9 @@ public abstract partial class WebSocketListenerBase : IListener
 
                 _ = Interlocked.Exchange(ref self._state, (int)ListenerState.STOPPED);
 
-                if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
                 {
-                    _logger.LogInformation("[NW.WebSocketListenerBase:SCHEDULE_STOP] stopped port={Port}", self._port);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.using:cb", $"stopped port={self._port}"));
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
@@ -276,9 +274,9 @@ public abstract partial class WebSocketListenerBase : IListener
             _lock.Dispose();
         }
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            _logger.LogDebug("[NW.WebSocketListenerBase:Dispose] disposed");
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.using:Dispose", "disposed"));
         }
     }
 

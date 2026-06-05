@@ -1,20 +1,19 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Runtime.CompilerServices;
 using Backend.Attributes;
+using Backend.Middleware;
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Options;
 using Nalix.Hosting;
 using Nalix.Hosting.Protocols;
-using Nalix.LoadTester.Contracts;
 using Nalix.Logging;
 using Nalix.Logging.Sinks;
 using Nalix.Network.Connections;
 using Nalix.Network.Options;
-using Nalix.Observability.Handlers;
+using Nalix.Runtime.Middleware.Standard;
 using Nalix.Runtime.Options;
 
 #pragma warning disable IDE0079 // Remove unnecessary suppression
@@ -29,29 +28,28 @@ internal class Startup
 
     public static ILogger CreateBootstrapLogger() => new NLogixBuilder()
         .AddTarget(new BatchConsoleLogTarget(t => t.EnableColors = false))
-        .SetMinimumLevel(LogLevel.Trace)
+        .SetMinimumLevel(LogLevel.Information)
         .Build();
 
     public static NetworkApplication Configure(ILogger logger)
     {
-        RuntimeHelpers.RunModuleConstructor(typeof(BenchmarkPacket).Module.ModuleHandle);
-
         ConnectionHub hub = new();
         BufferPoolManager bufferPool = new();
         ObjectPoolManager objectPool = new();
 
         NetworkApplication host = NetworkApplication.CreateBuilder()
+            .UseTimeSync()
+            .UseSessions()
+            .UseSystemControl()
+            .UseSecureConnections()
             .ConfigureLogging(logger)
             .ConfigureConnectionHub(hub)
             .ConfigureBufferPoolManager(bufferPool)
             .ConfigureObjectPoolManager(objectPool)
-            .AddHandler<BenchmarkHandlers>()
-            .AddHandler<RuntimeObservationHandlers>()
-            .AddHandler<ObservabilityAccessHandlers>()
             .AddMetadataProvider<PacketTagMetadataProvider>()
             .Configure<BufferOptions>(o =>
             {
-                o.TotalBuffers = 20_000;
+                o.TotalBuffers = 30_000;
 
                 // Keep trimming enabled so the server can recover after burst traffic.
                 o.EnableMemoryTrimming = true;
@@ -80,7 +78,7 @@ internal class Startup
 
                 // Tune this to your benchmark packet size.
                 // This profile favors small/medium packets.
-                o.BufferAllocations = "256,0.30; 1024,0.30; 4096,0.25; 16384,0.10; 32768,0.05";
+                o.BufferAllocations = "64,0.15; 256,0.15; 1024,0.25; 4096,0.20; 16384,0.20; 32768,0.05";
 
                 // Never enable these during DDoS/high-concurrency benchmarks.
                 o.EnableBufferLeakDetection = false;
@@ -232,31 +230,31 @@ internal class Startup
             {
                 // Global concurrent connection ceiling.
                 // Set higher than the target benchmark peak.
-                o.MaxConnections = 50_000;
+                o.MaxConnections = 10_000;
 
                 // Per-connection packet rate.
                 // This is not global PPS.
-                o.MaxPacketPerSecond = 5_000;
+                o.MaxPacketPerSecond = 80;
 
                 // Disconnect noisy/malformed connections earlier.
                 o.MaxErrorThreshold = 20;
 
+                o.EnableProgressiveBanning = true;
                 o.BanDuration = TimeSpan.FromMinutes(5);
                 o.DDoSLogSuppressWindow = TimeSpan.FromSeconds(20);
-                o.EnableProgressiveBanning = true;
             })
             .Configure<ConnectionQuotaOptions>(o =>
             {
                 // For single-machine/local benchmark, this must be high enough,
                 // otherwise your tester IP becomes the bottleneck.
-                o.MaxConnectionsPerIpAddress = 10_000;
+                o.MaxConnectionsPerIpAddress = 50;
 
                 // Connection attempts per IP within ConnectionRateWindow.
                 o.MaxCleanupKeysPerRun = 50_000;
                 o.MaxConnectionsPerWindow = 100_000;
 
                 o.CleanupInterval = TimeSpan.FromSeconds(30);
-                o.InactivityThreshold = TimeSpan.FromMinutes(2);
+                o.InactivityThreshold = TimeSpan.FromSeconds(30);
                 o.ConnectionRateWindow = TimeSpan.FromSeconds(5);
 
                 // Vietnam timezone daily reset offset.
@@ -268,40 +266,40 @@ internal class Startup
                 o.AutoSaveInterval = TimeSpan.FromMinutes(1);
                 o.StoreFileName = "banned_ips.bin";
                 o.BanCountDecayWindow = TimeSpan.FromDays(7);
-                o.MaxPersistedBans = 100_000;
+                o.MaxPersistedBans = 10_000;
             })
             .Configure<ConnectionBlacklistStoreOptions>(o =>
             {
                 o.Enabled = true;
                 o.StoreFileName = "blacklist.txt";
-                o.MaxBlacklistedIps = 100_000;
+                o.MaxBlacklistedIps = 10_000;
             })
             .Configure<Nalix.Network.Options.PoolingOptions>(o =>
             {
                 // AcceptContext is one per in-flight accept operation, not one per connection.
-                o.AcceptContextCapacity = 512;
-                o.AcceptContextPreallocate = 64;
+                o.AcceptContextCapacity = 128;
+                o.AcceptContextPreallocate = 32;
 
                 // SocketArgs and ReceiveContext scale with active TCP connections.
-                o.SocketArgsCapacity = 60_000;
+                o.SocketArgsCapacity = 20_000;
                 o.SocketArgsPreallocate = 4_096;
 
-                o.ReceiveContextCapacity = 60_000;
+                o.ReceiveContextCapacity = 20_000;
                 o.ReceiveContextPreallocate = 4_096;
 
                 // TimingWheel keeps timeout tasks for active connections.
-                o.TimeoutTaskCapacity = 60_000;
+                o.TimeoutTaskCapacity = 20_000;
                 o.TimeoutTaskPreallocate = 4_096;
 
                 // Connection callback wrappers scale with queued connection events.
-                o.ConnectEventContextCapacity = 100_000;
+                o.ConnectEventContextCapacity = 20_000;
                 o.ConnectEventContextPreallocate = 4_096;
             })
             .Configure<ProxyProtocolOptions>(o =>
             {
                 // Enable only if your TCP proxy actually sends PROXY protocol V1/V2.
                 // For direct TCP benchmark, keep this false.
-                o.Enabled = true;
+                o.Enabled = false;
                 o.RequireTrustedProxy = true;
                 o.HeaderTimeoutMs = 1000;
             })
@@ -309,17 +307,7 @@ internal class Startup
             {
                 // Use this for HTTP/WebSocket reverse proxies that send CF-Connecting-IP or X-Forwarded-For.
                 o.Enabled = false;
-                o.RequireTrustedProxy = true;
-            })
-            .Configure<ObjectPoolOptions>(o =>
-            {
-                o.EnableMetrics = true;
-                o.EnableDiagnostics = false;
-                o.CaptureStackTraces = false;
-                o.EnableLeakDetection = false;
-
-                o.DefaultPreallocate = 1_000;
-                o.DefaultMaxPoolSize = 20_000;
+                o.RequireTrustedProxy = false;
             })
             .Configure<DispatchOptions>(o =>
             {
@@ -329,11 +317,11 @@ internal class Startup
             })
             .ConfigureDispatchOptions(o =>
             {
-                //_ = o.WithMiddleware(new TimeoutMiddleware());
-                //_ = o.WithMiddleware(new PacketTagMiddleware());
-                //_ = o.WithMiddleware(new RateLimitMiddleware());
-                //_ = o.WithMiddleware(new PermissionMiddleware());
-                //_ = o.WithMiddleware(new ConcurrencyMiddleware());
+                _ = o.WithMiddleware(new TimeoutMiddleware());
+                _ = o.WithMiddleware(new PacketTagMiddleware());
+                _ = o.WithMiddleware(new RateLimitMiddleware());
+                _ = o.WithMiddleware(new PermissionMiddleware());
+                _ = o.WithMiddleware(new ConcurrencyMiddleware());
                 _ = o.WithDispatchLoopCount(16);
                 _ = o.WithErrorHandling((ex, cmd) => logger.LogError(ex, "Dispatch error: {Cmd}", cmd));
             })

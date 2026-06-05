@@ -64,24 +64,10 @@ public sealed partial class ConnectionGuard
             writer.WriteNumber("TotalCleaned", metrics.TotalCleaned);
             writer.WriteNumber("RejectionRate", metrics.TotalAttempts > 0 ? (metrics.TotalRejections * 100.0 / metrics.TotalAttempts) : 0.0);
 
-            writer.WriteStartArray("TopEndpoints");
-            int count = 0;
-            foreach (KeyValuePair<INetworkEndpoint, ConnectionLimitInfo> kvp in snapshot)
-            {
-                if (count++ >= 50)
-                {
-                    break;
-                }
-
-                ConnectionLimitInfo info = kvp.Value;
-                writer.WriteStartObject();
-                writer.WriteString("Address", kvp.Key.Address ?? "unknown");
-                writer.WriteNumber("CurrentConnections", info.CurrentConnections);
-                writer.WriteNumber("TotalConnectionsToday", info.TotalConnectionsToday);
-                writer.WriteString("LastConnectionUtc", info.LastConnectionTime);
-                writer.WriteEndObject();
-            }
-            writer.WriteEndArray();
+            writer.WriteNumber("SubnetTrackedV4", _subnetMapV4.Count);
+            writer.WriteNumber("SubnetTrackedV6", _subnetMapV6.Count);
+            writer.WriteNumber("EWMARate", _ewmaConnectionRate);
+            writer.WriteBoolean("AdaptiveActive", _config.EnableAdaptiveMode && Volatile.Read(ref _globalConnections) > _maxGlobalConnections * _config.AdaptiveLoadThreshold);
 
             writer.WriteEndObject();
         }
@@ -186,6 +172,11 @@ public sealed partial class ConnectionGuard
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalAttempts      : {metrics.TotalAttempts:N0}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalRejections    : {metrics.TotalRejections:N0}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalCleaned       : {metrics.TotalCleaned:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"EWMARate           : {_ewmaConnectionRate:F2} req/s");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Subnets Tracked    : v4={_subnetMapV4.Count}, v6={_subnetMapV6.Count}");
+
+        bool adaptiveActive = _config.EnableAdaptiveMode && Volatile.Read(ref _globalConnections) > _maxGlobalConnections * _config.AdaptiveLoadThreshold;
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Adaptive Limits    : {(adaptiveActive ? "ACTIVE (Throttled)" : "Normal")}");
 
         if (metrics.TotalAttempts > 0)
         {

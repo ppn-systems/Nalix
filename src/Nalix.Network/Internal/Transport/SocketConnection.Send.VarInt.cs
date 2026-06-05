@@ -7,7 +7,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Environment.Memory;
@@ -36,9 +36,9 @@ internal sealed partial class SocketConnection
             try
             {
 #if DEBUG
-                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    _logger.LogDebug("[NW.SocketConnection:Send] stackalloc varint len={Length} ep={RemoteEndpoint}", data.Length, _socket.RemoteEndPoint);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"stackalloc varint length={data.Length} remote-endpoint={_socket.RemoteEndPoint}"));
                 }
 #endif
                 Span<byte> frameS = stackalloc byte[totalLength];
@@ -66,9 +66,18 @@ internal sealed partial class SocketConnection
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (IS_BENIGN_DISCONNECT(ex)) { /* benign */ }
-                else
                 {
-                    _owner.ThrottledError(_logger, s_keySendVarIntError, "[NW.SocketConnection:SendVarInt] varint send error ep=" + _endpointString, ex);
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+                    {
+                        if (Security.ThrottledEventGate.TryAcquire(ref s_sendVarIntErrorTicks, ref s_sendVarIntErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
+                        {
+                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+                            {
+                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"varint send error endpoint={_endpointString} suppressed-count={suppressed}", ex));
+                            }
+                            ;
+                        }
+                    }
                 }
                 throw;
             }
@@ -102,9 +111,18 @@ internal sealed partial class SocketConnection
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (IS_BENIGN_DISCONNECT(ex)) { /* benign */ }
-            else
             {
-                _owner.ThrottledError(_logger, s_keySendVarIntError, "[NW.SocketConnection:SendVarInt] varint send error ep=" + _endpointString, ex);
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+                {
+                    if (Security.ThrottledEventGate.TryAcquire(ref s_sendVarIntErrorTicks, ref s_sendVarIntErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
+                    {
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+                        {
+                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"varint send error endpoint={_endpointString} suppressed-count={suppressed}", ex));
+                        }
+                        ;
+                    }
+                }
             }
             throw;
         }
@@ -166,7 +184,17 @@ internal sealed partial class SocketConnection
             BufferLease.ByteArrayPool.Return(heapBuf);
             if (!IS_BENIGN_DISCONNECT(ex))
             {
-                _owner.ThrottledError(_logger, s_keySendVarIntError, "[NW.SocketConnection:SendVarInt] varint send error ep=" + _endpointString, ex);
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+                {
+                    if (Security.ThrottledEventGate.TryAcquire(ref s_sendVarIntErrorTicks, ref s_sendVarIntErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
+                    {
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+                        {
+                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"varint send error endpoint={_endpointString} suppressed-count={suppressed}", ex));
+                        }
+                        ;
+                    }
+                }
             }
             return ValueTask.FromException(ex);
         }
@@ -202,7 +230,17 @@ internal sealed partial class SocketConnection
             {
                 if (!IS_BENIGN_DISCONNECT(ex))
                 {
-                    self._owner.ThrottledError(self._logger, s_keySendVarIntError, "[NW.SocketConnection:SendVarInt] varint send error ep=" + self._endpointString, ex);
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+                    {
+                        if (Security.ThrottledEventGate.TryAcquire(ref s_sendVarIntErrorTicks, ref s_sendVarIntErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
+                        {
+                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+                            {
+                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"varint send error endpoint={self._endpointString} suppressed-count={suppressed}", ex));
+                            }
+                            ;
+                        }
+                    }
                 }
                 throw;
             }

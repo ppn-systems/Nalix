@@ -20,7 +20,7 @@ flowchart TD
     end
 
     subgraph Pipeline[Processing Pipeline]
-        WL -->|Step 1| Des[IPacketRegistry.Deserialize]
+        WL -->|Step 1| Des[PacketRegistry.Deserialize]
         Des -->|Step 2| PM[MiddlewarePipeline]
         PM -->|Step 3| H[Packet Handler]
     end

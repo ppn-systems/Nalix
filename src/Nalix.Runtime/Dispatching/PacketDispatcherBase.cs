@@ -3,9 +3,8 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Network.Routing;
+using Nalix.Runtime.Routing;
 
 namespace Nalix.Runtime.Dispatching;
 
@@ -18,11 +17,6 @@ namespace Nalix.Runtime.Dispatching;
 public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
 {
     #region Properties
-
-    /// <summary>
-    /// Gets the logger instance associated with this dispatcher, if configured.
-    /// </summary>
-    protected ILogger? Logging => this.Options.Logging;
 
     /// <summary>
     /// Gets the configuration options for this dispatcher instance.

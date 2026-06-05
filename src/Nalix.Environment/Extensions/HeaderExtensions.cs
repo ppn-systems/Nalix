@@ -10,7 +10,7 @@ namespace Nalix.Environment.Extensions;
 
 /// <summary>
 /// Provides high-performance helpers for reading and writing the <see cref="PacketHeader"/>
-/// from serialized data as a single 10-byte struct read/write.
+/// from serialized data as a single 6-byte struct read/write.
 /// </summary>
 public static class HeaderExtensions
 {

@@ -1,12 +1,11 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Threading;
-using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
-using Nalix.Framework.Injection;
 
 namespace Nalix.Network.Protocols;
 
@@ -15,8 +14,6 @@ public abstract partial class Protocol
     #region Fields
 
     private int _accepting;
-
-    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     #endregion Fields
 
@@ -59,9 +56,9 @@ public abstract partial class Protocol
         // Check if accepting connections is enabled
         if (!this.IsAccepting)
         {
-            if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                s_logger.LogTrace("[NW.Protocol:OnAccept] reject id={ConnectionId} reason=not-accepting", connection.ID);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Protocol:OnAccept", $"reject id=connection-id={connection.ID} reason=not-accepting"));
             }
             connection.Disconnect();
             return;
@@ -77,9 +74,9 @@ public abstract partial class Protocol
         {
             if (this.ValidateConnection(connection))
             {
-                if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
                 {
-                    s_logger.LogTrace("[NW.Protocol:OnAccept] accepted id={ConnectionId}", connection.ID);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Protocol:OnAccept", $"accepted id=connection-id={connection.ID}"));
                 }
 
                 connection.TCP.UseFraming(this.Framing);
@@ -90,9 +87,9 @@ public abstract partial class Protocol
                 return;
             }
 
-            if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                s_logger.LogTrace("[NW.Protocol:OnAccept] reject id={ConnectionId} reason=validation-failed", connection.ID);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Protocol:OnAccept", $"reject id=connection-id={connection.ID} reason=validation-failed"));
             }
 
             // Connections failed validation, close immediately
@@ -100,9 +97,9 @@ public abstract partial class Protocol
         }
         catch (OperationCanceledException)
         {
-            if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                s_logger.LogTrace("[NW.Protocol:OnAccept] accept-canceled id={ConnectionId}", connection.ID);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Protocol:OnAccept", $"accept-canceled id=connection-id={connection.ID}"));
             }
             connection.Disconnect();
         }
@@ -111,9 +108,9 @@ public abstract partial class Protocol
             // Only log warning if not already shutting down to reduce noise.
             if (!cancellationToken.IsCancellationRequested)
             {
-                if (s_logger != null && s_logger.IsEnabled(LogLevel.Warning))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    s_logger.LogWarning(ex, "[NW.Protocol:OnAccept] accept-disposed id={ConnectionId} target={Target}", connection.ID, ex.ObjectName);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.Protocol:OnAccept", $"accept-disposed id=connection-id={connection.ID} target=target={ex.ObjectName}", ex));
                 }
             }
 
@@ -125,9 +122,9 @@ public abstract partial class Protocol
             this.OnConnectionError(connection, ex);
             connection.Disconnect();
 
-            if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                s_logger.LogDebug(ex, "[NW.Protocol:OnAccept] accept-error id={ConnectionId}", connection.ID);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.Protocol:OnAccept", $"accept-error id=connection-id={connection.ID}", ex));
             }
         }
     }
@@ -151,3 +148,4 @@ public abstract partial class Protocol
 
     #endregion Virtual Methods
 }
+

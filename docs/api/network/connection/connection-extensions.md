@@ -21,7 +21,7 @@ This avoids drift between helper docs and runtime call sites.
 ## Core API
  
 ```csharp
-public static async Task SendAsync(this IConnection connection,
+public static async Task SendAsync(this IPacketSender sender,
     ControlType controlType,
     ProtocolReason reason,
     ProtocolAdvice action,
@@ -45,9 +45,9 @@ It centralizes creation, initialization from the `PacketFactory<Directive>` pool
 ```csharp
 using Nalix.Runtime.Extensions;
  
-await connection.SendAsync(
-    controlType: ControlType.UPDATE,
-    reason: ProtocolReason.SUCCESS,
+await connection.TCP.SendAsync(
+    controlType: ControlType.NOTICE,
+    reason: ProtocolReason.NONE,
     action: ProtocolAdvice.NONE,
     options: new ControlDirectiveOptions(Flags: ControlFlags.NONE, SequenceId: 42));
 ```

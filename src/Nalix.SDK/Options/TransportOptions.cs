@@ -4,7 +4,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using Nalix.Abstractions;
-using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Environment.Configuration.Binding;
 
@@ -42,38 +41,38 @@ public sealed partial class TransportOptions : ConfigurationLoader
     public int ConnectTimeoutMillis { get; set; } = 5000;
 
     /// <summary>
-    /// When true, automatic reconnect is enabled following an unexpected disconnect.
+    /// [Reserved for future use] When true, automatic reconnect is enabled following an unexpected disconnect. Currently not consumed.
     /// </summary>
-    [IniComment("Automatically reconnect after an unexpected disconnect")]
+    [IniComment("[Reserved] Automatically reconnect after an unexpected disconnect (currently not consumed)")]
     public bool ReconnectEnabled { get; set; } = true;
 
     /// <summary>
-    /// Maximum number of reconnect attempts. 0 indicates unlimited attempts.
+    /// [Reserved for future use] Maximum number of reconnect attempts. 0 indicates unlimited attempts. Currently not consumed.
     /// </summary>
-    [IniComment("Max reconnect attempts (0 = unlimited)")]
+    [IniComment("[Reserved] Max reconnect attempts (0 = unlimited, currently not consumed)")]
     [Range(0, int.MaxValue, ErrorMessage = "ReconnectMaxAttempts must be non-negative.")]
     public int ReconnectMaxAttempts { get; set; }
 
     /// <summary>
-    /// Base delay (in milliseconds) used for exponential backoff between reconnect attempts.
+    /// [Reserved for future use] Base delay (in milliseconds) used for exponential backoff between reconnect attempts. Currently not consumed.
     /// </summary>
-    [IniComment("Base delay in milliseconds for exponential backoff between reconnect attempts")]
+    [IniComment("[Reserved] Base delay in milliseconds for exponential backoff between reconnect attempts (currently not consumed)")]
     [Range(0, 30000, ErrorMessage = "ReconnectBaseDelayMillis must be between 0 and 30000.")]
     public int ReconnectBaseDelayMillis { get; set; } = 500;
 
     /// <summary>
-    /// Maximum delay (in milliseconds) allowed between reconnect attempts.
+    /// [Reserved for future use] Maximum delay (in milliseconds) allowed between reconnect attempts. Currently not consumed.
     /// </summary>
-    [IniComment("Maximum delay in milliseconds between reconnect attempts")]
+    [IniComment("[Reserved] Maximum delay in milliseconds between reconnect attempts (currently not consumed)")]
     [Range(0, 30000, ErrorMessage = "ReconnectMaxDelayMillis must be between 0 and 30000.")]
     public int ReconnectMaxDelayMillis { get; set; } = 30000;
 
     // Keep-alive / heartbeat (ms). 0 = disabled.
 
     /// <summary>
-    /// Interval in milliseconds to send keep-alive (heartbeat) packets. 0 disables heartbeats.
+    /// [Reserved for future use] Interval in milliseconds to send keep-alive (heartbeat) packets. 0 disables heartbeats. Currently not consumed.
     /// </summary>
-    [IniComment("Heartbeat interval in milliseconds (0 = disabled)")]
+    [IniComment("[Reserved] Heartbeat interval in milliseconds (0 = disabled, currently not consumed)")]
     [Range(0, int.MaxValue, ErrorMessage = "KeepAliveIntervalMillis must be non-negative.")]
     public int KeepAliveIntervalMillis { get; set; } = 20_000;
 
@@ -111,10 +110,10 @@ public sealed partial class TransportOptions : ConfigurationLoader
     public int CompressionThreshold { get; set; } = 512;
 
     /// <summary>
-    /// Gets or sets the capacity of the asynchronous message processing queue.
+    /// [Reserved for future use] Gets or sets the capacity of the asynchronous message processing queue. Currently not consumed.
     /// SEC-56, SEC-59: Provides backpressure to prevent memory exhaustion under high load.
     /// </summary>
-    [IniComment("Capacity of the asynchronous message processing queue (default 1024)")]
+    [IniComment("[Reserved] Capacity of the asynchronous message processing queue (default 1024, currently not consumed)")]
     [Range(1, 65536, ErrorMessage = "AsyncQueueCapacity must be between 1 and 65536.")]
     public int AsyncQueueCapacity { get; set; } = 1024;
 
@@ -162,22 +161,4 @@ public sealed partial class TransportOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Current time offset in milliseconds applied by the time synchronization process")]
     public double TimeOffsetMs { get; set; }
-
-    /// <summary>
-    /// Gets the encryption key used for secure communication.
-    /// </summary>
-    [ConfiguredIgnore]
-    public Bytes32 Secret { get; set; }
-
-    /// <summary>
-    /// Gets the unique session token assigned by the server for UDP communication.
-    /// </summary>
-    [ConfiguredIgnore]
-    public ulong SessionToken { get; set; } = 0;
-
-    /// <summary>
-    /// When true, AEAD encryption is applied to all outbound packets.
-    /// </summary>
-    [ConfiguredIgnore]
-    public bool EncryptionEnabled { get; set; } = false;
 }

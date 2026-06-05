@@ -10,7 +10,7 @@ public static class PacketConstants
 {
     /// <summary>
     /// The size, in bytes, of the fixed packet header.
-    /// Total header size = 10 bytes (offsets 0-9)
+    /// Total header size = 6 bytes (offsets 0-5).
     /// </summary>
     public const byte HeaderSize = (byte)PacketHeaderOffset.Region;
 
@@ -28,9 +28,4 @@ public static class PacketConstants
     /// The minimum payload size, in bytes, required to enable compression.
     /// </summary>
     public const short CompressionThreshold = 0x0100;
-
-    /// <summary>
-    /// The maximum allowed total packet size, in bytes.
-    /// </summary>
-    public const int PacketSizeLimit = int.MaxValue - HeaderSize;
 }

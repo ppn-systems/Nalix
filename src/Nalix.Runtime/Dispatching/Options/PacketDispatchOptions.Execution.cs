@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -10,7 +10,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
@@ -19,7 +19,7 @@ using Nalix.Runtime.Extensions;
 using Nalix.Runtime.Internal.Compilation;
 using Nalix.Runtime.Internal.Pooling;
 
-namespace Nalix.Network.Routing;
+namespace Nalix.Runtime.Routing;
 
 public sealed partial class PacketDispatchOptions<TPacket>
 {
@@ -39,10 +39,14 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 return;
             }
 
-            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
                 string actualName = actualType?.Name ?? "null";
-                this.Logging.LogDebug("[RT.PacketDispatchOptions:ExecuteHandlerAsync] type-mismatch opcode=0x{OpCode:X4} expected={ExpectedType} actual={ActualType}", descriptor.OpCode, expectedType.Name, actualName);
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Debug,
+                    new DiagnosticLog(
+                        "RT.PacketDispatchOptions:ExecuteHandlerAsync",
+                        $"type-mismatch opcode=0x{descriptor.OpCode:X4} expected={expectedType.Name} actual={actualName}"));
             }
 
             await this.TrySendControlAsync(
@@ -63,9 +67,13 @@ public sealed partial class PacketDispatchOptions<TPacket>
         // application code touch it.
         if (context.Packet is IPacketValidatable validatable && !validatable.Validate(out string? failureReason))
         {
-            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                this.Logging.LogWarning("[PacketDispatchOptions:ExecuteHandlerAsync] validation-failed opcode=0x{OpCode} reason={FailureReason} — skipping handler", descriptor.OpCode, failureReason);
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Warning,
+                    new DiagnosticLog(
+                        "RT.PacketDispatchOptions:ExecuteHandlerAsync",
+                        $"validation-failed opcode=0x{descriptor.OpCode} reason={failureReason} skipping-handler"));
             }
 
             await this.TrySendControlAsync(
@@ -180,17 +188,26 @@ public sealed partial class PacketDispatchOptions<TPacket>
         bool teardownException = IsConnectionTeardownException(exception);
         if (teardownException)
         {
-            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                string exceptionType = exception.GetType().Name;
-                this.Logging.LogDebug(exception, "[PacketDispatchOptions:HandleDispatchExceptionAsync] teardown-suppressed opcode={OpCode} ex={ExceptionType}", descriptor.OpCode, exceptionType);
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Debug,
+                    new DiagnosticLog(
+                        "RT.PacketDispatchOptions:HandleDispatchExceptionAsync",
+                        $"teardown-suppressed opcode={descriptor.OpCode} ex={exception.GetType().Name}",
+                        exception));
             }
         }
         else
         {
-            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                this.Logging.LogError(exception, "[PacketDispatchOptions:HandleDispatchExceptionAsync] handler-failed opcode={OpCode}", descriptor.OpCode);
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Error,
+                    new DiagnosticLog(
+                        "RT.PacketDispatchOptions:HandleDispatchExceptionAsync",
+                        $"handler-failed opcode={descriptor.OpCode}",
+                        exception));
             }
         }
 
@@ -249,9 +266,14 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
         catch (Exception ex) when (IsConnectionTeardownException(ex))
         {
-            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                this.Logging.LogDebug(ex, "[PacketDispatchOptions:TrySendControlAsync] control-send-skipped opcode={OpCode} reason={Reason} ex={ExceptionType}", opCode, reason, ex.GetType().Name);
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Debug,
+                    new DiagnosticLog(
+                        "RT.PacketDispatchOptions:TrySendControlAsync",
+                        $"control-send-skipped opcode={opCode} reason={reason} ex={ex.GetType().Name}",
+                        ex));
             }
         }
     }

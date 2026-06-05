@@ -4,13 +4,14 @@
 using System;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Environment.Configuration.Binding;
-using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
+using Nalix.Runtime.Routing;
 
 namespace Nalix.Hosting;
 
@@ -49,39 +50,39 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder ConfigureConnectionHub(IConnectionHub connectionHub);
 
     /// <summary>
-    /// Sets the <see cref="Nalix.Abstractions.Networking.Sessions.ISessionService"/> instance used by the hosted Nalix runtime.
+    /// Sets the <see cref="ISessionService"/> instance used by the hosted Nalix runtime.
     /// </summary>
     /// <param name="sessionService">The session service to register.</param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureSessionService(Nalix.Abstractions.Networking.Sessions.ISessionService sessionService);
+    INetworkApplicationBuilder ConfigureSessionService(ISessionService sessionService);
 
     /// <summary>
-    /// Sets the <see cref="Nalix.Abstractions.Networking.Sessions.ISessionStore"/> instance used by the default session service.
+    /// Sets the <see cref="ISessionStore"/> instance used by the default session service.
     /// </summary>
     /// <param name="sessionStore">The session store to register.</param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureSessionStore(Nalix.Abstractions.Networking.Sessions.ISessionStore sessionStore);
+    INetworkApplicationBuilder ConfigureSessionStore(ISessionStore sessionStore);
 
     /// <summary>
-    /// Sets the <see cref="Nalix.Abstractions.Networking.Sessions.ISessionFactory"/> instance used by the default session service.
+    /// Sets the <see cref="ISessionFactory"/> instance used by the default session service.
     /// </summary>
     /// <param name="sessionFactory">The session factory to register.</param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureSessionFactory(Nalix.Abstractions.Networking.Sessions.ISessionFactory sessionFactory);
+    INetworkApplicationBuilder ConfigureSessionFactory(ISessionFactory sessionFactory);
 
     /// <summary>
-    /// Explicitly registers a <see cref="BufferPoolManager"/> instance to be used by the application.
+    /// Explicitly registers a <see cref="IBufferPoolManager"/> instance to be used by the application.
     /// </summary>
     /// <param name="manager">The manager instance to use.</param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureBufferPoolManager(BufferPoolManager manager);
+    INetworkApplicationBuilder ConfigureBufferPoolManager(IBufferPoolManager manager);
 
     /// <summary>
     /// Explicitly registers a <see cref="ObjectPoolManager"/> instance to be used by the application.
     /// </summary>
     /// <param name="manager">The manager instance to use.</param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureObjectPoolManager(ObjectPoolManager manager);
+    INetworkApplicationBuilder ConfigureObjectPoolManager(IObjectPoolManager manager);
 
     /// <summary>
     /// Configures the server identity certificate path.

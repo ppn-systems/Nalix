@@ -1,8 +1,5 @@
-using Nalix.Abstractions.Serialization;
-
-using System;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Codec.Serialization;
+using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
 
 namespace Nalix.Codec.Tests.DataFrames
@@ -11,8 +8,9 @@ namespace Nalix.Codec.Tests.DataFrames
     /// Test-only packet for namespace scanning.
     /// </summary>
     [GenerateFormatter]
-    public sealed partial class AssemblyScanRootPacket : PacketBase<AssemblyScanRootPacket>
+    public sealed partial class AssemblyScanRootPacket : PacketBase<AssemblyScanRootPacket>, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 9999;
         [SerializeOrder(PacketHeaderOffset.Region)]
         public ushort Value { get; set; }
 
@@ -27,8 +25,9 @@ namespace Nalix.Codec.Tests.DataFrames.AssemblyScanChild
     /// Test-only child namespace packet for recursive scanning.
     /// </summary>
     [GenerateFormatter]
-    public sealed partial class AssemblyScanChildPacket : PacketBase<AssemblyScanChildPacket>
+    public sealed partial class AssemblyScanChildPacket : PacketBase<AssemblyScanChildPacket>, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 9999;
         [SerializeOrder(PacketHeaderOffset.Region)]
         public ushort Value { get; set; }
 
@@ -36,6 +35,9 @@ namespace Nalix.Codec.Tests.DataFrames.AssemblyScanChild
             => PacketBase<AssemblyScanChildPacket>.Deserialize(buffer);
     }
 }
+
+
+
 
 
 

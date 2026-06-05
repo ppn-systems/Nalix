@@ -48,8 +48,8 @@ graph LR
 
 | Type | Public members |
 |---|---|
-| `NetworkApplication` | `CreateMinimal(...)`, `CreateBuilder()`, `ActivateAsync(...)`, `DeactivateAsync(...)`, `RunAsync(...)`, `Dispose()` |
-| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `ConfigureConnectionHub(...)`, `ConfigureBufferPoolManager(...)`, `ConfigureObjectPoolManager(...)`, `ConfigureCertificate(...)`, `Configure<TOptions>(...)`, `ScanHandlers(...)`, `AddHandler(...)`, `AddMetadataProvider(...)`, `ConfigureDispatchOptions(...)`, `ConfigureDispatch(...)`, `BindTcp<T>().Bind()`, `BindUdp<T>().Bind()`, `BindWebSocket<T>().Bind()`, `Build()` |
+| `NetworkApplication` | `CreateMinimal(...)`, `CreateBuilder()`, `ActivateAsync(...)`, `DeactivateAsync(...)`, `RunAsync(...)`, `DisposeAsync()`, `Dispose()` |
+| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `ConfigureConnectionHub(...)`, `ConfigureBufferPoolManager(...)`, `ConfigureObjectPoolManager(...)`, `ConfigureCertificate(...)`, `Configure<TOptions>(...)`, `ConfigureSessionService(...)`, `ConfigureSessionStore(...)`, `ConfigureSessionFactory(...)`, `ScanHandlers(...)`, `AddHandler(...)`, `AddMetadataProvider(...)`, `ConfigureDispatchOptions(...)`, `ConfigureDispatch(...)`, `BindTcp<T>().Bind()`, `BindUdp<T>().Bind()`, `BindWebSocket<T>().Bind()`, `Build()` |
 
 ## Builder composition details
 
@@ -82,7 +82,8 @@ The hosted pipeline remains generic-friendly, so the same builder flow works for
 
 - `RunAsync(...)`: Calls `ActivateAsync(...)`, waits until cancellation, then calls `DeactivateAsync(CancellationToken.None)` in a `finally` block.
 - `DeactivateAsync(...)`: Stops and disposes listeners in reverse order, disposes protocols in reverse order, deactivates the packet dispatcher, waits for background task groups (`net/*` and `time/*`) via `ITaskManager.WaitGroupAsync`, clears runtime lists, then marks the application stopped.
-- `Dispose()`: Starts `DeactivateAsync(CancellationToken.None)`, logs deferred failures, disposes the lifecycle gate, and suppresses finalization.
+- `DisposeAsync()`: Asynchronous disposal; calls `DeactivateAsync(CancellationToken.None)` and releases resources.
+- `Dispose()`: Synchronous disposal; calls `DeactivateAsync(CancellationToken.None)`, logs deferred failures, disposes the lifecycle gate, and suppresses finalization.
 
 ## `INetworkApplicationBuilder`
 
@@ -95,6 +96,9 @@ The builder uses a fluent API to configure the host before it is built.
 - `ConfigureBufferPoolManager(BufferPoolManager)`: Explicitly registers a custom buffer pool manager and binds `BufferLease.ByteArrayPool` to that manager for pooled receive/send paths. If omitted, the builder creates and binds a default manager during activation.
 - `ConfigureObjectPoolManager(ObjectPoolManager)`: Explicitly registers a custom object pool manager for pooled object paths.
 - `ConfigureCertificate(string path)`: Stores the certificate path for activation; the path is passed to `HandshakeHandlers.SetCertificatePath(...)` during builder preparation.
+- `ConfigureSessionService(ISessionService)`: Registers a custom session service for session persistence.
+- `ConfigureSessionStore(ISessionStore)`: Registers a custom session store for the default session service.
+- `ConfigureSessionFactory(ISessionFactory)`: Registers a custom session factory for the default session service.
 - `Configure<TOptions>(Action<TOptions>)`: Configures a specific options type during activation by mutating `ConfigurationManager.Instance.Get<TOptions>()`.
 
 !!! note
@@ -148,8 +152,8 @@ Protocol types can expose a constructor that accepts `IPacketDispatch`; otherwis
 ```csharp
 var app = NetworkApplication.CreateBuilder()
     .ConfigureLogging(logger)
-    .ConfigureConnectionHub(new ConnectionHub(logger: logger))
-    .ConfigureBufferPoolManager(new BufferPoolManager(logger))
+    .ConfigureConnectionHub(new ConnectionHub())
+    .ConfigureBufferPoolManager(new BufferPoolManager())
     .Configure<NetworkSocketOptions>(options =>
     {
         options.Port = 57206;

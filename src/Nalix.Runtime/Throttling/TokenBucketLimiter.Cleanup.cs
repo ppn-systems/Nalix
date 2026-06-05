@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Networking;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Pools;
@@ -43,24 +43,37 @@ public sealed partial class TokenBucketLimiter
 
             if (removed > 0)
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    _logger.LogDebug("[RT.TokenBucketLimiter:Internal] Cleanup removed={Removed}", removed);
+                    DiagnosticsEvents.Source.Write(
+                        DiagnosticsEvents.Internal.Debug,
+                        new DiagnosticLog(
+                            "RT.TokenBucketLimiter:Internal",
+                            $"cleanup removed={removed}"));
                 }
             }
         }
         catch (OperationCanceledException)
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                _logger.LogWarning("[RT.TokenBucketLimiter:Internal] Cleanup was cancelled due to timeout");
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Warning,
+                    new DiagnosticLog(
+                        "RT.TokenBucketLimiter:Internal",
+                        "cleanup cancelled-due-to-timeout"));
             }
         }
         catch (Exception ex) when (ex is not ObjectDisposedException)
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                _logger.LogError(ex, "[RT.TokenBucketLimiter:Internal] cleanup-error");
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Error,
+                    new DiagnosticLog(
+                        "RT.TokenBucketLimiter:Internal",
+                        "cleanup-error",
+                        ex));
             }
         }
     }
@@ -181,9 +194,13 @@ public sealed partial class TokenBucketLimiter
 
         if (removed > 0)
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                _logger.LogWarning("[RT.TokenBucketLimiter:Internal] Evicted {Removed} endpoints to enforce MaxTrackedEndpoints limit", removed);
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Warning,
+                    new DiagnosticLog(
+                        "RT.TokenBucketLimiter:Internal",
+                        $"evicted count={removed} limit={_options.MaxTrackedEndpoints}"));
             }
         }
 

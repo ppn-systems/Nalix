@@ -118,7 +118,7 @@ public class IntegrationTestProtocol : Protocol
     private sealed class StubOpCodeExtractor : Nalix.Abstractions.Networking.Protocols.IOpCodeExtractor
     {
         public ushort Extract(ReadOnlySpan<byte> payload) =>
-            payload.Length >= 6 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[4..]) : (ushort)0;
+            payload.Length >= 2 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[0..]) : (ushort)0;
     }
 
     public override IFrameProcessor FrameProcessor => _frameProcessor;
@@ -175,8 +175,8 @@ internal sealed class FakeSession(bool isConnected) : TransportSession
             pong.Header = h;
 
             byte[] data = new byte[PacketConstants.HeaderSize];
-            uint magic = PacketRegistry.Compute(response.GetType());
-            BinaryPrimitives.WriteUInt32LittleEndian(data, magic);
+            ushort opCode = Control.StaticOpCode;
+            BinaryPrimitives.WriteUInt16LittleEndian(data.AsSpan((int)PacketHeaderOffset.OpCode), opCode);
 
             using BufferLease lease = BufferLease.CopyFrom(data);
             OnMessageReceived?.Invoke(this, lease);
@@ -192,36 +192,13 @@ internal sealed class FakeSession(bool isConnected) : TransportSession
     protected override void Dispose(bool disposing) { }
 }
 
-internal sealed class FakePacketRegistry : IPacketRegistry
+internal sealed class FakePacketRegistry
 {
     private readonly ConcurrentQueue<IPacket> _queue = new();
-    private IPacket? _lastDequeued;
 
-    public int DeserializerCount => 1;
-    public bool IsKnownMagic(uint magic) => true;
-    public bool IsRegistered<TPacket>() where TPacket : IPacket => true;
     public void Enqueue(IPacket packet) => _queue.Enqueue(packet);
-    public bool TryDequeue(out IPacket? packet)
-    {
-        bool ok = _queue.TryDequeue(out packet);
-        if (ok) _lastDequeued = packet;
-        return ok;
-    }
-
-    public IPacket Deserialize(ReadOnlySpan<byte> raw) => _lastDequeued ?? new Control();
-    public bool TryDeserialize(ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet)
-    {
-        packet = _lastDequeued ?? new Control();
-        return true;
-    }
+    public bool TryDequeue(out IPacket? packet) => _queue.TryDequeue(out packet);
 }
-
-
-
-
-
-
-
 
 
 

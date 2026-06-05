@@ -1,17 +1,9 @@
-using Nalix.Environment.Extensions;
-using Nalix.Environment.Memory;
-using Nalix.Abstractions.Serialization;
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Abstractions.Primitives;
-using Nalix.Codec.Serialization;
+using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
-using Xunit;
 
 namespace Nalix.Codec.Tests.DataFrames;
 
@@ -27,9 +19,9 @@ public sealed partial class PacketComplexCollectionsTests
             StringLongDict = new Dictionary<string, long> { ["a"] = 100L, ["b"] = 200L },
             StringQueue = new Queue<string>(["q1", "q2"]),
             FloatSet = [1.1f, 2.2f],
-            Tuple3 = (42, "hello", true)
+            Tuple3 = (42, "hello", true),
+            SequenceId = 1234
         };
-        input.SequenceId = 1234;
 
         // 2. Measure and Serialize
         int reportedLength = input.Length;
@@ -311,8 +303,9 @@ public sealed partial class PacketComplexCollectionsTests
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    public sealed partial class ExtremeNestedPacket : PacketBase<ExtremeNestedPacket>
+    public sealed partial class ExtremeNestedPacket : PacketBase<ExtremeNestedPacket>, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 9999;
         public List<Dictionary<string, List<int>>>? Data { get; set; }
         public static new ExtremeNestedPacket Deserialize(ReadOnlySpan<byte> buffer)
             => PacketBase<ExtremeNestedPacket>.Deserialize(buffer);
@@ -320,8 +313,9 @@ public sealed partial class PacketComplexCollectionsTests
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    public sealed partial class LargeDataPacket : PacketBase<LargeDataPacket>
+    public sealed partial class LargeDataPacket : PacketBase<LargeDataPacket>, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 9999;
         public List<string>? Payload { get; set; }
         public static new LargeDataPacket Deserialize(ReadOnlySpan<byte> buffer)
             => PacketBase<LargeDataPacket>.Deserialize(buffer);
@@ -329,8 +323,9 @@ public sealed partial class PacketComplexCollectionsTests
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    public sealed partial class NullStressPacket : PacketBase<NullStressPacket>
+    public sealed partial class NullStressPacket : PacketBase<NullStressPacket>, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 9999;
         public List<string>? Items { get; set; }
         public static new NullStressPacket Deserialize(ReadOnlySpan<byte> buffer)
             => PacketBase<NullStressPacket>.Deserialize(buffer);
@@ -338,8 +333,9 @@ public sealed partial class PacketComplexCollectionsTests
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    public sealed partial class NestedCollectionPacket : PacketBase<NestedCollectionPacket>
+    public sealed partial class NestedCollectionPacket : PacketBase<NestedCollectionPacket>, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 9999;
         public UserDetails? User { get; set; }
 
         public static new NestedCollectionPacket Deserialize(ReadOnlySpan<byte> buffer)
@@ -358,8 +354,9 @@ public sealed partial class PacketComplexCollectionsTests
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    public sealed partial class GraphPacket : PacketBase<GraphPacket>
+    public sealed partial class GraphPacket : PacketBase<GraphPacket>, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 9999;
         public string Name { get; set; } = string.Empty;
         public List<GraphPacket>? Nodes { get; set; }
         public NodeMeta Meta { get; set; }
@@ -376,8 +373,9 @@ public sealed partial class PacketComplexCollectionsTests
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    public sealed partial class ComplexCollectionPacket : PacketBase<ComplexCollectionPacket>
+    public sealed partial class ComplexCollectionPacket : PacketBase<ComplexCollectionPacket>, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 9999;
         [SerializeOrder(0)]
         public List<int>? IntList { get; set; }
 
@@ -399,8 +397,9 @@ public sealed partial class PacketComplexCollectionsTests
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    public sealed partial class FloatStressPacket : PacketBase<FloatStressPacket>
+    public sealed partial class FloatStressPacket : PacketBase<FloatStressPacket>, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 9999;
         public List<float>? Values { get; set; }
         public static new FloatStressPacket Deserialize(ReadOnlySpan<byte> buffer)
             => PacketBase<FloatStressPacket>.Deserialize(buffer);
@@ -408,8 +407,9 @@ public sealed partial class PacketComplexCollectionsTests
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    public sealed partial class ObjectListPacket : PacketBase<ObjectListPacket>
+    public sealed partial class ObjectListPacket : PacketBase<ObjectListPacket>, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 9999;
         public List<UserDetails?>? Users { get; set; }
         public static new ObjectListPacket Deserialize(ReadOnlySpan<byte> buffer)
             => PacketBase<ObjectListPacket>.Deserialize(buffer);
@@ -417,8 +417,9 @@ public sealed partial class PacketComplexCollectionsTests
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    public sealed partial class DeepListPacket : PacketBase<DeepListPacket>
+    public sealed partial class DeepListPacket : PacketBase<DeepListPacket>, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 9999;
         public List<List<List<string>>>? Matrix { get; set; }
         public static new DeepListPacket Deserialize(ReadOnlySpan<byte> buffer)
             => PacketBase<DeepListPacket>.Deserialize(buffer);
@@ -426,13 +427,17 @@ public sealed partial class PacketComplexCollectionsTests
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    public sealed partial class EnumListPacket : PacketBase<EnumListPacket>
+    public sealed partial class EnumListPacket : PacketBase<EnumListPacket>, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 9999;
         public List<PacketPriority>? Priorities { get; set; }
         public static new EnumListPacket Deserialize(ReadOnlySpan<byte> buffer)
             => PacketBase<EnumListPacket>.Deserialize(buffer);
     }
 }
+
+
+
 
 
 

@@ -65,13 +65,13 @@ Nalix uses a customized 64-bit Snowflake identifier for internal task tracking a
 | 1 ms timestamp resolution | Sufficient for networking use cases; enables 4,096 IDs per millisecond per shard (12-bit sequence) |
 | Deterministic ordering | Snowflake IDs are sortable by creation time, enabling natural ordering in logs and diagnostics |
 
-## 4. Frozen Registry Lookups
+## 4. OpCode-Based Registry Lookups
 
-The `PacketRegistry` uses `System.Collections.Frozen.FrozenDictionary<uint, PacketDeserializer>` for packet type resolution.
+The `PacketRegistry` uses a `PacketDeserializer?[]` table indexed by `ushort` OpCode for packet type resolution.
 
-- **O(1) access** — Immutable, read-optimized lookup tables built once at startup.
-- **Function-pointer binding** — Packet deserialization is bound using `delegate* managed<ReadOnlySpan<byte>, TPacket>` (unsafe function pointers). This eliminates delegate allocation and reduces indirection compared to `Func<>` delegates.
-- **FNV-1a magic keys** — Packet types are identified by a 32-bit FNV-1a hash of the type's full name, computed during registry construction.
+- **O(1) access** — A fixed 65536-entry table is built once at startup. Each packet's `ushort` OpCode directly indexes into the array.
+- **No dictionary overhead** — Table lookup is a single array index operation with no hashing, no probing, and no dictionary indirection.
+- **Static OpCodes** — Packet types are identified by a `ushort` value defined at compile time via the `IPacketStaticOpcode` interface, eliminating runtime hash computation.
 
 ## 5. Metadata Pre-Compilation
 

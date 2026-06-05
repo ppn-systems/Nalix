@@ -1,13 +1,9 @@
 #if DEBUG
-using Nalix.Environment.Extensions;
-using Nalix.Environment.Memory;
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using Nalix.Framework.Memory.Buffers;
 using Nalix.Codec.Serialization.Formatters.Primitives;
-using Xunit;
+using Nalix.Environment.Memory;
 
 namespace Nalix.Codec.Tests.Serialization;
 
@@ -56,10 +52,7 @@ public sealed class EnumFormatterTests
     }
 
     [Fact]
-    public void CreatingFormatterWithNonEnumTypeThrowsTypeInitializationException()
-    {
-        _ = Assert.Throws<TypeInitializationException>(() => new EnumFormatter<int>());
-    }
+    public void CreatingFormatterWithNonEnumTypeThrowsTypeInitializationException() => _ = Assert.Throws<TypeInitializationException>(() => new EnumFormatter<int>());
 
     private static TEnum RoundTrip<TEnum>(TEnum value, EnumFormatter<TEnum> formatter)
     {

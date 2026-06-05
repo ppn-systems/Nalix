@@ -115,8 +115,8 @@ public override void ProcessMessage(object sender, IConnectEventArgs args)
     // Example: Elevate priority for Handshake or Control packets
     if (IsHighPriority(lease))
     {
-        // 7 is the Priority offset in the Nalix header (Magic:4, Op:2, Flags:1)
-        lease.Span[7] = (byte)PacketPriority.HIGH;
+        // 3 is the Priority offset in the Nalix header (OpCode:2, Flags:1)
+        lease.Span[3] = (byte)PacketPriority.HIGH;
     }
     
     _dispatch.HandlePacket(lease, args.Connection);

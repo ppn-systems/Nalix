@@ -96,14 +96,17 @@ Define your application pipeline in a centralized location.
 ```csharp
 PacketDispatchChannel dispatch = new(options =>
 {
-    options.WithLogging(logger)
-           .WithErrorHandling((ex, opcode) => logger.Error($"dispatch 0x{opcode:X4}", ex))
+    options.WithErrorHandling((ex, opcode) => { /* custom error hook */ })
            .WithMiddleware(new AuthMiddleware())
            .WithMiddleware(new AuditMiddleware())
            .WithHandler(() => new AccountHandlers())
            .WithHandler(() => new MatchHandlers());
 });
 ```
+
+!!! info "Diagnostics"
+    Runtime diagnostics flow through `DiagnosticListener` (`"Runtime"`).
+    No per-instance logger is needed.
 
 !!! tip "Centralized Wiring"
     Keep all `WithMiddleware` and `WithHandler` calls in a single bootstrap class. Spreading these across the codebase makes startup order nearly impossible to debug.

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -6,13 +6,11 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
-using Nalix.Environment.Options;
-using Nalix.Framework.Injection;
 using Nalix.Network.Options;
 using Nalix.Network.RateLimiting;
 
@@ -72,13 +70,7 @@ public abstract partial class UdpListenerBase
     #region Properties
 
     /// <inheritdoc/>
-    protected ILogger? Logger { get; init; }
-
-    /// <inheritdoc/>
-    protected IProtocol Protocol { get; init; }
-
-    /// <inheritdoc/>
-    protected SequenceOptions SequenceOptions { get; init; }
+    protected IProtocol Protocol { get; }
 
     /// <summary>
     /// Gets the underlying listener socket used for UDP datagram operations.
@@ -117,12 +109,11 @@ public abstract partial class UdpListenerBase
         ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
         ArgumentNullException.ThrowIfNull(hub, nameof(hub));
 
-        this.Logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
         _options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
-        this.SequenceOptions = ConfigurationManager.Instance.Get<SequenceOptions>();
         _datagramGuardOptions = ConfigurationManager.Instance.Get<DatagramGuardOptions>();
         _connectionGuardOptions = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
+
         _options.Validate();
         _datagramGuardOptions.Validate();
         _connectionGuardOptions.Validate();
@@ -145,10 +136,14 @@ public abstract partial class UdpListenerBase
         // Default to IPv4 any-address; Initialize() may switch to IPv6 based on config.
         _anyEndPoint = new IPEndPoint(IPAddress.Any, 0);
 
-        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
             string protocolType = protocol.GetType().Name;
-            this.Logger.LogDebug("[NW.UdpListenerBase] created port={Port} protocol={ProtocolType}", _port, protocolType);
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
+            {
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.with:UnknownMethod", $"created port={_port} protocol-type={protocolType}"));
+            }
+            ;
         }
     }
 
@@ -204,16 +199,16 @@ public abstract partial class UdpListenerBase
             }
             catch (ObjectDisposedException ex)
             {
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    this.Logger.LogDebug(ex, "[NW.UdpListenerBase:Dispose] cts-dispose-ignored port={Port} reason={ExceptionType}", _port, ex.GetType().Name);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.using:Dispose", $"cts-dispose-ignored port={_port} exception-type={ex.GetType().Name}", ex));
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    this.Logger.LogWarning(ex, "[NW.UdpListenerBase:Dispose] cts-dispose-failed port={Port}", _port);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.using:Dispose", $"cts-dispose-failed port={_port}", ex));
                 }
             }
 
@@ -227,16 +222,16 @@ public abstract partial class UdpListenerBase
             }
             catch (ObjectDisposedException ex)
             {
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    this.Logger.LogDebug(ex, "[NW.UdpListenerBase:Dispose] socket-dispose-ignored port={Port} reason={ExceptionType}", _port, ex.GetType().Name);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.using:Dispose", $"socket-dispose-ignored port={_port} exception-type={ex.GetType().Name}", ex));
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    this.Logger.LogWarning(ex, "[NW.UdpListenerBase:Dispose] socket-dispose-failed port={Port}", _port);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.using:Dispose", $"socket-dispose-failed port={_port}", ex));
                 }
             }
 
@@ -246,9 +241,9 @@ public abstract partial class UdpListenerBase
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
 
-        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            this.Logger.LogDebug("[NW.UdpListenerBase:Dispose] disposed port={Port}", _port);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.using:Dispose", $"disposed port={_port}"));
         }
     }
 

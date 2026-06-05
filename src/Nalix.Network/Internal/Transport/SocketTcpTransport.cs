@@ -8,7 +8,6 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Security;
 using Nalix.Network.Connections;
@@ -55,9 +54,6 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IDispos
     public long BytesReceived => _socket.BytesReceived;
 
     /// <inheritdoc/>
-    public long Uptime => _socket.Uptime;
-
-    /// <inheritdoc/>
     public long LastPingTime
     {
         get => _socket.LastPingTime;
@@ -69,11 +65,11 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IDispos
     #region Constructor
 
     /// <inheritdoc/>
-    public SocketTcpTransport(Socket socket, Connection connection, ITransportEventSink eventSink, ILogger? logger)
+    public SocketTcpTransport(Socket socket, Connection connection, ITransportEventSink eventSink)
     {
         _sequencer = new();
         _outer = connection;
-        _socket = new SocketConnection(socket, connection, eventSink, logger);
+        _socket = new SocketConnection(socket, connection, eventSink);
     }
 
     #endregion Constructor

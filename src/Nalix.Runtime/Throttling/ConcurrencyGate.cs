@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -6,8 +6,8 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Environment.Configuration;
@@ -25,14 +25,12 @@ namespace Nalix.Runtime.Throttling;
 /// </summary>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
-public sealed partial class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
+public sealed partial class ConcurrencyGate : IReportable
 {
     #region Fields
 
     private readonly ConcurrencyOptions _options;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<ushort, Entry> _table = new();
-
-    private ILogger? _logger;
 
     private long _totalAcquired;
     private long _totalRejected;
@@ -83,18 +81,6 @@ public sealed partial class ConcurrencyGate : IReportable, IWithLogging<Concurre
 
 
     #region Public API
-
-    /// <summary>
-    /// Assigns a logger instance used by the gate for diagnostic output.
-    /// </summary>
-    /// <param name="logger">The logger to use for subsequent diagnostics.</param>
-    /// <returns>The current <see cref="ConcurrencyGate"/> instance.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ConcurrencyGate WithLogging(ILogger logger)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        return this;
-    }
 
     /// <summary>
     /// Attempts to enter immediately without waiting.
@@ -156,9 +142,14 @@ public sealed partial class ConcurrencyGate : IReportable, IWithLogging<Concurre
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                _logger.LogError(ex, "[RT.ConcurrencyGate:TryEnter] unexpected error opcode={OpCode}", opcode);
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Error,
+                    new DiagnosticLog(
+                        "RT.ConcurrencyGate:TryEnter",
+                        $"unexpected-error opcode={opcode}",
+                        ex));
             }
             lease = default;
             return false;

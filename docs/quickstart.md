@@ -94,14 +94,9 @@ Create the shared packet contracts in the `Contracts` project. Both server and c
 
 ## Step 3: Identity Setup
 
-Nalix enforces mandatory security. Before running the server, you must generate a cryptographic identity.
+Nalix enforces mandatory security. By default, Nalix automatically generates a cryptographic identity (`certificate.private` and `certificate.public` in `Directories.ConfigurationDirectory`) at startup if none exists.
 
-```bash
-# Clean and run the certificate tool
-dotnet run --project tools/Nalix.Certificate/Nalix.Certificate.csproj
-```
-
-This generates `certificate.private` and `certificate.public` in `Directories.ConfigurationDirectory`. The server automatically loads the default private identity during `Build()`. If your certificate files live somewhere else, call `ConfigureCertificate(...)` before `Build()` so the hosting builder passes that path to the handshake subsystem.
+If your certificate files live somewhere else, call `ConfigureCertificate(...)` before `Build()` so the hosting builder passes that path to the handshake subsystem.
 
 ```csharp
 var builder = NetworkApplication.CreateBuilder()

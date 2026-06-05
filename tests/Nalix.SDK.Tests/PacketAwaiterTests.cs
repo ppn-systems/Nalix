@@ -15,7 +15,7 @@ public sealed class PacketAwaiterTests
     [Fact]
     public async Task AwaitAsync_WhenPredicateMatches_ReturnsPacket()
     {
-        TransportSession session = Substitute.For<TransportSession>();
+        TransportSession session = Substitute.For<TransportSession>(new SessionState());
 
         if (!PacketRegistry.IsBuilt)
             Nalix.Codec.DataFrames.PacketRegistry.Build();
@@ -78,7 +78,7 @@ public sealed class PacketAwaiterTests
     [Fact]
     public async Task AwaitAsync_WhenTimeoutOccurs_ThrowsTimeoutException()
     {
-        TransportSession session = Substitute.For<TransportSession>();
+        TransportSession session = Substitute.For<TransportSession>(new SessionState());
 
         await Assert.ThrowsAsync<TimeoutException>(async () =>
             await PacketAwaiter.AwaitAsync<TestPacket>(
@@ -89,8 +89,9 @@ public sealed class PacketAwaiterTests
                 CancellationToken.None));
     }
 
-    private sealed class TestPacket : IPacket
+    private sealed class TestPacket : IPacket, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 999;
         public int Length => 0;
         public PacketHeader Header { get; set; }
         public byte[] Serialize() => [];

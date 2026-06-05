@@ -1,3 +1,4 @@
+using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
@@ -56,30 +57,6 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         Assert.Equal(1, assembler.OpenStreamCount);
     }
 
-    [Fact]
-    public void HandshakeInitializeWhenProofIsOmittedUsesZeroProofAndUrgentPriority()
-    {
-        byte[] key = new byte[32];
-        byte[] nonce = new byte[32];
-        key[0] = 0x11;
-        nonce[0] = 0x22;
-
-        Handshake packet = new();
-        packet.Initialize(HandshakeStage.CLIENT_HELLO, new Bytes32(key), new Bytes32(nonce), proof: null, flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
-
-        Assert.Equal((ushort)ProtocolOpCode.HANDSHAKE, packet.Header.OpCode);
-        Assert.Equal(HandshakeStage.CLIENT_HELLO, packet.Stage);
-        Assert.True(packet.Header.Flags.HasFlag(PacketFlags.UNRELIABLE));
-        Assert.Equal(PacketPriority.URGENT, packet.Header.Priority);
-        Assert.True(packet.Proof.IsZero);
-        Assert.Equal(0UL, packet.SessionToken);
-    }
-
-    [Fact]
-    public void HandshakeIsValidWhenPacketIsInvalidForDefaultStageReturnsFalse()
-    {
-        Assert.False(new Handshake().Validate(out _));
-    }
 
     [Fact]
     public void SessionResumeInitializeWhenOptionalValuesAreOmittedUsesExpectedDefaults()
@@ -91,7 +68,7 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         Assert.Equal(SessionResumeStage.REQUEST, packet.Stage);
         Assert.Equal(ProtocolReason.NONE, packet.Reason);
         Assert.True(packet.Proof.IsZero);
-        Assert.True(packet.Header.Flags.HasFlag(PacketFlags.RELIABLE));
+        Assert.False(packet.Header.Flags.HasFlag(PacketFlags.RELIABLE));
         Assert.Equal(PacketPriority.URGENT, packet.Header.Priority);
     }
 
@@ -104,23 +81,20 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         Assert.Equal(ControlType.PING, packet.Type);
         Assert.Equal(44u, packet.Header.SequenceId);
         Assert.Equal(ProtocolReason.TIMEOUT, packet.Reason);
-        Assert.True(packet.Header.Flags.HasFlag(PacketFlags.UNRELIABLE));
-        Assert.NotEqual(0, packet.Timestamp);
-        Assert.NotEqual(0, packet.MonoTicks);
     }
 
     [Fact]
-    public void DirectiveInitializeOverloadWithoutOpcodeKeepsSystemControlOpcode()
+    public void DirectiveInitializeOverloadWithoutOpcodeKeepsDirectiveOpcode()
     {
         Directive packet = new();
         packet.Initialize(ControlType.REDIRECT, ProtocolReason.THROTTLED, ProtocolAdvice.SLOW_DOWN, sequenceId: 9, controlFlags: ControlFlags.SLOW_DOWN, arg0: 1, arg1: 2, arg2: 3);
 
-        Assert.Equal((ushort)ProtocolOpCode.SYSTEM_CONTROL, packet.Header.OpCode);
+        Assert.Equal((ushort)ProtocolOpCode.SYSTEM_DIRECTIVE, packet.Header.OpCode);
         Assert.Equal(ControlType.REDIRECT, packet.Type);
         Assert.Equal(ProtocolReason.THROTTLED, packet.Reason);
         Assert.Equal(ProtocolAdvice.SLOW_DOWN, packet.Action);
         Assert.Equal(ControlFlags.SLOW_DOWN, packet.Control);
-        Assert.True(packet.Header.Flags.HasFlag(PacketFlags.RELIABLE));
+        Assert.False(packet.Header.Flags.HasFlag(PacketFlags.RELIABLE));
         Assert.Equal(PacketPriority.HIGH, packet.Header.Priority);
     }
 
@@ -155,8 +129,8 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         src.Span.AsHeaderRef() = new PacketHeader { Flags = PacketFlags.COMPRESSED };
         payload.CopyTo(src.Span[FrameTransformer.Offset..]);
 
-        using var encrypted = FrameCipher.EncryptFrame(src, key, null, CipherSuiteType.Chacha20Poly1305);
-        using var decrypted = FrameCipher.DecryptFrame(encrypted, key, CipherSuiteType.Chacha20Poly1305, out _);
+        using IBufferLease encrypted = FrameCipher.EncryptFrame(src, key, null, CipherSuiteType.Chacha20Poly1305);
+        using IBufferLease decrypted = FrameCipher.DecryptFrame(encrypted, key, CipherSuiteType.Chacha20Poly1305, out _);
 
         PacketFlags flags = decrypted.Span.AsHeaderRef().Flags;
         Assert.True(flags.HasFlag(PacketFlags.COMPRESSED));
@@ -178,8 +152,8 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         src.Span.AsHeaderRef() = new PacketHeader { Flags = PacketFlags.ENCRYPTED };
         payload.CopyTo(src.Span[FrameTransformer.Offset..]);
 
-        using var compressed = FrameCompression.CompressFrame(src);
-        using var decompressed = FrameCompression.DecompressFrame(compressed);
+        using IBufferLease compressed = FrameCompression.CompressFrame(src);
+        using IBufferLease decompressed = FrameCompression.DecompressFrame(compressed);
 
         PacketFlags flags = decompressed.Span.AsHeaderRef().Flags;
         Assert.True(flags.HasFlag(PacketFlags.ENCRYPTED));

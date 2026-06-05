@@ -50,20 +50,19 @@ Tuning a network client involves balancing latency, memory usage, and resilience
 | --- | --- | --- |
 | `CompressionEnabled` | `true` | Enables LZ4 compression for outbound packets. |
 | `CompressionThreshold` | `512` | Minimum bytes to trigger compression. |
-| `EncryptionEnabled` | `false` | Enables AEAD packet encryption. |
 | `Algorithm` | `Chacha20Poly1305` | Cipher suite for encrypted communication. |
 | `ServerPublicKey` | `null` | Pinned X25519 Public Key (Hex) for server identity verification. |
-| `Secret` | `Bytes32.Zero` | **[ConfiguredIgnore]** Runtime encryption key populated after handshake or resume. |
 
 ### Session Resume & Time Sync
 
 | Property | Default | Description |
 | --- | --- | --- |
-| `SessionToken` | `0` | **[ConfiguredIgnore]** Runtime session token for resume and UDP flows. |
 | `ResumeEnabled` | `true` | Attempts session resume before full handshake. |
 | `ResumeTimeoutMillis` | `3000` | Timeout for resume request/response. |
 | `ResumeFallbackToHandshake` | `true` | Reconnects with full handshake when resume fails. |
 | `TimeSyncEnabled` | `true` | Allows this session to update the global clock during sync. |
+
+Note: `EncryptionEnabled`, `Secret`, and `SessionToken` are runtime state properties on `SessionState`, not configuration options on `TransportOptions`.
 
 ## Basic usage
 

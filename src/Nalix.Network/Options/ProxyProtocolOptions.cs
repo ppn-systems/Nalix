@@ -37,6 +37,14 @@ public sealed partial class ProxyProtocolOptions : ConfigurationLoader, IValidat
     public int HeaderTimeoutMs { get; set; } = 2000;
 
     /// <summary>
+    /// Maximum number of in-flight connections waiting for a PROXY header.
+    /// This prevents DDoS attacks that exhaust server memory by holding connections open.
+    /// </summary>
+    [IniComment("Maximum concurrent connections waiting for a Proxy Protocol header (default: 1024)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 100_000, ErrorMessage = "MaxPendingProxyConnections must be between 1 and 100,000.")]
+    public int MaxPendingProxyConnections { get; set; } = 1024;
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">

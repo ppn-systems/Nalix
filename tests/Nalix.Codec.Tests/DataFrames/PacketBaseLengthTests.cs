@@ -172,56 +172,65 @@ public sealed partial class PacketBaseLengthTests
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    internal sealed partial class StringPacket : PacketBase<StringPacket>
+    internal sealed partial class StringPacket : PacketBase<StringPacket>, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 9999;
         [SerializeOrder(0)]
         public string Message { get; set; } = string.Empty;
     }
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    internal sealed partial class ChildPacket : PacketBase<ChildPacket>
+    internal sealed partial class ChildPacket : PacketBase<ChildPacket>, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 9999;
         [SerializeOrder(0)]
         public int Value { get; set; }
     }
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    internal sealed partial class ParentPacket : PacketBase<ParentPacket>
+    internal sealed partial class ParentPacket : PacketBase<ParentPacket>, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 9999;
         public ChildPacket? Child { get; set; }
     }
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    internal sealed partial class ListPacket : PacketBase<ListPacket>
+    internal sealed partial class ListPacket : PacketBase<ListPacket>, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 9999;
         public List<int>? Values { get; set; }
     }
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    internal sealed partial class DictionaryPacket : PacketBase<DictionaryPacket>
+    internal sealed partial class DictionaryPacket : PacketBase<DictionaryPacket>, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 9999;
         public Dictionary<string, int>? Values { get; set; }
     }
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    internal sealed partial class StringDictionaryPacket : PacketBase<StringDictionaryPacket>
+    internal sealed partial class StringDictionaryPacket : PacketBase<StringDictionaryPacket>, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 9999;
         public Dictionary<string, string>? Values { get; set; }
     }
 
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    internal sealed partial class DynamicHintStringPacket : PacketBase<DynamicHintStringPacket>
+    internal sealed partial class DynamicHintStringPacket : PacketBase<DynamicHintStringPacket>, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 9999;
         [SerializeDynamicSize(64)]
         public string Message { get; set; } = string.Empty;
     }
 }
+
+
 
 
 

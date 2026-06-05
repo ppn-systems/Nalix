@@ -12,8 +12,8 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
@@ -22,6 +22,7 @@ using Nalix.Environment.Time;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Internal.Connections;
+using Nalix.Network.Internal.Transport;
 using Nalix.Network.Options;
 
 namespace Nalix.Network.Connections;
@@ -42,7 +43,6 @@ public sealed class ConnectionHub : IConnectionHub
 
     private readonly int _shardCount;
 
-    private readonly ILogger? _logger;
     private readonly ConnectionRegistry _registry;
     private readonly ConnectionHubOptions _options;
 
@@ -104,13 +104,11 @@ public sealed class ConnectionHub : IConnectionHub
     /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionHub"/> class.
     /// </summary>
-    /// <param name="logger">The logger instance to use for logging.</param>
-    public ConnectionHub(ILogger? logger = null)
+
+    public ConnectionHub()
     {
         _options = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
         _options.Validate();
-
-        _logger = logger;
 
         /*
          * [Sharding Logic]
@@ -268,16 +266,17 @@ public sealed class ConnectionHub : IConnectionHub
         IConnection[] connections = _registry.CaptureConnectionSnapshot();
         if (connections.Length == 0)
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                _logger.LogTrace("[NW.ConnectionHub:BroadcastAsync] broadcast-skip total=0");
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Trace,
+                    new DiagnosticLog("NW.ConnectionHub:BroadcastAsync", "broadcast-skip total=0"));
             }
 
             return;
         }
 
-        ILogger? logger = _logger;
-        bool measureLatency = _options.IsEnableLatency && logger?.IsEnabled(LogLevel.Information) == true;
+        bool measureLatency = _options.IsEnableLatency && DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information);
         TimingScope scope = measureLatency ? TimingScope.Start() : default;
 
         if (_options.BroadcastBatchSize > 0)
@@ -293,9 +292,14 @@ public sealed class ConnectionHub : IConnectionHub
                 nameof(BroadcastAsync)).ConfigureAwait(false);
         }
 
-        if (measureLatency && logger != null)
+        if (measureLatency)
         {
-            logger.LogInformation("[PERF.NW.BroadcastAsync] total={Total}, latency={LatencyMs} ms", connections.Length, scope.GetElapsedMilliseconds());
+            string latency = scope.GetElapsedMilliseconds().ToString("0.000", CultureInfo.InvariantCulture);
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Information,
+                new DiagnosticLog(
+                    "PERF.NW.BroadcastAsync",
+                    $"total={connections.Length}, latency={latency} ms"));
         }
     }
 
@@ -342,9 +346,11 @@ public sealed class ConnectionHub : IConnectionHub
         _throughputTask?.Dispose();
         this.DisposeAllConnections();
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            _logger.LogInformation("[NW.ConnectionHub:Dispose] disposed");
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Debug,
+                new DiagnosticLog("NW.ConnectionHub:Dispose", "disposed"));
         }
     }
 
@@ -423,6 +429,20 @@ public sealed class ConnectionHub : IConnectionHub
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{kvp.Key,-15} | {kvp.Value,5}");
         }
 
+        // Include AsyncCallback dispatcher metrics
+        Internal.Transport.AsyncCallbackMetrics callbackStats = Internal.Transport.AsyncCallback.GetStatistics();
+        NetworkCallbackOptions netOpts = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
+        _ = sb.AppendLine();
+        _ = sb.AppendLine("AsyncCallback Queue Dispatcher Stats:");
+        _ = sb.AppendLine("----------------------------------------");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Pending Process Callbacks : {callbackStats.PendingProcess:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Pending Post Callbacks    : {callbackStats.PendingPost:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Callbacks Invoked   : {callbackStats.Total:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Dropped Callbacks         : {callbackStats.Dropped:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Slow Callbacks (> {netOpts.MaxCallbackExecutionMs}ms) : {callbackStats.SlowCallbacks:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Fairness Map Collisions   : {callbackStats.FairnessCollisions:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Fairness Map Evictions    : {callbackStats.FairnessEvictions:N0}");
+
         return sb.ToString();
     }
 
@@ -437,10 +457,23 @@ public sealed class ConnectionHub : IConnectionHub
         writer.WriteString("UtcNow", DateTime.UtcNow);
         writer.WriteNumber("TotalConnections", total);
         writer.WriteNumber("ShardCount", _shardCount);
-        writer.WriteNumber("TotalBytesSent", Volatile.Read(ref _totalBytesSent));
-        writer.WriteNumber("TotalBytesReceived", Volatile.Read(ref _totalBytesReceived));
+        writer.WriteNumber("TotalBytesSent", Volatile.Read(ref _lastTotalBytesSentSnapshot));
+        writer.WriteNumber("TotalBytesReceived", Volatile.Read(ref _lastTotalBytesReceivedSnapshot));
         writer.WriteNumber("IngressBytesPerSecond", Volatile.Read(ref _ingressBytesPerSecond));
         writer.WriteNumber("EgressBytesPerSecond", Volatile.Read(ref _egressBytesPerSecond));
+
+        // Write AsyncCallback metrics
+        AsyncCallbackMetrics callbackStats = Internal.Transport.AsyncCallback.GetStatistics();
+        writer.WriteStartObject("AsyncCallback");
+        writer.WriteNumber("PendingProcess", callbackStats.PendingProcess);
+        writer.WriteNumber("PendingPost", callbackStats.PendingPost);
+        writer.WriteNumber("TotalInvoked", callbackStats.Total);
+        writer.WriteNumber("Dropped", callbackStats.Dropped);
+        writer.WriteNumber("SlowCallbacks", callbackStats.SlowCallbacks);
+        writer.WriteNumber("FairnessCollisions", callbackStats.FairnessCollisions);
+        writer.WriteNumber("FairnessEvictions", callbackStats.FairnessEvictions);
+        writer.WriteEndObject();
+
         writer.WriteEndObject();
     }
 
@@ -459,7 +492,7 @@ public sealed class ConnectionHub : IConnectionHub
             return RegisterResult.Disposed;
         }
 
-        bool measureLatency = _options.IsEnableLatency && _logger?.IsEnabled(LogLevel.Information) == true;
+        bool measureLatency = _options.IsEnableLatency && DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information);
         TimingScope scope = measureLatency ? TimingScope.Start() : default;
 
         ulong connectionKey = connection.ID.ToUInt64();
@@ -472,9 +505,11 @@ public sealed class ConnectionHub : IConnectionHub
         {
             if (!_registry.TryAdd(connectionKey, connection))
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    _logger.LogDebug("[NW.ConnectionHub:RegisterConnection] register-dup id={ConnectionId}", connection.ID);
+                    DiagnosticsEvents.Source.Write(
+                        DiagnosticsEvents.Internal.Debug,
+                        new DiagnosticLog("NW.ConnectionHub:RegisterConnection", $"register-dup id={connection.ID}"));
                 }
 
                 return RegisterResult.Duplicate;
@@ -482,15 +517,19 @@ public sealed class ConnectionHub : IConnectionHub
 
             added = true;
 
-            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                _logger.LogTrace("[NW.ConnectionHub:RegisterConnection] register id={ConnectionId} total={RegistryCount}", connection.ID, _registry.Count);
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Trace,
+                    new DiagnosticLog("NW.ConnectionHub:RegisterConnection", $"register id={connection.ID} total={_registry.Count}"));
             }
 
-            if (measureLatency && _logger != null && _logger.IsEnabled(LogLevel.Debug))
+            if (measureLatency)
             {
-                double latencyMs = scope.GetElapsedMilliseconds();
-                _logger.LogDebug("[PERF.NW.RegisterConnection] id={ConnectionId}, latency={LatencyMs} ms", connection.ID, latencyMs);
+                string latency = scope.GetElapsedMilliseconds().ToString("0.000", CultureInfo.InvariantCulture);
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Information,
+                    new DiagnosticLog("PERF.NW.ConnectionHub:RegisterConnection", $"id={connection.ID}, latency={latency} ms"));
             }
 
             return RegisterResult.Success;
@@ -515,15 +554,17 @@ public sealed class ConnectionHub : IConnectionHub
         if (!_registry.TryRemove(connectionKey, out IConnection? existing) || existing is null)
 #pragma warning restore CA2000 // Dispose objects before losing scope
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                _logger.LogDebug("[NW.ConnectionHub:UnregisterConnection] unregister-miss id={ConnectionId}", connection.ID);
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Debug,
+                    new DiagnosticLog("NW.ConnectionHub:UnregisterConnection", $"unregister-miss id={connection.ID}"));
             }
 
             return false;
         }
 
-        bool measureLatency = _options.IsEnableLatency && _logger?.IsEnabled(LogLevel.Information) == true;
+        bool measureLatency = _options.IsEnableLatency && DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information);
         TimingScope scope = measureLatency ? TimingScope.Start() : default;
 
         IConnection removedConnection = existing ?? connection;
@@ -535,9 +576,11 @@ public sealed class ConnectionHub : IConnectionHub
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                _logger.LogError(ex, "[NW.ConnectionHub:UnregisterConnection] event-error id={RemovedConnectionID}", removedConnection.ID);
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Error,
+                    new DiagnosticLog("NW.ConnectionHub:UnregisterConnection", $"event-error id={removedConnection.ID}", ex));
             }
         }
 
@@ -553,21 +596,27 @@ public sealed class ConnectionHub : IConnectionHub
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                _logger.LogError(ex, "[NW.ConnectionHub:UnregisterConnection] dispose-error id={RemovedConnectionID}", removedConnection.ID);
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Error,
+                    new DiagnosticLog("NW.ConnectionHub:UnregisterConnection", $"dispose-error id={removedConnection.ID}", ex));
             }
         }
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            _logger.LogTrace("[NW.ConnectionHub:UnregisterConnection] unregister id={RemovedConnectionID} total={RegistryCount}", removedConnection.ID, _registry.Count);
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Trace,
+                new DiagnosticLog("NW.ConnectionHub:UnregisterConnection", $"unregister id={removedConnection.ID} total={_registry.Count}"));
         }
 
-        if (measureLatency && _logger != null && _logger.IsEnabled(LogLevel.Debug))
+        if (measureLatency)
         {
-            double latencyMs = scope.GetElapsedMilliseconds();
-            _logger.LogDebug("[PERF.NW.UnregisterConnection] id={RemovedConnectionID}, latency={LatencyMs} ms", removedConnection.ID, latencyMs);
+            string latency = scope.GetElapsedMilliseconds().ToString("0.000", CultureInfo.InvariantCulture);
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Information,
+                new DiagnosticLog("PERF.NW.ConnectionHub:UnregisterConnection", $"id={removedConnection.ID}, latency={latency} ms"));
         }
 
         return true;
@@ -596,9 +645,11 @@ public sealed class ConnectionHub : IConnectionHub
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                 {
-                    _logger.LogError(ex, "[NW.ConnectionHub:DisposeAllConnections] dispose-error id={ConnectionId}", connection.ID);
+                    DiagnosticsEvents.Source.Write(
+                        DiagnosticsEvents.Internal.Error,
+                        new DiagnosticLog("NW.ConnectionHub:DisposeAllConnections", $"dispose-error id={connection.ID}", ex));
                 }
             }
         });
@@ -646,9 +697,11 @@ public sealed class ConnectionHub : IConnectionHub
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                     {
-                        _logger.LogError(ex, "[NW.ConnectionHub:{Operation}] send-failure id={ConnectionId}", operationName, connection.ID);
+                        DiagnosticsEvents.Source.Write(
+                            DiagnosticsEvents.Internal.Error,
+                            new DiagnosticLog("NW.ConnectionHub:BroadcastAsync", $"send-failure op={operationName} id={connection.ID}", ex));
                     }
                 }
             }
@@ -664,9 +717,11 @@ public sealed class ConnectionHub : IConnectionHub
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    _logger.LogInformation("[NW.ConnectionHub:{Operation}] broadcast-cancel", operationName);
+                    DiagnosticsEvents.Source.Write(
+                        DiagnosticsEvents.Internal.Debug,
+                        new DiagnosticLog("NW.ConnectionHub:BroadcastAsync", $"broadcast-cancel op={operationName}"));
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -705,9 +760,11 @@ public sealed class ConnectionHub : IConnectionHub
             }
 
             IConnection owner = owners[i];
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                _logger.LogError(exception, "[NW.ConnectionHub:{Operation}] send-failure id={OwnerID}", operationName, owner.ID);
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Error,
+                    new DiagnosticLog("NW.ConnectionHub:BroadcastAsync", $"send-failure op={operationName} id={owner.ID}", exception));
             }
         }
     }
@@ -748,9 +805,11 @@ public sealed class ConnectionHub : IConnectionHub
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                     {
-                        _logger.LogError(ex, "[NW.ConnectionHub:BroadcastBatchedAsync] send-failure id={ConnectionId}", connection.ID);
+                        DiagnosticsEvents.Source.Write(
+                            DiagnosticsEvents.Internal.Error,
+                            new DiagnosticLog("NW.ConnectionHub:BroadcastAsync", $"send-failure id={connection.ID}", ex));
                     }
                 }
 
@@ -795,9 +854,11 @@ public sealed class ConnectionHub : IConnectionHub
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                _logger.LogInformation("[NW.ConnectionHub:{Operation}] broadcast-cancel", operationName);
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Debug,
+                    new DiagnosticLog("NW.ConnectionHub:BroadcastAsync", $"broadcast-cancel op={operationName}"));
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))

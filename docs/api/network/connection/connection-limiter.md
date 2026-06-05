@@ -75,20 +75,20 @@ Settings are controlled via `ConnectionQuotaOptions` (per-IP limits) and `Connec
 
 | Option | Description | Default Value |
 | --- | --- | --- |
-| `MaxConnectionsPerIpAddress` | Maximum concurrent active connections per individual IP. | `50` |
-| `MaxConnectionsPerTrustedProxy` | Maximum concurrent active connections allowed from a trusted proxy IP. | `1000` |
+| `MaxConnectionsPerIpAddress` | Maximum concurrent active connections per individual IP. | `10` |
 | `MaxConnectionsPerWindow` | Maximum connection attempts allowed within the rate window. | `10` |
-| `ConnectionRateWindow` | The sliding window duration for rate tracking (e.g. 5 seconds). | `00:00:05` |
+| `ConnectionRateWindow` | The sliding window duration for rate tracking. | `00:00:05` |
+
+Note: `MaxConnectionsPerTrustedProxy` is configured via `TrustedProxyOptions` (default `5000`).
 
 ### Guard Options (`ConnectionGuardOptions`)
 
 | Option | Description | Default Value |
 | --- | --- | --- |
-| `MaxConnections` | Global concurrent connection limit across the entire server. | `10000` |
+| `MaxConnections` | Global concurrent connection limit across the entire server. `-1` means unlimited. | `-1` |
 | `EnableProgressiveBanning` | Enables progressive scaling of ban durations on consecutive violations. | `true` |
 | `BanDuration` | Base ban duration for non-progressive bans or initial progressive violation. | `00:05:00` |
-| `DDoSLogSuppressWindow` | Throttling window for suppressing repeated DDoS rejection log entries. | `00:00:10` |
-| `CleanupInterval` | Interval at which inactive IP tracking state is purged from memory. | `00:01:00` |
+| `DDoSLogSuppressWindow` | Throttling window for suppressing repeated DDoS rejection log entries. | `00:00:20` |
 
 ## Best Practices
 

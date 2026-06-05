@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+
 using Nalix.Abstractions.Exceptions;
 
 namespace Nalix.Network.Internal.Security;
@@ -25,41 +26,70 @@ internal static class NetworkStore
             return records;
         }
 
-        try
+        int[] backoffDelays = [100, 250, 500, 1000];
+        int retryCount = 0;
+
+        while (true)
         {
-            using FileStream fs = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.SequentialScan);
-            using StreamReader reader = new(fs);
-
-            string? line;
-            while ((line = reader.ReadLine()) != null)
+            try
             {
-                if (records.Count >= maxRecords)
+                using FileStream fs = new(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, FileOptions.SequentialScan);
+                using StreamReader reader = new(fs);
+
+                string? line;
+                int lineNumber = 0;
+                while ((line = reader.ReadLine()) != null)
                 {
-                    break;
+                    lineNumber++;
+                    if (records.Count >= maxRecords)
+                    {
+                        break;
+                    }
+
+                    line = line.Trim();
+                    if (string.IsNullOrEmpty(line) || line.StartsWith('#'))
+                    {
+                        continue;
+                    }
+
+                    if (IPNetwork.TryParse(line, out IPNetwork network))
+                    {
+                        records.Add(network);
+                    }
+                    else if (IPAddress.TryParse(line, out IPAddress? ip))
+                    {
+                        records.Add(new IPNetwork(ip, ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 32 : 128));
+                    }
+                    else
+                    {
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
+                        {
+                            // "[NW.NetworkStore] invalid line in file={FilePath} line={LineNumber} content={Content}", filePath, lineNumber, line);
+                        }
+                    }
                 }
 
-                line = line.Trim();
-                if (string.IsNullOrEmpty(line) || line.StartsWith('#'))
+                return records;
+            }
+            catch (IOException) when (retryCount < backoffDelays.Length)
+            {
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    continue;
+                    int delay = backoffDelays[retryCount];
+                    // ex, "[NW.NetworkStore] file locked, retrying in {Delay}ms file={FilePath}", delay, filePath);
                 }
-
-                if (IPNetwork.TryParse(line, out IPNetwork network))
+                System.Threading.Thread.Sleep(backoffDelays[retryCount]);
+                retryCount++;
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            {
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                 {
-                    records.Add(network);
+                    // ex, "[NW.NetworkStore] error loading file={FilePath}", filePath);
                 }
-                else if (IPAddress.TryParse(line, out IPAddress? ip))
-                {
-                    records.Add(new IPNetwork(ip, ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 32 : 128));
-                }
+                throw;
             }
         }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            records.Clear();
-        }
-
-        return records;
     }
 
     /// <summary>
@@ -133,3 +163,8 @@ internal static class NetworkStore
         }
     }
 }
+
+
+
+
+

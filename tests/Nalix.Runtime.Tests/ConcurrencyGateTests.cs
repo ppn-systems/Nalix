@@ -22,12 +22,38 @@ public sealed class ConcurrencyGateTests
     }
 
     [Fact]
+    public void Constructor_WhenMaxIsInvalid_ThrowsArgumentOutOfRangeException()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PacketConcurrencyLimitAttribute(max: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PacketConcurrencyLimitAttribute(max: -5));
+    }
+
+    [Fact]
+    public void Constructor_WhenQueueMaxIsInvalid_ThrowsArgumentOutOfRangeException()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PacketConcurrencyLimitAttribute(max: 1, queue: true, queueMax: -1));
+    }
+
+    [Fact]
     public void TryEnter_WhenMaxIsInvalid_ThrowsArgumentException()
     {
         ConcurrencyGate gate = new();
-        PacketConcurrencyLimitAttribute invalid = new(max: 0, queue: false, queueMax: 0);
+        PacketConcurrencyLimitAttribute invalid = CreateInvalidAttribute(max: 0, queueMax: 0);
 
         _ = Assert.Throws<ArgumentException>(() => gate.TryEnter(0x1001, invalid, out _));
+    }
+
+    private static PacketConcurrencyLimitAttribute CreateInvalidAttribute(int max, int queueMax)
+    {
+        PacketConcurrencyLimitAttribute attr = new(max: 1, queue: false, queueMax: 0);
+        System.Reflection.FieldInfo? maxField = typeof(PacketConcurrencyLimitAttribute)
+            .GetField("<Max>k__BackingField", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        System.Reflection.FieldInfo? queueMaxField = typeof(PacketConcurrencyLimitAttribute)
+            .GetField("<QueueMax>k__BackingField", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+
+        maxField?.SetValue(attr, max);
+        queueMaxField?.SetValue(attr, queueMax);
+        return attr;
     }
 
     [Fact]

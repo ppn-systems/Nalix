@@ -1,11 +1,12 @@
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.DataFrames;
 using Nalix.Codec.ProtocolFrames;
-using Nalix.Environment.Memory;
 using Nalix.Codec.Transforms;
+using Nalix.Environment.Memory;
 
 namespace Nalix.Codec.Tests.DataFrames;
 
@@ -15,17 +16,15 @@ public sealed partial class DataFramesPublicApiTests
     public void DeserializeWhenRegisteredPacketBytesAreProvidedReturnsExpectedPacket()
     {
         Control packet = new();
-        packet.Initialize(33, ControlType.PONG, 88, PacketFlags.RELIABLE, ProtocolReason.NONE);
+        packet.Initialize(ControlType.PONG, 88, PacketFlags.RELIABLE, ProtocolReason.NONE);
         byte[] bytes = packet.Serialize();
 
         IPacket deserialized = PacketRegistry.Deserialize(bytes);
 
         Control control = Assert.IsType<Control>(deserialized);
-        Assert.Equal(packet.Header.MagicNumber, control.Header.MagicNumber);
         Assert.Equal(packet.Type, control.Type);
         Assert.Equal(packet.Header.SequenceId, control.Header.SequenceId);
         Assert.True(PacketRegistry.DeserializerCount >= 1);
-        Assert.True(PacketRegistry.IsKnownMagic(packet.Header.MagicNumber));
         Assert.True(PacketRegistry.IsRegistered<Control>());
     }
 
@@ -48,34 +47,15 @@ public sealed partial class DataFramesPublicApiTests
     [Theory]
     [InlineData(PacketConstants.HeaderSize)]
     [InlineData(PacketConstants.HeaderSize + 10)]
-    public void DeserializeWhenHeaderMagicIsUnknownThrowsInvalidOperationException(int bufferLength)
+    public void DeserializeWhenOpcodeIsUnknownThrowsInvalidOperationException(int bufferLength)
     {
         byte[] raw = new byte[bufferLength];
         BitConverter.GetBytes(0xDEADBEEFu).CopyTo(raw, 0);
 
         InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => PacketRegistry.Deserialize(raw));
-        Assert.StartsWith("Cannot deserialize packet: Magic", ex.Message);
-    }
-    [Fact]
-    public void ComputeWhenCalledForSameTypeReturnsSameMagicNumber()
-    {
-        Type type = typeof(Control);
-
-        uint first = PacketRegistry.Compute(type);
-        uint second = PacketRegistry.Compute(type);
-
-        Assert.Equal(first, second);
+        Assert.StartsWith("Cannot deserialize packet: OpCode 48879 is not registered", ex.Message);
     }
 
-    [Fact]
-    public void ComputeWhenTypeIsNullThrowsArgumentNullException()
-    {
-        Type? type = null;
-
-        ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => PacketRegistry.Compute(type!));
-
-        Assert.Equal("type", exception.ParamName);
-    }
 
     [Theory]
     [InlineData(CipherSuiteType.Chacha20, 10)]
@@ -202,6 +182,7 @@ public sealed partial class DataFramesPublicApiTests
         _ = Assert.ThrowsAny<CipherException>(() => FrameCipher.DecryptFrame(source, key, CipherSuiteType.Chacha20, out _));
     }
 }
+
 
 
 

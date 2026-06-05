@@ -8,7 +8,6 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
@@ -16,9 +15,10 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames;
 using Nalix.Environment.Extensions;
-using Nalix.Network.Routing;
 using Nalix.Runtime.Internal.Compilation;
+using Nalix.Runtime.Internal.Diagnostics;
 using Nalix.Runtime.Middleware;
+using Nalix.Runtime.Routing;
 
 namespace Nalix.Runtime.Dispatching;
 
@@ -31,7 +31,7 @@ namespace Nalix.Runtime.Dispatching;
 public sealed class InlinePacketDispatcher
     : PacketDispatcherBase<IPacket>, IPacketDispatch, IActivatable
 {
-    private static readonly ThrottleKey s_keyExecute = new("dispatch.execute");
+    private static readonly Internal.Diagnostics.ThrottleKey s_keyExecute = new("dispatch.execute");
 
     private int _running;
     private long _deserializationErrors;
@@ -98,13 +98,11 @@ public sealed class InlinePacketDispatcher
         // 2. Resolve the handler using the parsed opcode
         if (!this.Options.TryResolveHandler(opcode, out PacketHandler<IPacket> handler))
         {
-            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Warning))
-            {
-                connection.ThrottledWarn(
-                    this.Logging,
-                    s_keyExecute,
-                    $"[RT.{nameof(InlinePacketDispatcher)}:{nameof(ExecutePacketAsync)}] no-handler opcode={opcode}");
-            }
+            connection.ThrottledDiagnosticWarning(
+                DiagnosticsEvents.Internal.Warning,
+                s_keyExecute,
+                "RT.InlinePacketDispatcher:ExecutePacketAsync",
+                $"no-handler opcode={opcode}");
 
             lease.Dispose();
             connection.IncrementErrorCount();
@@ -171,7 +169,7 @@ public sealed class InlinePacketDispatcher
             }
 
             // Slow-path: async completion (AwaitDispatchAsync handles Return/Dispose)
-            return AwaitPacketHandlerCompletionAsync(this, connection, lease, packet, pending, ct);
+            return AwaitPacketHandlerCompletionAsync(connection, lease, packet, pending, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -181,13 +179,11 @@ public sealed class InlinePacketDispatcher
         {
             connection.IncrementErrorCount();
 
-            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Error))
-            {
-                connection.ThrottledError(
-                    this.Logging,
-                    s_keyExecute,
-                    "[RT.InlinePacketDispatcher:ExecutePacketAsync] handler-error ep=" + connection.NetworkEndpoint);
-            }
+            connection.ThrottledDiagnosticError(
+                DiagnosticsEvents.Internal.Error,
+                s_keyExecute,
+                "RT.InlinePacketDispatcher:ExecutePacketAsync",
+                $"handler-error ep={connection.NetworkEndpoint}");
         }
 
         // 5. Cleanup for synchronous errors/cancellation
@@ -201,7 +197,7 @@ public sealed class InlinePacketDispatcher
     }
 
     private static async ValueTask AwaitPacketHandlerCompletionAsync(
-        InlinePacketDispatcher owner, IConnection connection,
+        IConnection connection,
         IBufferLease lease, IPacket packet, ValueTask pending, CancellationToken ct)
     {
         try
@@ -215,13 +211,11 @@ public sealed class InlinePacketDispatcher
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             connection.IncrementErrorCount();
-            if (owner.Logging != null && owner.Logging.IsEnabled(LogLevel.Error))
-            {
-                connection.ThrottledError(
-                    owner.Logging,
-                    s_keyExecute,
-                    "[RT.InlinePacketDispatcher:ExecutePacketAsync] handler-error ep=" + connection.NetworkEndpoint);
-            }
+            connection.ThrottledDiagnosticError(
+                DiagnosticsEvents.Internal.Error,
+                s_keyExecute,
+                "RT.InlinePacketDispatcher:ExecutePacketAsync",
+                $"handler-error ep={connection.NetworkEndpoint}");
         }
         finally
         {

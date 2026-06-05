@@ -3,6 +3,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions.Serialization;
 
@@ -53,15 +54,15 @@ public static class Csprng
             s_f = OsRandom.Fill;
             OsRandom.Reseed(TimeSpan.FromMinutes(1));
 
-            if (Listener.IsEnabled(DiagnosticsEvents.Random.Init))
+            if (Listener.IsEnabled(DiagnosticsEvents.Random.Failure))
             {
-                DiagnosticsEvents.Write(DiagnosticsEvents.Random.Init, new { Message = "OS CSPRNG unavailable — falling back to OsRandom. Cryptographic strength may be reduced.", Timestamp = DateTime.UtcNow });
+                DiagnosticsEvents.Write(DiagnosticsEvents.Random.Failure, new Nalix.Abstractions.Diagnostics.DiagnosticLog("ENV.Csprng:Internal", "os-csprng-unavailable OS CSPRNG unavailable — falling back to OsRandom. Cryptographic strength may be reduced."));
             }
         }
 
         if (Listener.IsEnabled(DiagnosticsEvents.Random.Init))
         {
-            DiagnosticsEvents.Write(DiagnosticsEvents.Random.Init, new { Message = $"init using {(ReferenceEquals(s_f, f) ? "OS_CSPRNG" : "Xoshiro++")}", Timestamp = DateTime.UtcNow });
+            DiagnosticsEvents.Write(DiagnosticsEvents.Random.Init, new Nalix.Abstractions.Diagnostics.DiagnosticLog("ENV.Csprng:Internal", $"initialized provider={(ReferenceEquals(s_f, f) ? "OS_CSPRNG" : "Xoshiro++")}"));
         }
     }
 
@@ -136,7 +137,7 @@ public static class Csprng
     {
         if (length < 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(length), length, "Length cannot be negative.");
+            THROW_NEGATIVE_LENGTH(length);
         }
 
         if (length == 0)
@@ -146,14 +147,23 @@ public static class Csprng
 
         if (length > MaxByteArrayLength)
         {
-            throw new ArgumentOutOfRangeException(
-                nameof(length), length, $"Length cannot exceed {MaxByteArrayLength} bytes.");
+            THROW_EXCEED_MAX_LENGTH(length);
         }
 
         byte[] bytes = new byte[length];
         s_f(bytes);
         return bytes;
     }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_NEGATIVE_LENGTH(int length)
+        => throw new ArgumentOutOfRangeException(nameof(length), length, "Length cannot be negative.");
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_EXCEED_MAX_LENGTH(int length)
+        => throw new ArgumentOutOfRangeException(nameof(length), length, $"Length cannot exceed {MaxByteArrayLength} bytes.");
 
     /// <summary>
     /// Gets a random integer in the range [min, max).

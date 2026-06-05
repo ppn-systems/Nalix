@@ -70,7 +70,7 @@ using Nalix.Abstractions.Networking;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         ILogger logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("NalixServer");
 
@@ -87,12 +87,12 @@ public class Program
 
         // Build and start the network application host
         using NetworkApplication app = builder.Build();
-        app.Start();
+        await app.ActivateAsync();
 
         Console.WriteLine("WebSocket server listening on ws://localhost:8080/ws. Press any key to stop...");
         Console.ReadKey();
 
-        app.Stop();
+        await app.DeactivateAsync();
     }
 }
 ```

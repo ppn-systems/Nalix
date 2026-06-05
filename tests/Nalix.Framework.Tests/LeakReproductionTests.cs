@@ -6,6 +6,8 @@ using Nalix.Codec.Serialization;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Injection;
 using Nalix.Codec.Pooling;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
 
 namespace Nalix.Framework.Tests;
 
@@ -18,20 +20,20 @@ public class LeakReproductionTests
         // 1. Setup
         var poolManager = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
         
-        // Ensure Handshake is registered in the pool
-        using var initialLease = PacketFactory<Handshake>.Acquire();
+        // Ensure Control is registered in the pool
+        using var initialLease = PacketFactory<Control>.Acquire();
         var initialInstance = initialLease.Value;
         
         // Create a dummy buffer for Handshake
         byte[] buffer = new byte[256];
-        // We need a valid header for Handshake
-        // Magic for Handshake is computed from its name.
+        // We need a valid header for Control
+        // Magic for Control is computed from its name.
         // But we can just use LiteSerializer to serialize one first.
-        initialInstance.Stage = HandshakeStage.CLIENT_HELLO;
+        initialInstance.Initialize(ControlType.PING, 55, PacketFlags.SYSTEM | PacketFlags.RELIABLE, ProtocolReason.NONE);
         int length = LiteSerializer.Serialize(initialInstance, buffer);
         
         // 2. The Test
-        using var testLease = PacketFactory<Handshake>.Acquire();
+        using var testLease = PacketFactory<Control>.Acquire();
         var testInstance = testLease.Value;
         var originalReference = testInstance;
         

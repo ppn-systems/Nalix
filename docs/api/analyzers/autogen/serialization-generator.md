@@ -4,7 +4,7 @@ The Serialization Formatter Generator automates the creation of high-performance
  
 ## Source Mapping
  
-- `src/Nalix.Analyzers.Generators/SerializeFormatterGenerator.cs`
+- `analyzers/Nalix.Analyzers.Generators/SerializeFormatterGenerator.cs`
  
 ## Overview
  

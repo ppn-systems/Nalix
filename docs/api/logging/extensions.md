@@ -21,7 +21,7 @@ using Nalix.Logging.Extensions;
 
 "listener started".Info(typeof(SampleProtocol));
 "high latency detected".Warn(typeof(SampleProtocol));
-exception.Error(typeof(SampleProtocol), "dispatch-failed");
+exception.Error("SampleProtocol", "dispatch-failed");
 ```
 
 ## Public methods
@@ -55,8 +55,7 @@ Each helper captures caller metadata and forwards the message, source, and optio
 
 ## Static properties
 
-- `NLogixFx.MinimumLevel`: Gets or sets the minimum logging level. Messages below this level are not logged. Defaults to `LogLevel.Trace`.
-- `NLogixFx.Publisher`: The global `NLogixDistributor` instance used for distributing log messages to registered targets.
+- `NLogixFx.Logger`: The global `NLogix` logger instance. Initialized with default targets during static construction. Can be reconfigured via `NLogixFx.Configure(Action<INLogixBuilder>)`.
 
 ## Related APIs
 

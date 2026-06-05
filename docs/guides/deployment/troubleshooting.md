@@ -14,7 +14,7 @@ Use it after the basic server shape exists and the runtime still is not behaving
 
 **Check first**
 
-- `IPacketRegistry` is registered once in `InstanceManager`
+- `PacketRegistry.Build()` is called after all packet assemblies are loaded
 - your handler class is actually registered with `WithHandler(...)`
 - handler methods have the correct `[PacketOpcode(...)]`
 - the **Listener** is the entrypoint that handles raw frame transformation (Pipeline), while `ProcessMessage(...)` handles the clean message payload

@@ -25,12 +25,6 @@ public sealed class SampleUdpListener : UdpListenerBase
 
     public override bool IsAuthenticated(IConnection connection, EndPoint remoteEndPoint, ReadOnlySpan<byte> payload)
         => true;
-
-    public override void ProcessFrame(object? sender, IConnectEventArgs args)
-    {
-        // Custom UDP frame logic or forward to protocol
-        this.Protocol.ProcessMessage(sender, args);
-    }
 }
 ```
 
@@ -136,7 +130,7 @@ receive datagram
 - unauthenticated drops should be visible in diagnostics
 - `IsAuthenticated(...)` should stay fast and deterministic
 - the datagram layout is `[8-byte SessionToken][Payload]`
-- Payload itself follows the standard 10-byte Nalix header format: `[Magic(4), OpCode(2), Flags(1), Priority(1), SequenceId(2), ...]`
+- Payload itself follows the standard 6-byte Nalix header format: `[OpCode(2), Flags(1), Priority(1), SequenceId(2), ...]`
 
 ## Related APIs
 

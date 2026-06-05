@@ -11,7 +11,6 @@ using Nalix.Abstractions.Primitives;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Codec.Security.Hashing;
 using Nalix.Environment.Time;
-using Nalix.SDK.Options;
 using Nalix.SDK.Transport.Internal;
 
 namespace Nalix.SDK.Transport.Extensions;
@@ -27,7 +26,7 @@ public static class ResumeExtensions
     /// <param name="session">The connected TCP session to resume.</param>
     /// <param name="ct">The cancellation token to observe.</param>
     /// <returns>The <see cref="ProtocolReason"/> reported by the server. <see cref="ProtocolReason.NONE"/> indicates success.</returns>
-    public static async ValueTask<ProtocolReason> ResumeSessionAsync(this TcpSession session, CancellationToken ct = default)
+    public static async ValueTask<ProtocolReason> ResumeSessionAsync(this TransportSession session, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(session);
 
@@ -36,23 +35,24 @@ public static class ResumeExtensions
             throw new InvalidOperationException("Session must be connected to perform resume.");
         }
 
-        if (!HasResumeState(session.Options))
+        if (!HasResumeState(session.State))
         {
             return ProtocolReason.SESSION_NOT_FOUND;
         }
 
         using SessionResume request = new();
-        request.Initialize(SessionResumeStage.REQUEST, session.Options.SessionToken);
+        // The token is assigned to the session during the initial Handshake (SERVER_FINISH).
+        request.Initialize(SessionResumeStage.REQUEST, session.State.SessionToken);
 
         // SEC-16: Compute proof-of-possession using HMAC-Keccak256(Secret, SessionToken || TimeWindow).
         // This proves to the server that we own the session secret and prevents replays via a sliding time window.
         Span<byte> proofBytes = stackalloc byte[32];
         Span<byte> messageBytes = stackalloc byte[16];
-        BinaryPrimitives.WriteUInt64LittleEndian(messageBytes, session.Options.SessionToken);
+        BinaryPrimitives.WriteUInt64LittleEndian(messageBytes, session.State.SessionToken);
         BinaryPrimitives.WriteInt64LittleEndian(messageBytes[8..], Clock.UnixSecondsNow() / 30);
 
         // SEC-16: Use fast HMAC instead of slow PBKDF2 for session resumption.
-        HmacKeccak256.Compute(session.Options.Secret.AsSpan(), messageBytes, proofBytes);
+        HmacKeccak256.Compute(session.State.Secret.AsSpan(), messageBytes, proofBytes);
         request.Proof = new Bytes32(proofBytes);
 
         try
@@ -71,23 +71,26 @@ public static class ResumeExtensions
 
             if (response.Reason != ProtocolReason.NONE)
             {
-                session.Options.SessionToken = response.SessionToken;
+                if (response.Reason == ProtocolReason.NONE)
+                {
+                    session.State.SessionToken = response.SessionToken;
+                }
                 return response.Reason;
             }
 
             Span<byte> responseMessageBytes = stackalloc byte[16];
             BinaryPrimitives.WriteUInt64LittleEndian(responseMessageBytes, response.SessionToken);
             BinaryPrimitives.WriteInt64LittleEndian(responseMessageBytes[8..], Clock.UnixSecondsNow() / 30);
-            Span<byte> expectedResponseProofBytes = stackalloc byte[32];
-            HmacKeccak256.Compute(session.Options.Secret.AsSpan(), responseMessageBytes, expectedResponseProofBytes);
+            Span<byte> expectedResponseProofBytes = stackalloc byte[Bytes32.Size];
+            HmacKeccak256.Compute(session.State.Secret.AsSpan(), responseMessageBytes, expectedResponseProofBytes);
 
             if (response.Proof != new Bytes32(expectedResponseProofBytes))
             {
                 throw new NetworkException("Session resume response proof is invalid. Possible Man-in-the-Middle attack or clock skew.");
             }
 
-            session.Options.SessionToken = response.SessionToken;
-            session.Options.EncryptionEnabled = true;
+            session.State.SessionToken = response.SessionToken;
+            session.State.EncryptionEnabled = true;
             return ProtocolReason.NONE;
         }
         catch (OperationCanceledException)
@@ -117,7 +120,7 @@ public static class ResumeExtensions
     /// <param name="ct">The cancellation token to observe.</param>
     /// <returns><see langword="true"/> when resume succeeded; <see langword="false"/> when a fresh handshake was used.</returns>
     public static async ValueTask<bool> ConnectWithResumeAsync(
-        this TcpSession session,
+        this TransportSession session,
         string? host = null,
         ushort? port = null,
         CancellationToken ct = default)
@@ -126,7 +129,7 @@ public static class ResumeExtensions
 
         await session.ConnectAsync(host, port, ct).ConfigureAwait(false);
 
-        if (session.Options.ResumeEnabled && HasResumeState(session.Options))
+        if (session.Options.ResumeEnabled && HasResumeState(session.State))
         {
             ProtocolReason reason = await session.ResumeSessionAsync(ct).ConfigureAwait(false);
             if (reason == ProtocolReason.NONE)
@@ -150,7 +153,8 @@ public static class ResumeExtensions
         // Use explicit encrypt=false for the handshake send without mutating the shared
         // EncryptionEnabled flag — this avoids a race condition where concurrent SendAsync
         // calls could see a temporarily-disabled encryption state (SEC-06).
-        bool previousEncryption = session.Options.EncryptionEnabled;
+        bool previousEncryption = session.State.EncryptionEnabled;
+        session.State.EncryptionEnabled = false;
 
         try
         {
@@ -161,9 +165,9 @@ public static class ResumeExtensions
         {
             // Ensure encryption is restored/enabled after handshake completes.
             // HandshakeAsync itself may enable encryption; only restore if it didn't.
-            if (!session.Options.EncryptionEnabled)
+            if (!session.State.EncryptionEnabled)
             {
-                session.Options.EncryptionEnabled = previousEncryption && !session.Options.Secret.IsZero;
+                session.State.EncryptionEnabled = previousEncryption && !session.State.Secret.IsZero;
             }
         }
     }
@@ -171,7 +175,7 @@ public static class ResumeExtensions
     /// <summary>
     /// Checks whether the session has enough state to attempt resume.
     /// </summary>
-    /// <param name="options">The transport options to inspect.</param>
+    /// <param name="state">The session state to inspect.</param>
     /// <returns><see langword="true"/> when the session has a token and secret.</returns>
-    private static bool HasResumeState(TransportOptions options) => !(options.SessionToken == 0) && !options.Secret.IsZero;
+    private static bool HasResumeState(SessionState state) => state.SessionToken != 0 && !state.Secret.IsZero;
 }

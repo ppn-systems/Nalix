@@ -18,11 +18,11 @@ registration.
 
 | Pool | Capacity property | Default | Preallocate property | Default | Validation |
 | --- | --- | ---: | --- | ---: | --- |
-| Accept context | `AcceptContextCapacity` | `4096` | `AcceptContextPreallocate` | `20` | Capacity `1..1_000_000`; preallocate `0..1_000_000`; preallocate must be `<=` capacity. |
-| Socket async event args | `SocketArgsCapacity` | `4096` | `SocketArgsPreallocate` | `32` | Capacity `1..1_000_000`; preallocate `0..1_000_000`; preallocate must be `<=` capacity. |
-| Receive context | `ReceiveContextCapacity` | `4096` | `ReceiveContextPreallocate` | `32` | Capacity `1..1_000_000`; preallocate `0..1_000_000`; preallocate must be `<=` capacity. |
+| Accept context | `AcceptContextCapacity` | `8192` | `AcceptContextPreallocate` | `32` | Capacity `1..1_000_000`; preallocate `0..1_000_000`; preallocate must be `<=` capacity. |
+| Socket async event args | `SocketArgsCapacity` | `8192` | `SocketArgsPreallocate` | `32` | Capacity `1..1_000_000`; preallocate `0..1_000_000`; preallocate must be `<=` capacity. |
+| Receive context | `ReceiveContextCapacity` | `8192` | `ReceiveContextPreallocate` | `32` | Capacity `1..1_000_000`; preallocate `0..1_000_000`; preallocate must be `<=` capacity. |
 | Timeout task | `TimeoutTaskCapacity` | `8192` | `TimeoutTaskPreallocate` | `64` | Capacity `1..1_000_000`; preallocate `0..1_000_000`; preallocate must be `<=` capacity. |
-| Connect event context | `ConnectEventContextCapacity` | `4096` | `ConnectEventContextPreallocate` | `32` | Capacity `1..1_000_000`; preallocate `0..1_000_000`; preallocate must be `<=` capacity. |
+| Connect event context | `ConnectEventContextCapacity` | `8192` | `ConnectEventContextPreallocate` | `32` | Capacity `1..1_000_000`; preallocate `0..1_000_000`; preallocate must be `<=` capacity. |
 
 `Validate()` first runs data-annotation validation for every numeric property, then
 performs pair-wise checks so no `*Preallocate` value can exceed its matching

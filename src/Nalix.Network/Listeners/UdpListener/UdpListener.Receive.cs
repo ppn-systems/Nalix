@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -8,8 +8,8 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
@@ -103,27 +103,27 @@ public abstract partial class UdpListenerBase
         }
         catch (ObjectDisposedException ex) when (Volatile.Read(ref _isDisposed) != 0 || cancellationToken.IsCancellationRequested)
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                this.Logger.LogDebug(ex, "[NW.UdpListenerBase:StartReceive] disposed-or-cancelled port={Port} reason={ExceptionType}", _port, ex.GetType().Name);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.UdpListenerBase:StartReceive", $"disposed-or-cancelled port={_port} exception-type={ex.GetType().Name}", ex));
             }
         }
         catch (ObjectDisposedException ex)
         {
             _ = Interlocked.Increment(ref _recvErrors);
 
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                this.Logger.LogError(ex, "[NW.UdpListenerBase:StartReceive] recv-object-disposed port={Port}", _port);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.UdpListenerBase:StartReceive", $"recv-object-disposed port={_port}", ex));
             }
         }
         catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
         {
             _ = Interlocked.Increment(ref _recvErrors);
 
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                this.Logger.LogError(ex, "[NW.UdpListenerBase:StartReceive] recv-error port={Port}", _port);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.UdpListenerBase:StartReceive", $"recv-error port={_port}", ex));
             }
 
             // Brief delay to prevent tight error loops on synchronous failure.
@@ -151,9 +151,9 @@ public abstract partial class UdpListenerBase
             if (error is not null && Volatile.Read(ref self._isDisposed) == 0 && !cancellationToken.IsCancellationRequested)
             {
                 _ = Interlocked.Increment(ref self._recvErrors);
-                if (self.Logger != null && self.Logger.IsEnabled(LogLevel.Error))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                 {
-                    self.Logger.LogError(error, "[NW.UdpListenerBase:RetryStartReceiveAsync] retry-failed port={Port}", self._port);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.UdpListenerBase:ScheduleRetryStartReceive", $"retry-failed port={self._port}", error));
                 }
             }
         }, this, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
@@ -196,23 +196,23 @@ public abstract partial class UdpListenerBase
         }
         catch (SocketException ex)
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                this.Logger.LogError(ex, "[NW.UdpListenerBase:OnReceiveCompleted] handle-error port={Port}", _port);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.UdpListenerBase:OnReceiveCompleted", $"handle-error port={_port}", ex));
             }
         }
         catch (ObjectDisposedException ex)
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                this.Logger.LogError(ex, "[NW.UdpListenerBase:OnReceiveCompleted] handle-error port={Port}", _port);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.UdpListenerBase:OnReceiveCompleted", $"handle-error port={_port}", ex));
             }
         }
         catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                this.Logger.LogError(ex, "[NW.UdpListenerBase:OnReceiveCompleted] handle-error port={Port}", _port);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.UdpListenerBase:OnReceiveCompleted", $"handle-error port={_port}", ex));
             }
         }
         finally
@@ -236,29 +236,23 @@ public abstract partial class UdpListenerBase
             return;
         }
 
+        this.HANDLE_RECEIVE_SAFE(args, ctx);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void HANDLE_RECEIVE_SAFE(PooledUdpReceiveEventArgs args, IWorkerContext ctx)
+    {
         try
         {
             if (args.RemoteEndPoint is IPEndPoint ip && !_rateLimiter.TryAccept(ip))
             {
-                _ = Interlocked.Increment(ref _dropRateLimited);
-
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-                {
-                    this.Logger.LogTrace("[NW.UdpListenerBase:HandleReceive] rate-limit-drop remote={Ip}", ip);
-                }
-
+                this.LOG_RATE_LIMIT_DROP(ip);
                 return;
             }
 
             if (args.BytesTransferred > _options.MaxUdpDatagramSize)
             {
-                _ = Interlocked.Increment(ref _dropOversize);
-
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-                {
-                    this.Logger.LogTrace("[NW.UdpListenerBase:HandleReceive] oversize-drop remote={ArgsRemoteEndPoint} size={ArgsBytesTransferred}", args.RemoteEndPoint, args.BytesTransferred);
-                }
-
+                this.LOG_OVERSIZE_DROP(args.RemoteEndPoint, args.BytesTransferred);
                 return;
             }
 
@@ -274,12 +268,7 @@ public abstract partial class UdpListenerBase
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _ = Interlocked.Increment(ref _recvErrors);
-
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
-            {
-                this.Logger?.LogDebug(ex, "[NW.UdpListenerBase:HandleReceive] non-fatal");
-            }
+            this.LOG_HANDLE_RECEIVE_ERROR(ex);
         }
     }
 
@@ -302,18 +291,13 @@ public abstract partial class UdpListenerBase
     /// go through the TCP channel.
     /// </para>
     /// </remarks>
-    protected virtual void ProcessDatagram(BufferLease lease, EndPoint remoteEndPoint)
+    protected virtual void ProcessDatagram(BufferLease lease, EndPoint? remoteEndPoint)
     {
         // --- 1. Minimum-size and null gate ---
         if (lease == null || remoteEndPoint == null || lease.Length < SessionTokenSize)
         {
             _ = Interlocked.Increment(ref _dropShort);
-
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-            {
-                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] short-packet-drop remote={RemoteEndPoint} len={LeaseLength}", remoteEndPoint, lease?.Length);
-            }
-
+            this.LOG_SHORT_PACKET_DROP_SESSION_TOKEN(remoteEndPoint, lease?.Length);
             lease?.Dispose();
             return;
         }
@@ -328,12 +312,7 @@ public abstract partial class UdpListenerBase
         if (payload.Length < PacketHeader.Size)
         {
             _ = Interlocked.Increment(ref _dropShort);
-
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-            {
-                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] short-packet-drop remote={RemoteEndPoint} payloadLen={PayloadLength}", remoteEndPoint, payload.Length);
-            }
-
+            this.LOG_SHORT_PACKET_DROP_HEADER(remoteEndPoint, payload.Length);
             lease.Dispose();
             return;
         }
@@ -343,12 +322,7 @@ public abstract partial class UdpListenerBase
         if ((header.Flags & PacketFlags.UNRELIABLE) == 0)
         {
             _ = Interlocked.Increment(ref _dropShort);
-
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-            {
-                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] invalid-flags-drop remote={RemoteEndPoint} flags={HeaderFlags}", remoteEndPoint, header.Flags);
-            }
-
+            this.LOG_INVALID_FLAGS_DROP(remoteEndPoint, header.Flags);
             lease.Dispose();
             return;
         }
@@ -362,12 +336,7 @@ public abstract partial class UdpListenerBase
 #pragma warning restore CA2000
         {
             _ = Interlocked.Increment(ref _dropUnknown);
-
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-            {
-                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] unknown-token-drop remote={RemoteEndPoint}", remoteEndPoint);
-            }
-
+            this.LOG_UNKNOWN_TOKEN_DROP(remoteEndPoint);
             lease.Dispose();
             return;
         }
@@ -378,27 +347,16 @@ public abstract partial class UdpListenerBase
             !this.IsPinnedEndpointMatch(connection.NetworkEndpoint, remoteIpEndPoint))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
-
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-            {
-                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] endpoint-mismatch-drop expected={ConnectionNetworkEndpoint} actual={RemoteEndPoint} connId={ConnectionId}", connection.NetworkEndpoint, remoteEndPoint, connection.ID);
-            }
-
+            this.LOG_ENDPOINT_MISMATCH_DROP(connection.NetworkEndpoint, remoteEndPoint, connection.ID);
             lease.Dispose();
             return;
         }
 
         // --- 4. Replay protection (SEC-27, SEC-71) ---
-        // Extract sequence ID cleanly from the packet header (offset 8 for the new 16-bit sequence)
         if (!connection.UdpReplayWindow.TryCheck(header.SequenceId))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
-
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-            {
-                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] replay-window-drop seq={HeaderSequenceId} connId={ConnectionId}", header.SequenceId, connection.ID);
-            }
-
+            this.LOG_REPLAY_WINDOW_DROP(header.SequenceId, connection.ID);
             lease.Dispose();
             return;
         }
@@ -407,12 +365,7 @@ public abstract partial class UdpListenerBase
         if (!this.IsAuthenticated(connection, remoteEndPoint, payload))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
-
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-            {
-                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] unauth-drop remote={RemoteEndPoint} connId={ConnectionId}", remoteEndPoint, connection.ID);
-            }
-
+            this.LOG_UNAUTH_DROP(remoteEndPoint, connection.ID);
             lease.Dispose();
             return;
         }
@@ -425,8 +378,6 @@ public abstract partial class UdpListenerBase
 
         connection.UdpTransport?.RecordBytesReceived(lease.Length);
 
-        // Strip the 8-byte Session Token and wrap the remaining payload into a new lease.
-        // We take ownership of the underlying buffer from the original lease but only for the payload slice.
         if (!lease.ReleaseOwnership(out byte[]? rawBuffer, out int start, out int length) || rawBuffer is null)
         {
             lease.Dispose();
@@ -435,30 +386,21 @@ public abstract partial class UdpListenerBase
 
         try
         {
-            // Create a new lease for the payload (8 bytes offset)
             BufferLease incomingLease = BufferLease.TakeOwnership(rawBuffer, start + Snowflake.Size, length - Snowflake.Size);
             incomingLease.IsReliable = false;
 
-            // Try the connection-local pool first, then fall back to the shared pool.
             ConnectionEventArgs args = connection.AcquireEventArgs();
-
             args.Initialize(incomingLease, connection);
 
-            // Align with TCP: Offload to ThreadPool via AsyncCallback.
-            // Disposal is handled by s_onProcessFrameBridge.
-            if (!Internal.Transport.AsyncCallback.Invoke(s_onProcessFrameBridge, this, args))
+            if (!Internal.Transport.AsyncCallback.Invoke(s_onProcessFrameBridge, this, args, CallbackLane.Process))
             {
                 args.Dispose();
             }
 
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-            {
-                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] accepted connId={ConnectionId} ep={RemoteEndPoint} payloadSize={IncomingLeaseLength}", connection.ID, remoteEndPoint, incomingLease.Length);
-            }
+            this.LOG_ACCEPTED(connection.ID, remoteEndPoint, incomingLease.Length);
         }
         finally
         {
-            // Dispose the original wrapping lease; the inner buffer was either transferred or rejected.
             lease.Dispose();
         }
     }
@@ -467,6 +409,7 @@ public abstract partial class UdpListenerBase
     private bool IsPinnedEndpointMatch(INetworkEndpoint pinnedEndPoint, IPEndPoint remoteEndPoint)
     {
         IPAddress remoteAddress = remoteEndPoint.Address;
+
         if (remoteAddress.IsIPv4MappedToIPv6)
         {
             remoteAddress = remoteAddress.MapToIPv4();
@@ -526,4 +469,110 @@ public abstract partial class UdpListenerBase
     }
 
     #endregion Event Bridge
+
+    #region Logging Helpers
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_RATE_LIMIT_DROP(IPEndPoint ip)
+    {
+        _ = Interlocked.Increment(ref _dropRateLimited);
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"rate-limit-drop ip={ip}"));
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_OVERSIZE_DROP(EndPoint? remoteEndPoint, int size)
+    {
+        _ = Interlocked.Increment(ref _dropOversize);
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"oversize-drop remote-end-point={remoteEndPoint} size={size}"));
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_HANDLE_RECEIVE_ERROR(Exception ex)
+    {
+        _ = Interlocked.Increment(ref _recvErrors);
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.UdpListenerBase:Internal", "handle-receive non-fatal", ex));
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_SHORT_PACKET_DROP_SESSION_TOKEN(EndPoint? remoteEndPoint, int? leaseLength)
+    {
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"short-packet-drop session-token remote-end-point={remoteEndPoint} lease-length={leaseLength}"));
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_SHORT_PACKET_DROP_HEADER(EndPoint remoteEndPoint, int payloadLength)
+    {
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"short-packet-drop header remote-end-point={remoteEndPoint} payload-length={payloadLength}"));
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_INVALID_FLAGS_DROP(EndPoint remoteEndPoint, PacketFlags flags)
+    {
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"invalid-flags-drop remote-end-point={remoteEndPoint} header-flags={flags}"));
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_UNKNOWN_TOKEN_DROP(EndPoint remoteEndPoint)
+    {
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"unknown-token-drop remote-end-point={remoteEndPoint}"));
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_ENDPOINT_MISMATCH_DROP(INetworkEndpoint? expected, EndPoint remoteEndPoint, Nalix.Abstractions.Identity.ISnowflake connectionId)
+    {
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"endpoint-mismatch-drop expected={expected} remote-end-point={remoteEndPoint} connection-id={connectionId}"));
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_REPLAY_WINDOW_DROP(ushort sequenceId, Nalix.Abstractions.Identity.ISnowflake connectionId)
+    {
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"replay-window-drop sequence-id={sequenceId} connection-id={connectionId}"));
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_UNAUTH_DROP(EndPoint remoteEndPoint, Nalix.Abstractions.Identity.ISnowflake connectionId)
+    {
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"unauth-drop remote-end-point={remoteEndPoint} connection-id={connectionId}"));
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_ACCEPTED(Nalix.Abstractions.Identity.ISnowflake connectionId, EndPoint remoteEndPoint, int payloadSize)
+    {
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"accepted connection-id={connectionId} remote-end-point={remoteEndPoint} incoming-lease-length={payloadSize}"));
+        }
+    }
+
+    #endregion Logging Helpers
 }

@@ -34,8 +34,10 @@ public sealed class MissingSpanPacket : IPacket
 namespace Demo;
 using Nalix.Codec.DataFrames;
 
-public sealed class InheritedSpanPacket : PacketBase<InheritedSpanPacket>
+public sealed class InheritedSpanPacket : PacketBase<InheritedSpanPacket>, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
     public static InheritedSpanPacket Deserialize(byte[] buffer) => new();
 }
 """;
@@ -75,8 +77,10 @@ public static class LiteSerializerLike
 namespace Demo;
 using Nalix.Codec.DataFrames;
 
-public sealed class MyPacket : PacketBase<MyPacket>
+public sealed class MyPacket : PacketBase<MyPacket>, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
     public override void ResetForPool()
     {
     }
@@ -87,8 +91,10 @@ public sealed class MyPacket : PacketBase<MyPacket>
 namespace Demo;
 using Nalix.Codec.DataFrames;
 
-public sealed class MyPacket : PacketBase<MyPacket>
+public sealed class MyPacket : PacketBase<MyPacket>, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
     public override void ResetForPool()
     {
         base.ResetForPool();
@@ -116,8 +122,10 @@ public sealed class WrongPacket : PacketBase<OtherPacket>
 {
 }
 
-public sealed class OtherPacket : PacketBase<OtherPacket>
+public sealed class OtherPacket : PacketBase<OtherPacket>, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
 }
 """;
 
@@ -129,8 +137,10 @@ public sealed class WrongPacket : PacketBase<WrongPacket>
 {
 }
 
-public sealed class OtherPacket : PacketBase<OtherPacket>
+public sealed class OtherPacket : PacketBase<OtherPacket>, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
 }
 """;
 
@@ -156,8 +166,10 @@ public sealed class WrongPacket : PacketBase<WrongPacket>, IPacketDeserializer<O
     public static new WrongPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<WrongPacket>.Deserialize(buffer);
 }
 
-public sealed class OtherPacket : PacketBase<OtherPacket>
+public sealed class OtherPacket : PacketBase<OtherPacket>, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
     public static new OtherPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<OtherPacket>.Deserialize(buffer);
 }
 """;
@@ -172,8 +184,10 @@ public sealed class WrongPacket : PacketBase<WrongPacket>, IPacketDeserializer<W
     public static new WrongPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<WrongPacket>.Deserialize(buffer);
 }
 
-public sealed class OtherPacket : PacketBase<OtherPacket>
+public sealed class OtherPacket : PacketBase<OtherPacket>, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
     public static new OtherPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<OtherPacket>.Deserialize(buffer);
 }
 """;
@@ -188,6 +202,7 @@ public sealed class OtherPacket : PacketBase<OtherPacket>
     }
 
 }
+
 
 
 

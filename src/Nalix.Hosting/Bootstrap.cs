@@ -2,12 +2,17 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Codec.Options;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.IO;
@@ -30,7 +35,8 @@ public static partial class Bootstrap
     private static readonly Lock s_lock;
     private static readonly string s_serverGC;
     private static bool s_isHighPrecisionTimerEnabled;
-    private static DiagnosticChannel? s_diagnosticChannel;
+
+    internal static DiagnosticChannel? DiagnosticChannel;
 
     static Bootstrap()
     {
@@ -62,8 +68,8 @@ public static partial class Bootstrap
                 s_isHighPrecisionTimerEnabled = false;
             }
 
-            s_diagnosticChannel?.Dispose();
-            s_diagnosticChannel = null;
+            DiagnosticChannel?.Dispose();
+            DiagnosticChannel = null;
         }
     }
 
@@ -132,10 +138,7 @@ public static partial class Bootstrap
             REGISTER_GLOBAL_EXCEPTION_HANDLERS();
         }
 
-        // 3.3. Bridge DiagnosticListener events (Environment/Framework) into ILogger
-        SUBSCRIBE_DIAGNOSTICS(hostingOptions.DiagnosticsMinLogLevel);
-
-        // 3.4. High-precision timer for low-latency networking
+        // 3.3. High-precision timer for low-latency networking
         if (hostingOptions.EnableHighPrecisionTimer && OperatingSystem.IsWindows())
         {
             if (TimeBeginPeriod(1) == 0)
@@ -176,7 +179,11 @@ public static partial class Bootstrap
         Console.WriteLine($"[INIT] Runtime   : {RuntimeInformation.FrameworkDescription}");
         Console.WriteLine($"[INIT] Config    : {ConfigurationManager.Instance.ConfigFilePath}");
         Console.WriteLine($"[INIT] GC Mode   : {s_serverGC}");
+        Console.WriteLine($"[INIT] Timer     : {GET_TIMER_STATUS()}");
+        Console.WriteLine($"[INIT] Started   : {DateTimeOffset.UtcNow:O}");
         Console.WriteLine($"[INIT] Processors: {System.Environment.ProcessorCount}");
+        Console.WriteLine($"[INIT] Local IP  : {GET_LOCAL_IP_ADDRESSES()}");
+        Console.WriteLine($"[INIT] Public IP : {GET_PUBLIC_IP_HINT()}");
         Console.WriteLine();
         Console.WriteLine();
 
@@ -188,6 +195,16 @@ public static partial class Bootstrap
         }
 
         Console.WriteLine(Resource.Separator);
+    }
+
+    private static string GET_TIMER_STATUS()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return "Default";
+        }
+
+        return s_isHighPrecisionTimerEnabled ? "High precision 1ms" : "Default";
     }
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1873:Avoid potentially expensive logging", Justification = "<Pending>")]
@@ -217,15 +234,75 @@ public static partial class Bootstrap
         };
     }
 
-    private static void SUBSCRIBE_DIAGNOSTICS(LogLevel minLevel)
+    private static string GET_LOCAL_IP_ADDRESSES()
     {
-        s_diagnosticChannel = new DiagnosticChannel(minLevel);
-        s_diagnosticChannel.Subscribe();
+        try
+        {
+            List<string> addresses = [];
+
+            foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (networkInterface.OperationalStatus is not OperationalStatus.Up ||
+                    networkInterface.NetworkInterfaceType is NetworkInterfaceType.Loopback)
+                {
+                    continue;
+                }
+
+                IPInterfaceProperties properties = networkInterface.GetIPProperties();
+
+                foreach (UnicastIPAddressInformation unicast in properties.UnicastAddresses)
+                {
+                    IPAddress address = unicast.Address;
+
+                    if (address.AddressFamily is AddressFamily.InterNetwork &&
+                        !IPAddress.IsLoopback(address))
+                    {
+                        addresses.Add($"{GET_NETWORK_INTERFACE_DISPLAY_NAME(networkInterface)}={address}");
+                    }
+                }
+            }
+
+            return addresses.Count == 0 ? "Unavailable" : string.Join(", ", addresses);
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            return "Unavailable";
+        }
     }
+
+    private static string GET_NETWORK_INTERFACE_DISPLAY_NAME(NetworkInterface networkInterface)
+    {
+        if (networkInterface.NetworkInterfaceType is NetworkInterfaceType.Wireless80211)
+        {
+            return "Wi-Fi";
+        }
+
+        if (networkInterface.NetworkInterfaceType is NetworkInterfaceType.Ethernet)
+        {
+            return networkInterface.Name.StartsWith("vEthernet", StringComparison.OrdinalIgnoreCase)
+                ? "Virtual"
+                : "Ethernet";
+        }
+
+        return networkInterface.Name;
+    }
+
+    private static string GET_PUBLIC_IP_HINT()
+    {
+        // Public IP should not be resolved through outbound HTTP during bootstrap.
+        // Use environment/config so startup remains deterministic and offline-safe.
+        string? publicIp = System.Environment.GetEnvironmentVariable("NALIX_PUBLIC_IP");
+
+        return string.IsNullOrWhiteSpace(publicIp) ? "Not configured" : publicIp;
+    }
+
+    #region P/Invoke for Windows timer resolution
 
     [LibraryImport("winmm.dll", EntryPoint = "timeBeginPeriod")]
     private static partial uint TimeBeginPeriod(uint uPeriod);
 
     [LibraryImport("winmm.dll", EntryPoint = "timeEndPeriod")]
     private static partial uint TimeEndPeriod(uint uPeriod);
+
+    #endregion P/Invoke for Windows timer resolution
 }

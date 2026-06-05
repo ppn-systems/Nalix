@@ -16,18 +16,21 @@ namespace Nalix.SDK.Transport.Internal.Ws;
 
 internal sealed class WsFrameSender : IDisposable
 {
+    private readonly SessionState _state;
+    private readonly SemaphoreSlim _sendLock;
     private readonly SequenceCounter _sequence;
     private readonly TransportOptions _options;
-    private readonly Func<ClientWebSocket> _getSocket;
     private readonly Action<Exception> _onError;
-    private readonly SemaphoreSlim _sendLock = new(1, 1);
+    private readonly Func<ClientWebSocket> _getSocket;
 
     private int _disposed;
 
-    public WsFrameSender(Func<ClientWebSocket> getSocket, TransportOptions options, Action<Exception> onError)
+    public WsFrameSender(Func<ClientWebSocket> getSocket, TransportOptions options, SessionState state, Action<Exception> onError)
     {
+        _sendLock = new(1, 1);
         _sequence = new SequenceCounter();
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _state = state ?? throw new ArgumentNullException(nameof(state));
         _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
         _onError = onError ?? throw new ArgumentNullException(nameof(onError));
     }
@@ -44,7 +47,7 @@ internal sealed class WsFrameSender : IDisposable
         => this.SendAsync(BufferLease.CopyFrom(payload.Span), encrypt, ct);
 
     public Task<bool> SendAsync(IBufferLease lease, bool? encrypt = null, CancellationToken ct = default)
-        => this.SEND_CORE(lease, encrypt ?? _options.EncryptionEnabled, sync: false, ct);
+        => this.SEND_CORE(lease, encrypt ?? _state.EncryptionEnabled, sync: false, ct);
 
     #endregion
 
@@ -62,7 +65,7 @@ internal sealed class WsFrameSender : IDisposable
                 _options.CompressionEnabled,
                 _options.CompressionThreshold,
                 encrypt,
-                _options.Secret.AsSpan(),
+                _state.Secret.AsSpan(),
                 seqToUse,
                 _options.Algorithm);
 

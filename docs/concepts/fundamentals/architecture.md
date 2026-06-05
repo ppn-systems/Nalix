@@ -107,7 +107,7 @@ sequenceDiagram
     Net->>Prot: Clean message lease
     Prot->>Disp: HandlePacket(lease, connection)
     Note over Disp: Shard-aware queueing
-    Disp->>Reg: Deserialize (magic → TPacket)
+    Disp->>Reg: Deserialize (opcode → TPacket)
     Reg-->>Disp: Packet instance
     Disp->>PktMw: Execute middleware chain
     PktMw->>Hand: Invoke handler (IPacketContext<T>)

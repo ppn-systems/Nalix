@@ -43,7 +43,7 @@ internal sealed class SubscriptionManager : IDisposable
         {
             _controlSub = _client.Session.On<Control>(ctrl =>
             {
-                _log.Recv("CONTROL", $"type={ctrl.Type} seq={ctrl.SequenceId} reason={ctrl.Reason} ts={ctrl.Timestamp}");
+                _log.Recv("CONTROL", $"type={ctrl.Type} seq={ctrl.SequenceId} reason={ctrl.Reason}");
             });
             _controlSubActive = true;
             _log.Success("Control frame subscription active — all incoming Control frames will be logged.");
@@ -53,9 +53,11 @@ internal sealed class SubscriptionManager : IDisposable
     /// <summary>Registers a one-shot subscription for a specific ControlType.</summary>
     public void RegisterOneShotSubscription(ControlType target)
     {
+#pragma warning disable CS0618
         _ = _client.Session.OnOnce<Control>(
             predicate: c => c.Type == target,
             handler: c => _log.Recv($"ONE-SHOT [{target}]", $"seq={c.SequenceId} reason={c.Reason}"));
+#pragma warning restore CS0618
 
         _log.Info($"One-shot subscription registered — will fire once when {target} arrives.");
     }

@@ -29,6 +29,11 @@ namespace Nalix.SDK.Options;
 /// Each attempt gets its own <see cref="TimeoutMs"/> window; total wall-clock time is at most
 /// <c>TimeoutMs × (RetryCount + 1)</c>.
 /// </para>
+/// <para>
+/// <b>WARNING:</b> Retries are safe only for idempotent requests. A timeout does not prove the
+/// server did not receive or process the request. Retrying non-idempotent operations may result
+/// in duplicate side effects on the server.
+/// </para>
 /// </remarks>
 public sealed record RequestOptions
 {
@@ -51,6 +56,11 @@ public sealed record RequestOptions
     /// <summary>
     /// Number of additional attempts after the first one times out.
     /// <c>0</c> means try once and stop. Must be ≥ 0.
+    /// <para>
+    /// <b>WARNING:</b> Configuring retries (value > 0) is safe only for idempotent requests.
+    /// Because a timeout does not guarantee that the server did not receive or process the initial request,
+    /// retrying non-idempotent operations may duplicate side effects.
+    /// </para>
     /// </summary>
     public int RetryCount { get; init; }
 

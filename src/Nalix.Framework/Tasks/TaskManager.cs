@@ -7,11 +7,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Environment.Configuration;
@@ -45,18 +47,19 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
     private readonly ConcurrentDictionary<string, Gate> _groupGates;
     private readonly ConcurrentDictionary<ISnowflake, WorkerState> _workers;
     private readonly ConcurrentDictionary<string, RecurringState> _recurring;
+    private readonly ConcurrentDictionary<(string Group, WorkerPriority Priority, string Tag), WorkerStartBatch> _startBatches;
 
     private int _workerErrorCount;
     private int _runningWorkerCount;
     private int _peakRunningWorkerCount;
     private int _recurringErrorCount;
     private long _workerWaitTicks;
-    private long _workerExecutionTicks;
-    private long _workerExecutionCount;
+    private long _workerUptimeTicks;
+    private long _workerCompletionCount;
     private long _workerScheduleSequence;
     private long _recurringExecutionTicks;
     private long _recurringExecutionCount;
-    private readonly long[] _workerLatencyBuckets = new long[11];
+    private readonly long[] _workerUptimeBuckets = new long[11];
 
     private volatile bool _disposed;
     private volatile int _currentConcurrencyLimit;
@@ -94,8 +97,8 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
     /// of completed executions, so it reflects the long-term average rather than
     /// the most recent run.
     /// </remarks>
-    public double AverageWorkerExecutionTime =>
-        _workerExecutionCount == 0 ? 0 : _workerExecutionTicks / (double)_workerExecutionCount / Stopwatch.Frequency * 1000;
+    public double AverageWorkerUptime =>
+        _workerCompletionCount == 0 ? 0 : _workerUptimeTicks / (double)_workerCompletionCount / Stopwatch.Frequency * 1000;
 
     /// <summary>
     /// Gets the average execution time for recurring tasks in milliseconds.
@@ -134,17 +137,17 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
     /// Gets the average time workers spent in the queue before starting, in milliseconds.
     /// </summary>
     public double AverageWorkerWaitTime =>
-        _workerExecutionCount == 0 ? 0 : (double)_workerWaitTicks / _workerExecutionCount / 10000.0;
+        _workerCompletionCount == 0 ? 0 : (double)_workerWaitTicks / _workerCompletionCount / 10000.0;
 
     /// <summary>
-    /// Gets the 95th percentile worker execution time in milliseconds (approximation).
+    /// Gets the 95th percentile worker uptime in milliseconds (approximation).
     /// </summary>
-    public double P95WorkerExecutionTime => this.GET_WORKER_PERCENTILE(0.95);
+    public double P95WorkerUptime => this.GET_WORKER_UPTIME_PERCENTILE(0.95);
 
     /// <summary>
-    /// Gets the 99th percentile worker execution time in milliseconds (approximation).
+    /// Gets the 99th percentile worker uptime in milliseconds (approximation).
     /// </summary>
-    public double P99WorkerExecutionTime => this.GET_WORKER_PERCENTILE(0.99);
+    public double P99WorkerUptime => this.GET_WORKER_UPTIME_PERCENTILE(0.99);
 
     #endregion Properties
 
@@ -167,6 +170,7 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
 
         _workers = new();
         _recurring = new();
+        _startBatches = new();
         _cleanupCts = new();
         _groupGates = new(StringComparer.Ordinal);
         _pendingWorkers = new();
@@ -198,7 +202,7 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
             {
                 if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                 {
-                    Listener.Write(DiagnosticsEvents.Tasks.Failed, new { Action = "CleanupLoopError", Exception = ex.Message });
+                    Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "cleanup-loop-error", ex));
                 }
             }
         }, _cleanupCts.Token);
@@ -219,7 +223,8 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
 
         if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
         {
-            Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new { Action = "Init", CleanupIntervalSec = _options.CleanupInterval.TotalSeconds, Concurrency = _currentConcurrencyLimit });
+            string cleanupSec = _options.CleanupInterval.TotalSeconds.ToString("0.000", CultureInfo.InvariantCulture);
+            Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Internal", $"init cleanup-interval-sec={cleanupSec} concurrency={_currentConcurrencyLimit}"));
         }
     }
 
@@ -275,11 +280,6 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
             this.ENQUEUE_WORKER(st);
         }
 
-        if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Started))
-        {
-            Listener.Write(DiagnosticsEvents.Tasks.Started, new { Action = startedFast ? "StartFast" : "Queued", Id = id, Name = name, Group = group, options.Priority, Tag = options.Tag ?? "-" });
-        }
-
         return st;
     }
 
@@ -325,36 +325,12 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
         ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
 
-        _ = Interlocked.Increment(ref _workerExecutionCount);
+        _ = Interlocked.Increment(ref _workerCompletionCount);
 
         _ = ThreadPool.UnsafeQueueUserWorkItem(static tuple =>
         {
             (Action<TState>? w, TState? s, string? n, TaskManager? m) = tuple;
-            try
-            {
-                _ = Interlocked.Increment(ref m._runningWorkerCount);
-                int currentRunning = Volatile.Read(ref m._runningWorkerCount);
-                int peak = Volatile.Read(ref m._peakRunningWorkerCount);
-                while (currentRunning > peak)
-                {
-                    _ = Interlocked.CompareExchange(ref m._peakRunningWorkerCount, currentRunning, peak);
-                    peak = Volatile.Read(ref m._peakRunningWorkerCount);
-                }
-
-                w(s);
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-            {
-                _ = Interlocked.Increment(ref m._workerErrorCount);
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
-                {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Tasks.Failed, new { Name = n, Exception = ex.Message });
-                }
-            }
-            finally
-            {
-                _ = Interlocked.Decrement(ref m._runningWorkerCount);
-            }
+            m.EXECUTE_WORKER_SAFE(w, s, n);
         }, (work, state, name, this), preferLocal: false);
     }
 
@@ -388,7 +364,9 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
 
         if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Started))
         {
-            Listener.Write(DiagnosticsEvents.Tasks.Started, new { Action = "Recurring", Name = name, IntervalMs = interval.TotalMilliseconds, options.NonReentrant, Tag = options.Tag ?? "-" });
+            string intervalMs = interval.TotalMilliseconds.ToString("0.000", CultureInfo.InvariantCulture);
+            Listener.Write(DiagnosticsEvents.Tasks.Started, new DiagnosticLog("FW.TaskManager",
+                $"recurring name={name} interval-ms={intervalMs} non-reentrant={options.NonReentrant} tag={options.Tag ?? "-"}"));
         }
         return st;
     }
@@ -418,7 +396,7 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
         {
             if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Failed, new { Name = name, Exception = ex.Message });
+                Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"run-once-failed name={name}", ex));
             }
             throw;
         }
@@ -472,11 +450,7 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
 
             if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new
-                {
-                    Action = "RecurringPaused",
-                    Name = name
-                });
+                Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Internal", $"recurring-paused name={name}"));
             }
         }
     }
@@ -505,11 +479,7 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
 
             if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new
-                {
-                    Action = "RecurringResumed",
-                    Name = name
-                });
+                Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Internal", $"recurring-resumed name={name}"));
             }
         }
     }
@@ -532,7 +502,7 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
         {
             if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Cancelled))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Cancelled, new { Action = "All", Count = n });
+                Listener.Write(DiagnosticsEvents.Tasks.Cancelled, new DiagnosticLog("FW.TaskManager:Internal", $"all count={n}"));
             }
         }
 
@@ -564,14 +534,14 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
             {
                 if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                 {
-                    Listener.Write(DiagnosticsEvents.Tasks.Failed, new { Action = "CtsDisposeError", Id = id, Exception = ex.Message });
+                    Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"cts-dispose-error id={id}", ex));
                 }
             }
         }
 
         if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Cancelled))
         {
-            Listener.Write(DiagnosticsEvents.Tasks.Cancelled, new { Id = id, st.Name, st.Group });
+            Listener.Write(DiagnosticsEvents.Tasks.Cancelled, new DiagnosticLog("FW.TaskManager:Internal", $"worker-cancelled id={id} name={st.Name} group={st.Group}"));
         }
     }
 
@@ -594,7 +564,7 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
         {
             if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Cancelled))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Cancelled, new { Action = "Group", Group = group, Count = n });
+                Listener.Write(DiagnosticsEvents.Tasks.Cancelled, new DiagnosticLog("FW.TaskManager:Internal", $"group group={group} count={n}"));
             }
         }
 
@@ -630,7 +600,7 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
                 {
                     if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                     {
-                        Listener.Write(DiagnosticsEvents.Tasks.Failed, new { Action = "CtsDisposeError", Name = name, Exception = ex.Message });
+                        Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"cts-dispose-error name={name}", ex));
                     }
                 }
                 try { st.Gate.Dispose(); }
@@ -639,7 +609,7 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
                 {
                     if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                     {
-                        Listener.Write(DiagnosticsEvents.Tasks.Failed, new { Action = "GateDisposeError", Name = name, Exception = ex.Message });
+                        Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"gate-dispose-error name={name}", ex));
                     }
                 }
             },
@@ -658,7 +628,7 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
             {
                 if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                 {
-                    Listener.Write(DiagnosticsEvents.Tasks.Failed, new { Action = "CtsDisposeErrorSync", Name = name, Exception = ex.Message });
+                    Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"cts-dispose-error-sync name={name}", ex));
                 }
             }
             try
@@ -669,14 +639,14 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
             {
                 if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                 {
-                    Listener.Write(DiagnosticsEvents.Tasks.Failed, new { Action = "GateDisposeErrorSync", Name = name, Exception = ex.Message });
+                    Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"gate-dispose-error-sync name={name}", ex));
                 }
             }
         }
 
         if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Cancelled))
         {
-            Listener.Write(DiagnosticsEvents.Tasks.Cancelled, new { Name = name });
+            Listener.Write(DiagnosticsEvents.Tasks.Cancelled, new DiagnosticLog("FW.TaskManager:Internal", $"recurring-cancelled name={name}"));
         }
     }
 
@@ -783,7 +753,7 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
             // If they faulted, it's already logged by the worker loop.
             if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Failed, new { Action = "WaitGroupAsync", Group = group, Exception = ex.Message });
+                Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"wait-group-async group={group}", ex));
             }
         }
     }

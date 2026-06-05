@@ -1,11 +1,8 @@
-
-using System;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames;
-using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Codec.ProtocolFrames;
-using Xunit;
 
 namespace Nalix.Codec.Tests.DataFrames;
 
@@ -17,7 +14,10 @@ public sealed partial class DataFramesPublicApiTests
     {
         Control packet = new();
 
-        packet.Initialize(123, ControlType.PING, sequenceId: 42, flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, reasonCode: ProtocolReason.TIMEOUT);
+        packet.Initialize(ControlType.PING, 42, PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, ProtocolReason.TIMEOUT);
+        PacketHeader h = packet.Header;
+        h.OpCode = 123;
+        packet.Header = h;
 
         Assert.Equal((ushort)123, packet.Header.OpCode);
         Assert.Equal(ControlType.PING, packet.Type);
@@ -25,15 +25,16 @@ public sealed partial class DataFramesPublicApiTests
         Assert.Equal(ProtocolReason.TIMEOUT, packet.Reason);
         Assert.True(packet.Header.Flags.HasFlag(PacketFlags.UNRELIABLE));
         Assert.Equal(PacketPriority.HIGH, packet.Header.Priority);
-        Assert.NotEqual(0L, packet.Timestamp);
-        Assert.NotEqual(0L, packet.MonoTicks);
     }
 
     [Fact]
     public void ResetForPoolWhenControlPacketWasInitializedRestoresControlDefaults()
     {
         Control packet = new();
-        packet.Initialize(555, ControlType.ERROR, sequenceId: 7, flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, reasonCode: ProtocolReason.INTERNAL_ERROR);
+        packet.Initialize(ControlType.ERROR, 7, PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, ProtocolReason.INTERNAL_ERROR);
+        PacketHeader h2 = packet.Header;
+        h2.OpCode = 555;
+        packet.Header = h2;
         packet.Header = new PacketHeader { Flags = PacketFlags.SYSTEM };
 
         packet.ResetForPool();
@@ -41,10 +42,8 @@ public sealed partial class DataFramesPublicApiTests
         Assert.Equal(ControlType.NONE, packet.Type);
         Assert.Equal(ProtocolReason.NONE, packet.Reason);
         Assert.Equal(0u, packet.Header.SequenceId);
-        Assert.Equal(0L, packet.Timestamp);
-        Assert.Equal(0L, packet.MonoTicks);
         Assert.Equal(PacketPriority.HIGH, packet.Header.Priority);
-        Assert.Equal(PacketFlags.SYSTEM | PacketFlags.RELIABLE, packet.Header.Flags);
+        Assert.Equal(PacketFlags.SYSTEM, packet.Header.Flags);
     }
 
     [Theory]
@@ -58,7 +57,6 @@ public sealed partial class DataFramesPublicApiTests
         {
             Control => Control.Deserialize(bytes),
             Directive => Directive.Deserialize(bytes),
-            Handshake => Handshake.Deserialize(bytes),
             _ => throw new InvalidOperationException("Unexpected frame type.")
         };
 
@@ -71,7 +69,6 @@ public sealed partial class DataFramesPublicApiTests
         Directive packet = new();
 
         packet.Initialize(
-            opCode: 77,
             type: ControlType.REDIRECT,
             reason: ProtocolReason.REDIRECT,
             action: ProtocolAdvice.RECONNECT,
@@ -81,6 +78,9 @@ public sealed partial class DataFramesPublicApiTests
             arg0: 1000,
             arg1: 2000,
             arg2: 33);
+        PacketHeader h3 = packet.Header;
+        h3.OpCode = 77;
+        packet.Header = h3;
 
         Assert.Equal((ushort)77, packet.Header.OpCode);
         Assert.Equal(ControlType.REDIRECT, packet.Type);
@@ -95,27 +95,16 @@ public sealed partial class DataFramesPublicApiTests
         Assert.True(packet.Header.Flags.HasFlag(PacketFlags.RELIABLE));
     }
 
-    [Fact]
-    public void ResetForPoolWhenHandshakeContainsDataClearsPayload()
-    {
-        Handshake packet = new(HandshakeStage.CLIENT_HELLO, Bytes32.Zero, Bytes32.Zero, flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
 
-        packet.ResetForPool();
-
-        Assert.True(packet.PublicKey.IsZero);
-        Assert.True(packet.Nonce.IsZero);
-        Assert.True(packet.Proof.IsZero);
-        Assert.True(packet.TranscriptHash.IsZero);
-        Assert.Equal(HandshakeStage.NONE, packet.Stage);
-        Assert.Equal(PacketFlags.SYSTEM | PacketFlags.RELIABLE, packet.Header.Flags);
-        Assert.Equal(PacketPriority.URGENT, packet.Header.Priority);
-    }
 
     [Fact]
     public void ControlFixedSizeMatchesComputedLengthAndSerializedBytes()
     {
         Control packet = new();
-        packet.Initialize(123, ControlType.PING, sequenceId: 42, flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, reasonCode: ProtocolReason.TIMEOUT);
+        packet.Initialize(ControlType.PING, 42, PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, ProtocolReason.TIMEOUT);
+        PacketHeader h4 = packet.Header;
+        h4.OpCode = 123;
+        packet.Header = h4;
 
         byte[] bytes = packet.Serialize();
 
@@ -128,7 +117,6 @@ public sealed partial class DataFramesPublicApiTests
     {
         Directive packet = new();
         packet.Initialize(
-            opCode: 77,
             type: ControlType.REDIRECT,
             reason: ProtocolReason.REDIRECT,
             action: ProtocolAdvice.RECONNECT,
@@ -138,6 +126,9 @@ public sealed partial class DataFramesPublicApiTests
             arg0: 1000,
             arg1: 2000,
             arg2: 33);
+        PacketHeader h5 = packet.Header;
+        h5.OpCode = 77;
+        packet.Header = h5;
 
         byte[] bytes = packet.Serialize();
 
@@ -145,28 +136,7 @@ public sealed partial class DataFramesPublicApiTests
         Assert.Equal(Directive.Size, bytes.Length);
     }
 
-    [Fact]
-    public void HandshakeLengthWhenHandshakePayloadExistsMatchesActualSerializedBytes()
-    {
-        Handshake packet = new(HandshakeStage.SERVER_HELLO, Bytes32.Zero, Bytes32.Zero, Bytes32.Zero, flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
-        packet.TranscriptHash = Nalix.Codec.Security.Hashing.Keccak256.HashDataToFixed([1, 2, 3, 4, 5]);
 
-        byte[] bytes = packet.Serialize();
-
-        Assert.Equal(bytes.Length, packet.Length);
-    }
-
-    [Fact]
-    public void HandshakeSerializeIntoLengthSizedBufferWhenHandshakePayloadExistsSucceeds()
-    {
-        Handshake packet = new(HandshakeStage.SERVER_HELLO, Bytes32.Zero, Bytes32.Zero, Bytes32.Zero, flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
-        packet.TranscriptHash = Nalix.Codec.Security.Hashing.Keccak256.HashDataToFixed([1, 2, 3, 4, 5]);
-
-        byte[] buffer = new byte[packet.Length];
-        int written = packet.Serialize(buffer);
-
-        Assert.Equal(packet.Length, written);
-    }
 
     [Fact]
     public void SessionResumeSerializeThenDeserializePreservesPublicState()
@@ -201,7 +171,7 @@ public sealed partial class DataFramesPublicApiTests
             ProtocolReason.TIMEOUT,
             Bytes32.Zero,
             PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
-        var h = packet.Header;
+        PacketHeader h = packet.Header;
         h.Flags = PacketFlags.SYSTEM;
         packet.Header = h;
 
@@ -212,7 +182,7 @@ public sealed partial class DataFramesPublicApiTests
         Assert.Equal(0UL, packet.SessionToken);
         Assert.Equal(ProtocolReason.NONE, packet.Reason);
         Assert.True(packet.Proof.IsZero);
-        Assert.Equal(PacketFlags.SYSTEM | PacketFlags.RELIABLE, packet.Header.Flags);
+        Assert.Equal(PacketFlags.SYSTEM, packet.Header.Flags);
         Assert.Equal(PacketPriority.URGENT, packet.Header.Priority);
     }
 
@@ -221,7 +191,6 @@ public sealed partial class DataFramesPublicApiTests
     {
         byte[] controlBytes = CreateControlPacket().Serialize();
         byte[] directiveBytes = CreateDirectivePacket().Serialize();
-        byte[] handshakeBytes = CreateHandshakePacket().Serialize();
 
         SessionResume resume = new();
         resume.Initialize(SessionResumeStage.REQUEST, 0UL, ProtocolReason.NONE, Bytes32.Zero, PacketFlags.SYSTEM | PacketFlags.RELIABLE);
@@ -229,58 +198,22 @@ public sealed partial class DataFramesPublicApiTests
 
         Control control = Control.Deserialize(controlBytes.AsSpan());
         Directive directive = Directive.Deserialize(directiveBytes.AsSpan());
-        Handshake handshake = Handshake.Deserialize(handshakeBytes.AsSpan());
         SessionResume sessionResume = SessionResume.Deserialize(sessionResumeBytes.AsSpan());
 
         Assert.Equal(ControlType.PING, control.Type);
         Assert.Equal(ControlType.REDIRECT, directive.Type);
-        Assert.Equal(HandshakeStage.SERVER_HELLO, handshake.Stage);
         Assert.Equal(SessionResumeStage.REQUEST, sessionResume.Stage);
     }
 
-    [Fact]
-    public void InitializeErrorWhenCalledSetsHandshakeToErrorState()
-    {
-        Handshake packet = new();
 
-        packet.InitializeError(ProtocolReason.INTERNAL_ERROR, flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
-
-        Assert.Equal((ushort)ProtocolOpCode.HANDSHAKE, packet.Header.OpCode);
-        Assert.Equal(HandshakeStage.ERROR, packet.Stage);
-        Assert.Equal(ProtocolReason.INTERNAL_ERROR, packet.Reason);
-        Assert.True(packet.Header.Flags.HasFlag(PacketFlags.UNRELIABLE));
-        Assert.Equal(PacketPriority.URGENT, packet.Header.Priority);
-        Assert.True(packet.PublicKey.IsZero);
-        Assert.True(packet.Nonce.IsZero);
-        Assert.True(packet.Proof.IsZero);
-        Assert.True(packet.TranscriptHash.IsZero);
-        Assert.Equal(0UL, packet.SessionToken);
-    }
-
-    [Fact]
-    public void HandshakeValidityWhenPublicKeyOrNonceMissingReturnsFalseOtherwiseTrue()
-    {
-        byte[] nonZeroKey = new byte[32];
-        nonZeroKey[0] = 1;
-        byte[] nonZeroNonce = new byte[32];
-        nonZeroNonce[0] = 2;
-
-        Handshake invalidKey = new(HandshakeStage.CLIENT_HELLO, Bytes32.Zero, new Bytes32(nonZeroNonce));
-        Handshake invalidNonce = new(HandshakeStage.CLIENT_HELLO, new Bytes32(nonZeroKey), Bytes32.Zero);
-        Handshake valid = new(HandshakeStage.CLIENT_HELLO, new Bytes32(nonZeroKey), new Bytes32(nonZeroNonce));
-
-        Assert.False(invalidKey.Validate(out _));
-        Assert.False(invalidNonce.Validate(out _));
-        Assert.True(valid.Validate(out _));
-    }
 
     [Fact]
     public void ComputeTranscriptHashWhenGivenSameInputReturnsSameBytes32()
     {
         byte[] transcript = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-        Bytes32 first = Nalix.Codec.Security.Hashing.Keccak256.HashDataToFixed(transcript);
-        Bytes32 second = Nalix.Codec.Security.Hashing.Keccak256.HashDataToFixed(transcript);
+        Bytes32 first = Security.Hashing.Keccak256.HashDataToFixed(transcript);
+        Bytes32 second = Security.Hashing.Keccak256.HashDataToFixed(transcript);
 
         Assert.Equal(first, second);
     }
@@ -302,6 +235,7 @@ public sealed partial class DataFramesPublicApiTests
         Assert.Equal(SessionResume.Size, bytes.Length);
     }
 }
+
 
 
 

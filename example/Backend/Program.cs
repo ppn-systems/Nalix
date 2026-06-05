@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
+using Nalix.Framework.Injection;
 using Nalix.Hosting;
 
 namespace Backend;
@@ -21,7 +22,11 @@ public static class Program
 
         await using NetworkApplication host = Startup.Configure(logger);
 
+        Console.WriteLine(InstanceManager.Instance.GenerateReport());
+
         await host.RunAsync(exit.Token).ConfigureAwait(false);
+
+        Console.WriteLine(InstanceManager.Instance.GenerateReport());
 
         return 0;
     }

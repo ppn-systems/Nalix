@@ -5,26 +5,24 @@
 ## Source mapping
 
 - `src/Nalix.Logging/NLogix.cs`
-- `src/Nalix.Logging/NLogix.Host.cs`
+- `src/Nalix.Logging/NLogixBuilder.cs`
 - `src/Nalix.Logging/Extensions/NLogixFx.cs`
 - `src/Nalix.Logging/Extensions/NLogixFx.Internal.cs`
 - `src/Nalix.Logging/Extensions/NLogixFx.Level.cs`
 - `src/Nalix.Logging/Options/NLogixOptions.cs`
 - `src/Nalix.Logging/Options/FileLogOptions.cs`
 - `src/Nalix.Logging/Options/ConsoleLogOptions.cs`
-- `src/Nalix.Logging/NLogixDistributor.cs`
 
 ## Main types
 
 - `NLogix`
-- `NLogix.Host`
+- `NLogixBuilder`
 - `NLogixOptions`
 - `NLogixFx`
-- `NLogixDistributor`
 - `INLogixTarget`
-- `INLogixDistributor`
 - `INLogixFormatter`
 - `INLogixErrorHandler`
+- `INLogixBuilder`
 
 ## What it does
 
@@ -36,13 +34,13 @@
 ## Basic usage
 
 ```csharp
-using Nalix.Logging;
+using Nalix.Logging.Extensions;
 
-NLogix logger = NLogix.Host.Instance;
+NLogix logger = NLogixFx.Logger;
 
-logger.Info("server-started");
-logger.Warn("slow-handler");
-logger.Error("dispatch-failed");
+logger.LogInformation("server-started");
+logger.LogWarning("slow-handler");
+logger.LogError("dispatch-failed");
 ```
 
 ## Custom setup
@@ -50,14 +48,17 @@ logger.Error("dispatch-failed");
 ```csharp
 using Microsoft.Extensions.Logging;
 using Nalix.Logging;
+using Nalix.Logging.Extensions;
 using Nalix.Logging.Sinks;
 
-NLogix logger = new(cfg =>
+NLogixFx.Configure(cfg =>
 {
     cfg.SetMinimumLevel(LogLevel.Debug)
-       .RegisterTarget(new BatchConsoleLogTarget())
-       .RegisterTarget(new BatchFileLogTarget());
+       .AddTarget(new BatchConsoleLogTarget())
+       .AddTarget(new BatchFileLogTarget());
 });
+
+NLogix logger = NLogixFx.Logger;
 ```
 
 ## Typical integration
@@ -65,35 +66,34 @@ NLogix logger = new(cfg =>
 ```csharp
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Injection;
-using Nalix.Logging;
+using Nalix.Logging.Extensions;
 
-InstanceManager.Instance.Register<ILogger>(NLogix.Host.Instance);
+InstanceManager.Instance.Register<ILogger>(NLogixFx.Logger);
 ```
 
 This is the usual pattern for server startup so listeners, dispatch, and framework services use the same logger instance.
 
-## NLogixDistributor
+## NLogixBuilder
 
-`NLogixDistributor` is the internal fan-out component that forwards published entries to registered targets.
+`NLogixBuilder` is the builder that accumulates configuration and produces an `NLogix` instance.
 
 ## Source mapping
 
-- `src/Nalix.Logging/NLogixDistributor.cs`
+- `src/Nalix.Logging/NLogixBuilder.cs`
 
 It is responsible for:
 
-- registering `INLogixTarget` implementations
-- publishing each entry to every registered target
-- coordinating target lifetime and disposal
-
-`NLogix` owns one distributor instance and uses it as the publish path after level filtering.
+- accumulating `INLogixTarget` registrations via `AddTarget(...)`
+- applying options configurators
+- building the final `NLogix` instance with `Build()`
+- adding default console and file targets when no targets are explicitly registered
 
 ## Notes
 
 - keep one shared logger for the process when possible
 - prefer registering targets during startup, not mid-flight
-- `NLogix` applies both console and file targets by default when you construct it without a custom configuration delegate
-- `NLogix.Host.Instance` currently boots a shared logger with a console target only and `Debug` minimum level
+- `NLogix` applies both console and file targets by default when you construct it via `NLogixBuilder` without explicit targets
+- `NLogixFx.Logger` is the global shared logger, initialized with default targets during static construction
 
 ## Related APIs
 

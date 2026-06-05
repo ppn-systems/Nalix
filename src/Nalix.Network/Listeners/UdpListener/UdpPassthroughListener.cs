@@ -1,12 +1,13 @@
-﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Collections.Concurrent;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Threading;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Memory;
@@ -110,7 +111,7 @@ public sealed class UdpPassthroughListener : UdpListenerBase
     /// directly to the configured protocol. Virtual connections are registered
     /// into the shared <see cref="TimingWheel"/> for automatic idle cleanup.
     /// </summary>
-    protected override void ProcessDatagram(BufferLease lease, EndPoint remoteEndPoint)
+    protected override void ProcessDatagram(BufferLease lease, EndPoint? remoteEndPoint)
     {
         if (lease is null || remoteEndPoint is null)
         {
@@ -129,33 +130,12 @@ public sealed class UdpPassthroughListener : UdpListenerBase
             ipEndPoint = new IPEndPoint(ipEndPoint.Address.MapToIPv4(), ipEndPoint.Port);
         }
 
-        if (_connGuard is not null && !_connGuard.TryAccept(ipEndPoint))
+        if (!_connections.TryGetValue(ipEndPoint, out PassthroughConnection? connection) || connection.IsDisposed)
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            connection = this.GetOrCreateConnection(ipEndPoint, lease);
+            if (connection is null)
             {
-                this.Logger.LogTrace("[NW.UdpPassthroughListener:ProcessDatagram] rate-limit-drop remote={IpEndPoint}", ipEndPoint);
-            }
-
-            lease.Dispose();
-            return;
-        }
-
-        PassthroughConnection connection = _connections.GetOrAdd(
-            ipEndPoint,
-            static (ep, state) => new PassthroughConnection(state.extractor, ep, state.logger),
-            (extractor: this.Protocol.OpCodeExtractor, logger: this.Logger)
-        );
-
-
-        if (connection.IsDisposed)
-        {
-            if (_connections.TryUpdate(ipEndPoint, new PassthroughConnection(this.Protocol.OpCodeExtractor, ipEndPoint, this.Logger), connection))
-            {
-                connection = _connections[ipEndPoint];
-            }
-            else
-            {
-                connection = _connections[ipEndPoint];
+                return;
             }
         }
 
@@ -204,6 +184,48 @@ public sealed class UdpPassthroughListener : UdpListenerBase
         _connGuard?.OnConnectionClosed(sender, args);
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private PassthroughConnection? GetOrCreateConnection(IPEndPoint ipEndPoint, BufferLease lease)
+    {
+        if (_connGuard is not null && !_connGuard.TryAccept(ipEndPoint))
+        {
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+            {
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpPassthroughListener:OnConnectionClosed", $"rate-limit-drop ip-end-point={ipEndPoint}"));
+            }
+
+            lease.Dispose();
+            return null;
+        }
+
+        PassthroughConnection newConnection = new(this.Protocol.OpCodeExtractor, ipEndPoint);
+
+        PassthroughConnection connection = _connections.AddOrUpdate(
+            ipEndPoint,
+            static (_, arg) => arg,
+            static (_, existing, arg) => existing.IsDisposed ? arg : existing,
+            newConnection
+        );
+
+        if (connection != newConnection)
+        {
+#pragma warning disable CA2000 // Dummy args used only for closing event
+            PassthroughArgs dummyArgs = new(null!, newConnection, this);
+#pragma warning restore CA2000
+            _connGuard?.OnConnectionClosed(this, dummyArgs);
+            newConnection.Dispose();
+
+            if (connection.IsDisposed)
+            {
+                lease.Dispose();
+                return null;
+            }
+        }
+
+        return connection;
+    }
+
+
     #endregion Connection Close Handler
 
     #region Async Callback
@@ -228,7 +250,7 @@ public sealed class UdpPassthroughListener : UdpListenerBase
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            connection?.IncrementErrorCount();
+            HANDLE_PASSTHROUGH_ERROR(connection, ex);
         }
         finally
         {
@@ -236,6 +258,9 @@ public sealed class UdpPassthroughListener : UdpListenerBase
             args.Dispose();
         }
     };
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HANDLE_PASSTHROUGH_ERROR(PassthroughConnection? connection, Exception __) => connection?.IncrementErrorCount();
 
     #endregion Async Callback
 

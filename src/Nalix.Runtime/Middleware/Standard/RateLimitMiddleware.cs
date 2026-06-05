@@ -1,10 +1,10 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Middleware;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
@@ -24,7 +24,6 @@ namespace Nalix.Runtime.Middleware.Standard;
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public class RateLimitMiddleware : IPacketMiddleware<IPacket>
 {
-    private readonly ILogger? _logger;
     private readonly PolicyRateLimiter _policy;
     private readonly TokenBucketLimiter _global;
 
@@ -34,18 +33,20 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
     /// </summary>
     public RateLimitMiddleware()
     {
-        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
         _policy = InstanceManager.Instance.GetOrCreateInstance<PolicyRateLimiter>();
         _global = InstanceManager.Instance.GetOrCreateInstance<TokenBucketLimiter>();
     }
 
-    /// <inheritdoc/>
-    public RateLimitMiddleware(ILogger logger, PolicyRateLimiter policyRate, TokenBucketLimiter tokenBucket)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="RateLimitMiddleware"/> class
+    /// with explicit dependencies.
+    /// </summary>
+    /// <param name="policyRate">The policy rate limiter.</param>
+    /// <param name="tokenBucket">The token bucket limiter.</param>
+    public RateLimitMiddleware(PolicyRateLimiter policyRate, TokenBucketLimiter tokenBucket)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _policy = policyRate ?? throw new ArgumentNullException(nameof(policyRate));
         _global = tokenBucket ?? throw new ArgumentNullException(nameof(tokenBucket));
-
     }
 
     /// <summary>
@@ -79,9 +80,13 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
         catch (ObjectDisposedException)
         {
             // If the limiter has been disposed (e.g., during shutdown), deny the packet (fail-closed)
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                _logger.LogWarning("[RT.RateLimitMiddleware:Invoke] rate-limiter-disposed request-denied");
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Warning,
+                    new DiagnosticLog(
+                        "RT.RateLimitMiddleware:InvokeAsync",
+                        "rate-limiter-disposed request-denied"));
             }
             return;
         }

@@ -193,7 +193,7 @@ For packets where even the cost of bit-blitting deserialization is too high (e.g
 public ValueTask HandleRawData(ReadOnlyMemory<byte> memory, IConnection connection)
 {
     // 'memory' points directly to the pooled IBufferLease.Span
-    // No deserialization, no object allocation, no magic number check.
+    // No deserialization, no object allocation, no OpCode validation check.
     var rawSpan = memory.Span;
     
     // Process raw bytes directly
@@ -204,7 +204,7 @@ public ValueTask HandleRawData(ReadOnlyMemory<byte> memory, IConnection connecti
 ```
 
 !!! important "Security vs Performance"
-    Bypassing deserialization also bypasses the framework's built-in magic number and checksum validation. Use this only for internal or already-authenticated streams.
+    Bypassing deserialization also bypasses the framework's built-in OpCode and checksum validation. Use this only for internal or already-authenticated streams.
 
 ---
 

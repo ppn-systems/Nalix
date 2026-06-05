@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -7,8 +7,8 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
@@ -44,7 +44,10 @@ namespace Nalix.Network.Connections;
 /// implement their own session/auth layer (e.g., RakNet for Minecraft Bedrock).
 /// </para>
 /// </remarks>
-public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTrackedConnection
+public sealed class PassthroughConnection :
+    IConnection,
+    IConnectionTrafficMetrics,
+    TimingWheel.ITimeoutTrackedConnection
 {
     #region Constants
 
@@ -60,7 +63,7 @@ public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTra
 
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
-    private readonly ILogger? _logger;
+
     private readonly long _createdAtMs;
     private readonly EndPoint _endPointKey;
 
@@ -81,13 +84,12 @@ public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTra
     /// </summary>
     /// <param name="packetClassifier">The opcode extractor for classifying incoming packets.</param>
     /// <param name="remoteEndPoint">The remote UDP endpoint (must be an <see cref="IPEndPoint"/>).</param>
-    /// <param name="logger">The logger instance.</param>
-    public PassthroughConnection(IOpCodeExtractor packetClassifier, EndPoint remoteEndPoint, ILogger? logger = null)
+
+    public PassthroughConnection(IOpCodeExtractor packetClassifier, EndPoint remoteEndPoint)
     {
         ArgumentNullException.ThrowIfNull(remoteEndPoint);
         ArgumentNullException.ThrowIfNull(packetClassifier);
 
-        _logger = logger;
         _endPointKey = remoteEndPoint;
         _lastPingTime = _createdAtMs = Clock.UnixMillisecondsNow();
 
@@ -324,9 +326,13 @@ public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTra
                         }
                         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                         {
-                            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                             {
-                                _logger.LogError(ex, "[NW.PassthroughConnection:Dispose] close-handler-error");
+                                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+                                {
+                                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.PassthroughConnection:Dispose", "close-handler-error", ex));
+                                }
+                                ;
                             }
                         }
                     }
@@ -339,9 +345,9 @@ public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTra
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                _logger.LogError(ex, "[NW.PassthroughConnection:Dispose] close-event-error");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.PassthroughConnection:Dispose", "close-event-error", ex));
             }
         }
 

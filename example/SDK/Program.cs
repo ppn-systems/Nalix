@@ -80,7 +80,6 @@ internal class Program
         {
             Address = host,
             Port = port,
-            EncryptionEnabled = encrypt,
             ServerPublicKey = serverPublicKey,
             ReconnectEnabled = false,
             KeepAliveIntervalMillis = 0   // SDK client does its own keepalive

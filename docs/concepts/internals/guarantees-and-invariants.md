@@ -42,7 +42,7 @@ Nalix guarantees that the middleware pipeline executes in the order determined b
 The Nalix runtime components are designed for high-concurrency ingestion and are internally thread-safe.
 
 - **Thread-Safe Dispatch:** The `PacketDispatchChannel` supports concurrent packet pushing from multiple I/O loops without external locking.
-- **Registry Safety:** The `IPacketRegistry` and `InstanceManager` are thread-safe for resolution after initialization.
+- **Registry Safety:** The `PacketRegistry` and `InstanceManager` are thread-safe for resolution after initialization.
 
 !!! info "Implementation Detail"
     Nalix uses lock-free MPMC (Multi-Producer Multi-Consumer) ring buffers and atomic counters to ensure high throughput without global mutex contention.

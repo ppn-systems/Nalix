@@ -26,7 +26,7 @@ public sealed class AsyncCallbackDispatchTests
     private sealed class TestOpCodeExtractor : IOpCodeExtractor
     {
         public ushort Extract(System.ReadOnlySpan<byte> payload) =>
-            payload.Length >= 6 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[4..]) : (ushort)0;
+            payload.Length >= 2 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[0..]) : (ushort)0;
     }
 
     [Fact]
@@ -75,10 +75,10 @@ public sealed class AsyncCallbackDispatchTests
             await Task.Delay(1);
         }
 
-        (int pendingNormal, long dropped, long total) = TransportAsyncCallback.GetStatistics();
-        _ = pendingNormal.Should().Be(0);
-        _ = dropped.Should().Be(0);
-        _ = total.Should().Be(1);
+        var stats = TransportAsyncCallback.GetStatistics();
+        _ = stats.PendingProcess.Should().Be(0);
+        _ = stats.Dropped.Should().Be(0);
+        _ = stats.Total.Should().Be(1);
         _ = connection.PendingPackets.Should().Be(0);
     }
 
@@ -120,10 +120,10 @@ public sealed class AsyncCallbackDispatchTests
             await Task.Delay(1);
         }
 
-        (int pendingNormal, long dropped, long total) = TransportAsyncCallback.GetStatistics();
-        _ = pendingNormal.Should().Be(0);
-        _ = dropped.Should().Be(0);
-        _ = total.Should().Be(1);
+        var stats = TransportAsyncCallback.GetStatistics();
+        _ = stats.PendingPost.Should().Be(0);
+        _ = stats.Dropped.Should().Be(0);
+        _ = stats.Total.Should().Be(1);
         _ = connection.PendingPackets.Should().Be(0);
     }
 

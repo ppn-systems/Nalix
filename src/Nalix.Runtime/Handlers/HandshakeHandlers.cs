@@ -23,6 +23,8 @@ using Nalix.Codec.Security.Primitives;
 using Nalix.Environment.IO;
 using Nalix.Environment.Random;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
+using Nalix.Runtime.Security;
 
 namespace Nalix.Runtime.Handlers;
 
@@ -34,54 +36,152 @@ public sealed class HandshakeHandlers
 {
     #region APIs
 
-    /// <summary>
-    /// Handles incoming handshake signal packets.
-    /// </summary>
-    /// <param name="context">The packet context containing the handshake metadata.</param>
-    /// <returns>A responding handshake packet or null if rejected/disconnected.</returns>
+    /// <inheritdoc/>
     [ReservedOpcodePermitted]
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
-    [PacketOpcode((ushort)ProtocolOpCode.HANDSHAKE)]
-    public static async ValueTask HandleAsync(IPacketContext<Handshake> context)
+    [PacketOpcode(ProtocolOpCode.SESSION_INIT)]
+    public static async ValueTask HandleSessionInitAsync(IPacketContext<SessionInit> context)
     {
-        /*
-         * [Handshake Entry Point]
-         * We route the handshake packet based on its Stage.
-         * The server only expects CLIENT_HELLO and CLIENT_FINISH.
-         */
         ArgumentNullException.ThrowIfNull(context);
 
-        Handshake packet = context.Packet;
+        SessionInit packet = context.Packet;
         IConnection connection = context.Connection;
 
         if (connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeEstablished))
         {
-            await RejectHandshakeAsync(context, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
+            await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
             return;
         }
 
-        switch (packet.Stage)
+        if (!TryAcquireHandshakeSlot(connection, out object claimToken))
         {
-            case HandshakeStage.CLIENT_HELLO:
-                await HandleClientHelloAsync(context).ConfigureAwait(false);
-                break;
-
-            case HandshakeStage.CLIENT_FINISH:
-                await HandleClientFinishAsync(context).ConfigureAwait(false);
-                break;
-
-            case HandshakeStage.ERROR:
-                connection.Disconnect("Handshake error received from peer.");
-                break;
-
-            case HandshakeStage.NONE:
-            case HandshakeStage.SERVER_HELLO:
-            case HandshakeStage.SERVER_FINISH:
-            default:
-                await RejectHandshakeAsync(context, ProtocolReason.UNEXPECTED_MESSAGE).ConfigureAwait(false);
-                break;
+            await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
+            return;
         }
+
+        X25519.X25519KeyPair serverKey = X25519.GenerateKeyPair();
+        Bytes32 sharedSecretEE;
+        try
+        {
+            sharedSecretEE = X25519.Agreement(serverKey.PrivateKey, packet.PublicKey);
+        }
+        catch (InvalidOperationException)
+        {
+            await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
+            return;
+        }
+
+        if (sharedSecretEE.IsZero)
+        {
+            await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
+            return;
+        }
+
+        Bytes32 sharedSecretSE;
+        try
+        {
+            sharedSecretSE = X25519.Agreement(s_certificate, packet.PublicKey);
+        }
+        catch (InvalidOperationException)
+        {
+            await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
+            return;
+        }
+
+        if (sharedSecretSE.IsZero)
+        {
+            await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
+            return;
+        }
+
+        Bytes32 masterSecret = HandshakeX25519.ComputeMasterSecret(sharedSecretEE, sharedSecretSE);
+
+        Bytes32 serverNonce = new(Csprng.GetBytes(Bytes32.Size));
+
+        Bytes32 transcriptHash = HandshakeX25519.ComputeTranscriptHash(
+            packet.PublicKey,
+            packet.Nonce,
+            serverKey.PublicKey,
+            serverNonce);
+
+        HandshakeContext state = s_pool.Get<HandshakeContext>();
+        state.SharedSecret = masterSecret;
+        state.TranscriptHash = transcriptHash;
+        state.SessionKey = HandshakeX25519.DeriveSessionKey(masterSecret, packet.Nonce, serverNonce, transcriptHash);
+
+        if (!TryPublishHandshakeState(connection, claimToken, state))
+        {
+            await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
+            return;
+        }
+
+        using PacketScope<SessionChallenge> lease = PacketFactory<SessionChallenge>.Acquire();
+        SessionChallenge reply = lease.Value;
+
+        reply.Initialize(serverKey.PublicKey, serverNonce, HandshakeX25519.ComputeServerProof(masterSecret, transcriptHash));
+        reply.SequenceId = packet.SequenceId;
+        reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
+
+        await context.Sender.SendAsync(reply).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    [ReservedOpcodePermitted]
+    [PacketEncryption(false)]
+    [PacketPermission(PermissionLevel.NONE)]
+    [PacketOpcode((ushort)ProtocolOpCode.SESSION_PROOF)]
+    public static async ValueTask HandleSessionProofAsync(IPacketContext<SessionProof> context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        SessionProof packet = context.Packet;
+        IConnection connection = context.Connection;
+
+        if (connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeEstablished))
+        {
+            await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
+            return;
+        }
+
+        if (!TryGetState(connection, out HandshakeContext? state) || state is null)
+        {
+            await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
+            return;
+        }
+
+        Bytes32 expectedProof = HandshakeX25519.ComputeClientProof(state.SharedSecret, state.TranscriptHash);
+        if (packet.Proof != expectedProof)
+        {
+            await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.SIGNATURE_INVALID).ConfigureAwait(false);
+            return;
+        }
+
+        connection.Secret = state.SessionKey;
+        connection.Algorithm = CipherSuiteType.Chacha20Poly1305;
+
+        Bytes32 expectedFinish = HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash);
+
+        connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
+        if (connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? removedState) && removedState is HandshakeContext contextState)
+        {
+            s_pool.Return(contextState);
+        }
+        _ = connection.Attributes.Remove(ConnectionAttributes.HandshakeState);
+
+        if (s_sessionService != null)
+        {
+            await s_sessionService.SaveSessionAsync(connection).ConfigureAwait(false);
+        }
+
+        using PacketScope<SessionEstablished> lease = PacketFactory<SessionEstablished>.Acquire();
+        SessionEstablished reply = lease.Value;
+
+        reply.Initialize(expectedFinish, connection.ID.ToUInt64());
+        reply.SequenceId = packet.SequenceId;
+        reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
+
+        await context.Sender.SendAsync(reply).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -104,7 +204,7 @@ public sealed class HandshakeHandlers
                 return;
             }
 
-            LOAD_CERTIFICATE(Path.Combine(Directories.ConfigurationDirectory, "certificate.private"));
+            LoadCertificate(Path.Combine(Directories.ConfigurationDirectory, "certificate.private"));
             Volatile.Write(ref s_isInitialized, 1);
         }
     }
@@ -118,8 +218,23 @@ public sealed class HandshakeHandlers
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         lock (s_initLock)
         {
-            LOAD_CERTIFICATE(path);
+            LoadCertificate(path);
             Volatile.Write(ref s_isInitialized, 1);
+        }
+    }
+
+    /// <summary>
+    /// Configures the internal object pool limits for handshake contexts.
+    /// </summary>
+    /// <param name="maxCapacity">The maximum number of contexts to retain in the pool.</param>
+    /// <param name="preallocCount">The number of contexts to preallocate immediately.</param>
+    public static void ConfigureContextPool(int maxCapacity, int preallocCount = 0)
+    {
+        _ = s_pool.SetMaxCapacity<HandshakeContext>(maxCapacity);
+
+        if (preallocCount > 0)
+        {
+            _ = s_pool.Prealloc<HandshakeContext>(preallocCount);
         }
     }
 
@@ -137,7 +252,7 @@ public sealed class HandshakeHandlers
     /// </summary>
     public static Bytes32 ServerPublicKey => s_serverPublicKey;
 
-
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
     private static readonly ISessionService? s_sessionService = InstanceManager.Instance.GetExistingInstance<ISessionService>();
 
     #endregion Fields
@@ -146,269 +261,55 @@ public sealed class HandshakeHandlers
 
     #region Nested Types
 
-    private sealed class HandshakeContext : IDisposable
+    private sealed class HandshakeContext : IPoolable
     {
-        public Bytes32 ClientPublicKey { get; init; }
-        public Bytes32 ClientNonce { get; init; }
-        public Bytes32 ServerPublicKey { get; init; }
-        public Bytes32 ServerNonce { get; init; }
-        public Bytes32 SharedSecret;
-        public Bytes32 TranscriptHash { get; init; }
         public Bytes32 SessionKey;
+        public Bytes32 SharedSecret;
+        public Bytes32 TranscriptHash;
 
-        public void Dispose()
+        public void ResetForPool()
         {
             MemorySecurity.ZeroMemory(MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref SessionKey, 1)));
             MemorySecurity.ZeroMemory(MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref SharedSecret, 1)));
+            MemorySecurity.ZeroMemory(MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref TranscriptHash, 1)));
         }
     }
 
     #endregion Nested Types
 
-    private static void LOAD_CERTIFICATE(string certPath)
-    {
-        if (!File.Exists(certPath))
-        {
-            CREATE_CERTIFICATE(certPath);
-        }
+    private static ICertificateStore GetCertificateStore() =>
+        InstanceManager.Instance.GetExistingInstance<ICertificateStore>() ??
+        InstanceManager.Instance.GetOrCreateInstance<FileCertificateStore>();
 
+    private static void LoadCertificate(string certPath)
+    {
+        ICertificateStore store = GetCertificateStore();
         try
         {
-            string? hex = null;
-            string[] lines = File.ReadAllLines(certPath);
-
-            for (int i = lines.Length - 1; i >= 0; i--)
-            {
-                string line = lines[i];
-                if (string.IsNullOrWhiteSpace(line))
-                {
-                    continue;
-                }
-
-                string trimmed = line.Trim();
-                if (trimmed.StartsWith('#'))
-                {
-                    continue;
-                }
-
-                hex = trimmed;
-                break;
-            }
-
-            if (string.IsNullOrWhiteSpace(hex))
-            {
-                throw new InternalErrorException(
-                    $"Handshake failed: No valid certificate data found in '{certPath}'. Please check file format and content.");
-            }
-
-            s_certificate = Bytes32.Parse(hex);
+            s_certificate = store.Load(certPath);
             s_serverPublicKey = X25519.GenerateKeyFromPrivateKey(s_certificate).PublicKey;
         }
-        catch (UnauthorizedAccessException ex)
+        catch (Exception ex) when (ex is not InternalErrorException)
         {
-            throw new InternalErrorException(
-                $"Handshake failed: Access denied while reading server identity from '{certPath}'. Exception detail: " + ex.Message, ex);
-        }
-        catch (IOException ex)
-        {
-            throw new InternalErrorException(
-                $"Handshake failed: Unable to read server identity from '{certPath}'. Exception detail: " + ex.Message, ex);
-        }
-        catch (FormatException ex)
-        {
-            throw new InternalErrorException(
-                $"Handshake failed: Invalid server identity format in '{certPath}'. Exception detail: " + ex.Message, ex);
+            throw new InternalErrorException($"Handshake failed: Unable to load server identity from '{certPath}'. Exception detail: " + ex.Message, ex);
         }
     }
 
-    private static void CREATE_CERTIFICATE(string certPath)
+    private static async ValueTask RejectHandshakeAsync(IConnection connection, IPacketSender sender, ProtocolReason reason)
     {
-        string? directory = Path.GetDirectoryName(certPath);
-
-        if (!string.IsNullOrWhiteSpace(directory))
+        if (connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? removedState) && removedState is HandshakeContext contextState)
         {
-            _ = Directory.CreateDirectory(directory);
+            s_pool.Return(contextState);
         }
 
-        X25519.X25519KeyPair key = X25519.GenerateKeyPair();
-        if (!TRY_WRITE_NEW_FILE(certPath, key.PrivateKey.ToString()))
-        {
-            return;
-        }
-
-        string publicPath = Path.Combine(
-            directory ?? string.Empty,
-            Path.GetFileNameWithoutExtension(certPath) + ".public");
-
-        _ = TRY_WRITE_NEW_FILE(publicPath, key.PublicKey.ToString());
-    }
-
-    private static bool TRY_WRITE_NEW_FILE(string path, string content)
-    {
-        try
-        {
-            using FileStream stream = new(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
-            using StreamWriter writer = new(stream);
-            writer.WriteLine(content);
-            return true;
-        }
-        catch (IOException) when (File.Exists(path))
-        {
-            return false;
-        }
-    }
-
-    private static async ValueTask HandleClientHelloAsync(IPacketContext<Handshake> context)
-    {
-        Handshake packet = context.Packet;
-        IConnection connection = context.Connection;
-
-        /*
-         * [Stage 1: Client Hello]
-         * 1. Acquire a handshake slot to prevent race conditions.
-         * 2. Generate a fresh ephemeral X25519 key pair for the server.
-         * 3. Perform two key agreements:
-         *    - EE (Ephemeral-Ephemeral): For forward secrecy.
-         *    - SE (Static-Ephemeral): For server authentication.
-         * 4. Compute transcript hash and derive the temporary session key.
-         */
-        // BUG-75: Atomically reserve handshake state to prevent re-entry races.
-        if (!TryAcquireHandshakeSlot(connection, out object claimToken))
-        {
-            await RejectHandshakeAsync(context, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
-            return;
-        }
-
-        X25519.X25519KeyPair serverKey = X25519.GenerateKeyPair();
-        Bytes32 sharedSecretEE = X25519.Agreement(serverKey.PrivateKey, packet.PublicKey);
-
-        if (sharedSecretEE.IsZero)
-        {
-            await RejectHandshakeAsync(context, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
-            return;
-        }
-
-        Bytes32 sharedSecretSE = X25519.Agreement(s_certificate, packet.PublicKey);
-
-        if (sharedSecretSE.IsZero)
-        {
-            await RejectHandshakeAsync(context, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
-            return;
-        }
-
-        Bytes32 masterSecret = HandshakeX25519.ComputeMasterSecret(sharedSecretEE, sharedSecretSE);
-
-        Bytes32 serverNonce = new(Csprng.GetBytes(Bytes32.Size));
-
-        Bytes32 transcriptHash = HandshakeX25519.ComputeTranscriptHash(
-            packet.PublicKey,
-            packet.Nonce,
-            serverKey.PublicKey,
-            serverNonce);
-
-#pragma warning disable CA2000 // Dispose objects before losing scope
-        HandshakeContext state = new()
-        {
-            ClientPublicKey = packet.PublicKey,
-            ClientNonce = packet.Nonce,
-            SharedSecret = masterSecret,
-            ServerNonce = serverNonce,
-            ServerPublicKey = serverKey.PublicKey,
-            TranscriptHash = transcriptHash,
-            SessionKey = HandshakeX25519.DeriveSessionKey(masterSecret, packet.Nonce, serverNonce, transcriptHash)
-        };
-#pragma warning restore CA2000 // Dispose objects before losing scope
-
-        if (!TryPublishHandshakeState(connection, claimToken, state))
-        {
-            await RejectHandshakeAsync(context, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
-            return;
-        }
-
-        using PacketScope<Handshake> lease = PacketFactory<Handshake>.Acquire();
-        Handshake reply = lease.Value;
-        reply.Stage = HandshakeStage.SERVER_HELLO;
-        reply.PublicKey = serverKey.PublicKey;
-        reply.Nonce = serverNonce;
-        reply.Proof = HandshakeX25519.ComputeServerProof(masterSecret, transcriptHash);
-        reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
-        reply.TranscriptHash = transcriptHash;
-
-        await context.Sender.SendAsync(reply).ConfigureAwait(false);
-    }
-
-    private static async ValueTask HandleClientFinishAsync(IPacketContext<Handshake> context)
-    {
-        Handshake packet = context.Packet;
-        IConnection connection = context.Connection;
-
-        if (!TryGetState(connection, out HandshakeContext? state) || state is null)
-        {
-            await RejectHandshakeAsync(context, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
-            return;
-        }
-
-        Bytes32 expectedProof = HandshakeX25519.ComputeClientProof(state.SharedSecret, state.TranscriptHash);
-        if (packet.Proof != expectedProof)
-        {
-            await RejectHandshakeAsync(context, ProtocolReason.SIGNATURE_INVALID).ConfigureAwait(false);
-            return;
-        }
-
-        if (packet.TranscriptHash != state.TranscriptHash)
-        {
-            await RejectHandshakeAsync(context, ProtocolReason.CHECKSUM_FAILED).ConfigureAwait(false);
-            return;
-        }
-
-        connection.Secret = state.SessionKey;
-        connection.Algorithm = CipherSuiteType.Chacha20Poly1305;
-
-        Bytes32 expectedFinish = HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash);
-
-        connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
-        if (connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? removedState) && removedState is IDisposable disposable)
-        {
-            disposable.Dispose();
-        }
-        _ = connection.Attributes.Remove(ConnectionAttributes.HandshakeState);
-
-        if (s_sessionService != null)
-        {
-            await s_sessionService.SaveSessionAsync(connection).ConfigureAwait(false);
-        }
-
-        using PacketScope<Handshake> lease = PacketFactory<Handshake>.Acquire();
-
-        Handshake reply = lease.Value;
-        reply.Stage = HandshakeStage.SERVER_FINISH;
-        reply.PublicKey = Bytes32.Zero;
-        reply.Nonce = Bytes32.Zero;
-        reply.Proof = expectedFinish;
-        reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
-        reply.TranscriptHash = state.TranscriptHash;
-        reply.SessionToken = connection.ID.ToUInt64();
-
-        await context.Sender.SendAsync(reply).ConfigureAwait(false);
-    }
-
-    private static async ValueTask RejectHandshakeAsync(IPacketContext<Handshake> context, ProtocolReason reason)
-    {
-        IConnection connection = context.Connection;
-
-        if (connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? removedState) && removedState is IDisposable disposable)
-        {
-            disposable.Dispose();
-        }
         _ = connection.Attributes.Remove(ConnectionAttributes.HandshakeState);
 
         try
         {
-            using PacketScope<Handshake> lease = PacketFactory<Handshake>.Acquire();
+            using Control error = new();
+            error.Initialize(ControlType.ERROR, reasonCode: reason, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
 
-            Handshake error = lease.Value;
-            error.InitializeError(reason, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
-            await context.Sender.SendAsync(error).ConfigureAwait(false);
+            await sender.SendAsync(error).ConfigureAwait(false);
         }
         finally
         {

@@ -3,6 +3,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 
 namespace Nalix.Codec.Pooling;
@@ -11,7 +12,7 @@ namespace Nalix.Codec.Pooling;
 /// A zero-allocation wrapper that ensures a rented packet is returned to its pool upon disposal.
 /// </summary>
 /// <typeparam name="TPacket">The packet type.</typeparam>
-public readonly struct PacketScope<TPacket> : IDisposable where TPacket : PacketBase<TPacket>, new()
+public readonly struct PacketScope<TPacket> : IDisposable where TPacket : PacketBase<TPacket>, IPacketStaticOpcode, new()
 {
     #region Fields
 

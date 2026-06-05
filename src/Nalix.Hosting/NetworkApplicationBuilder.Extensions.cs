@@ -2,8 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Nalix.Abstractions.Security;
+using Nalix.Framework.Injection;
 using Nalix.Hosting.Internal;
 using Nalix.Runtime.Handlers;
+using Nalix.Runtime.Security;
 
 namespace Nalix.Hosting;
 
@@ -30,8 +33,14 @@ public static class NetworkApplicationBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        if (!InstanceManager.Instance.HasInstance<ICertificateStore>())
+        {
+            InstanceManager.Instance.Register<ICertificateStore>(
+                InstanceManager.Instance.GetOrCreateInstance<FileCertificateStore>()
+            );
+        }
+
         _ = builder.AddHandler<HandshakeHandlers>();
-        _ = builder.AddHandler<KeyExchangeHandlers>();
 
         // Resolve certificate path: explicit parameter wins,
         // then ConfigureCertificate() state, then default.
@@ -75,8 +84,7 @@ public static class NetworkApplicationBuilderExtensions
     }
 
     /// <summary>
-    /// Enables system-level control packet handling (PING, PONG,
-    /// DISCONNECT, CIPHER_UPDATE, TIME_SYNC, etc.).
+    /// Enables system-level control packet handling (DISCONNECT, CIPHER_UPDATE, TIME_SYNC, etc.).
     /// </summary>
     /// <param name="builder">The application builder.</param>
     /// <returns>The current builder instance.</returns>
@@ -85,6 +93,20 @@ public static class NetworkApplicationBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         _ = builder.AddHandler<SystemControlHandlers>();
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Enables time synchronization packet handling, allowing clients to synchronize
+    /// </summary>
+    /// <param name="builder">The application builder.</param>
+    /// <returns>The current builder instance.</returns>
+    public static INetworkApplicationBuilder UseTimeSync(this INetworkApplicationBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        _ = builder.AddHandler<SystemTimeSyncHandlers>();
 
         return builder;
     }

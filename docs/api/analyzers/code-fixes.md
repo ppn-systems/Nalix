@@ -6,22 +6,22 @@ Use this page when you want a quick sense of what the analyzer can usually fix f
 
 ## Source mapping
 
-- `src/Nalix.Analyzers.CodeFixes/ConfigurationIgnoreCodeFixProvider.cs`
-- `src/Nalix.Analyzers.CodeFixes/DispatchLoopCountCodeFixProvider.cs`
-- `src/Nalix.Analyzers.CodeFixes/DuplicateSerializeOrderCodeFixProvider.cs`
-- `src/Nalix.Analyzers.CodeFixes/GenericPacketHandlerCodeFixProvider.cs`
-- `src/Nalix.Analyzers.CodeFixes/MiddlewareCodeFixProvider.cs`
-- `src/Nalix.Analyzers.CodeFixes/NullMiddlewareCodeFixProvider.cs`
-- `src/Nalix.Analyzers.CodeFixes/PacketControllerCodeFixProvider.cs`
-- `src/Nalix.Analyzers.CodeFixes/PacketDeserializeCodeFixProvider.cs`
-- `src/Nalix.Analyzers.CodeFixes/PacketOpcodeCodeFixProvider.cs`
-- `src/Nalix.Analyzers.CodeFixes/PacketRegistryDeserializerCodeFixProvider.cs`
-- `src/Nalix.Analyzers.CodeFixes/PacketSelfTypeCodeFixProvider.cs`
-- `src/Nalix.Analyzers.CodeFixes/RedundantPacketCastCodeFixProvider.cs`
-- `src/Nalix.Analyzers.CodeFixes/ResetForPoolCodeFixProvider.cs`
-- `src/Nalix.Analyzers.CodeFixes/RequestOptionsConsistencyCodeFixProvider.cs`
-- `src/Nalix.Analyzers.CodeFixes/SerializationConflictCodeFixProvider.cs`
-- `src/Nalix.Analyzers.CodeFixes/SerializeOrderMissingCodeFixProvider.cs`
+- `analyzers/Nalix.Analyzers.CodeFixes/ConfigurationIgnoreCodeFixProvider.cs`
+- `analyzers/Nalix.Analyzers.CodeFixes/DispatchLoopCountCodeFixProvider.cs`
+- `analyzers/Nalix.Analyzers.CodeFixes/DuplicateSerializeOrderCodeFixProvider.cs`
+- `analyzers/Nalix.Analyzers.CodeFixes/GenericPacketHandlerCodeFixProvider.cs`
+- `analyzers/Nalix.Analyzers.CodeFixes/MiddlewareCodeFixProvider.cs`
+- `analyzers/Nalix.Analyzers.CodeFixes/NullMiddlewareCodeFixProvider.cs`
+- `analyzers/Nalix.Analyzers.CodeFixes/PacketControllerCodeFixProvider.cs`
+- `analyzers/Nalix.Analyzers.CodeFixes/PacketDeserializeCodeFixProvider.cs`
+- `analyzers/Nalix.Analyzers.CodeFixes/PacketOpcodeCodeFixProvider.cs`
+- `analyzers/Nalix.Analyzers.CodeFixes/PacketRegistryDeserializerCodeFixProvider.cs`
+- `analyzers/Nalix.Analyzers.CodeFixes/PacketSelfTypeCodeFixProvider.cs`
+- `analyzers/Nalix.Analyzers.CodeFixes/RedundantPacketCastCodeFixProvider.cs`
+- `analyzers/Nalix.Analyzers.CodeFixes/ResetForPoolCodeFixProvider.cs`
+- `analyzers/Nalix.Analyzers.CodeFixes/RequestOptionsConsistencyCodeFixProvider.cs`
+- `analyzers/Nalix.Analyzers.CodeFixes/SerializationConflictCodeFixProvider.cs`
+- `analyzers/Nalix.Analyzers.CodeFixes/SerializeOrderMissingCodeFixProvider.cs`
 
 ## Main pieces
 

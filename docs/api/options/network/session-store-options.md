@@ -14,7 +14,7 @@
 
 | Property | Default | Validation | Runtime consumer |
 | --- | ---: | --- | --- |
-| `SessionTtl` | `00:01:00` | Required and `> TimeSpan.Zero` | `ISessionFactory.CreateSession(...)` sets `ExpiresAtUnixMilliseconds`. |
+| `SessionTtl` | `00:05:00` | Required and `> TimeSpan.Zero` | `ISessionFactory.CreateSession(...)` sets `ExpiresAtUnixMilliseconds`. |
 | `MinAttributesForPersistence` | `10` | `0..int.MaxValue` | `SessionService.SaveSessionAsync(IConnection)` skips low-value sessions. |
 
 `Validate()` uses manual range checks and throws `ArgumentOutOfRangeException` when constraints are violated. It rejects non-positive `SessionTtl` values and negative `MinAttributesForPersistence`.

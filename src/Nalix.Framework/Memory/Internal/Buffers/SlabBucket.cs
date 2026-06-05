@@ -88,7 +88,7 @@ internal sealed class SlabBucket : IDisposable
     public SlabBucket(int segmentSize, int initialCapacity, int cacheDepth = 8)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(segmentSize);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cacheDepth);
+        ArgumentOutOfRangeException.ThrowIfNegative(cacheDepth);
 
         _segmentSize = segmentSize;
         _initialCapacity = initialCapacity;
@@ -120,7 +120,7 @@ internal sealed class SlabBucket : IDisposable
     public bool TryRent([NotNullWhen(true)] out byte[]? array)
     {
         ThreadLocalCache cache = this.GetThreadLocalCache();
-        if (cache.Count > 0)
+        if (_cacheDepth > 0 && cache.Count > 0)
         {
             int idx = --cache.Count;
             byte[]? cached = cache.Cache[idx];
@@ -201,14 +201,19 @@ internal sealed class SlabBucket : IDisposable
 
         // Emergency fallback: if manager rejected growth, allocate one anyway 
         // to prevent consumer failure, but this should be rare.
-        this.AllocateAndEnqueue(1);
-
-        if (this.TryRent(out array))
+        // We use a small retry loop because another thread might steal the array we just enqueued.
+        for (int i = 0; i < 3; i++)
         {
-            return array;
+            this.AllocateAndEnqueue(1);
+
+            if (this.TryRent(out array))
+            {
+                return array;
+            }
         }
 
-        throw new InvalidOperationException("SlabBucket: failed to allocate standalone buffer.");
+        this.THROW_ALLOCATION_FAILED();
+        return null;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -254,6 +259,12 @@ internal sealed class SlabBucket : IDisposable
         // Deferred shrink: if we have pending shrinks, drop this buffer instead of caching/returning it.
         if (Volatile.Read(ref _pendingShrinkCount) > 0 && this.TRY_DEFERRED_SHRINK(addr))
         {
+            return;
+        }
+
+        if (_cacheDepth <= 0)
+        {
+            _ = _freeRing.TryEnqueue(array);
             return;
         }
 
@@ -378,6 +389,10 @@ internal sealed class SlabBucket : IDisposable
     #endregion Public API
 
     #region Private Helpers
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void THROW_ALLOCATION_FAILED() => throw new InvalidOperationException("SlabBucket: failed to allocate standalone buffer.");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private ThreadLocalCache GetThreadLocalCache()

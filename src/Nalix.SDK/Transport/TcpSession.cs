@@ -69,13 +69,14 @@ public class TcpSession : TransportSession
 
     /// <summary>Initializes a new instance of the <see cref="TcpSession"/> class.</summary>
     /// <param name="options">The transport options for this session.</param>
-    public TcpSession(TransportOptions options)
+    /// <param name="state">An optional shared runtime state instance.</param>
+    public TcpSession(TransportOptions options, SessionState? state = null) : base(state)
     {
         this.Options = options ?? throw new ArgumentNullException(nameof(options));
 
         // Initialize frame helpers with a factory to get the latest socket instance
-        _sender = new TcpFrameSender(() => _socket!, options, this.HandleError);
-        _reader = new TcpFrameReader(() => _socket!, options, this.HandleReceiveMessage, this.HandleError);
+        _sender = new TcpFrameSender(() => _socket!, options, this.State, this.HandleError);
+        _reader = new TcpFrameReader(() => _socket!, options, this.State, this.HandleReceiveMessage, this.HandleError);
     }
 
     #endregion Constructor
@@ -106,7 +107,7 @@ public class TcpSession : TransportSession
             }
 
             // Initialize socket with NoDelay to reduce latency
-            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = this.Options.NoDelay };
 
             using CancellationTokenSource connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             if (this.Options.ConnectTimeoutMillis > 0)
@@ -165,7 +166,7 @@ public class TcpSession : TransportSession
             }
 
             // Initialize socket with NoDelay to reduce latency
-            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = this.Options.NoDelay };
 
             using CancellationTokenSource connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             if (this.Options.ConnectTimeoutMillis > 0)
@@ -278,7 +279,7 @@ public class TcpSession : TransportSession
 
     /// <inheritdoc/>
     public override async Task SendAsync(IPacket packet, CancellationToken ct = default)
-        => await this.SendAsync(packet, this.Options.EncryptionEnabled, ct).ConfigureAwait(false);
+        => await this.SendAsync(packet, this.State.EncryptionEnabled, ct).ConfigureAwait(false);
 
     /// <summary>Sends a packet asynchronously with an optional encryption override.</summary>
     /// <param name="packet">The packet to serialize and send.</param>

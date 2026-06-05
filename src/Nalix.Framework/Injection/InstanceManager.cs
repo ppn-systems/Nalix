@@ -198,7 +198,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     public void Lockdown()
     {
         _ = Interlocked.Exchange(ref _isLocked, 1);
-        this.Emit("Locked", "Lockdown", new { }, isFailure: false);
+        this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:Lockdown", "lockdown");
     }
 
     /// <summary>
@@ -209,7 +209,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     /// <param name="instance">The instance to register.</param>
     /// <param name="registerInterfaces">If <c>true</c>, also registers the instance for all its interfaces.</param>
     /// <exception cref="ObjectDisposedException">Thrown when the manager has already been disposed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void Register<T>(T instance, bool registerInterfaces = true) where T : class
     {
         if (Interlocked.CompareExchange(ref _isLocked, 0, 0) != 0)
@@ -260,7 +260,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    this.Emit("Register", "PublishSlotFailed", new { Interface = itf.Name }, isFailure: true);
+                    this.Emit(DiagnosticsEvents.Injection.Failure, "FW.InstanceManager:Register", $"publish-slot-failed interface={itf.Name}", ex);
                 }
             }
         }
@@ -282,7 +282,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
             TRY_AUTO_REGISTER_REPORTABLE(reportable);
         }
 
-        this.Emit("Register", "Registered", new { Type = typeof(T).Name });
+        this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:Register", $"registered type={typeof(T).Name}");
 
         // Local helpers
 
@@ -343,17 +343,17 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
             try
             {
                 prevDisp.Dispose();
-                this.Emit("Register", "Disposed", new { Context = context });
+                this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:Register", $"disposed context={context}");
             }
             catch (ObjectDisposedException)
             {
                 // Previously disposed: benign. Log as Trace to reduce noise.
-                this.Emit("Register", "DisposedAlready", new { Context = context });
+                this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:Register", $"disposed-already context={context}");
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 // Unexpected disposal error: keep Error level.
-                this.Emit("Register", "DisposeFailed", new { Context = context, Error = ex.Message }, isFailure: true);
+                this.Emit(DiagnosticsEvents.Injection.Failure, "FW.InstanceManager:Register", $"dispose-failed context={context}", ex);
             }
         }
     }
@@ -424,7 +424,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     /// <exception cref="ObjectDisposedException">Thrown when the manager has already been disposed.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="type"/> is null.</exception>
     /// <exception cref="InternalErrorException">Thrown when instance creation fails after constructor resolution.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public object GetOrCreateInstance(Type type, [MaybeNull] params object?[] args)
     {
         if (Interlocked.CompareExchange(ref _isLocked, 0, 0) != 0)
@@ -496,7 +496,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     /// <returns><c>true</c> if the instance was successfully removed; otherwise, <c>false</c>.</returns>
     /// <exception cref="ObjectDisposedException">Thrown when the manager has already been disposed.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="type"/> is null.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public bool RemoveInstance(Type type)
     {
         ObjectDisposedException.ThrowIf(Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
@@ -525,17 +525,17 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
                 try { d.Dispose(); }
                 catch (ObjectDisposedException)
                 {
-                    this.Emit("RemoveInstance", "DisposedAlready", new { Type = type.Name });
+                    this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:RemoveInstance", $"disposed-already type={type.Name}");
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    this.Emit("RemoveInstance", "DisposeFailed", new { Type = type.Name, Error = ex.Message }, isFailure: true);
+                    this.Emit(DiagnosticsEvents.Injection.Failure, "FW.InstanceManager:RemoveInstance", $"dispose-failed type={type.Name}", ex);
                 }
 
-                this.Emit("RemoveInstance", "Disposed", new { Type = type.Name });
+                this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:RemoveInstance", $"disposed type={type.Name}");
             }
 
-            this.Emit("RemoveInstance", "Removed", new { Type = type.Name });
+            this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:RemoveInstance", $"removed type={type.Name}");
         }
 
         // Also remove any signature instances whose target type matches
@@ -559,11 +559,11 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
                     try { sd.Dispose(); }
                     catch (ObjectDisposedException)
                     {
-                        this.Emit("RemoveInstance", "DisposedAlready", new { Type = type.Name });
+                        this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:RemoveInstance", $"disposed-already type={type.Name}");
                     }
                     catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
-                        this.Emit("RemoveInstance", "DisposeFailed", new { Type = type.Name, Error = ex.Message }, isFailure: true);
+                        this.Emit(DiagnosticsEvents.Injection.Failure, "FW.InstanceManager:RemoveInstance", $"dispose-failed type={type.Name}", ex);
                     }
                 }
             }
@@ -571,7 +571,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
 
         if (!removedAny)
         {
-            this.Emit("RemoveInstance", "NotFound", new { Type = type.Name });
+            this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:RemoveInstance", $"not-found type={type.Name}");
             return false;
         }
 
@@ -654,7 +654,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     /// </summary>
     /// <param name="dispose">If <c>true</c>, disposes any instances that implement <see cref="IDisposable"/>.</param>
     /// <exception cref="ObjectDisposedException">Thrown when the manager has already been disposed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void Clear(bool dispose = true)
     {
         ObjectDisposedException.ThrowIf(Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
@@ -669,15 +669,15 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
                     // Try to remove from tracking first to avoid double-dispose later.
                     _ = _disposables.TryRemove(d, out _);
                     d.Dispose();
-                    this.Emit("Clear", "Disposed", new { });
+                    this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:Clear", "disposed");
                 }
                 catch (ObjectDisposedException)
                 {
-                    this.Emit("Clear", "DisposedAlready", new { });
+                    this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:Clear", "disposed-already");
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    this.Emit("Clear", "DisposeFailed", new { Error = ex.Message }, isFailure: true);
+                    this.Emit(DiagnosticsEvents.Injection.Failure, "FW.InstanceManager:Clear", "dispose-failed", ex);
                 }
             }
         }
@@ -694,7 +694,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
         s_tsKey0 = default; s_tsVal0 = null; s_tsMgr0 = null;
         s_tsKey1 = default; s_tsVal1 = null; s_tsMgr1 = null;
 
-        this.Emit("Clear", "Cleared", new { });
+        this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:Clear", "cleared");
     }
 
     #endregion Public API
@@ -719,15 +719,15 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
                 // Remove from tracking to avoid double-dispose later.
                 _ = _disposables.TryRemove(d, out _);
                 d.Dispose();
-                this.Emit("DisposeManaged", "Disposed", new { });
+                this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:DisposeManaged", "disposed");
             }
             catch (ObjectDisposedException)
             {
-                this.Emit("DisposeManaged", "DisposedAlready", new { });
+                this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:DisposeManaged", "disposed-already");
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                this.Emit("DisposeManaged", "DisposeFailed", new { Error = ex.Message }, isFailure: true);
+                this.Emit(DiagnosticsEvents.Injection.Failure, "FW.InstanceManager:DisposeManaged", "dispose-failed", ex);
             }
         }
 
@@ -737,12 +737,12 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
         if (s_processMutexOwner && s_processMutex != null)
         {
             try { s_processMutex.ReleaseMutex(); }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { this.Emit("DisposeManaged", "MutexReleaseFailed", new { Error = ex.Message }, isFailure: true); }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { this.Emit(DiagnosticsEvents.Injection.Failure, "FW.InstanceManager:DisposeManaged", "mutex-release-failed", ex); }
             s_processMutex.Dispose();
             s_processMutex = null;
         }
 
-        this.Emit("DisposeManaged", "Disposed", new { });
+        this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:DisposeManaged", "disposed");
     }
 
     #endregion IDisposable

@@ -5,18 +5,26 @@ This page covers the built-in packet types that Nalix ships out of the box.
 ## Source mapping
 
 - `src/Nalix.Codec/ProtocolFrames/Control.cs`
-- `src/Nalix.Codec/ProtocolFrames/Handshake.cs`
-- `src/Nalix.Codec/ProtocolFrames/SessionResume.cs`
 - `src/Nalix.Codec/ProtocolFrames/Directive.cs`
-- `src/Nalix.Codec/ProtocolFrames/KeyExchange.cs`
+- `src/Nalix.Codec/ProtocolFrames/TimeSync.cs`
+- `src/Nalix.Codec/ProtocolFrames/Session/SessionInit.cs`
+- `src/Nalix.Codec/ProtocolFrames/Session/SessionProof.cs`
+- `src/Nalix.Codec/ProtocolFrames/Session/SessionTofu.cs`
+- `src/Nalix.Codec/ProtocolFrames/Session/SessionResume.cs`
+- `src/Nalix.Codec/ProtocolFrames/Session/SessionChallenge.cs`
+- `src/Nalix.Codec/ProtocolFrames/Session/SessionEstablished.cs`
 
 ## Main types
 
 - `Control`
-- `Handshake`
-- `SessionResume`
 - `Directive`
-- `KeyExchange`
+- `TimeSync`
+- `SessionInit`
+- `SessionProof`
+- `SessionTofu`
+- `SessionResume`
+- `SessionChallenge`
+- `SessionEstablished`
 
 ## Control
 
@@ -35,32 +43,93 @@ Important public members:
 - `Initialize(opCode, ControlType, ...)`
 - `ResetForPool()`
 
-## Handshake
+## SessionInit
 
-`Handshake` is the default key-exchange frame. It carries a handshake `Stage`, ephemeral `PublicKey`, `Nonce`, optional `Proof`, and a `TranscriptHash` derived with `Keccak-256`.
-
-## Basic usage
+`SessionInit` is the first step of the session handshake where the client sends its ephemeral public key and nonce.
 
 ```csharp
-var handshake = new Handshake(
-    HandshakeStage.CLIENT_HELLO,
-    clientPublicKey,
-    clientNonce,
-    flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
-
-handshake.UpdateTranscriptHash(transcriptBytes);
+var init = SessionInit.Create();
+init.Initialize(clientPublicKey, clientNonce, PacketFlags.SYSTEM | PacketFlags.RELIABLE);
 ```
 
 Important public members:
 
-- constructor `(stage, publicKey, nonce, proof, flags)`
-- `Initialize(stage, publicKey, nonce, proof, flags)`
-- `InitializeError(ProtocolReason, PacketFlags)`
+- `PublicKey` (`Bytes32`) — the client's ephemeral public key
+- `Nonce` (`Bytes32`) — the client's nonce
+- `Initialize(Bytes32 publicKey, Bytes32 nonce, PacketFlags flags)`
 - `Validate(out string?)`
-- `ComputeTranscriptHash(...)`
-- `UpdateTranscriptHash(...)`
 - `ResetForPool()`
-- `DynamicSize`
+
+## SessionProof
+
+`SessionProof` is the client's confirmation of the derived transcript and proof of possession.
+
+```csharp
+var proof = SessionProof.Create();
+proof.Initialize(clientProof, PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+```
+
+Important public members:
+
+- `Proof` (`Bytes32`) — the client's proof
+- `Initialize(Bytes32 proof, PacketFlags flags)`
+- `Validate(out string?)`
+- `ResetForPool()`
+
+## SessionTofu
+
+`SessionTofu` is a Trust-On-First-Use packet where the server returns its static public key.
+
+```csharp
+var tofu = SessionTofu.Create();
+tofu.Initialize(serverPublicKey);
+```
+
+Important public members:
+
+- `PublicKey` (`Bytes32`) — the server's public key
+- `Initialize(Bytes32 publicKey)`
+- `Validate(out string?)`
+- `ResetForPool()`
+
+## SessionResume
+
+`SessionResume` is a fixed-size frame for resuming a previously established session using a token and proof.
+
+Important public members:
+
+- `Stage` (`SessionResumeStage`) — `NONE`, `REQUEST`, or `RESPONSE`
+- `SessionToken` (`ulong`) — the session token
+- `Reason` (`ProtocolReason`) — reason code (used in responses)
+- `Proof` (`Bytes32`) — HMAC proof of session secret possession
+- `Initialize(SessionResumeStage, ulong, ProtocolReason, Bytes32, PacketFlags)`
+- `Validate(out string?)`
+- `ResetForPool()`
+
+## SessionChallenge
+
+`SessionChallenge` is the server's response to `SessionInit`, providing its ephemeral key, nonce, and proof.
+
+Important public members:
+
+- `PublicKey` (`Bytes32`) — the server's ephemeral public key
+- `Nonce` (`Bytes32`) — the server's nonce
+- `Proof` (`Bytes32`) — the server's challenge proof
+- `Initialize(Bytes32 publicKey, Bytes32 nonce, Bytes32 proof, PacketFlags flags)`
+- `Validate(out string?)`
+- `ResetForPool()`
+
+## SessionEstablished
+
+`SessionEstablished` is the server's acknowledgment of handshake completion and session establishment.
+
+Important public members:
+
+- `Proof` (`Bytes32`) — the server's final finish proof
+- `SessionToken` (`ulong`) — the assigned session token
+- `Initialize(Bytes32 proof, ulong sessionToken, PacketFlags flags)`
+- `Validate(out string?)`
+- `ResetForPool()`
 
 ## Packet pooling
 
@@ -71,31 +140,41 @@ Every packet inheriting from `PacketBase<TSelf>` provides a static `Create` meth
 
 ```csharp
 // 1. Rent a packet from the pool
-using var handshake = Handshake.Create();
+using var init = SessionInit.Create();
 
 // 2. Initialize the packet
-handshake.Initialize(HandshakeStage.CLIENT_HELLO, pubKey, nonce);
+init.Initialize(clientPublicKey, clientNonce);
 
-// The packet is automatically returned to the pool when 'handshake' is disposed.
+// The packet is automatically returned to the pool when 'init' is disposed.
 ```
 
 ### Key APIs
 
 - `PacketBase<TSelf>.Create()`: Rents an instance from the underlying `IObjectPoolManager`.
 - `PacketBase<TSelf>.Dispose()`: Returns the instance to the pool.
-- `PacketRegistry.Manager`: The global pool manager used for all packet types.
 
-## KeyExchange
+## Directive
 
-`KeyExchange` is a lightweight key exchange packet for Trust-On-First-Use (TOFU).
+`Directive` is a directive frame used for control and server feedback. It carries a `ControlType`, `ProtocolReason`, and a `ProtocolAdvice` action.
 
 Important public members:
 
-- `Initialize(KeyExchangeStage, Bytes32)`
-- `Validate(out string?)`
+- `Type` (`ControlType`) — the directive type
+- `Reason` (`ProtocolReason`) — the reason for the directive
+- `Action` (`ProtocolAdvice`) — the recommended action
+- `Initialize(ControlType, ProtocolReason, ProtocolAdvice, ...)`
 - `ResetForPool()`
-- `Stage` — the current key exchange stage (`NONE`, `REQUEST`, `RESPONSE`)
-- `PublicKey` — the server's public key (populated in `RESPONSE`)
+
+## TimeSync
+
+`TimeSync` is a time synchronization and ping packet used for RTT measurement and clock alignment.
+
+Important public members:
+
+- `Type` (`ControlType`) — the control message type (e.g., `PING`, `PONG`, `TIMESYNCREQUEST`)
+- `Timestamp` (`long`) — wall-clock timestamp
+- `MonoTicks` (`long`) — monotonic clock ticks
+- `Initialize(ControlType, ...)`
 
 ## Related APIs
 

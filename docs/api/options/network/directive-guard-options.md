@@ -17,7 +17,7 @@ responses such as `UNAUTHORIZED`, `RATE_LIMITED`, and `TIMEOUT`.
 
 | Property | Default | Validation | Runtime effect |
 | --- | ---: | --- | --- |
-| `DefaultCooldownMs` | `200` | `0..60000` | Minimum cooldown, in milliseconds, between repeated directives of the same category per connection. `0` disables suppression. |
+| `DefaultCooldownMs` | `1000` | `0..60000` | Minimum cooldown, in milliseconds, between repeated directives of the same category per connection. `0` disables suppression. |
 
 `Validate()` uses `System.ComponentModel.DataAnnotations.Range` and calls
 `Validator.ValidateObject(..., validateAllProperties: true)`.

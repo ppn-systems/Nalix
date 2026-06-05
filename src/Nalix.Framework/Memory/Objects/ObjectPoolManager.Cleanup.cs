@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Framework.Memory.Pools;
+using Nalix.Abstractions.Diagnostics;
 
 namespace Nalix.Framework.Memory.Objects;
 
@@ -24,12 +25,8 @@ public sealed partial class ObjectPoolManager
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new
-            {
-                Cycle = cycle,
-                DeepTrim = isDeepTrim,
-                Phase = "ObjectTrimRun"
-            });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new DiagnosticLog("FW.ObjectPoolManager:Internal",
+                $"pool-trimmed cycle={cycle} deep-trim={isDeepTrim.ToString().ToLowerInvariant()} phase=ObjectTrimRun"));
         }
 
         int totalRemoved = 0;
@@ -55,12 +52,8 @@ public sealed partial class ObjectPoolManager
                 // One pool failing must not crash the entire trim job
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolFailure))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new
-                    {
-                        Type = type.Name,
-                        Error = ex.Message,
-                        Phase = "TrimSinglePool"
-                    });
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new DiagnosticLog("FW.ObjectPoolManager:Internal",
+                        $"pool-failure type={type.Name} phase=TrimSinglePool", ex));
                 }
             }
         }
@@ -71,12 +64,8 @@ public sealed partial class ObjectPoolManager
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new
-                {
-                    Cycle = cycle,
-                    DeepTrim = isDeepTrim,
-                    TotalRemoved = totalRemoved,
-                });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new DiagnosticLog("FW.ObjectPoolManager:Internal",
+                    $"pool-trimmed cycle={cycle} deep-trim={isDeepTrim.ToString().ToLowerInvariant()} removed={totalRemoved}"));
             }
         }
 

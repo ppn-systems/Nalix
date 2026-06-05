@@ -9,8 +9,9 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Network.Connections;
-using Nalix.Network.Routing;
+using Nalix.Abstractions.Primitives;
 using Nalix.Runtime.Dispatching;
+using Nalix.Runtime.Routing;
 using Xunit;
 
 namespace Nalix.Network.Tests;
@@ -23,7 +24,7 @@ public sealed class PacketContextBridgeDispatchTests
     private sealed class TestOpCodeExtractor : IOpCodeExtractor
     {
         public ushort Extract(System.ReadOnlySpan<byte> payload) =>
-            payload.Length >= 6 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[4..]) : (ushort)0;
+            payload.Length >= 2 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[0..]) : (ushort)0;
     }
 
     [Fact]
@@ -72,7 +73,10 @@ public sealed class PacketContextBridgeDispatchTests
     private static Control CreateControlPacket(ushort opCode)
     {
         Control packet = new();
-        packet.Initialize(opCode, ControlType.NONE, sequenceId: 1);
+        packet.Initialize(ControlType.NONE, sequenceId: 1);
+        var h = packet.Header;
+        h.OpCode = opCode;
+        packet.Header = h;
         return packet;
     }
 

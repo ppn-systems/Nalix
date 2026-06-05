@@ -32,18 +32,18 @@ public sealed class PacketLifecycleTests : IDisposable
     [Fact]
     public void PacketLease_Struct_Disposal_ReturnsToPool()
     {
-        Handshake packet = _manager.Get<Handshake>();
-        Assert.Equal(1L, (long)_manager.GetTypeInfo<Handshake>()["Outstanding"]);
+        Control packet = _manager.Get<Control>();
+        Assert.Equal(1L, (long)_manager.GetTypeInfo<Control>()["Outstanding"]);
 
         // Create a lease
-        using (var lease = new PacketScope<Handshake>(packet))
+        using (var lease = new PacketScope<Control>(packet))
         {
             Assert.Same(packet, lease.Value);
         }
 
         // Disposal of lease should have called packet.Dispose() which returns to manager
-        Assert.Equal(0L, (long)_manager.GetTypeInfo<Handshake>()["Outstanding"]);
-        Assert.Equal(1L, (long)_manager.GetTypeInfo<Handshake>()["TotalReturns"]);
+        Assert.Equal(0L, (long)_manager.GetTypeInfo<Control>()["Outstanding"]);
+        Assert.Equal(1L, (long)_manager.GetTypeInfo<Control>()["TotalReturns"]);
     }
 
 #if DEBUG
@@ -52,18 +52,18 @@ public sealed class PacketLifecycleTests : IDisposable
     {
         Assert.NotNull(PacketRegistry.Manager);
         Assert.Same(_manager, PacketRegistry.Manager);
-        Handshake packet = _manager.Get<Handshake>();
-        Assert.Equal(1L, (long)_manager.GetTypeInfo<Handshake>()["Outstanding"]);
+        Control packet = _manager.Get<Control>();
+        Assert.Equal(1L, (long)_manager.GetTypeInfo<Control>()["Outstanding"]);
 
         // First disposal
         packet.Dispose();
-        Assert.Equal(0L, (long)_manager.GetTypeInfo<Handshake>()["Outstanding"]);
-        Assert.Equal(1L, (long)_manager.GetTypeInfo<Handshake>()["TotalReturns"]);
+        Assert.Equal(0L, (long)_manager.GetTypeInfo<Control>()["Outstanding"]);
+        Assert.Equal(1L, (long)_manager.GetTypeInfo<Control>()["TotalReturns"]);
 
         // Second disposal should be a no-op
         packet.Dispose();
-        Assert.Equal(0L, (long)_manager.GetTypeInfo<Handshake>()["Outstanding"]);
-        Assert.Equal(1L, (long)_manager.GetTypeInfo<Handshake>()["TotalReturns"]); // Should NOT be 2
+        Assert.Equal(0L, (long)_manager.GetTypeInfo<Control>()["Outstanding"]);
+        Assert.Equal(1L, (long)_manager.GetTypeInfo<Control>()["TotalReturns"]); // Should NOT be 2
     }
 #endif
 }

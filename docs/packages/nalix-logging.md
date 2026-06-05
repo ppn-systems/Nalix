@@ -9,28 +9,27 @@ Register the logger once during startup and reuse it across the process via `Ins
 ```csharp
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Injection;
-using Nalix.Logging;
+using Nalix.Logging.Extensions;
 
-ILogger logger = NLogix.Host.Instance;
+ILogger logger = NLogixFx.Logger;
 InstanceManager.Instance.Register<ILogger>(logger);
 ```
 
-`NLogix.Host.Instance` creates a default logger with console output. For custom configuration, use the builder pattern:
+`NLogixFx.Logger` provides the global default logger initialized with console and file targets. For custom configuration, use the builder pattern:
 
 ```csharp
-using Nalix.Logging;
-using Nalix.Logging.Options;
+using Nalix.Logging.Extensions;
 using Nalix.Logging.Sinks;
 
-NLogix logger = new(cfg =>
+NLogixFx.Configure(cfg =>
 {
     cfg.SetMinimumLevel(LogLevel.Debug)
        .ConfigureFileOptions(f =>
        {
            f.LogFileName = "server.log";
        })
-       .RegisterTarget(new BatchConsoleLogTarget())
-       .RegisterTarget(new BatchFileLogTarget());
+       .AddTarget(new BatchConsoleLogTarget())
+       .AddTarget(new BatchFileLogTarget());
 });
 ```
 
@@ -39,7 +38,7 @@ NLogix logger = new(cfg =>
 | Component | Purpose |
 | --- | --- |
 | `NLogix` | Logger implementation with batched asynchronous output |
-| `NLogix.Host` | Singleton host accessor for the default logger instance |
+| `NLogixFx` | Static extensions providing the global `Logger` instance and `Configure` method |
 | `NLogixOptions` | Configuration for minimum level, timestamps, and metadata |
 | `BatchConsoleLogTarget` | High-throughput batched console sink |
 | `BatchFileLogTarget` | Asynchronous file sink with configurable file name and rotation |
@@ -63,10 +62,10 @@ public sealed class MyCustomTarget : INLogixTarget
     }
 }
 
-// Register during logger construction
-NLogix logger = new(cfg =>
+// Register during logger configuration
+NLogixFx.Configure(cfg =>
 {
-    cfg.RegisterTarget(new MyCustomTarget());
+    cfg.AddTarget(new MyCustomTarget());
 });
 ```
 

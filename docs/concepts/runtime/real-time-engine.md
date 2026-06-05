@@ -108,7 +108,7 @@ Handler attributes become runtime behavior through cached metadata:
 [PacketOpcode(0x3001)]
 [PacketPermission(PermissionLevel.USER)]
 [PacketTimeout(3000)]
-[PacketRateLimit(maxRequests: 30, windowSeconds: 10)]
+[PacketRateLimit(requestsPerSecond: 30, burst: 10)]
 [PacketConcurrencyLimit(maxConcurrent: 4)]
 public ValueTask<PositionAck> HandlePosition(
     IPacketContext<PositionUpdate> context)

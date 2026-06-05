@@ -160,10 +160,13 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
     {
         _ = Interlocked.Exchange(ref _state, (int)PacketContextState.InUse);
 
-        this.Packet = packet ?? throw new ArgumentNullException(nameof(packet));
-        this.Connection = connection ?? throw new ArgumentNullException(nameof(connection));
-        this.Attributes = descriptor;
+        ArgumentNullException.ThrowIfNull(packet);
+        ArgumentNullException.ThrowIfNull(connection);
+
+        this.Packet = packet;
         this.IsReliable = reliable;
+        this.Connection = connection;
+        this.Attributes = descriptor;
         this.CancellationToken = token;
 
         this.Sender.Initialize(this);

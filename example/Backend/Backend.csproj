@@ -18,26 +18,14 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\src\Nalix.SDK\Nalix.SDK.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Logging\Nalix.Logging.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Network\Nalix.Network.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Runtime\Nalix.Runtime.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Hosting\Nalix.Hosting.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
-		<ProjectReference Include="..\..\tools\Nalix.LoadTester.Contracts\Nalix.LoadTester.Contracts.csproj" />
+		<ProjectReference Include="..\..\extensions\Nalix.Observability\Nalix.Observability.csproj" />
 		
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.8" />
-		
-		<ProjectReference Include="..\..\src\Nalix.Analyzers.Generators\Nalix.Analyzers.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="PublishAot;PublishTrimmed;IsTrimmable;IsAotCompatible;RuntimeIdentifier;RuntimeIdentifiers" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Reference Include="Nalix.Observability.Contracts">
-			<HintPath>..\dll\Nalix.Observability.Contracts.dll</HintPath>
-		</Reference>
-		<Reference Include="Nalix.Observability.Handlers">
-			<HintPath>..\dll\Nalix.Observability.Handlers.dll</HintPath>
-		</Reference>
 	</ItemGroup>
 
 </Project>

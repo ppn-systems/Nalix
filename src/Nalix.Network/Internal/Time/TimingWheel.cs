@@ -1,14 +1,15 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
@@ -55,7 +56,7 @@ namespace Nalix.Network.Internal.Time;
 /// The background loop is single-consumer and advances the wheel using <see cref="PeriodicTimer"/>.</para>
 /// <para><b>Pool ownership:</b> <see cref="RUN_LOOP"/> is the <em>only</em> place that returns
 /// <see cref="TimeoutTask"/> to the pool. <see cref="Unregister"/> only removes the connection from
-/// <c>_active</c> — the task stays in the wheel queue until the loop dequeues it, at which point the
+/// <c>_active</c> â€” the task stays in the wheel queue until the loop dequeues it, at which point the
 /// version mismatch causes a safe <c>Return</c>. This avoids the race where pool-reset clears
 /// <c>task.Conn</c> before the loop has a chance to read it.</para>
 /// </remarks>
@@ -75,7 +76,6 @@ internal sealed class TimingWheel : IActivatable
 {
     #region Fields
 
-    private readonly ILogger? _logger;
     private readonly TimingWheelOptions _options;
 
 #pragma warning disable CA2213 // Disposable fields should be disposed
@@ -236,7 +236,6 @@ internal sealed class TimingWheel : IActivatable
     /// </summary>
     public TimingWheel()
     {
-        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
         _options = ConfigurationManager.Instance.Get<TimingWheelOptions>();
         _poolManager = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
@@ -310,9 +309,9 @@ internal sealed class TimingWheel : IActivatable
             }
         );
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
-            _logger.LogInformation("[NW.TimingWheel:Activate] activated (ref={ActiveListeners}) wheelsize={WheelSize} tick={TickMs}ms idle={IdleTimeoutMs}ms mask={UseMask}", _activeListeners, _wheelSize, _tickMs, _idleTimeoutMs, _useMask);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.TimingWheelBucket:Activate", $"activated active-listeners={_activeListeners.ToString(CultureInfo.InvariantCulture)} wheel-size={_wheelSize.ToString(CultureInfo.InvariantCulture)} tick-ms={_tickMs.ToString(CultureInfo.InvariantCulture)} idle-timeout-ms={_idleTimeoutMs.ToString(CultureInfo.InvariantCulture)} use-mask={_useMask.ToString().ToLowerInvariant()}"));
         }
     }
 
@@ -362,17 +361,21 @@ internal sealed class TimingWheel : IActivatable
         }
         catch (ObjectDisposedException ex)
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
                 string exceptionType = ex.GetType().Name;
-                _logger.LogDebug(ex, "[NW.TimingWheel:Deactivate] cts-cancel-ignored reason={ExceptionType}", exceptionType);
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
+                {
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", $"cts-cancel-ignored reason-exception-type={exceptionType}", ex));
+                }
+                ;
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                _logger.LogWarning(ex, "[NW.TimingWheel:Deactivate] cts-cancel-failed");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", "cts-cancel-failed", ex));
             }
         }
 
@@ -382,17 +385,21 @@ internal sealed class TimingWheel : IActivatable
         }
         catch (ObjectDisposedException ex)
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
                 string exceptionType = ex.GetType().Name;
-                _logger.LogDebug(ex, "[NW.TimingWheel:Deactivate] cts-dispose-ignored reason={ExceptionType}", exceptionType);
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
+                {
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", $"cts-dispose-ignored reason-exception-type={exceptionType}", ex));
+                }
+                ;
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                _logger.LogWarning(ex, "[NW.TimingWheel:Deactivate] cts-dispose-failed");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", "cts-dispose-failed", ex));
             }
         }
 
@@ -402,17 +409,17 @@ internal sealed class TimingWheel : IActivatable
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                _logger.LogWarning(ex, "[NW.TimingWheel:Deactivate] worker-dispose-failed");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", "worker-dispose-failed", ex));
             }
         }
 
         this.DRAIN_AND_RELEASE_ALL_BUCKETS();
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
-            _logger.LogInformation("[NW.TimingWheel:Deactivate] deactivated");
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", "deactivated"));
         }
     }
 
@@ -610,7 +617,7 @@ internal sealed class TimingWheel : IActivatable
                     {
                         TimeoutTask? next = task.Next;
 
-                        // ── Defensive null-guard ──────────────────────────────────────────
+                        // â”€â”€ Defensive null-guard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                         ITimeoutTrackedConnection? connection = task.Conn;
 
                         if (connection is null)
@@ -621,7 +628,7 @@ internal sealed class TimingWheel : IActivatable
                             continue;
                         }
 
-                        // ── Stale-task check ──────────────────────────────────────────────
+                        // â”€â”€ Stale-task check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                         // If version mismatch or connection is marked as not in wheel, it's stale.
                         if (connection.TimeoutVersion != task.Version || !connection.IsRegisteredInWheel)
                         {
@@ -633,7 +640,7 @@ internal sealed class TimingWheel : IActivatable
                             continue;
                         }
 
-                        // ── Rounds remaining ──────────────────────────────────────────────
+                        // â”€â”€ Rounds remaining â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                         if (task.Rounds > 0)
                         {
                             task.Rounds--;
@@ -647,7 +654,7 @@ internal sealed class TimingWheel : IActivatable
                             continue;
                         }
 
-                        // ── Idle-time check ───────────────────────────────────────────────
+                        // â”€â”€ Idle-time check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                         if (!connection.ExcludeFromIdleTimeout)
                         {
                             connection.IsRegisteredInWheel = false;
@@ -658,14 +665,19 @@ internal sealed class TimingWheel : IActivatable
                             continue;
                         }
 
-                        // ── Idle-time check ───────────────────────────────────────────────
+                        // â”€â”€ Idle-time check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                         long idleMs = Clock.UnixMillisecondsNow() - connection.LastPingTime;
 
                         if (idleMs >= _idleTimeoutMs)
                         {
-                            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                             {
-                                _logger.LogDebug("[NW.TimingWheel] timeout remote={ConnectionNetworkEndpointAddress} idle={IdleMs}ms", connection.NetworkEndpoint?.Address, idleMs);
+                                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
+                                {
+                                    string idleMsStr = idleMs.ToString(CultureInfo.InvariantCulture);
+                                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Internal", $"timeout remote={connection.NetworkEndpoint.Address} idle-ms={idleMsStr}"));
+                                }
+                                ;
                             }
 
                             try
@@ -674,9 +686,13 @@ internal sealed class TimingWheel : IActivatable
                             }
                             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                             {
-                                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                                 {
-                                    _logger.LogError(ex, "[NW.TimingWheel] close-error remote={ConnectionNetworkEndpointAddress}", connection.NetworkEndpoint?.Address);
+                                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+                                    {
+                                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.TimingWheelBucket:Internal", $"close-error remote={connection.NetworkEndpoint.Address}", ex));
+                                    }
+                                    ;
                                 }
                             }
 
@@ -689,7 +705,7 @@ internal sealed class TimingWheel : IActivatable
                             continue;
                         }
 
-                        // ── Re-schedule ───────────────────────────────────────────────────
+                        // â”€â”€ Re-schedule â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                         long remainingMs = _idleTimeoutMs - idleMs;
                         long ticksMore = Math.Max(1, remainingMs / _tickMs);
 
@@ -717,9 +733,9 @@ internal sealed class TimingWheel : IActivatable
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                _logger.LogError(ex, "[NW.TimingWheel] loop-error");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.TimingWheelBucket:Internal", "loop-error", ex));
             }
         }
     }
@@ -766,3 +782,5 @@ internal sealed class TimingWheel : IActivatable
 
     #endregion Helpers
 }
+
+

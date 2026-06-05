@@ -13,8 +13,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\Nalix.Analyzers\Nalix.Analyzers.csproj" />
-        <ProjectReference Include="..\..\src\Nalix.Analyzers.CodeFixes\Nalix.Analyzers.CodeFixes.csproj" />
+        <ProjectReference Include="..\..\analyzers\Nalix.Analyzers\Nalix.Analyzers.csproj" />
+        <ProjectReference Include="..\..\analyzers\Nalix.Analyzers.CodeFixes\Nalix.Analyzers.CodeFixes.csproj" />
         <ProjectReference Include="..\..\src\Nalix.Abstractions\Nalix.Abstractions.csproj" />
         <ProjectReference Include="..\..\src\Nalix.Codec\Nalix.Codec.csproj" />
         <ProjectReference Include="..\..\src\Nalix.Runtime\Nalix.Runtime.csproj" />

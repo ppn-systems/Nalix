@@ -11,6 +11,7 @@ using System.Threading;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Framework.Extensions;
+using Nalix.Abstractions.Diagnostics;
 
 namespace Nalix.Framework.Tasks;
 
@@ -63,7 +64,7 @@ public sealed partial class TaskManager
         {
             if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Failed, new { Action = "MemoryDiagnostics", Exception = ex.Message });
+                Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "memory-diagnostics-failed", ex));
             }
         }
 
@@ -92,20 +93,20 @@ public sealed partial class TaskManager
         {
             if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Failed, new { Action = "ProcessHealthDiagnostics", Exception = ex.Message });
+                Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "process-health-diagnostics-failed", ex));
             }
         }
 
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine("Monitoring Statistics:");
         double uptimeSec = (DateTimeOffset.UtcNow - Process.GetCurrentProcess().StartTime.ToUniversalTime()).TotalSeconds;
-        double workerTps = uptimeSec > 0 ? _workerExecutionCount / uptimeSec : 0;
+        double workerTps = uptimeSec > 0 ? _workerCompletionCount / uptimeSec : 0;
         double recurringTps = uptimeSec > 0 ? _recurringExecutionCount / uptimeSec : 0;
 
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Worker Execution Count            : {_workerExecutionCount} ({workerTps:F2} ops/s)");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Worker Execution Time     : {this.AverageWorkerExecutionTime:F2} ms");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"P95 Worker Execution Time         : <{this.P95WorkerExecutionTime:F2} ms");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"P99 Worker Execution Time         : <{this.P99WorkerExecutionTime:F2} ms");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Worker Completion Count           : {_workerCompletionCount} ({workerTps:F2} ops/s)");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Worker Uptime             : {this.AverageWorkerUptime:F2} ms");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"P95 Worker Uptime                 : <{this.P95WorkerUptime:F2} ms");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"P99 Worker Uptime                 : <{this.P99WorkerUptime:F2} ms");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Worker Wait Time          : {this.AverageWorkerWaitTime:F2} ms");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Peak Running Workers              : {this.PeakRunningWorkerCount}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Worker Error Count                : {this.WorkerErrorCount}");
@@ -297,10 +298,10 @@ public sealed partial class TaskManager
         {
         }
 
-        writer.WriteNumber("WorkerExecutionCount", _workerExecutionCount);
-        writer.WriteNumber("AverageWorkerExecutionTimeMs", this.AverageWorkerExecutionTime);
-        writer.WriteNumber("P95WorkerExecutionTimeMs", this.P95WorkerExecutionTime);
-        writer.WriteNumber("P99WorkerExecutionTimeMs", this.P99WorkerExecutionTime);
+        writer.WriteNumber("WorkerCompletionCount", _workerCompletionCount);
+        writer.WriteNumber("AverageWorkerUptimeMs", this.AverageWorkerUptime);
+        writer.WriteNumber("P95WorkerUptimeMs", this.P95WorkerUptime);
+        writer.WriteNumber("P99WorkerUptimeMs", this.P99WorkerUptime);
         writer.WriteNumber("AverageWorkerWaitTimeMs", this.AverageWorkerWaitTime);
         writer.WriteNumber(nameof(this.PeakRunningWorkerCount), this.PeakRunningWorkerCount);
         writer.WriteNumber(nameof(this.WorkerErrorCount), this.WorkerErrorCount);
