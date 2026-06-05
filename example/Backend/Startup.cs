@@ -1,7 +1,6 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Runtime.CompilerServices;
 using Backend.Attributes;
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Memory.Buffers;
@@ -9,7 +8,6 @@ using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Options;
 using Nalix.Hosting;
 using Nalix.Hosting.Protocols;
-using Nalix.LoadTester.Contracts;
 using Nalix.Logging;
 using Nalix.Logging.Sinks;
 using Nalix.Network.Connections;
@@ -34,8 +32,6 @@ internal class Startup
 
     public static NetworkApplication Configure(ILogger logger)
     {
-        RuntimeHelpers.RunModuleConstructor(typeof(BenchmarkPacket).Module.ModuleHandle);
-
         ConnectionHub hub = new();
         BufferPoolManager bufferPool = new();
         ObjectPoolManager objectPool = new();
@@ -44,13 +40,12 @@ internal class Startup
             .UseTimeSync()
             .UseSessions()
             .UseSystemControl()
+            .UseObservability()
             .UseSecureConnections()
             .ConfigureLogging(logger)
             .ConfigureConnectionHub(hub)
             .ConfigureBufferPoolManager(bufferPool)
             .ConfigureObjectPoolManager(objectPool)
-            .AddHandler<BenchmarkHandlers>()
-            .UseObservability()
             .AddMetadataProvider<PacketTagMetadataProvider>()
             .Configure<BufferOptions>(o =>
             {

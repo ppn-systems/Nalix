@@ -110,13 +110,13 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         _proxyConfig.Validate();
         _protectionConfig.Validate();
 
-        _windowTicks = 0;
-        _maxPerEndpoint = 0;
-        _maxGlobalConnections = 0;
-        _logSuppressWindowTicks = 0;
+        _cleanupInterval = _config.CleanupInterval;
+        _inactivityThreshold = _config.InactivityThreshold;
 
-        _cleanupInterval = TimeSpan.Zero;
-        _inactivityThreshold = TimeSpan.Zero;
+        _windowTicks = _config.ConnectionRateWindow.Ticks;
+        _maxPerEndpoint = _config.MaxConnectionsPerIpAddress;
+        _maxGlobalConnections = _protectionConfig.MaxConnections;
+        _logSuppressWindowTicks = _protectionConfig.DDoSLogSuppressWindow.Ticks;
 
         _banRepository = new NetworkBanRepository();
         _accessList = new NetworkAccessList(_proxyConfig);

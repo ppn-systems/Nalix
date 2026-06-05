@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
-using Nalix.Environment;
 using Nalix.Framework.Injection;
 
 namespace Nalix.Hosting.Internal;
@@ -19,10 +18,13 @@ internal sealed class DiagnosticChannel :
     IObserver<KeyValuePair<string, object?>>,
     IDisposable
 {
+    #region Fields
+
     private static readonly HashSet<string> s_targetListeners = new(StringComparer.Ordinal)
     {
-        DiagnosticsEvents.ListenerName,
-        Framework.DiagnosticsEvents.ListenerName
+        Network.DiagnosticsEvents.ListenerName,
+        Framework.DiagnosticsEvents.ListenerName,
+        Environment.DiagnosticsEvents.ListenerName,
     };
 
     private static readonly Dictionary<string, LogLevel> s_eventLevels = new(StringComparer.Ordinal)
@@ -51,50 +53,107 @@ internal sealed class DiagnosticChannel :
         [Framework.DiagnosticsEvents.Injection.Registered] = LogLevel.Debug,
 
         // Environment.Configuration
-        [DiagnosticsEvents.Configuration.Flush] = LogLevel.Debug,
-        [DiagnosticsEvents.Configuration.Cache] = LogLevel.Debug,
-        [DiagnosticsEvents.Configuration.Container] = LogLevel.Debug,
-        [DiagnosticsEvents.Configuration.Directory] = LogLevel.Debug,
-        [DiagnosticsEvents.Configuration.Failure] = LogLevel.Warning,
-        [DiagnosticsEvents.Configuration.Reload] = LogLevel.Information,
-        [DiagnosticsEvents.Configuration.PathChanged] = LogLevel.Information,
+        [Environment.DiagnosticsEvents.Configuration.Flush] = LogLevel.Debug,
+        [Environment.DiagnosticsEvents.Configuration.Cache] = LogLevel.Debug,
+        [Environment.DiagnosticsEvents.Configuration.Container] = LogLevel.Debug,
+        [Environment.DiagnosticsEvents.Configuration.Directory] = LogLevel.Debug,
+        [Environment.DiagnosticsEvents.Configuration.Failure] = LogLevel.Warning,
+        [Environment.DiagnosticsEvents.Configuration.Reload] = LogLevel.Information,
+        [Environment.DiagnosticsEvents.Configuration.PathChanged] = LogLevel.Information,
 
         // Environment.IO
-        [DiagnosticsEvents.IO.Cleanup] = LogLevel.Debug,
-        [DiagnosticsEvents.IO.Directory] = LogLevel.Debug,
+        [Environment.DiagnosticsEvents.IO.Cleanup] = LogLevel.Debug,
+        [Environment.DiagnosticsEvents.IO.Directory] = LogLevel.Debug,
 
         // Environment.Random
-        [DiagnosticsEvents.Random.Init] = LogLevel.Information,
+        [Environment.DiagnosticsEvents.Random.Init] = LogLevel.Information,
 
         // Environment.Time
-        [DiagnosticsEvents.Time.Reset] = LogLevel.Information,
-        [DiagnosticsEvents.Time.Synchronized] = LogLevel.Information,
+        [Environment.DiagnosticsEvents.Time.Reset] = LogLevel.Information,
+        [Environment.DiagnosticsEvents.Time.Synchronized] = LogLevel.Information,
+
+        // Network.Listeners
+        [Network.DiagnosticsEvents.Listeners.Started] = LogLevel.Information,
+        [Network.DiagnosticsEvents.Listeners.Stopped] = LogLevel.Information,
+        [Network.DiagnosticsEvents.Listeners.BindFailed] = LogLevel.Warning,
+        [Network.DiagnosticsEvents.Listeners.AcceptFailed] = LogLevel.Warning,
+
+        // Network.Connections
+        [Network.DiagnosticsEvents.Connections.Opened] = LogLevel.Debug,
+        [Network.DiagnosticsEvents.Connections.Closed] = LogLevel.Debug,
+        [Network.DiagnosticsEvents.Connections.Rejected] = LogLevel.Warning,
+        [Network.DiagnosticsEvents.Connections.Timeout] = LogLevel.Debug,
+
+        // Network.Transport
+        [Network.DiagnosticsEvents.Transport.ReceiveFailed] = LogLevel.Warning,
+        [Network.DiagnosticsEvents.Transport.SendFailed] = LogLevel.Warning,
+        [Network.DiagnosticsEvents.Transport.SocketError] = LogLevel.Warning,
+        [Network.DiagnosticsEvents.Transport.Disconnected] = LogLevel.Debug,
+        [Network.DiagnosticsEvents.Transport.MalformedFrame] = LogLevel.Warning,
+        [Network.DiagnosticsEvents.Transport.OversizedFrame] = LogLevel.Warning,
+
+        // Network.Security
+        [Network.DiagnosticsEvents.Security.RateLimited] = LogLevel.Debug,
+        [Network.DiagnosticsEvents.Security.Blacklisted] = LogLevel.Information,
+        [Network.DiagnosticsEvents.Security.Banned] = LogLevel.Information,
+        [Network.DiagnosticsEvents.Security.SuspiciousPacket] = LogLevel.Warning,
+        [Network.DiagnosticsEvents.Security.DdosDetected] = LogLevel.Warning,
+        [Network.DiagnosticsEvents.Security.LimitDriftCorrected] = LogLevel.Warning,
+        [Network.DiagnosticsEvents.Security.CleanupError] = LogLevel.Warning,
+
+        // Network.Internal
+        [Network.DiagnosticsEvents.Internal.Trace] = LogLevel.Trace,
+        [Network.DiagnosticsEvents.Internal.Debug] = LogLevel.Debug,
+        [Network.DiagnosticsEvents.Internal.Information] = LogLevel.Information,
+        [Network.DiagnosticsEvents.Internal.Warning] = LogLevel.Warning,
+        [Network.DiagnosticsEvents.Internal.Error] = LogLevel.Error,
+        [Network.DiagnosticsEvents.Internal.Critical] = LogLevel.Critical,
+        [Network.DiagnosticsEvents.Internal.LoopFaulted] = LogLevel.Error,
+        [Network.DiagnosticsEvents.Internal.ResourceExhausted] = LogLevel.Warning,
     };
 
-    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private readonly ILogger? _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
-    private IDisposable? _listenerSubscription;
+    private readonly Dictionary<string, IDisposable> _listenerSubscriptions = new(StringComparer.Ordinal);
     private IDisposable? _allListenersSubscription;
 
     private readonly LogLevel _minLevel;
 
+    #endregion Fields
+
+    #region Constructor
+
     public DiagnosticChannel(LogLevel minLevel) => _minLevel = minLevel;
+
+    #endregion Constructor
+
+    #region API
 
     public void Subscribe()
     {
         _allListenersSubscription?.Dispose();
+        this.DisposeListenerSubscriptions();
+
         _allListenersSubscription = DiagnosticListener.AllListeners.Subscribe(this);
     }
+
+    #endregion API
 
     #region IObserver<DiagnosticListener>
 
     void IObserver<DiagnosticListener>.OnNext(DiagnosticListener listener)
     {
-        if (s_targetListeners.Contains(listener.Name))
+        if (!s_targetListeners.Contains(listener.Name))
         {
-            _listenerSubscription?.Dispose();
-            _listenerSubscription = listener.Subscribe(this);
+            return;
         }
+
+        if (_listenerSubscriptions.ContainsKey(listener.Name))
+        {
+            return;
+        }
+
+        _listenerSubscriptions[listener.Name] = listener.Subscribe(this, this.IsEventEnabled);
     }
 
     void IObserver<DiagnosticListener>.OnError(Exception error) { }
@@ -107,40 +166,69 @@ internal sealed class DiagnosticChannel :
 
     void IObserver<KeyValuePair<string, object?>>.OnNext(KeyValuePair<string, object?> value)
     {
-        if (s_logger is null)
+        if (_logger is null)
         {
             return;
         }
 
         LogLevel level = MapLogLevel(value.Key);
 
-        if (level < _minLevel || !s_logger.IsEnabled(level))
+        if (level < _minLevel || !_logger.IsEnabled(level))
         {
             return;
         }
 
-        s_logger.Log(level, "[DIAG] {EventName} {@Payload}", value.Key, value.Value);
+        _logger.Log(level, "[DIAG] {EventName} {@Payload}", value.Key, value.Value);
     }
 
     void IObserver<KeyValuePair<string, object?>>.OnError(Exception error)
     {
-        if (s_logger is null || !s_logger.IsEnabled(LogLevel.Error))
+        if (_logger is null || !_logger.IsEnabled(LogLevel.Error))
         {
             return;
         }
 
-        s_logger?.LogError(error, "[DIAG] DiagnosticListener error");
+        _logger?.LogError(error, "[DIAG] DiagnosticListener error");
     }
 
     void IObserver<KeyValuePair<string, object?>>.OnCompleted() { }
 
     #endregion IObserver<KeyValuePair<string, object?>>
 
+    #region Private Helpers
+
+    private bool IsEventEnabled(string eventName)
+    {
+        if (_logger is null)
+        {
+            return false;
+        }
+
+        LogLevel level = MapLogLevel(eventName);
+        return level >= _minLevel && _logger.IsEnabled(level);
+    }
+
     private static LogLevel MapLogLevel(string eventName) => s_eventLevels.TryGetValue(eventName, out LogLevel level) ? level : LogLevel.Debug;
+
+    #endregion Private Helpers
+
+    #region Disposal
+
+    private void DisposeListenerSubscriptions()
+    {
+        foreach (IDisposable subscription in _listenerSubscriptions.Values)
+        {
+            subscription.Dispose();
+        }
+
+        _listenerSubscriptions.Clear();
+    }
 
     public void Dispose()
     {
         _allListenersSubscription?.Dispose();
-        _listenerSubscription?.Dispose();
+        this.DisposeListenerSubscriptions();
     }
+
+    #endregion Disposal
 }

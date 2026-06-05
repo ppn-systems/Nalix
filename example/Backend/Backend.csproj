@@ -24,7 +24,6 @@
 		<ProjectReference Include="..\..\src\Nalix.Hosting\Nalix.Hosting.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
 		<ProjectReference Include="..\..\extensions\Nalix.Observability\Nalix.Observability.csproj" />
-		<ProjectReference Include="..\..\tools\Nalix.LoadTester.Contracts\Nalix.LoadTester.Contracts.csproj" />
 		
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.8" />
 	</ItemGroup>

@@ -3,10 +3,10 @@
 
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Codec.ProtocolFrames;
-using SDK.Core;
-using SDK.UI;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport.Extensions;
+using SDK.Core;
+using SDK.UI;
 using Spectre.Console;
 
 namespace SDK.Commands;
@@ -41,9 +41,7 @@ internal sealed class ControlCommands
 #pragma warning disable CA1031 // Do not catch general exception types
         try
         {
-            await _client.Session.SendControlAsync(
-                opCode: (ushort)ProtocolOpCode.SYSTEM_CONTROL,
-                type: type).ConfigureAwait(false);
+            await _client.Session.SendControlAsync(type: type).ConfigureAwait(false);
 
             _log.Send("CONTROL", $"type={type} opcode={ProtocolOpCode.SYSTEM_CONTROL}");
         }
@@ -78,9 +76,7 @@ internal sealed class ControlCommands
 #pragma warning disable CA1031 // Do not catch general exception types
         try
         {
-            await _client.Session.SendControlAsync(
-                opCode: (ushort)ProtocolOpCode.SYSTEM_CONTROL,
-                type: sendType).ConfigureAwait(false);
+            await _client.Session.SendControlAsync(type: sendType).ConfigureAwait(false);
 
             _log.Send("CONTROL", $"type={sendType} — awaiting {awaitType}...");
 
@@ -129,7 +125,7 @@ internal sealed class ControlCommands
         bool encrypt = AnsiConsole.Confirm("[steelblue1]Encrypt?[/]", defaultValue: false);
 
         using Control request = _client.Session
-            .NewControl((ushort)ProtocolOpCode.SYSTEM_CONTROL, sendType)
+            .NewControl(sendType)
             .Build();
 
         RequestOptions opts = RequestOptions.Default
