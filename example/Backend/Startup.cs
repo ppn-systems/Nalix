@@ -28,7 +28,7 @@ internal class Startup
 
     public static ILogger CreateBootstrapLogger() => new NLogixBuilder()
         .AddTarget(new BatchConsoleLogTarget(t => t.EnableColors = false))
-        .SetMinimumLevel(LogLevel.Debug)
+        .SetMinimumLevel(LogLevel.Information)
         .Build();
 
     public static NetworkApplication Configure(ILogger logger)

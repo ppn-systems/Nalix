@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Sessions;
@@ -14,8 +15,6 @@ using Nalix.Environment.Configuration;
 using Nalix.Environment.Configuration.Binding;
 using Nalix.Environment.Memory;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Memory.Objects;
 using Nalix.Hosting.Internal;
 using Nalix.Network.Listeners.Udp;
 using Nalix.Runtime.Dispatching;
@@ -117,26 +116,26 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureBufferPoolManager(BufferPoolManager manager)
+    public INetworkApplicationBuilder ConfigureBufferPoolManager(IBufferPoolManager manager)
     {
         ArgumentNullException.ThrowIfNull(manager);
 
         _state.HasCustomBufferPoolManager = true;
-        InstanceManager.Instance.Register<BufferPoolManager>(manager);
+        InstanceManager.Instance.Register<IBufferPoolManager>(manager);
         BufferLease.ByteArrayPool.Configure(manager);
 
         return this;
     }
 
     /// <summary>
-    /// Explicitly registers a <see cref="ObjectPoolManager"/> instance to be used by the application.
+    /// Explicitly registers a <see cref="IObjectPoolManager"/> instance to be used by the application.
     /// </summary>
     /// <param name="manager">The manager instance to use.</param>
     /// <returns>The current builder instance.</returns>
-    public INetworkApplicationBuilder ConfigureObjectPoolManager(ObjectPoolManager manager)
+    public INetworkApplicationBuilder ConfigureObjectPoolManager(IObjectPoolManager manager)
     {
         ArgumentNullException.ThrowIfNull(manager);
-        InstanceManager.Instance.Register<ObjectPoolManager>(manager);
+        InstanceManager.Instance.Register<IObjectPoolManager>(manager);
 
         BufferLease.Configure(manager);
         PacketRegistry.Configure(manager);
