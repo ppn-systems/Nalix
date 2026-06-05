@@ -40,7 +40,6 @@ internal class Startup
             .UseTimeSync()
             .UseSessions()
             .UseSystemControl()
-            .UseObservability()
             .UseSecureConnections()
             .ConfigureLogging(logger)
             .ConfigureConnectionHub(hub)

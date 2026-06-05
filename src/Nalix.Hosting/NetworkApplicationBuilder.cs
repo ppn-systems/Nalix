@@ -75,6 +75,9 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         InstanceManager.Instance.Register<ILogger>(logger);
         _state.Logger = logger;
 
+        Bootstrap.DiagnosticChannel = new DiagnosticChannel(logger);
+        Bootstrap.DiagnosticChannel.Subscribe();
+
         return this;
     }
 

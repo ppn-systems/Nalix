@@ -117,13 +117,11 @@ internal sealed class DiagnosticChannel :
     private readonly Dictionary<string, IDisposable> _listenerSubscriptions = new(StringComparer.Ordinal);
     private IDisposable? _allListenersSubscription;
 
-    private readonly LogLevel _minLevel;
-
     #endregion Fields
 
     #region Constructor
 
-    public DiagnosticChannel(LogLevel minLevel) => _minLevel = minLevel;
+    public DiagnosticChannel(ILogger? logger) => _logger = logger;
 
     #endregion Constructor
 
@@ -166,19 +164,52 @@ internal sealed class DiagnosticChannel :
 
     void IObserver<KeyValuePair<string, object?>>.OnNext(KeyValuePair<string, object?> value)
     {
-        if (_logger is null)
+        if (_logger is null || value.Value is null)
         {
             return;
         }
 
         LogLevel level = MapLogLevel(value.Key);
 
-        if (level < _minLevel || !_logger.IsEnabled(level))
+        if (!_logger.IsEnabled(level))
         {
             return;
         }
 
-        _logger.Log(level, "[DIAG] {EventName} {@Payload}", value.Key, value.Value);
+        Type type = value.Value.GetType();
+        ObjectAccessor accessor = s_accessors.GetOrAdd(type, t => new ObjectAccessor(t));
+
+        string? message = accessor.MessageProperty?.GetValue(value.Value) as string;
+        Exception? exception = accessor.ExceptionProperty?.GetValue(value.Value) as Exception;
+
+        System.Text.StringBuilder sb = new();
+        _ = sb.Append('[').Append(GetCategory(value.Key)).Append("] ");
+
+        if (message is not null)
+        {
+            _ = sb.Append(message);
+        }
+
+        if (accessor.OtherProperties.Length > 0)
+        {
+            _ = sb.Append(" [");
+            for (int i = 0; i < accessor.OtherProperties.Length; i++)
+            {
+                if (i > 0)
+                {
+                    _ = sb.Append(", ");
+                }
+
+                _ = sb.Append(accessor.OtherProperties[i].Name).Append('=');
+                object? propVal = accessor.OtherProperties[i].GetValue(value.Value);
+                _ = sb.Append(propVal);
+            }
+
+            _ = sb.Append(']');
+        }
+
+        message = sb.ToString();
+        _logger.Log(level, default, exception, "{Message}", message);
     }
 
     void IObserver<KeyValuePair<string, object?>>.OnError(Exception error)
@@ -188,7 +219,8 @@ internal sealed class DiagnosticChannel :
             return;
         }
 
-        _logger?.LogError(error, "[DIAG] DiagnosticListener error");
+        EventId eventId = new(0, "DiagnosticChannel");
+        _logger.Log(LogLevel.Error, eventId, error, "DiagnosticListener error");
     }
 
     void IObserver<KeyValuePair<string, object?>>.OnCompleted() { }
@@ -197,6 +229,8 @@ internal sealed class DiagnosticChannel :
 
     #region Private Helpers
 
+    private static string GetCategory(string eventName) => eventName.Replace(".DiagnosticsEvents", "", StringComparison.Ordinal);
+
     private bool IsEventEnabled(string eventName)
     {
         if (_logger is null)
@@ -204,13 +238,49 @@ internal sealed class DiagnosticChannel :
             return false;
         }
 
-        LogLevel level = MapLogLevel(eventName);
-        return level >= _minLevel && _logger.IsEnabled(level);
+        return _logger.IsEnabled(MapLogLevel(eventName));
     }
 
-    private static LogLevel MapLogLevel(string eventName) => s_eventLevels.TryGetValue(eventName, out LogLevel level) ? level : LogLevel.Debug;
+    private static LogLevel MapLogLevel(string eventName) => s_eventLevels.TryGetValue(eventName, out LogLevel level) ? level : LogLevel.Trace;
 
     #endregion Private Helpers
+
+    #region Reflection Cache
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, ObjectAccessor> s_accessors = new();
+
+    private sealed class ObjectAccessor
+    {
+        public readonly System.Reflection.PropertyInfo? MessageProperty;
+        public readonly System.Reflection.PropertyInfo? ExceptionProperty;
+        public readonly System.Reflection.PropertyInfo[] OtherProperties;
+
+        public ObjectAccessor(Type type)
+        {
+            System.Reflection.PropertyInfo[] props = type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            List<System.Reflection.PropertyInfo> others = new(props.Length);
+
+            foreach (System.Reflection.PropertyInfo p in props)
+            {
+                if ((p.Name == "Message" || p.Name == "Action") && p.PropertyType == typeof(string))
+                {
+                    MessageProperty ??= p;
+                }
+                else if (p.Name == "Exception" && typeof(Exception).IsAssignableFrom(p.PropertyType))
+                {
+                    ExceptionProperty = p;
+                }
+                else
+                {
+                    others.Add(p);
+                }
+            }
+
+            OtherProperties = [.. others];
+        }
+    }
+
+    #endregion Reflection Cache
 
     #region Disposal
 

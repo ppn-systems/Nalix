@@ -143,7 +143,10 @@ public partial class TaskManager
 
             if (_workers.TryRemove(st.Id, out _))
             {
-                this.TRACE($"[FW.{nameof(TaskManager)}] cleanup-remove-ok id={st.Id}");
+                if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+                {
+                    Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new { Action = "CleanupRemoveOk", st.Id });
+                }
                 try
                 {
                     st.Cts.Dispose();
@@ -424,12 +427,18 @@ public partial class TaskManager
             };
             thread.Start();
 
-            this.TRACE($"[FW.{nameof(TaskManager)}] worker-start-dedicated id={id} name={name} group={group} ospriority={osPriority} tag={options.Tag ?? "-"}");
+            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+            {
+                Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new { Action = "WorkerStartDedicated", Id = id, Name = name, Group = group, OSPriority = osPriority, Tag = options.Tag ?? "-" });
+            }
         }
         else
         {
             st.Task = this.EXECUTE_WORKER_ASYNC(st, gate, cts);
-            this.TRACE($"[FW.{nameof(TaskManager)}] worker-start id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}");
+            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+            {
+                Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new { Action = "WorkerStart", Id = id, Name = name, Group = group, options.Priority, Tag = options.Tag ?? "-" });
+            }
         }
     }
 
@@ -701,7 +710,10 @@ public partial class TaskManager
                     // A zero-timeout acquire keeps the scheduler from overlapping the same recurring job.
                     if (!await s.Gate.WaitAsync(0, ct).ConfigureAwait(false))
                     {
-                        this.TRACE($"[FW.{nameof(TaskManager)}:Internal] gate-acquire-fail name={s.Name}");
+                        if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+                        {
+                            Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new { Action = "GateAcquireFail", s.Name });
+                        }
                         next += step;
                         continue;
                     }
@@ -854,14 +866,6 @@ public partial class TaskManager
         _ = _globalConcurrencyGate.Release();
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void TRACE(string message)
-    {
-        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Tasks.Dispatcher, new { Message = message });
-        }
-    }
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private void RETAIN_OR_REMOVE(WorkerState st)
@@ -907,7 +911,10 @@ public partial class TaskManager
             try
             {
                 gate.SemaphoreSlim.Dispose();
-                this.TRACE($"[FW.{nameof(TaskManager)}] group-gate-dispose-ok group={group}");
+                if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+                {
+                    Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new { Action = "GroupGateDisposeOk", Group = group });
+                }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
@@ -942,7 +949,10 @@ public partial class TaskManager
 
                 if (cpuUsage > threshHigh)
                 {
-                    this.TRACE($"[FW.{nameof(TaskManager)}:Internal] cpu-high usage={cpuUsage:F1}% threshold={threshHigh:F1}%");
+                    if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+                    {
+                        Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new { Action = "CpuHigh", Usage = cpuUsage, Threshold = threshHigh });
+                    }
                 }
 
                 // --- Hysteresis: tích streak, chỉ hành động khi đủ N lần liên tiếp ---
@@ -1110,7 +1120,10 @@ public partial class TaskManager
                 }
             }
 
-            this.TRACE($"[FW.TaskManager.Internal] concurrency-limit-adjusted=[{previousLimit}->{_currentConcurrencyLimit}] def={_concurrencyDeficiency}");
+            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+            {
+                Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new { Action = "ConcurrencyLimitAdjusted", PreviousLimit = previousLimit, NewLimit = _currentConcurrencyLimit, Deficiency = _concurrencyDeficiency });
+            }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
