@@ -191,5 +191,52 @@ public sealed class NetworkAccessListTests
             if (File.Exists(proxyPath)) File.Delete(proxyPath);
         }
     }
+
+    [Fact]
+    public void Reload_WhenFileChanges_UpdatesState()
+    {
+        var blacklistOptions = ConfigurationManager.Instance.Get<ConnectionBlacklistStoreOptions>();
+        blacklistOptions.Enabled = true;
+        blacklistOptions.StoreFileName = "blacklist_reload_test.txt";
+        blacklistOptions.MaxBlacklistedIps = 10;
+
+        var proxyOptions = ConfigurationManager.Instance.Get<TrustedProxyOptions>();
+        proxyOptions.StoreFileName = "trusted_proxies_reload_test.txt";
+        proxyOptions.MaxTrustedProxies = 10;
+
+        string blacklistPath = Path.Combine(Directories.ConfigurationDirectory, blacklistOptions.StoreFileName);
+        string proxyPath = Path.Combine(Directories.ConfigurationDirectory, proxyOptions.StoreFileName);
+
+        if (File.Exists(blacklistPath)) File.Delete(blacklistPath);
+        if (File.Exists(proxyPath)) File.Delete(proxyPath);
+
+        try
+        {
+            File.WriteAllLines(blacklistPath, new[] { "1.2.3.4" });
+            File.WriteAllLines(proxyPath, new[] { "10.0.0.0/24" });
+
+            NetworkAccessList accessList = new(proxyOptions);
+
+            accessList.IsBlacklisted(IPAddress.Parse("1.2.3.4")).Should().BeTrue();
+            accessList.IsBlacklisted(IPAddress.Parse("5.6.7.8")).Should().BeFalse();
+            accessList.IsTrustedProxy(IPAddress.Parse("10.0.0.5")).Should().BeTrue();
+            accessList.IsTrustedProxy(IPAddress.Parse("192.168.1.1")).Should().BeFalse();
+
+            File.WriteAllLines(blacklistPath, new[] { "5.6.7.8" });
+            File.WriteAllLines(proxyPath, new[] { "192.168.1.0/24" });
+
+            accessList.Reload();
+
+            accessList.IsBlacklisted(IPAddress.Parse("1.2.3.4")).Should().BeFalse();
+            accessList.IsBlacklisted(IPAddress.Parse("5.6.7.8")).Should().BeTrue();
+            accessList.IsTrustedProxy(IPAddress.Parse("10.0.0.5")).Should().BeFalse();
+            accessList.IsTrustedProxy(IPAddress.Parse("192.168.1.1")).Should().BeTrue();
+        }
+        finally
+        {
+            if (File.Exists(blacklistPath)) File.Delete(blacklistPath);
+            if (File.Exists(proxyPath)) File.Delete(proxyPath);
+        }
+    }
 }
 #endif

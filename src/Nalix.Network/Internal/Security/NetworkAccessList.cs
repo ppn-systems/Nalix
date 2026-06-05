@@ -117,7 +117,7 @@ internal sealed class NetworkAccessList
 
             try
             {
-                proxies = this.LoadTrustedProxies(_proxyConfig, currentState?.TrustedProxies);
+                proxies = this.LoadTrustedProxies(_proxyConfig, currentState.TrustedProxies);
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
@@ -130,7 +130,7 @@ internal sealed class NetworkAccessList
 
             try
             {
-                (ips, networks) = this.LoadBlacklistedIps(_blacklistConfig, currentState?.BlacklistedIps, currentState?.BlacklistedNetworks);
+                (ips, networks) = this.LoadBlacklistedIps(_blacklistConfig, currentState.BlacklistedIps, currentState.BlacklistedNetworks);
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
