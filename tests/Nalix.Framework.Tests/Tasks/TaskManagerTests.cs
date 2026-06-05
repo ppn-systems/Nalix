@@ -775,7 +775,7 @@ public sealed class TaskManagerTests : IDisposable
                 $"worker.batch.{i}",
                 "group-batch-test",
                 (_, _) => ValueTask.CompletedTask,
-                new WorkerOptions { Tag = "batch-test" });
+                new WorkerOptions { Tag = "batch-test", RetainFor = TimeSpan.Zero });
         }
 
         await Task.Delay(250).ConfigureAwait(false);
@@ -794,6 +794,8 @@ public sealed class TaskManagerTests : IDisposable
             var startedLogs = events.Where(ev => ev.Key == DiagnosticsEvents.Tasks.Started).ToList();
             Assert.Empty(startedLogs);
         }
+
+        await TaskManagerTestHost.WaitUntilAsync(() => manager.GetWorkers(runningOnly: false, group: "group-batch-test").Count == 0, TimeSpan.FromSeconds(5)).ConfigureAwait(false);
     }
 
     [Fact]
@@ -818,7 +820,7 @@ public sealed class TaskManagerTests : IDisposable
                 $"worker.batch.{i}",
                 "group-batch-test",
                 (_, _) => ValueTask.CompletedTask,
-                new WorkerOptions { Tag = "batch-test" });
+                new WorkerOptions { Tag = "batch-test", RetainFor = TimeSpan.Zero });
         }
 
         await Task.Delay(250).ConfigureAwait(false);
@@ -837,6 +839,8 @@ public sealed class TaskManagerTests : IDisposable
             var batchLog = events.FirstOrDefault(ev => ev.Key == DiagnosticsEvents.Tasks.Dispatcher && ev.Value is DiagnosticLog log && log.Message.Contains("workers-started"));
             Assert.Null(batchLog.Value);
         }
+
+        await TaskManagerTestHost.WaitUntilAsync(() => manager.GetWorkers(runningOnly: false, group: "group-batch-test").Count == 0, TimeSpan.FromSeconds(5)).ConfigureAwait(false);
     }
 
     private sealed class DelegateObserver<T>(Action<T> onNext) : IObserver<T>
