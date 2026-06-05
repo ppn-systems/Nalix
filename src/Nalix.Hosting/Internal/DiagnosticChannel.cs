@@ -5,8 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
-using Nalix.Framework.Injection;
 using Nalix.Abstractions.Diagnostics;
+using Nalix.Framework.Injection;
 
 namespace Nalix.Hosting.Internal;
 
@@ -23,10 +23,10 @@ internal sealed class DiagnosticChannel :
 
     private static readonly HashSet<string> s_targetListeners = new(StringComparer.Ordinal)
     {
+        Codec.DiagnosticsEvents.ListenerName,
         Network.DiagnosticsEvents.ListenerName,
         Framework.DiagnosticsEvents.ListenerName,
         Environment.DiagnosticsEvents.ListenerName,
-        Codec.DiagnosticsEvents.ListenerName,
     };
 
     private static readonly Dictionary<string, LogLevel> s_eventLevels = new(StringComparer.Ordinal)

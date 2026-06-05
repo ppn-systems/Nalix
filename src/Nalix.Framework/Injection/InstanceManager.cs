@@ -14,7 +14,6 @@ using System.Text;
 using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
-using Nalix.Abstractions.Diagnostics;
 using Nalix.Environment.Hashing;
 using Nalix.Framework.Injection.DI;
 

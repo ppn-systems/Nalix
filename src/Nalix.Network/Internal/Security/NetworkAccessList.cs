@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Runtime.CompilerServices;
-
 using Nalix.Abstractions.Exceptions;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.IO;
@@ -124,7 +123,7 @@ internal sealed class NetworkAccessList
                 proxies = _state.TrustedProxies; // Retain old state on failure
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.AccessListState:Reload", "failed to reload trusted proxies, retaining old state.", ex));
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.AccessListState:Reload", "reload-trusted-proxies-failed retaining-old-state=true", ex));
                 }
             }
 
@@ -138,7 +137,7 @@ internal sealed class NetworkAccessList
                 networks = _state.BlacklistedNetworks;
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.AccessListState:Reload", "failed to reload blacklists, retaining old state.", ex));
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.AccessListState:Reload", "reload-blacklists-failed retaining-old-state=true", ex));
                 }
             }
 
@@ -148,7 +147,7 @@ internal sealed class NetworkAccessList
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.AccessListState:Reload", "unexpected error during reload.", ex));
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.AccessListState:Reload", "reload-failed", ex));
             }
         }
     }
@@ -164,7 +163,7 @@ internal sealed class NetworkAccessList
 
         if (networks.Count > 0 && DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.AccessListState:LoadTrustedProxies", $"Loaded networks-count={networks.Count} trusted proxies from disk."));
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.AccessListState:LoadTrustedProxies", $"loaded networks-count={networks.Count} source=disk"));
         }
 
         return networks;
@@ -202,7 +201,7 @@ internal sealed class NetworkAccessList
 
         if (networks.Count > 0 && DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.AccessListState:LoadTrustedProxies", $"Loaded networks-count={networks.Count} blacklisted IP/networks from disk (single IPs: blacklisted-ips-count={ips.Count}, CIDR networks: blacklisted-networks-count={netList.Count})."));
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.AccessListState:LoadTrustedProxies", $"loaded networks-count={networks.Count} blacklisted-ips-count={ips.Count} blacklisted-networks-count={netList.Count} source=disk"));
         }
 
         return (ips, netList);

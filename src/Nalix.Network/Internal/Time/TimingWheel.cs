@@ -3,11 +3,11 @@
 
 using Nalix.Abstractions.Diagnostics;
 using System;
+using System.Globalization;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-
 using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
@@ -311,7 +311,7 @@ internal sealed class TimingWheel : IActivatable
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.TimingWheelBucket:Activate", $"activated (ref=active-listeners={_activeListeners}) wheelsize=wheel-size={_wheelSize} tick=tick-ms={_tickMs}ms idle=idle-timeout-ms={_idleTimeoutMs}ms mask=use-mask={_useMask}"));
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.TimingWheelBucket:Activate", $"activated active-listeners={_activeListeners.ToString(CultureInfo.InvariantCulture)} wheel-size={_wheelSize.ToString(CultureInfo.InvariantCulture)} tick-ms={_tickMs.ToString(CultureInfo.InvariantCulture)} idle-timeout-ms={_idleTimeoutMs.ToString(CultureInfo.InvariantCulture)} use-mask={_useMask.ToString().ToLowerInvariant()}"));
         }
     }
 
@@ -366,7 +366,7 @@ internal sealed class TimingWheel : IActivatable
                 string exceptionType = ex.GetType().Name;
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", $"cts-cancel-ignored reason=exception-type={exceptionType}", ex));
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", $"cts-cancel-ignored reason-exception-type={exceptionType}", ex));
         };
             }
         }
@@ -389,7 +389,7 @@ internal sealed class TimingWheel : IActivatable
                 string exceptionType = ex.GetType().Name;
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", $"cts-dispose-ignored reason=exception-type={exceptionType}", ex));
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", $"cts-dispose-ignored reason-exception-type={exceptionType}", ex));
         };
             }
         }
@@ -672,7 +672,8 @@ internal sealed class TimingWheel : IActivatable
                             {
                                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Internal", $"timeout remote=connection-network-endpoint-address={connection.NetworkEndpoint.Address} idle=idle-ms={idleMs}ms"));
+            string idleMsStr = idleMs.ToString(CultureInfo.InvariantCulture);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Internal", $"timeout remote={connection.NetworkEndpoint.Address} idle-ms={idleMsStr}"));
         };
                             }
 
@@ -686,7 +687,7 @@ internal sealed class TimingWheel : IActivatable
                                 {
                                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.TimingWheelBucket:Internal", $"close-error remote=connection-network-endpoint-address={connection.NetworkEndpoint.Address}", ex));
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.TimingWheelBucket:Internal", $"close-error remote={connection.NetworkEndpoint.Address}", ex));
         };
                                 }
                             }

@@ -3,13 +3,13 @@
 
 using Nalix.Abstractions.Diagnostics;
 using System;
+using System.Globalization;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-
 using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
@@ -133,7 +133,9 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.ConnectionGuard:entry", $"ConnectionGuard init max-per-endpoint={_maxPerEndpoint} inactivity={_inactivityThreshold} cleanup={_cleanupInterval}"));
+            string inactivityVal = _inactivityThreshold.ToString(null, CultureInfo.InvariantCulture);
+            string cleanupVal = _cleanupInterval.ToString(null, CultureInfo.InvariantCulture);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.ConnectionGuard:Internal", $"init max-per-endpoint={_maxPerEndpoint.ToString(CultureInfo.InvariantCulture)} inactivity={inactivityVal} cleanup={cleanupVal}"));
         }
     }
 
