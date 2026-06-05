@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Internal.Buffers;
@@ -339,7 +340,7 @@ public sealed partial class BufferPoolManager : IBufferPoolManager, IDisposable
             // failing the operation outright.
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolFailure))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new { MinimumLength = size, ex.Message, Fallback = true });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new DiagnosticLog("FW.BufferPoolManager:Internal", $"pool-failure size={size} error={ex.Message} fallback=true"));
             }
             _ = Interlocked.Increment(ref _fallbackCount);
 
@@ -348,7 +349,7 @@ public sealed partial class BufferPoolManager : IBufferPoolManager, IDisposable
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolFailure))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new { MinimumLength = size, ex.Message, Fallback = false });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new DiagnosticLog("FW.BufferPoolManager:Internal", $"pool-failure size={size} error={ex.Message} fallback=false"));
         }
         ExceptionDispatchInfo.Capture(ex).Throw();
         throw new InvalidOperationException("Unreachable");
@@ -371,7 +372,7 @@ public sealed partial class BufferPoolManager : IBufferPoolManager, IDisposable
             _fallbackArrayPool.Return(buffer, clearArray: false);
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.BufferReleased))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.BufferReleased, new { BufferLength = buffer.Length, Fallback = true });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.BufferReleased, new DiagnosticLog("FW.BufferPoolManager:Internal", $"buffer-released size={buffer.Length} fallback=true"));
             }
 
             return;
@@ -379,7 +380,7 @@ public sealed partial class BufferPoolManager : IBufferPoolManager, IDisposable
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolFailure))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new { BufferLength = buffer.Length, ex.Message, Fallback = false });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new DiagnosticLog("FW.BufferPoolManager:Internal", $"pool-failure size={buffer.Length} error={ex.Message} fallback=false"));
         }
     }
 
@@ -429,7 +430,7 @@ public sealed partial class BufferPoolManager : IBufferPoolManager, IDisposable
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new { poolInfo.BufferSize, ShrunkBy = buffersToShrink, Phase = "Shrink" });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new DiagnosticLog("FW.BufferPoolManager:Internal", $"pool-trimmed size={poolInfo.BufferSize} shrunk-by={buffersToShrink} phase=Shrink"));
         }
     }
 
@@ -478,7 +479,7 @@ public sealed partial class BufferPoolManager : IBufferPoolManager, IDisposable
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolFailure))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new { poolInfo.BufferSize, Reason = "OverBudget" });
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new DiagnosticLog("FW.BufferPoolManager:AllocateBuffers", $"pool-failure size={poolInfo.BufferSize} error=over-budget"));
             }
             return;
         }
@@ -494,7 +495,7 @@ public sealed partial class BufferPoolManager : IBufferPoolManager, IDisposable
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolExpanded))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolExpanded, new { poolInfo.BufferSize, IncreasedBy = increaseStep });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolExpanded, new DiagnosticLog("FW.BufferPoolManager:AllocateBuffers", $"pool-expanded size={poolInfo.BufferSize} increased-by={increaseStep}"));
         }
     }
 
@@ -558,7 +559,7 @@ public sealed partial class BufferPoolManager : IBufferPoolManager, IDisposable
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new { Phase = "Dispose" });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new DiagnosticLog("FW.BufferPoolManager:Internal", "pool-trimmed phase=dispose"));
         }
 
         GC.SuppressFinalize(this);

@@ -34,5 +34,10 @@ public static class DiagnosticsEvents
         /// Fired when serialization or deserialization encounters a failure.
         /// </summary>
         public const string Failure = "Serialization.Failure";
+
+        /// <summary>
+        /// Fired when the serialization system is initialized.
+        /// </summary>
+        public const string Initialization = "Serialization.Initialization";
     }
 }

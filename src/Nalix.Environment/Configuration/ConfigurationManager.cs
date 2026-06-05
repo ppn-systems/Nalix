@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Security;
 using System.Threading;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Environment.Configuration.Binding;
 using Nalix.Environment.IO;
 
@@ -230,7 +231,7 @@ public sealed class ConfigurationManager : IDisposable
                     {
                         if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Failure))
                         {
-                            DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Failure, new { Operation = "Flush", oldContext.Path, Exception = ex });
+                            DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Failure, new DiagnosticLog("ENV.ConfigurationManager:Flush", $"flush-failed path={oldContext.Path}", ex));
                         }
                     }
                 }
@@ -244,7 +245,7 @@ public sealed class ConfigurationManager : IDisposable
 
                 if (Listener.IsEnabled(DiagnosticsEvents.Configuration.PathChanged))
                 {
-                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.PathChanged, new { From = oldPath, To = normalizedPath, CacheHit = newContext.IniFile.IsValueCreated });
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.PathChanged, new DiagnosticLog("ENV.ConfigurationManager:Internal", $"path-changed from={oldPath} to={normalizedPath} cache-hit={newContext.IniFile.IsValueCreated.ToString().ToLowerInvariant()}"));
                 }
 
                 if (autoReload && !newContext.ContainerDict.IsEmpty)
@@ -333,7 +334,7 @@ public sealed class ConfigurationManager : IDisposable
 
                 if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Container))
                 {
-                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Container, new { Action = "Created", Type = typeof(TClass).Name, Context = context.Path });
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Container, new DiagnosticLog("ENV.ConfigurationManager:Internal", $"container-created type={typeof(TClass).Name} context={context.Path}"));
                 }
 
                 return container;
@@ -451,7 +452,7 @@ public sealed class ConfigurationManager : IDisposable
             {
                 if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Failure))
                 {
-                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Failure, new { Operation = "Reload", Exception = reloadException, context.ContainerDict.Count });
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Failure, new DiagnosticLog("ENV.ConfigurationManager:Internal", $"reload-failed count={context.ContainerDict.Count}", reloadException));
                 }
 
                 throw new InvalidOperationException(
@@ -460,7 +461,7 @@ public sealed class ConfigurationManager : IDisposable
 
             if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Reload))
             {
-                DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Reload, new { Status = "Completed", context.ContainerDict.Count });
+                DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Reload, new DiagnosticLog("ENV.ConfigurationManager:Internal", $"reload-completed count={context.ContainerDict.Count}"));
             }
         }
         catch (ObjectDisposedException) when (_isDisposed)
@@ -509,7 +510,7 @@ public sealed class ConfigurationManager : IDisposable
         ConfigurationContext context = _currentContext;
         if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Container))
         {
-            DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Container, new { Action = "Removed", Type = typeof(TClass).Name, Context = context.Path });
+            DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Container, new DiagnosticLog("ENV.ConfigurationManager:Internal", $"container-removed type={typeof(TClass).Name} context={context.Path}"));
         }
 
         return context.ContainerDict.TryRemove(typeof(TClass), out _);
@@ -528,7 +529,7 @@ public sealed class ConfigurationManager : IDisposable
         ConfigurationContext context = _currentContext;
         if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Container))
         {
-            DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Container, new { Action = "Cleared", Context = context.Path });
+            DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Container, new DiagnosticLog("ENV.ConfigurationManager:Internal", $"container-cleared context={context.Path}"));
         }
 
         context.ContainerDict.Clear();
@@ -579,7 +580,7 @@ public sealed class ConfigurationManager : IDisposable
                 snapshot.Value.Flush();
                 if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Flush))
                 {
-                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Flush, new { Status = "Completed", Path = snapshot.Value.FilePath });
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Flush, new DiagnosticLog("ENV.ConfigurationManager:Flush", $"flush-completed path={snapshot.Value.FilePath}"));
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -609,7 +610,7 @@ public sealed class ConfigurationManager : IDisposable
             {
                 if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Failure))
                 {
-                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Failure, new { Operation = "DisposeFlush", Exception = ex });
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Failure, new DiagnosticLog("ENV.ConfigurationManager:Internal", "dispose-flush-failed", ex));
                 }
             }
         }
@@ -628,7 +629,7 @@ public sealed class ConfigurationManager : IDisposable
             {
                 if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Reload))
                 {
-                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Reload, new { Status = "DisposeGateBusy" });
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Reload, new DiagnosticLog("ENV.ConfigurationManager:Internal", "dispose-gate-busy"));
                 }
             }
         }
@@ -691,7 +692,7 @@ public sealed class ConfigurationManager : IDisposable
 
         if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Directory))
         {
-            DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Directory, new { Action = "WatcherStarted", Path = currentPath });
+            DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Directory, new DiagnosticLog("ENV.ConfigurationManager:Internal", $"watcher-started path={currentPath}"));
         }
 
         // Capture path at setup time — lambda must not close over _configFilePath directly.
@@ -729,7 +730,7 @@ public sealed class ConfigurationManager : IDisposable
                         {
                             if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Failure))
                             {
-                                DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Failure, new { Operation = "BackgroundReload", Exception = ex });
+                                DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Failure, new DiagnosticLog("ENV.ConfigurationManager:Internal", "background-reload-failed", ex));
                             }
                         }
                     },
@@ -808,7 +809,7 @@ public sealed class ConfigurationManager : IDisposable
 
                     if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Directory))
                     {
-                        DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Directory, new { Action = "Created", Path = directory });
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Directory, new DiagnosticLog("ENV.ConfigurationManager:Internal", $"directory-created path={directory}"));
                     }
 
                     if (!dirInfo.Exists)
@@ -852,7 +853,7 @@ public sealed class ConfigurationManager : IDisposable
             {
                 if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Cache))
                 {
-                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Cache, new { Action = "Cleared", Reason = "CapacityExceeded", Limit = MaxCachedContexts });
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Cache, new DiagnosticLog("ENV.ConfigurationManager:Internal", $"cache-cleared reason=capacity-exceeded limit={MaxCachedContexts}"));
                 }
                 _contextCache.Clear();
             }
@@ -886,7 +887,7 @@ public sealed class ConfigurationManager : IDisposable
                     failureCount++;
                     if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Reload))
                     {
-                        DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Reload, new { Status = "PartialError", Type = lazy.Value.GetType().Name, Exception = ex });
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Reload, new DiagnosticLog("ENV.ConfigurationManager:Internal", $"reload-partial-error type={lazy.Value.GetType().Name}", ex));
                     }
                 }
             }
@@ -896,7 +897,7 @@ public sealed class ConfigurationManager : IDisposable
 
         if (failureCount > 0 && Listener.IsEnabled(DiagnosticsEvents.Configuration.Reload))
         {
-            DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Reload, new { Status = "CompletedWithErrors", SuccessCount = successCount, FailureCount = failureCount });
+            DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Reload, new DiagnosticLog("ENV.ConfigurationManager:Internal", $"reload-completed-with-errors success-count={successCount} failure-count={failureCount}"));
         }
     }
 

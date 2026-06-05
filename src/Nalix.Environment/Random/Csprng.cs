@@ -54,15 +54,15 @@ public static class Csprng
             s_f = OsRandom.Fill;
             OsRandom.Reseed(TimeSpan.FromMinutes(1));
 
-            if (Listener.IsEnabled(DiagnosticsEvents.Random.Init))
+            if (Listener.IsEnabled(DiagnosticsEvents.Random.Failure))
             {
-                DiagnosticsEvents.Write(DiagnosticsEvents.Random.Init, new { Message = "OS CSPRNG unavailable — falling back to OsRandom. Cryptographic strength may be reduced.", Timestamp = DateTime.UtcNow });
+                DiagnosticsEvents.Write(DiagnosticsEvents.Random.Failure, new Nalix.Abstractions.Diagnostics.DiagnosticLog("ENV.Csprng:Internal", "os-csprng-unavailable OS CSPRNG unavailable — falling back to OsRandom. Cryptographic strength may be reduced."));
             }
         }
 
         if (Listener.IsEnabled(DiagnosticsEvents.Random.Init))
         {
-            DiagnosticsEvents.Write(DiagnosticsEvents.Random.Init, new { Message = $"init using {(ReferenceEquals(s_f, f) ? "OS_CSPRNG" : "Xoshiro++")}", Timestamp = DateTime.UtcNow });
+            DiagnosticsEvents.Write(DiagnosticsEvents.Random.Init, new Nalix.Abstractions.Diagnostics.DiagnosticLog("ENV.Csprng:Internal", $"initialized provider={(ReferenceEquals(s_f, f) ? "OS_CSPRNG" : "Xoshiro++")}"));
         }
     }
 

@@ -13,6 +13,7 @@ using System.Runtime.InteropServices.Marshalling;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Diagnostics;
 
 namespace Nalix.Environment.IO;
 
@@ -93,7 +94,7 @@ public static partial class Directories
 
                 if (Listener.IsEnabled(DiagnosticsEvents.IO.Directory))
                 {
-                    DiagnosticsEvents.Write(DiagnosticsEvents.IO.Directory, new { Action = "Created", Path = path, Caller = callerMemberName });
+                    DiagnosticsEvents.Write(DiagnosticsEvents.IO.Directory, new DiagnosticLog("ENV.Directories:Internal", $"directory-created path={path} caller={callerMemberName}"));
                 }
             }
         }

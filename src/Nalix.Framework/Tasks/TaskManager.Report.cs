@@ -11,6 +11,7 @@ using System.Threading;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Framework.Extensions;
+using Nalix.Abstractions.Diagnostics;
 
 namespace Nalix.Framework.Tasks;
 
@@ -63,7 +64,7 @@ public sealed partial class TaskManager
         {
             if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Failed, new { Action = "MemoryDiagnostics", Exception = ex.Message });
+                Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "memory-diagnostics-failed", ex));
             }
         }
 
@@ -92,7 +93,7 @@ public sealed partial class TaskManager
         {
             if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Failed, new { Action = "ProcessHealthDiagnostics", Exception = ex.Message });
+                Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "process-health-diagnostics-failed", ex));
             }
         }
 

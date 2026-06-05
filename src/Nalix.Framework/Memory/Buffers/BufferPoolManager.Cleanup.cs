@@ -4,8 +4,10 @@
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Framework.Memory.Internal.Buffers;
 
 namespace Nalix.Framework.Memory.Buffers;
@@ -32,7 +34,8 @@ public sealed partial class BufferPoolManager
         _isInitialized = true;
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolExpanded))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolExpanded, new { _config.TotalBuffers, BucketCount = _bufferAllocations.Length, Phase = "Init" });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolExpanded, new DiagnosticLog("FW.BufferPoolManager:Internal",
+                $"pool-expanded total={_config.TotalBuffers} buckets={_bufferAllocations.Length} phase=init"));
         }
     }
 
@@ -51,11 +54,8 @@ public sealed partial class BufferPoolManager
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new
-            {
-                DeepTrim = deepTrim,
-                Phase = "BufferTrimRun"
-            });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new DiagnosticLog("FW.BufferPoolManager:Internal",
+                $"pool-trimmed deep-trim={deepTrim.ToString().ToLowerInvariant()} phase=BufferTrimRun"));
         }
 
         // Compute memory budget once per cycle (cache it)
@@ -245,12 +245,9 @@ public sealed partial class BufferPoolManager
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new
-            {
-                Usage = usage,
-                info.BufferSize,
-                Step = shrinkStep
-            });
+            string usageStr = usage.ToString("0.000", CultureInfo.InvariantCulture);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new DiagnosticLog("FW.BufferPoolManager:Internal",
+                $"pool-trimmed usage={usageStr} size={info.BufferSize} step={shrinkStep}"));
         }
     }
 

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Injection;
+using Nalix.Abstractions.Diagnostics;
 
 namespace Nalix.Hosting.Internal;
 
@@ -25,6 +26,7 @@ internal sealed class DiagnosticChannel :
         Network.DiagnosticsEvents.ListenerName,
         Framework.DiagnosticsEvents.ListenerName,
         Environment.DiagnosticsEvents.ListenerName,
+        Codec.DiagnosticsEvents.ListenerName,
     };
 
     private static readonly Dictionary<string, LogLevel> s_eventLevels = new(StringComparer.Ordinal)
@@ -110,6 +112,14 @@ internal sealed class DiagnosticChannel :
         [Network.DiagnosticsEvents.Internal.Critical] = LogLevel.Critical,
         [Network.DiagnosticsEvents.Internal.LoopFaulted] = LogLevel.Error,
         [Network.DiagnosticsEvents.Internal.ResourceExhausted] = LogLevel.Warning,
+
+        // Codec.Serialization
+        [Codec.DiagnosticsEvents.Serialization.FormatterRegistered] = LogLevel.Debug,
+        [Codec.DiagnosticsEvents.Serialization.Failure] = LogLevel.Error,
+        [Codec.DiagnosticsEvents.Serialization.Initialization] = LogLevel.Debug,
+
+        // Environment.Random Failure
+        [Environment.DiagnosticsEvents.Random.Failure] = LogLevel.Warning,
     };
 
     private readonly ILogger? _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
@@ -173,6 +183,19 @@ internal sealed class DiagnosticChannel :
 
         if (!_logger.IsEnabled(level))
         {
+            return;
+        }
+
+        if (value.Value is DiagnosticLog log)
+        {
+            if (log.Exception is null)
+            {
+                _logger.Log(level, "[{Tag}] {Message}", log.Tag, log.Message);
+            }
+            else
+            {
+                _logger.Log(level, log.Exception, "[{Tag}] {Message}", log.Tag, log.Message);
+            }
             return;
         }
 

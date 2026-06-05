@@ -9,6 +9,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions.Exceptions;
+using System.Globalization;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Codec.Serialization.Formatters.Cache;
 using Nalix.Codec.Serialization.Formatters.Collections;
 using Nalix.Codec.Serialization.Formatters.Primitives;
@@ -155,21 +157,14 @@ public static class FormatterProvider
         Register(new NullableArrayFormatter<ulong>());
 
 #if !NALIX_AOT
-        if (s_listener?.IsEnabled("init") == true)
+        if (s_listener?.IsEnabled(DiagnosticsEvents.Serialization.Initialization) == true)
         {
-            s_listener.Write("init", new
-            {
-                ElapsedMs = s_sw.ElapsedMilliseconds,
-                Total = s_cntTotal,
-                Primitives = s_cntPrimitives,
-                Nullables = s_cntNullables,
-                Arrays = s_cntArrays,
-                NullableArrays = s_cntNullableArrays,
-                Lists = s_cntLists,
-                Enums = s_cntEnums,
-                Strings = s_cntStrings,
-                Timestamp = DateTime.UtcNow
-            });
+            string elapsed = s_sw.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture);
+            s_listener.Write(
+                DiagnosticsEvents.Serialization.Initialization,
+                new DiagnosticLog(
+                    "CD.FormatterProvider:Internal",
+                    $"initialized elapsed-ms={elapsed} total={s_cntTotal} primitives={s_cntPrimitives} nullables={s_cntNullables} arrays={s_cntArrays} nullable-arrays={s_cntNullableArrays} lists={s_cntLists} enums={s_cntEnums} strings={s_cntStrings}"));
         }
 #endif
     }

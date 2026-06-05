@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Diagnostics;
 
 namespace Nalix.Environment.IO;
 
@@ -103,7 +104,7 @@ public static partial class Directories
 
         if (deleted > 0 && Listener.IsEnabled(DiagnosticsEvents.IO.Cleanup))
         {
-            DiagnosticsEvents.Write(DiagnosticsEvents.IO.Cleanup, new { Action = "FilesDeleted", Count = deleted, Path = directoryPath });
+            DiagnosticsEvents.Write(DiagnosticsEvents.IO.Cleanup, new DiagnosticLog("ENV.Directories:Cleanup", $"files-deleted path={directoryPath} count={deleted}"));
         }
 
         return deleted;

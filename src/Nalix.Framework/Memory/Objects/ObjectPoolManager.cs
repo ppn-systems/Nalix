@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Internal.PoolTypes;
@@ -380,7 +381,7 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
                 // Log and reset to zero to avoid negative counters due to bugs
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolReturned))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolReturned, new { Manager = nameof(ObjectPoolManager), Operation = "Return", Type = obj.GetType().Name, Outstanding = outstandingAfter, Status = "outstanding-negative" });
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolReturned, new DiagnosticLog("FW.ObjectPoolManager:Internal", $"pool-returned type={obj.GetType().Name} outstanding={outstandingAfter} status=outstanding-negative"));
                 }
 
                 _ = Interlocked.Exchange(ref metrics.Outstanding, 0);
@@ -420,7 +421,7 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolExpanded))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolExpanded, new { Manager = nameof(ObjectPoolManager), Operation = nameof(Prealloc), Type = typeof(T).Name, Requested = count, Allocated = allocated });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolExpanded, new DiagnosticLog("FW.ObjectPoolManager:Prealloc", $"prealloc type={FORMAT_TYPE_NAME(typeof(T))} requested={count} allocated={allocated}"));
         }
 
         return allocated;
@@ -460,7 +461,7 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolExpanded))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolExpanded, new { Manager = nameof(ObjectPoolManager), Operation = nameof(SetMaxCapacity), Type = typeof(T).Name, Capacity = maxCapacity });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolExpanded, new DiagnosticLog("FW.ObjectPoolManager:SetMaxCapacity", $"set-max-capacity type={typeof(T).Name} capacity={maxCapacity}"));
         }
 
         return true;
@@ -596,7 +597,7 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new { Manager = nameof(ObjectPoolManager), Operation = nameof(ClearAllPools), TotalRemoved = totalRemoved });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new DiagnosticLog("FW.ObjectPoolManager:ClearAllPools", $"pool-trimmed removed={totalRemoved}"));
         }
 
         return totalRemoved;
@@ -688,7 +689,9 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolReturned))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolReturned, new { Manager = nameof(ObjectPoolManager), Operation = nameof(ResetStatistics), Phase = "BeforeReset", Gets = gets, Returns = returns, Hits = hits, Misses = misses, HitRate = gets > 0 ? (hits / (double)gets * 100.0) : 0.0, UptimeSeconds = this.Uptime.TotalSeconds, this.PoolCount });
+            string hitRateStr = (gets > 0 ? (hits / (double)gets * 100.0) : 0.0).ToString("0.00", CultureInfo.InvariantCulture);
+            string uptimeStr = this.Uptime.TotalSeconds.ToString("0.000", CultureInfo.InvariantCulture);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolReturned, new DiagnosticLog("FW.ObjectPoolManager:ResetStatistics", $"reset-statistics phase=before-reset gets={gets} returns={returns} hits={hits} misses={misses} hit-rate={hitRateStr}% uptime-seconds={uptimeStr} pool-count={this.PoolCount}"));
         }
 
         _ = Interlocked.Exchange(ref _totalGetOperations, 0);
@@ -705,7 +708,7 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolReturned))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolReturned, new { Manager = nameof(ObjectPoolManager), Operation = nameof(ResetStatistics), Phase = "ResetComplete" });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolReturned, new DiagnosticLog("FW.ObjectPoolManager:ResetStatistics", "reset-statistics phase=reset-complete"));
         }
     }
 
@@ -816,22 +819,10 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolFailure))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new
-            {
-                Manager = nameof(ObjectPoolManager),
-                Operation = "HealthCheck",
-                Type = FORMAT_TYPE_NAME(type),
-                WindowGets = windowGets,
-                WindowMisses = windowMisses,
-                WindowMissRate = windowMissRate,
-                LifetimeGets = lifetimeGets,
-                LifetimeMissRate = lifetimeMissRate,
-                Available = available,
-                Outstanding = outstanding,
-                PeakOutstanding = peakOutstanding,
-                ConsecutiveFailures = consecutiveFailures,
-                Reason = capacityPressure ? "CapacityPressure" : "HighWindowMissRate"
-            });
+            string wMissRateStr = windowMissRate.ToString("0.000", CultureInfo.InvariantCulture);
+            string lMissRateStr = lifetimeMissRate.ToString("0.000", CultureInfo.InvariantCulture);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new DiagnosticLog("FW.ObjectPoolManager:Internal",
+                $"pool-failure type={FORMAT_TYPE_NAME(type)} window-gets={windowGets} window-misses={windowMisses} window-miss-rate={wMissRateStr} lifetime-gets={lifetimeGets} lifetime-miss-rate={lMissRateStr} available={available} outstanding={outstanding} peak-outstanding={peakOutstanding} consecutive-failures={consecutiveFailures} reason={(capacityPressure ? "capacity-pressure" : "high-window-miss-rate")}"));
         }
     }
 
@@ -880,14 +871,8 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolExpanded))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolExpanded, new
-            {
-                Manager = nameof(ObjectPoolManager),
-                Operation = "DefaultPreallocate",
-                Type = FORMAT_TYPE_NAME(typeof(T)),
-                Requested = count,
-                Allocated = allocated
-            });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolExpanded, new DiagnosticLog("FW.ObjectPoolManager:Prealloc",
+                $"prealloc type={FORMAT_TYPE_NAME(typeof(T))} requested={count} allocated={allocated}"));
         }
     }
 

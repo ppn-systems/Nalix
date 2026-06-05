@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Diagnostics;
 
 namespace Nalix.Framework.Injection;
 
@@ -18,13 +19,11 @@ public sealed partial class InstanceManager
     #region Slow Paths & Activators
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void Emit(string action, string operation, object payload, bool isFailure = false)
+    private void Emit(string eventName, string tag, string message, Exception? exception = null)
     {
-        string eventName = isFailure ? DiagnosticsEvents.Injection.Failure : DiagnosticsEvents.Injection.Registered;
-
         if (DiagnosticsEvents.Source.IsEnabled(eventName))
         {
-            DiagnosticsEvents.Source.Write(eventName, new { Action = action, Operation = operation, Payload = payload });
+            DiagnosticsEvents.Source.Write(eventName, new DiagnosticLog(tag, message, exception));
         }
     }
 
@@ -77,7 +76,7 @@ public sealed partial class InstanceManager
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    this.Emit("CREATE_OR_GET_SIGNATURE_INSTANCE", "DisposeFailedTemp", new { Type = type.Name, Error = ex.Message }, isFailure: true);
+                    this.Emit(DiagnosticsEvents.Injection.Failure, "FW.InstanceManager:Internal", $"dispose-failed-temp type={type.Name}", ex);
                 }
             }
 
@@ -96,7 +95,7 @@ public sealed partial class InstanceManager
             TRY_AUTO_REGISTER_REPORTABLE(reportable);
         }
 
-        this.Emit("CREATE_OR_GET_SIGNATURE_INSTANCE", "CreatedSignature", new { Type = type.Name });
+        this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:Internal", $"created-signature type={type.Name}");
 
         TRY_PUBLISH_SLOT_BY_TYPE(type, created);
 
@@ -206,11 +205,11 @@ public sealed partial class InstanceManager
                     }
                     catch (ObjectDisposedException)
                     {
-                        this.Emit("GET_OR_CREATE_INSTANCE_SLOW", "TempInstanceAlreadyDisposed", new { Type = type.Name });
+                        this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:Internal", $"temp-instance-already-disposed type={type.Name}");
                     }
                     catch (Exception dex) when (ExceptionClassifier.IsNonFatal(dex))
                     {
-                        this.Emit("GET_OR_CREATE_INSTANCE_SLOW", "DisposeFailedTemp", new { Type = type.Name, Error = dex.Message }, isFailure: true);
+                        this.Emit(DiagnosticsEvents.Injection.Failure, "FW.InstanceManager:Internal", $"dispose-failed-temp type={type.Name}", dex);
                     }
                 }
 
@@ -227,7 +226,7 @@ public sealed partial class InstanceManager
                 TRY_AUTO_REGISTER_REPORTABLE(reportable);
             }
 
-            this.Emit("GET_OR_CREATE_INSTANCE_SLOW", "Created", new { Type = type.Name });
+            this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:Internal", $"created type={type.Name}");
 
             return instance;
         }
@@ -237,7 +236,7 @@ public sealed partial class InstanceManager
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            this.Emit("GET_OR_CREATE_INSTANCE_SLOW", "CreateFailed", new { Type = type.Name, Error = ex.Message }, isFailure: true);
+            this.Emit(DiagnosticsEvents.Injection.Failure, "FW.InstanceManager:Internal", $"create-failed type={type.Name}", ex);
 
             throw new InternalErrorException($"Failed to create instance for type {type.Name}.", ex);
         }
@@ -277,10 +276,9 @@ public sealed partial class InstanceManager
     private void THROW_CACHE_LIMIT_REACHED(int currentCount, int maxCount, string cacheName)
     {
         this.Emit(
-            "CacheLimit",
-            "Exceeded",
-            new { Cache = cacheName, Count = currentCount, Limit = maxCount },
-            isFailure: true);
+            DiagnosticsEvents.Injection.Failure,
+            "FW.InstanceManager:Internal",
+            $"cache-limit-exceeded cache={cacheName} count={currentCount} limit={maxCount}");
 
         throw new InvalidOperationException(
             string.Create(
