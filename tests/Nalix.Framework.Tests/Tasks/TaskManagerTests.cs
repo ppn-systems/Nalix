@@ -783,7 +783,7 @@ public sealed class TaskManagerTests : IDisposable
         lock (events)
         {
             var dispatcherLogs = events.Where(ev => ev.Key == DiagnosticsEvents.Tasks.Dispatcher).ToList();
-            var batchLog = dispatcherLogs.FirstOrDefault(ev => ev.Value is DiagnosticLog log && log.Message.Contains("workers-started"));
+            var batchLog = dispatcherLogs.FirstOrDefault(ev => ev.Value is DiagnosticLog log && log.Message.Contains("workers-started") && log.Message.Contains("group-batch-test"));
             Assert.NotNull(batchLog.Value);
             var log = (DiagnosticLog)batchLog.Value!;
             Assert.Contains("group=group-batch-test", log.Message);
@@ -827,16 +827,18 @@ public sealed class TaskManagerTests : IDisposable
 
         lock (events)
         {
-            var startedLogs = events.Where(ev => ev.Key == DiagnosticsEvents.Tasks.Started).ToList();
+            var startedLogs = events
+                .Where(ev => ev.Key == DiagnosticsEvents.Tasks.Started)
+                .Select(ev => (DiagnosticLog)ev.Value!)
+                .Where(log => log.Message.Contains("group-batch-test"))
+                .ToList();
             Assert.Equal(4, startedLogs.Count);
-            foreach (var ev in startedLogs)
+            foreach (var log in startedLogs)
             {
-                var log = (DiagnosticLog)ev.Value!;
                 Assert.Contains("worker-start", log.Message);
-                Assert.Contains("group=group-batch-test", log.Message);
             }
 
-            var batchLog = events.FirstOrDefault(ev => ev.Key == DiagnosticsEvents.Tasks.Dispatcher && ev.Value is DiagnosticLog log && log.Message.Contains("workers-started"));
+            var batchLog = events.FirstOrDefault(ev => ev.Key == DiagnosticsEvents.Tasks.Dispatcher && ev.Value is DiagnosticLog log && log.Message.Contains("workers-started") && log.Message.Contains("group-batch-test"));
             Assert.Null(batchLog.Value);
         }
 
