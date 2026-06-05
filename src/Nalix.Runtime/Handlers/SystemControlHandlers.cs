@@ -4,15 +4,14 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
-using Nalix.Framework.Injection;
 using Nalix.Runtime.Internal.RateLimiting;
 
 namespace Nalix.Runtime.Handlers;
@@ -23,8 +22,6 @@ namespace Nalix.Runtime.Handlers;
 [PacketController("Nalix.Control")]
 public sealed class SystemControlHandlers
 {
-    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-
     /// <summary>
     /// Handles incoming system control packets.
     /// </summary>
@@ -139,9 +136,13 @@ public sealed class SystemControlHandlers
             return;
         }
 
-        if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
         {
-            s_logger.LogError("[RT.SystemControl] error ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Error,
+                new DiagnosticLog(
+                    "RT.SystemControlHandlers:HandleAsync",
+                    $"error ep={connection.NetworkEndpoint} reason={packet.Reason}"));
         }
     }
 
@@ -159,9 +160,13 @@ public sealed class SystemControlHandlers
             return;
         }
 
-        if (s_logger != null && s_logger.IsEnabled(LogLevel.Warning))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
         {
-            s_logger.LogWarning("[RT.SystemControl] fail ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Warning,
+                new DiagnosticLog(
+                    "RT.SystemControlHandlers:HandleAsync",
+                    $"fail ep={connection.NetworkEndpoint} reason={packet.Reason}"));
         }
     }
 
@@ -177,9 +182,13 @@ public sealed class SystemControlHandlers
             return;
         }
 
-        if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            s_logger.LogDebug("[RT.SystemControl] notice ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Debug,
+                new DiagnosticLog(
+                    "RT.SystemControlHandlers:HandleAsync",
+                    $"notice ep={connection.NetworkEndpoint} reason={packet.Reason}"));
         }
     }
 

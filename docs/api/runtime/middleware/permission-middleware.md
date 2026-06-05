@@ -96,9 +96,9 @@ prevents unauthorized packet floods from producing unbounded failure responses.
 ## Error Handling
 
 `SendAsync` is wrapped in a non-fatal exception filter. If directive sending fails, the
-middleware logs through `context.Connection.ThrottledError(...)` with key
-`middleware.permission.send_error`. The original request remains denied and the pipeline
-is not continued.
+middleware emits a throttled diagnostic via `connection.ThrottledDiagnosticError(...)` with key
+`middleware.permission.send_error` (20-second suppression window). The original request
+remains denied and the pipeline is not continued.
 
 ## Registration
 

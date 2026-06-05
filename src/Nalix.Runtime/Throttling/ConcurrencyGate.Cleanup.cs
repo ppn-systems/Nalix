@@ -8,7 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 
@@ -43,9 +43,13 @@ public sealed partial class ConcurrencyGate
                 _ = Interlocked.Exchange(ref _totalAcquired, 0);
                 _ = Interlocked.Exchange(ref _totalRejected, 0);
 
-                if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
                 {
-                    _logger.LogInformation("[RT.ConcurrencyGate] circuit breaker closed");
+                    DiagnosticsEvents.Source.Write(
+                        DiagnosticsEvents.Internal.Information,
+                        new DiagnosticLog(
+                            "RT.ConcurrencyGate:Internal",
+                            "circuit-breaker closed"));
                 }
             }
 
@@ -70,9 +74,13 @@ public sealed partial class ConcurrencyGate
                 long resetTime = DateTime.UtcNow.AddSeconds(_options.CircuitBreakerResetAfterSeconds).Ticks;
                 _ = Interlocked.Exchange(ref _circuitBreakerResetTimeTicks, resetTime);
 
-                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                 {
-                    _logger.LogError("[RT.ConcurrencyGate] circuit breaker opened (rejection_rate={RejectionRate}, attempts={TotalAttempts})", rejectionRate, totalAttempts);
+                    DiagnosticsEvents.Source.Write(
+                        DiagnosticsEvents.Internal.Error,
+                        new DiagnosticLog(
+                            "RT.ConcurrencyGate:Internal",
+                            $"circuit-breaker opened rejection_rate={rejectionRate} attempts={totalAttempts}"));
                 }
             }
 
@@ -110,7 +118,7 @@ public sealed partial class ConcurrencyGate
     private Entry GET_OR_CREATE_ENTRY_SLOW(ushort opcode, PacketConcurrencyLimitAttribute attr)
     {
         return _table.GetOrAdd(opcode,
-            static (_, arg) => new Entry(arg.attr.Max, arg.attr.Queue, arg.attr.QueueMax, arg.logger), (attr, logger: _logger));
+            static (_, arg) => new Entry(arg.Max, arg.Queue, arg.QueueMax), attr);
     }
 
     private async ValueTask<Lease> ENTER_WITH_QUEUE_ASYNC(
@@ -194,17 +202,26 @@ public sealed partial class ConcurrencyGate
 
             if (removed > 0)
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    _logger.LogDebug("[RT.ConcurrencyGate] cleanup removed={Removed} remaining={TableCount}", removed, _table.Count);
+                    DiagnosticsEvents.Source.Write(
+                        DiagnosticsEvents.Internal.Debug,
+                        new DiagnosticLog(
+                            "RT.ConcurrencyGate:Internal",
+                            $"cleanup removed={removed} remaining={_table.Count}"));
                 }
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                _logger.LogError(ex, "[RT.ConcurrencyGate] cleanup-error");
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Error,
+                    new DiagnosticLog(
+                        "RT.ConcurrencyGate:Internal",
+                        "cleanup-error",
+                        ex));
             }
         }
     }

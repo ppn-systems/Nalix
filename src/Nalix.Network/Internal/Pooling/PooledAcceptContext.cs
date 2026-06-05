@@ -44,10 +44,7 @@ internal sealed class PooledAcceptContext : IPoolable
         }
 
         PooledAcceptContext? context = (e as PooledSocketAsyncEventArgs)?.Context;
-        if (context != null)
-        {
-            context._isAsyncPending = false;
-        }
+        _ = (context?._isAsyncPending = false);
 
         bool wasResolved = e.SocketError == SocketError.Success
             ? e.AcceptSocket is Socket acceptedSocket

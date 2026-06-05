@@ -14,8 +14,7 @@ using Nalix.Environment.Configuration;
 using Nalix.Environment.Memory;
 
 #if DEBUG
-using Nalix.Framework.Injection;
-using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Diagnostics;
 #endif
 
 namespace Nalix.Runtime.Dispatching;
@@ -32,9 +31,6 @@ public sealed class PacketSender : IPacketSender
     private IConnection? _connection;
     private PacketMetadata _attributes;
 
-#if DEBUG
-    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-#endif
     private static readonly CompressionOptions s_options = ConfigurationManager.Instance.Get<CompressionOptions>();
 
     #endregion Fields
@@ -99,10 +95,13 @@ public sealed class PacketSender : IPacketSender
         int packetLength = packet.Length;
 
 #if DEBUG
-        if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            string packetType = packet.GetType().Name;
-            s_logger.LogDebug("[RT.PacketSender] Start SEND_CORE_ASYNC | Packet={PacketType}, Length={Length}, NeedEncrypt={NeedEncrypt}", packetType, packetLength, needEncrypt);
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Debug,
+                new DiagnosticLog(
+                    "RT.PacketSender:SendCoreAsync",
+                    $"send-core-async packet={packet.GetType().Name} length={packetLength} encrypt={needEncrypt}"));
         }
 #endif
 

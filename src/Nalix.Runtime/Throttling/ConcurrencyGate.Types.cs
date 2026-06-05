@@ -4,7 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 
 namespace Nalix.Runtime.Throttling;
@@ -55,8 +55,7 @@ public sealed partial class ConcurrencyGate
         /// <param name="max"></param>
         /// <param name="queue"></param>
         /// <param name="queueMax"></param>
-        /// <param name="logger">The logger used for entry diagnostics.</param>
-        public Entry(int max, bool queue, int queueMax, ILogger? logger = null)
+        public Entry(int max, bool queue, int queueMax)
         {
             if (max <= 0)
             {
@@ -67,7 +66,6 @@ public sealed partial class ConcurrencyGate
             this.Capacity = max;
             this.QueueMax = queueMax < 0 ? int.MaxValue : queueMax;
             this.Sem = new SemaphoreSlim(this.Capacity, this.Capacity);
-            this.Logger = logger;
 
             _activeUsers = 0;
             _queueCount = 0;
@@ -102,8 +100,6 @@ public sealed partial class ConcurrencyGate
         /// Gets current queue count.
         /// </summary>
         public int QueueCount => Volatile.Read(ref _queueCount);
-
-        internal ILogger? Logger { get; }
 
         /// <summary>
         /// Entry is idle when no slots are in use and queue is empty.
@@ -149,7 +145,7 @@ public sealed partial class ConcurrencyGate
             if (newCount <= 0) // Overflow detection
             {
                 _ = Interlocked.Decrement(ref _activeUsers);
-                this.LOG_OVERFLOW();
+                LOG_OVERFLOW();
                 return false;
             }
 
@@ -166,7 +162,7 @@ public sealed partial class ConcurrencyGate
 
             if (remaining < 0)
             {
-                this.LOG_UNDERFLOW();
+                LOG_UNDERFLOW();
                 _ = Interlocked.Exchange(ref _activeUsers, 0);
             }
         }
@@ -208,7 +204,7 @@ public sealed partial class ConcurrencyGate
 
             if (remaining < 0)
             {
-                this.LOG_QUEUE_UNDERFLOW();
+                LOG_QUEUE_UNDERFLOW();
                 _ = Interlocked.Exchange(ref _queueCount, 0);
             }
         }
@@ -242,9 +238,13 @@ public sealed partial class ConcurrencyGate
                 int remainingUsers = Volatile.Read(ref _activeUsers);
                 if (remainingUsers > 0)
                 {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                     {
-                        this.Logger.LogWarning("[RT.ConcurrencyGate:Entry] disposing with {ActiveUsers} active users", remainingUsers);
+                        DiagnosticsEvents.Source.Write(
+                            DiagnosticsEvents.Internal.Warning,
+                            new DiagnosticLog(
+                                "RT.ConcurrencyGate:Entry",
+                                $"disposing with active_users={remainingUsers}"));
                     }
                 }
 
@@ -259,38 +259,55 @@ public sealed partial class ConcurrencyGate
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                     {
-                        this.Logger.LogError(ex, "[RT.ConcurrencyGate:Entry] disposal-error");
+                        DiagnosticsEvents.Source.Write(
+                            DiagnosticsEvents.Internal.Error,
+                            new DiagnosticLog(
+                                "RT.ConcurrencyGate:Entry",
+                                "disposal-error",
+                                ex));
                     }
                 }
             }
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private void LOG_OVERFLOW()
+        private static void LOG_OVERFLOW()
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                this.Logger.LogError("[RT.ConcurrencyGate:Entry] activeUsers overflow detected");
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Error,
+                    new DiagnosticLog(
+                        "RT.ConcurrencyGate:Entry",
+                        "activeUsers overflow detected"));
             }
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private void LOG_UNDERFLOW()
+        private static void LOG_UNDERFLOW()
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                this.Logger.LogError("[RT.ConcurrencyGate:Entry] activeUsers underflow detected");
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Error,
+                    new DiagnosticLog(
+                        "RT.ConcurrencyGate:Entry",
+                        "activeUsers underflow detected"));
             }
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private void LOG_QUEUE_UNDERFLOW()
+        private static void LOG_QUEUE_UNDERFLOW()
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                this.Logger.LogError("[RT.ConcurrencyGate:Entry] queueCount underflow detected");
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Error,
+                    new DiagnosticLog(
+                        "RT.ConcurrencyGate:Entry",
+                        "queueCount underflow detected"));
             }
         }
     }
@@ -348,9 +365,14 @@ public sealed partial class ConcurrencyGate
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (_entry.Logger != null && _entry.Logger.IsEnabled(LogLevel.Error))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                 {
-                    _entry.Logger.LogError(ex, "[RT.ConcurrencyGate:Lease] release-error");
+                    DiagnosticsEvents.Source.Write(
+                        DiagnosticsEvents.Internal.Error,
+                        new DiagnosticLog(
+                            "RT.ConcurrencyGate:Lease",
+                            "release-error",
+                        ex));
                 }
             }
             finally

@@ -4,8 +4,9 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Runtime.Internal.Diagnostics;
 using Nalix.Abstractions.Middleware;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
@@ -13,7 +14,6 @@ using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
-using Nalix.Framework.Injection;
 using Nalix.Runtime.Internal.RateLimiting;
 
 namespace Nalix.Runtime.Middleware.Standard;
@@ -26,15 +26,7 @@ namespace Nalix.Runtime.Middleware.Standard;
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public class PermissionMiddleware : IPacketMiddleware<IPacket>
 {
-    private static readonly ThrottleKey s_keySendError = new("middleware.permission.send_error");
-
-    private readonly ILogger? _logger;
-
-    /// <inheritdoc/>
-    public PermissionMiddleware() => _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-
-    /// <inheritdoc/>
-    public PermissionMiddleware(ILogger logger) => _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    private static readonly Internal.Diagnostics.ThrottleKey s_keySendError = new("middleware.permission.send_error");
 
     /// <summary>
     /// Invokes the concurrency middleware, enforcing concurrency limits on incoming packets.
@@ -56,10 +48,14 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
             string needLevel = context.Attributes.Permission?.Level.ToString() ?? "N/A (no attribute)";
-            _logger.LogTrace("[RT.PermissionMiddleware] deny op=0x{OpCode:X4} need={NeedLevel} have={HaveLevel}", context.Attributes.PacketOpcode.OpCode, needLevel, context.Connection.Level);
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Trace,
+                new DiagnosticLog(
+                    "RT.PermissionMiddleware:InvokeAsync",
+                    $"deny op=0x{context.Attributes.PacketOpcode.OpCode:X4} need={needLevel} have={context.Connection.Level}"));
         }
 
         if (!DirectiveGuard.TryAcquire(
@@ -87,7 +83,12 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            context.Connection.ThrottledError(_logger, s_keySendError, "[RT.PermissionMiddleware] send-error-failed", ex);
+            context.Connection.ThrottledDiagnosticError(
+                DiagnosticsEvents.Internal.Error,
+                s_keySendError,
+                "RT.PermissionMiddleware:InvokeAsync",
+                "send-error-failed",
+                ex);
         }
     }
 

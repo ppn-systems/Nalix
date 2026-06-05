@@ -5,8 +5,8 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Environment.Time;
@@ -35,7 +35,6 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
 
     #region Fields
 
-    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private readonly Lock _gate = new();
     private readonly ManualResetEventSlim _stoppedSignal = new(true);
     private CancellationTokenSource? _cts;
@@ -131,9 +130,11 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
     /// </summary>
     public TimeSynchronizer()
     {
-        if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            s_logger.LogDebug("[RT.TimeSynchronizer] initialized");
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Debug,
+                new DiagnosticLog("RT.TimeSynchronizer:Ctor", "initialized"));
         }
     }
 
@@ -203,9 +204,11 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                 }
                 else
                 {
-                    if (s_logger != null && s_logger.IsEnabled(LogLevel.Warning))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                     {
-                        s_logger.LogWarning("[RT.TimeSynchronizer] restart-timeout waiting for previous loop to stop");
+                        DiagnosticsEvents.Source.Write(
+                            DiagnosticsEvents.Internal.Warning,
+                            new DiagnosticLog("RT.TimeSynchronizer:Activate", "restart-timeout waiting-for-previous-loop"));
                     }
                 }
             }
@@ -253,9 +256,11 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                     }
                     else
                     {
-                        if (s_logger != null && s_logger.IsEnabled(LogLevel.Warning))
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                         {
-                            s_logger.LogWarning("[RT.TimeSynchronizer] dispose-timeout waiting for loop shutdown");
+                            DiagnosticsEvents.Source.Write(
+                                DiagnosticsEvents.Internal.Warning,
+                                new DiagnosticLog("RT.TimeSynchronizer:Dispose", "dispose-timeout waiting-for-loop-shutdown"));
                         }
                     }
                 }
@@ -268,9 +273,11 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
 
         GC.SuppressFinalize(this);
 
-        if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            s_logger.LogDebug("[RT.TimeSynchronizer] disposed");
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Debug,
+                new DiagnosticLog("RT.TimeSynchronizer:Dispose", "disposed"));
         }
     }
 
@@ -310,9 +317,11 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                 {
                     using PeriodicTimer timer = new(this.Period);
 
-                    if (s_logger != null && s_logger.IsEnabled(LogLevel.Information))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
                     {
-                        s_logger.LogInformation("[RT.TimeSynchronizer] started period={PeriodTotalMilliseconds}ms", this.Period.TotalMilliseconds);
+                        DiagnosticsEvents.Source.Write(
+                            DiagnosticsEvents.Internal.Information,
+                            new DiagnosticLog("RT.TimeSynchronizer:Internal", $"started period={this.Period.TotalMilliseconds}ms"));
                     }
 
                     while (!ct.IsCancellationRequested)
@@ -343,9 +352,11 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                                     }
                                     catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                                     {
-                                        if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
+                                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                                         {
-                                            s_logger.LogError(ex, "[RT.TimeSynchronizer] handler-error");
+                                            DiagnosticsEvents.Source.Write(
+                                                DiagnosticsEvents.Internal.Error,
+                                                new DiagnosticLog("RT.TimeSynchronizer:Internal", "handler-error", ex));
                                         }
                                     }
                                 }, (handler, timestamp), preferLocal: false);
@@ -358,20 +369,24 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                                 }
                                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                                 {
-                                    if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
+                                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                                     {
-                                        s_logger.LogError(ex, "[RT.TimeSynchronizer] handler-error");
+                                        DiagnosticsEvents.Source.Write(
+                                            DiagnosticsEvents.Internal.Error,
+                                            new DiagnosticLog("RT.TimeSynchronizer:Internal", "handler-error", ex));
                                     }
                                 }
                             }
                         }
 
-                        if (s_logger?.IsEnabled(LogLevel.Warning) == true)
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                         {
                             long elapsed = Clock.UnixMillisecondsNow() - timestamp;
                             if (elapsed > this.Period.TotalMilliseconds * 1.5)
                             {
-                                s_logger.LogWarning("[RT.TimeSynchronizer] tick overrun elapsed={ElapsedMs}ms period={PeriodTotalMilliseconds}ms", elapsed, this.Period.TotalMilliseconds);
+                                DiagnosticsEvents.Source.Write(
+                                    DiagnosticsEvents.Internal.Warning,
+                                    new DiagnosticLog("RT.TimeSynchronizer:Internal", $"tick-overrun elapsed={elapsed}ms period={this.Period.TotalMilliseconds}ms"));
                             }
                         }
 
@@ -384,18 +399,22 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                     {
-                        s_logger.LogError(ex, "[RT.TimeSynchronizer] loop-error");
+                        DiagnosticsEvents.Source.Write(
+                            DiagnosticsEvents.Internal.Error,
+                            new DiagnosticLog("RT.TimeSynchronizer:Internal", "loop-error", ex));
                     }
                 }
                 finally
                 {
                     Volatile.Write(ref _isRunning, 0);
                     _stoppedSignal.Set();
-                    if (s_logger != null && s_logger.IsEnabled(LogLevel.Information))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
                     {
-                        s_logger.LogInformation("[RT.TimeSynchronizer] stopped");
+                        DiagnosticsEvents.Source.Write(
+                            DiagnosticsEvents.Internal.Information,
+                            new DiagnosticLog("RT.TimeSynchronizer:Internal", "stopped"));
                     }
                 }
             },

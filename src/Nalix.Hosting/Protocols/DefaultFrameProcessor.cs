@@ -30,7 +30,8 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
 {
     #region Fields
 
-    private static readonly ThrottleKey s_keyProcessError = new("protocol.process_error");
+    private const string ThrottleAttributeKey = "sys.log.protocol.process_error";
+    private static readonly long s_throttleWindowTicks = (long)(TimeSpan.FromSeconds(20).TotalSeconds * Stopwatch.Frequency);
 
     private readonly ILogger? _logger;
     private readonly IProtocol _protocol;
@@ -155,11 +156,12 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
                     _logger.LogTrace(ex, "[NW.TcpListenerBase:ProcessFrame]");
                 }
             }
-            else
+            else if (ShouldEmitThrottledLog(args.Connection))
             {
-                args.Connection.ThrottledError(
-                    _logger, s_keyProcessError,
-                    "[NW.TcpListenerBase:ProcessFrame] Unhandled exception during message processing.", ex);
+                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                {
+                    _logger.LogError(ex, "[NW.TcpListenerBase:ProcessFrame] Unhandled exception during message processing.");
+                }
             }
         }
         finally
@@ -172,4 +174,33 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
     }
 
     #endregion Methods
+
+    #region Throttle Helper
+
+    private static bool ShouldEmitThrottledLog(IConnection connection)
+    {
+        IObjectMap<string, object>? attrs = connection?.Attributes;
+        if (attrs is null)
+        {
+            return true;
+        }
+
+        long nowTicks = Stopwatch.GetTimestamp();
+
+        if (!attrs.TryGetValue(ThrottleAttributeKey, out object? val) || val is not long lastTicks)
+        {
+            attrs[ThrottleAttributeKey] = nowTicks;
+            return true;
+        }
+
+        if (nowTicks - lastTicks < s_throttleWindowTicks)
+        {
+            return false;
+        }
+
+        attrs[ThrottleAttributeKey] = nowTicks;
+        return true;
+    }
+
+    #endregion Throttle Helper
 }

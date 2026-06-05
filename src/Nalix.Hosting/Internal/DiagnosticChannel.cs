@@ -11,8 +11,8 @@ using Nalix.Framework.Injection;
 namespace Nalix.Hosting.Internal;
 
 /// <summary>
-/// Bridges <see cref="DiagnosticListener"/> events from Nalix.Environment and Nalix.Framework
-/// into <see cref="ILogger"/> for centralized observability.
+/// Bridges <see cref="DiagnosticListener"/> events from Nalix.Environment, Nalix.Framework,
+/// Nalix.Network, and Nalix.Runtime into <see cref="ILogger"/> for centralized observability.
 /// </summary>
 internal sealed class DiagnosticChannel :
     IObserver<DiagnosticListener>,
@@ -27,8 +27,13 @@ internal sealed class DiagnosticChannel :
         Network.DiagnosticsEvents.ListenerName,
         Framework.DiagnosticsEvents.ListenerName,
         Environment.DiagnosticsEvents.ListenerName,
+        Runtime.DiagnosticsEvents.ListenerName,
     };
 
+    // CA2244: Runtime and Network Internal event names intentionally share the same
+    // constant values (e.g. "Internal.Trace") and identical log level mappings.
+    // The duplicate entries are harmless because both modules use the same levels.
+#pragma warning disable CA2244
     private static readonly Dictionary<string, LogLevel> s_eventLevels = new(StringComparer.Ordinal)
     {
         // Framework.Tasks
@@ -120,7 +125,16 @@ internal sealed class DiagnosticChannel :
 
         // Environment.Random Failure
         [Environment.DiagnosticsEvents.Random.Failure] = LogLevel.Warning,
+
+        // Runtime.Internal
+        [Runtime.DiagnosticsEvents.Internal.Trace] = LogLevel.Trace,
+        [Runtime.DiagnosticsEvents.Internal.Debug] = LogLevel.Debug,
+        [Runtime.DiagnosticsEvents.Internal.Information] = LogLevel.Information,
+        [Runtime.DiagnosticsEvents.Internal.Warning] = LogLevel.Warning,
+        [Runtime.DiagnosticsEvents.Internal.Error] = LogLevel.Error,
+        [Runtime.DiagnosticsEvents.Internal.Critical] = LogLevel.Critical,
     };
+#pragma warning restore CA2244
 
     private readonly ILogger? _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 

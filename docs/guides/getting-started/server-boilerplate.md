@@ -92,17 +92,21 @@ Add these to your `CreateBuilder()` chain to harden your server for production t
 ```csharp
 builder.ConfigureDispatchOptions(options =>
 {
-    options.WithLogging(NLogixFx.Logger)
-           // Add security layers
-           .WithMiddleware(new ConcurrencyMiddleware())
-           .WithMiddleware(new RateLimitMiddleware())
-           // Handle global failures
-           .WithErrorHandling((ex, opcode) => 
-           {
-                Console.WriteLine($"Error in opcode 0x{opcode:X4}: {ex.Message}");
-           });
+    options
+        // Add security layers
+        .WithMiddleware(new ConcurrencyMiddleware())
+        .WithMiddleware(new RateLimitMiddleware())
+        // Handle global failures
+        .WithErrorHandling((ex, opcode) => 
+        {
+             Console.WriteLine($"Error in opcode 0x{opcode:X4}: {ex.Message}");
+        });
 });
 ```
+
+!!! info "Diagnostics"
+    Runtime diagnostics are emitted via `DiagnosticListener` (`"Runtime"`).
+    The hosting layer automatically bridges them into `ILogger`.
 
 ---
 

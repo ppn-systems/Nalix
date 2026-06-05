@@ -2,16 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Runtime.Internal.Compilation;
-using Nalix.Runtime.Microsoft;
 using Nalix.Runtime.Middleware;
 using Nalix.Runtime.Options;
 
@@ -24,7 +21,7 @@ namespace Nalix.Runtime.Routing;
 /// <typeparam name="TPacket">The type of packet being dispatched.</typeparam>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
-public sealed partial class PacketDispatchOptions<TPacket> : IWithLogging<PacketDispatchOptions<TPacket>> where TPacket : IPacket
+public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket
 {
     #region Fields
 
@@ -58,12 +55,6 @@ public sealed partial class PacketDispatchOptions<TPacket> : IWithLogging<Packet
     #endregion Fields
 
     #region Properties
-
-    /// <summary>
-    /// Gets the logger instance used for logging within the packet dispatch options.
-    /// </summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public ILogger? Logging { get; private set; }
 
     /// <summary>
     /// Gets the concurrency options for draining packets from the channel.

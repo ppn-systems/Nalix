@@ -9,14 +9,13 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Hashing;
 using Nalix.Framework.Injection;
-using Nalix.Runtime.Microsoft;
 using Nalix.Runtime.Options;
 
 namespace Nalix.Runtime.Throttling;
@@ -42,7 +41,7 @@ namespace Nalix.Runtime.Throttling;
 /// </remarks>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
-public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<PolicyRateLimiter>
+public sealed class PolicyRateLimiter : IReportable, IDisposable
 {
     #region Fields
 
@@ -59,8 +58,6 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
     /// Gets the default rate limiting options used for global configuration (shard count, cleanups).
     /// </summary>
     private static readonly TokenBucketOptions s_defaults = ConfigurationManager.Instance.Get<TokenBucketOptions>();
-
-    private ILogger? _logger;
 
     #endregion Fields
 
@@ -154,20 +151,6 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
     #region Public API
 
     /// <summary>
-    /// Assigns a logger instance used by the limiter for diagnostic output.
-    /// </summary>
-    /// <param name="logger">The logger to use for subsequent diagnostics.</param>
-    /// <returns>The current <see cref="PolicyRateLimiter"/> instance.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public PolicyRateLimiter WithLogging(ILogger logger)
-    {
-        ArgumentNullException.ThrowIfNull(logger);
-        _logger = logger;
-        _ = _shared.WithLogging(_logger);
-        return this;
-    }
-
-    /// <summary>
     /// Performs a rate limit check for the specified operation code and packet context.
     /// </summary>
     /// <param name="context">The packet context containing connection, endpoint, and rate limit metadata.</param>
@@ -194,9 +177,13 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
         // Fast-path: Invalid burst
         if (rl.Burst <= 0)
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                _logger.LogWarning("[RT.PolicyRateLimiter] invalid-burst burst={RlBurst}", rl.Burst);
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Warning,
+                    new DiagnosticLog(
+                        "RT.PolicyRateLimiter:Evaluate",
+                        $"invalid-burst burst={rl.Burst}"));
             }
             return CREATE_DENIED_DECISION(isHard: true);
         }
@@ -250,9 +237,13 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
         // Note: We do NOT dispose _shared here because it is a singleton managed by InstanceManager.
         // It should only be disposed when the application shuts down or the manager disposes it.
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
-            _logger.LogInformation("[RT.PolicyRateLimiter:Dispose] disposed");
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Information,
+                new DiagnosticLog(
+                    "RT.PolicyRateLimiter:Dispose",
+                    "disposed"));
         }
 
         GC.SuppressFinalize(this);
@@ -309,9 +300,13 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
 
         if (connection?.NetworkEndpoint is null)
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                _logger.LogWarning("[RT.PolicyRateLimiter] missing-endpoint opCode={OpCode}", context.Packet.Header.OpCode);
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Warning,
+                    new DiagnosticLog(
+                        "RT.PolicyRateLimiter:Evaluate",
+                        $"missing-endpoint opcode={context.Packet.Header.OpCode}"));
             }
 
             return CREATE_DENIED_DECISION(isHard: false);

@@ -439,8 +439,6 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
         void ConfigureOptions(PacketDispatchOptions<IPacket> dispatchOptions)
         {
-            _ = dispatchOptions.WithLogging(state.Logger);
-
             for (int i = 0; i < state.PacketDispatchOptionsConfigurators.Count; i++)
             {
                 state.PacketDispatchOptionsConfigurators[i](dispatchOptions);

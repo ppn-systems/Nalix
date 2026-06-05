@@ -9,7 +9,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Middleware;
 using Nalix.Abstractions.Networking;
@@ -23,22 +23,6 @@ namespace Nalix.Runtime.Routing;
 
 public sealed partial class PacketDispatchOptions<TPacket>
 {
-    /// <summary>
-    /// Attaches a logger used by the dispatcher for setup, routing, and failure diagnostics.
-    /// </summary>
-    /// <param name="logger">The logger instance that will be used for logging packet processing events.</param>
-    /// <returns>
-    /// The current <see cref="PacketDispatchOptions{TPacket}"/> instance for method chaining.
-    /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public PacketDispatchOptions<TPacket> WithLogging(ILogger logger)
-    {
-        this.Logging = logger;
-        this.LOG_LOGGER_ATTACHED();
-
-        return this;
-    }
-
     /// <summary>
     /// Registers a custom error hook that receives handler exceptions before the dispatcher
     /// emits the protocol-level failure response.
@@ -232,16 +216,24 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
             if (concretePacketType is not null && concretePacketType != typeof(TPacket))
             {
-                if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    this.Logging.LogDebug("[RT.PacketDispatchOptions:WithHandler] type-map opcode=0x{OpCode} -> {ConcretePacketTypeName}", descriptor.OpCode, concretePacketType.Name);
+                    DiagnosticsEvents.Source.Write(
+                        DiagnosticsEvents.Internal.Debug,
+                        new DiagnosticLog(
+                            "RT.PacketDispatchOptions:Internal",
+                            $"type-map opcode=0x{descriptor.OpCode} -> {concretePacketType.Name}"));
                 }
             }
         }
 
-        if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Information))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
-            this.Logging.LogInformation("[RT.PacketDispatchOptions:WithHandler] reg-handlers count={CompiledHandlersLength} controller={ControllerTypeName}", compiledHandlers.Length, controllerType.Name);
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Information,
+                new DiagnosticLog(
+                    "RT.PacketDispatchOptions:Internal",
+                    $"reg-handlers count={compiledHandlers.Length} controller={controllerType.Name}"));
         }
 
         return this;
@@ -324,30 +316,28 @@ public sealed partial class PacketDispatchOptions<TPacket>
     #region Private
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void LOG_LOGGER_ATTACHED()
-    {
-        if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
-        {
-            this.Logging.LogDebug("[RT.PacketDispatchOptions:WithLogging] logger-attached");
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
     private void LOG_ERROR_HANDLER_SET()
     {
-        if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            this.Logging.LogDebug("[RT.PacketDispatchOptions:WithErrorHandling] error-handler-set");
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Debug,
+                new DiagnosticLog(
+                    "RT.PacketDispatchOptions:WithErrorHandling",
+                    "error-handler-set"));
         }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void LOG_MIDDLEWARE_ADDED(IPacketMiddleware<TPacket> middleware)
     {
-        if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            string middlewareType = middleware.GetType().Name;
-            this.Logging.LogDebug("[RT.PacketDispatchOptions:WithMiddleware] middleware-added type={MiddlewareType}", middlewareType);
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Debug,
+                new DiagnosticLog(
+                    "RT.PacketDispatchOptions:WithMiddleware",
+                    $"middleware-added type={middleware.GetType().Name}"));
         }
     }
 
@@ -358,10 +348,14 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void LOG_DISPATCH_LOOP_COUNT(int? loopCount)
     {
-        if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
             string loops = loopCount.HasValue ? loopCount.Value.ToString(CultureInfo.InvariantCulture) : "auto";
-            this.Logging.LogDebug("[RT.PacketDispatchOptions:WithDispatchLoopCount] loops={Loops}", loops);
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Debug,
+                new DiagnosticLog(
+                    "RT.PacketDispatchOptions:WithDispatchLoopCount",
+                    $"loops={loops}"));
         }
     }
 

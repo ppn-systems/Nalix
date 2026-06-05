@@ -7,13 +7,12 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
-using Nalix.Runtime.Microsoft;
 using Nalix.Runtime.Options;
 
 namespace Nalix.Runtime.Throttling;
@@ -25,7 +24,7 @@ namespace Nalix.Runtime.Throttling;
 /// </summary>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
-public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReportable, IWithLogging<TokenBucketLimiter>
+public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReportable
 {
 
     #region Constants
@@ -45,8 +44,6 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     private readonly int _cleanupIntervalSec;
     private readonly long _initialBalanceMicro;
     private readonly TokenBucketOptions _options;
-
-    private ILogger? _logger;
 
     private int _totalEndpointCount;
     private int _cleanupShardStart;
@@ -104,19 +101,6 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     #endregion Constructors
 
     #region Public API
-
-    /// <summary>
-    /// Assigns a logger instance used by the limiter for diagnostic output.
-    /// </summary>
-    /// <param name="logger">The logger to use for subsequent diagnostics.</param>
-    /// <returns>The current <see cref="TokenBucketLimiter"/> instance.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public TokenBucketLimiter WithLogging(ILogger logger)
-    {
-        ArgumentNullException.ThrowIfNull(logger);
-        _logger = logger;
-        return this;
-    }
 
     /// <summary>
     /// Checks and consumes 1 token for the given endpoint.  Returns decision with RetryAfter and Credit.
@@ -232,9 +216,13 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         // Pre-check limit before allocation
         if (this.IS_ENDPOINT_LIMIT_REACHED())
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                _logger.LogWarning("[RT.TokenBucketLimiter:Internal] endpoint-limit-reached-precheck count={TotalEndpoints} limit={MaxEndpoints}", _totalEndpointCount, _options.MaxTrackedEndpoints);
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Warning,
+                    new DiagnosticLog(
+                        "RT.TokenBucketLimiter:Internal",
+                        $"endpoint-limit-reached-precheck count={_totalEndpointCount} limit={_options.MaxTrackedEndpoints}"));
             }
 
             return new EndpointStateResult
@@ -268,9 +256,13 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
             };
         }
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            _logger.LogDebug("[RT.TokenBucketLimiter:Internal] new-endpoint total={TotalEndpoints}", _totalEndpointCount);
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Debug,
+                new DiagnosticLog(
+                    "RT.TokenBucketLimiter:Internal",
+                    $"new-endpoint total={_totalEndpointCount}"));
         }
 
         return new EndpointStateResult { State = newState, IsNew = true };
@@ -280,9 +272,13 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     {
         if (this.IS_ENDPOINT_LIMIT_REACHED())
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                _logger.LogWarning("[RT.TokenBucketLimiter:Internal] endpoint-limit-reached-precheck count={TotalEndpoints} limit={MaxEndpoints}", _totalEndpointCount, _options.MaxTrackedEndpoints);
+                DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Internal.Warning,
+                    new DiagnosticLog(
+                        "RT.TokenBucketLimiter:Internal",
+                        $"endpoint-limit-reached-precheck count={_totalEndpointCount} limit={_options.MaxTrackedEndpoints}"));
             }
             return new EndpointStateResult { EarlyDecision = this.CREATE_LIMIT_REACHED_DECISION() };
         }
@@ -302,9 +298,13 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
             return new EndpointStateResult { EarlyDecision = this.CREATE_LIMIT_REACHED_DECISION() };
         }
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            _logger.LogDebug("[RT.TokenBucketLimiter:Internal] new-endpoint total={TotalEndpoints}", _totalEndpointCount);
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Debug,
+                new DiagnosticLog(
+                    "RT.TokenBucketLimiter:Internal",
+                    $"new-endpoint total={_totalEndpointCount}"));
         }
 
         return new EndpointStateResult { State = newState, IsNew = true };
@@ -933,9 +933,13 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
 
         _cleanupJob?.Dispose();
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            _logger.LogDebug("[RT.TokenBucketLimiter:Dispose] disposed");
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Debug,
+                new DiagnosticLog(
+                    "RT.TokenBucketLimiter:Dispose",
+                    "disposed"));
         }
     }
 
@@ -960,18 +964,26 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void LOG_HARD_BLOCKED(int retryMs)
     {
-        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            _logger.LogTrace("[RT.TokenBucketLimiter:Internal] hard-blocked retry_ms={RetryMs}", retryMs);
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Trace,
+                new DiagnosticLog(
+                    "RT.TokenBucketLimiter:Internal",
+                    $"hard-blocked retry_ms={retryMs}"));
         }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void LOG_ALLOW(ushort credit)
     {
-        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            _logger.LogTrace("[RT.TokenBucketLimiter:Internal] allow credit={Credit}", credit);
+            DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Internal.Trace,
+                new DiagnosticLog(
+                    "RT.TokenBucketLimiter:Internal",
+                    $"allow credit={credit}"));
         }
     }
 

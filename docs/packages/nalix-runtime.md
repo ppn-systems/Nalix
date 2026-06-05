@@ -66,10 +66,9 @@ flowchart TD
 ```csharp
 PacketDispatchChannel dispatch = new(options =>
 {
-    options.WithLogging(logger)
-           .WithErrorHandling((ex, opcode) =>
+    options.WithErrorHandling((ex, opcode) =>
            {
-               logger.LogError(ex, "dispatch-error opcode=0x{Opcode:X4}", opcode);
+               // Custom error hook for handler exceptions
            })
            .WithMiddleware(new MyAuditMiddleware<IPacket>())
            .WithHandler(() => new AccountHandlers())
@@ -78,6 +77,12 @@ PacketDispatchChannel dispatch = new(options =>
 
 dispatch.Activate();
 ```
+
+!!! info "Diagnostics via DiagnosticListener"
+    Runtime emits diagnostics through `Nalix.Runtime.DiagnosticsEvents.Source`
+    (a `DiagnosticListener` named `"Runtime"`). Subscribe in your host to bridge
+    events into `ILogger`, OpenTelemetry, or any other observability sink.
+    Per-instance logger injection (`WithLogging`) has been removed.
 
 ### Middleware Pipeline
 
@@ -164,6 +169,21 @@ The dispatch pipeline supports multiple return shapes. The internal return handl
 | `void` / `Task` / `ValueTask` | No response; side-effect only |
 
 ## Diagnostics
+
+Runtime diagnostics are published through `Nalix.Runtime.DiagnosticsEvents.Source`
+(a `DiagnosticListener` named `"Runtime"`). The `Nalix.Hosting` `DiagnosticChannel`
+automatically bridges these events into `ILogger`.
+
+Subscribe to specific event levels:
+
+| Event | Level |
+|---|---|
+| `Internal.Trace` | Trace |
+| `Internal.Debug` | Debug |
+| `Internal.Information` | Information |
+| `Internal.Warning` | Warning |
+| `Internal.Error` | Error |
+| `Internal.Critical` | Critical |
 
 Call `dispatch.GenerateReport()` to inspect runtime state:
 

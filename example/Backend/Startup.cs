@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Backend.Attributes;
+using Backend.Middleware;
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
@@ -27,7 +28,7 @@ internal class Startup
 
     public static ILogger CreateBootstrapLogger() => new NLogixBuilder()
         .AddTarget(new BatchConsoleLogTarget(t => t.EnableColors = false))
-        .SetMinimumLevel(LogLevel.Information)
+        .SetMinimumLevel(LogLevel.Debug)
         .Build();
 
     public static NetworkApplication Configure(ILogger logger)
@@ -317,7 +318,7 @@ internal class Startup
             .ConfigureDispatchOptions(o =>
             {
                 _ = o.WithMiddleware(new TimeoutMiddleware());
-                //_ = o.WithMiddleware(new PacketTagMiddleware());
+                _ = o.WithMiddleware(new PacketTagMiddleware());
                 _ = o.WithMiddleware(new RateLimitMiddleware());
                 _ = o.WithMiddleware(new PermissionMiddleware());
                 _ = o.WithMiddleware(new ConcurrencyMiddleware());

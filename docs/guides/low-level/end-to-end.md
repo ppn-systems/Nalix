@@ -48,8 +48,7 @@ public sealed class SamplePingHandlers
 ```csharp
 PacketDispatchChannel dispatch = new(options =>
 {
-    options.WithLogging(logger)
-           .WithHandler(() => new SamplePingHandlers());
+    options.WithHandler(() => new SamplePingHandlers());
 });
 
 dispatch.Activate();

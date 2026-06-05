@@ -36,6 +36,7 @@ Nalix.Hosting provides Microsoft-style host and builder APIs for the Nalix ecosy
 		<ProjectReference Include="..\Nalix.Runtime\Nalix.Runtime.csproj" />
 		<ProjectReference Include="..\Nalix.Framework\Nalix.Framework.csproj" />
 		<ProjectReference Include="..\Nalix.Abstractions\Nalix.Abstractions.csproj" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.8" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)' == 'Debug'">
