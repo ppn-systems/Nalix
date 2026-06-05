@@ -5,7 +5,6 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
@@ -130,9 +129,9 @@ public abstract partial class TcpListenerBase
         System.Threading.Channels.Channel<IConnection>? processChannel = _processChannel;
         if (processChannel is null)
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                _logger.LogWarning("[NW.TcpListenerBase:DISPATCH_CONNECTION] process-channel-unavailable remote={RemoteEndpoint}", connection?.NetworkEndpoint.ToString() ?? "<null>");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "process-channel-unavailable", RemoteEndpoint = connection?.NetworkEndpoint.ToString() ?? "<null>" });
             }
 
             ArgumentNullException.ThrowIfNull(connection);
@@ -142,9 +141,9 @@ public abstract partial class TcpListenerBase
 
         if (processChannel.Writer.TryWrite(connection))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                _logger.LogTrace("[NW.TcpListenerBase:DISPATCH_CONNECTION] queued remote={RemoteEndpoint}", connection?.NetworkEndpoint.ToString() ?? "<null>");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "queued", RemoteEndpoint = connection?.NetworkEndpoint.ToString() ?? "<null>" });
             }
 
             return;
@@ -158,9 +157,9 @@ public abstract partial class TcpListenerBase
         //   optimize ProcessConnection for faster execution.
         this.Metrics.RECORD_REJECTED();
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
         {
-            _logger.LogWarning("[NW.TcpListenerBase:DISPATCH_CONNECTION] channel-full remote={RemoteEndpoint}", connection?.NetworkEndpoint.ToString() ?? "<null>");
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "channel-full", RemoteEndpoint = connection?.NetworkEndpoint.ToString() ?? "<null>" });
         }
 
         ArgumentNullException.ThrowIfNull(connection);
@@ -173,9 +172,9 @@ public abstract partial class TcpListenerBase
 
     private async ValueTask PROCESS_CHANNEL_LOOP_ASYNC(IWorkerContext ctx, CancellationToken cancellationToken)
     {
-        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            _logger.LogTrace("[NW.TcpListenerBase:PROCESS_CHANNEL_LOOP_ASYNC] worker-started port={Port}", _port);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "worker-started", Port = _port });
         }
 
         System.Threading.Channels.Channel<IConnection>? processChannel = _processChannel;
@@ -218,9 +217,9 @@ public abstract partial class TcpListenerBase
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
             {
-                _logger.LogError(ex, "[NW.TcpListenerBase:PROCESS_CHANNEL_LOOP_ASYNC] unhandled-error port={Port}", _port);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new { Message = "unhandled-error", Port = _port, Exception = ex });
             }
         }
         finally
@@ -236,9 +235,9 @@ public abstract partial class TcpListenerBase
                 this.INVOKE_PROCESS(connection);
             }
 
-            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                _logger.LogTrace("[NW.TcpListenerBase:PROCESS_CHANNEL_LOOP_ASYNC] worker-exited port={Port}", _port);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "worker-exited", Port = _port });
             }
         }
     }
@@ -264,9 +263,9 @@ public abstract partial class TcpListenerBase
         {
             this.Metrics.RECORD_ERROR();
 
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
             {
-                _logger.LogError(ex, "[NW.TcpListenerBase:INVOKE_PROCESS] error remote={RemoteEndpoint}", connection?.NetworkEndpoint.ToString() ?? "<null>");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new { Message = "error", RemoteEndpoint = connection?.NetworkEndpoint.ToString() ?? "<null>", Exception = ex });
             }
 
             ArgumentNullException.ThrowIfNull(connection);

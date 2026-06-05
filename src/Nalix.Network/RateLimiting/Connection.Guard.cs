@@ -8,14 +8,13 @@ using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+
 using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Time;
-using Nalix.Framework.Injection;
 using Nalix.Network.Internal.Security;
 using Nalix.Network.Internal.Transport;
 using Nalix.Network.Options;
@@ -31,7 +30,7 @@ namespace Nalix.Network.RateLimiting;
 /// </summary>
 [SkipLocalsInit]
 [DebuggerNonUserCode]
-public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable, IWithLogging<ConnectionGuard>
+public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 {
     #region Constants
 
@@ -57,7 +56,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
     private readonly NetworkBanRepository _banRepository;
     private readonly ConcurrentDictionary<SocketEndpoint, ConnectionLimitEntry> _map;
 
-    private ILogger? _logger;
+
 
     private int _disposed;
     private int _reloadPending;
@@ -111,17 +110,16 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         _proxyConfig.Validate();
         _protectionConfig.Validate();
 
-        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        _windowTicks = 0;
+        _maxPerEndpoint = 0;
+        _maxGlobalConnections = 0;
+        _logSuppressWindowTicks = 0;
 
-        _cleanupInterval = _config.CleanupInterval;
-        _windowTicks = _config.ConnectionRateWindow.Ticks;
-        _inactivityThreshold = _config.InactivityThreshold;
-        _maxPerEndpoint = _config.MaxConnectionsPerIpAddress;
-        _maxGlobalConnections = _protectionConfig.MaxConnections;
-        _logSuppressWindowTicks = _protectionConfig.DDoSLogSuppressWindow.Ticks;
+        _cleanupInterval = TimeSpan.Zero;
+        _inactivityThreshold = TimeSpan.Zero;
 
-        _banRepository = new NetworkBanRepository(_logger);
-        _accessList = new NetworkAccessList(_logger, _proxyConfig);
+        _banRepository = new NetworkBanRepository();
+        _accessList = new NetworkAccessList(_proxyConfig);
         _map = new System.Collections.Concurrent.ConcurrentDictionary<SocketEndpoint, ConnectionLimitEntry>();
 
         _banCountDecayWindowTicks = ConfigurationManager.Instance.Get<ConnectionBanStoreOptions>().BanCountDecayWindow.Ticks;
@@ -132,9 +130,9 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         this.SCHEDULE_CLEANUP_JOB();
         this.INITIALIZE_HOT_RELOAD();
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            _logger.LogDebug("[NW.ConnectionGuard] init maxPerEndpoint={Limit} inactivity={InactivityThresholdTotalSeconds}s cleanup={CleanupIntervalTotalSeconds}s", _maxPerEndpoint, _inactivityThreshold.TotalSeconds, _cleanupInterval.TotalSeconds);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "ConnectionGuard init", MaxPerEndpoint = _maxPerEndpoint, Inactivity = _inactivityThreshold, Cleanup = _cleanupInterval });
         }
     }
 
@@ -146,18 +144,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
     #region Public API
 
-    /// <summary>
-    /// Assigns a logger instance used by the limiter for diagnostic output.
-    /// </summary>
-    /// <param name="logger">The logger to use for subsequent diagnostics.</param>
-    /// <returns>The current <see cref="ConnectionGuard"/> instance.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ConnectionGuard WithLogging(ILogger logger)
-    {
-        ArgumentNullException.ThrowIfNull(logger);
-        _logger = logger;
-        return this;
-    }
+
 
     /// <summary>
     /// Manually bans an IP address for a specified duration.
@@ -200,11 +187,9 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         // Mark as dirty so NetworkBanRepository saves it to a file in the next cycle
         _banRepository.MarkDirty();
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Security.Banned))
         {
-            DateTime banUntil = new(banUntilTicks, DateTimeKind.Utc);
-            string banTime = banUntil.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
-            _logger.LogWarning("[NW.ConnectionGuard] manually-banned ip={Address} until={BanUntil}", address, banTime);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Security.Banned, new { Address = address, BannedUntil = new DateTime(banUntilTicks, DateTimeKind.Utc) });
         }
     }
 
@@ -296,26 +281,24 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
                 long nowTicks = now.Ticks;
                 long windowTicks = _logSuppressWindowTicks;
 
-                if (ThrottledLogGate.TryAcquire(
+                if (ThrottledEventGate.TryAcquire(
                         ref entry.LastRejectLogTicks,
                         ref entry.SuppressedRejectCount,
                         nowTicks, windowTicks,
                         out long suppressed))
                 {
-                    string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
-
-                    if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Connections.Rejected))
                     {
-                        _logger.LogInformation("[NW.ConnectionGuard] reject endpoint={Endpoint} current={Current} limit={Limit}{Suffix}", endPoint, result.CurrentConnections, _maxPerEndpoint, suffix);
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Connections.Rejected, new { Endpoint = endPoint, Current = result.CurrentConnections, Limit = _maxPerEndpoint, SuppressedCount = suppressed });
                     }
                 }
             }
         }
         else
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                _logger.LogTrace("[NW.ConnectionGuard] allow endpoint={Endpoint} current={Current} limit={Limit}", endPoint, result.CurrentConnections, _maxPerEndpoint);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "allow endpoint", Endpoint = endPoint, Current = result.CurrentConnections, Limit = _maxPerEndpoint });
             }
         }
 
@@ -338,18 +321,18 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
         if (args?.Connection?.NetworkEndpoint is null)
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                _logger.LogWarning("[NW.ConnectionGuard:Internal] received-null args/connection/endpoint");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "received-null args/connection/endpoint" });
             }
             return;
         }
 
         if (string.IsNullOrWhiteSpace(args.Connection.NetworkEndpoint.Address))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                _logger.LogWarning("[NW.ConnectionGuard:Internal] received-empty-address");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "received-empty-address" });
             }
             return;
         }
@@ -391,17 +374,15 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
             long windowTicks = _logSuppressWindowTicks;
 
-            if (ThrottledLogGate.TryAcquire(
+            if (ThrottledEventGate.TryAcquire(
                     ref closedEntry.LastClosedLogTicks,
                     ref closedEntry.SuppressedClosedCount,
                     nowTicks, windowTicks,
                     out long suppressed))
             {
-                string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
-
-                if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Connections.Closed))
                 {
-                    _logger.LogTrace("[NW.ConnectionGuard] closed endpoint={Address}{Suffix}", key.Address, suffix);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Connections.Closed, new { Endpoint = key.Address, SuppressedCount = suppressed });
                 }
             }
         }
@@ -538,7 +519,17 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
             // 4. Runtime ban active -> Reject (Trusted proxies are never banned at runtime)
             if (!isTrustedProxy && bannedUntil > nowTicks)
             {
-                ThrottledLogGate.LogBanned(_logger, entry, key.Address, nowTicks, _logSuppressWindowTicks, new DateTime(bannedUntil, DateTimeKind.Utc));
+                if (ThrottledEventGate.TryAcquire(
+                        ref entry.LastRejectLogTicks,
+                        ref entry.SuppressedRejectCount,
+                        nowTicks, _logSuppressWindowTicks,
+                        out long suppressed))
+                {
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Security.Banned))
+                    {
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Security.Banned, new { key.Address, BannedUntil = new DateTime(bannedUntil, DateTimeKind.Utc), SuppressedCount = suppressed });
+                    }
+                }
 
                 int currentConns;
                 bool lockTaken = false;
@@ -594,13 +585,16 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
                         _ = Interlocked.Exchange(ref entry.BannedUntilTicks, banUntilTicks);
                         _banRepository.MarkDirty();
 
-                        ThrottledLogGate.LogDDoSDetected(_logger, entry, key.Address, nowTicks, _logSuppressWindowTicks);
-
-                        if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                        if (ThrottledEventGate.TryAcquire(
+                                ref entry.LastDDoSLogTicks,
+                                ref entry.SuppressedDDoSCount,
+                                nowTicks, _logSuppressWindowTicks,
+                                out long suppressed))
                         {
-                            DateTime banUntil = new(banUntilTicks, DateTimeKind.Utc);
-                            string banTime = banUntil.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
-                            _logger.LogWarning("[NW.ConnectionGuard] banned ip={Address} count={BanCount} until={BanUntil}", key.Address, entry.BanCount, banTime);
+                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Security.DdosDetected))
+                            {
+                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Security.DdosDetected, new { key.Address, entry.BanCount, BannedUntil = new DateTime(banUntilTicks, DateTimeKind.Utc), SuppressedCount = suppressed });
+                            }
                         }
                     }
 
@@ -748,9 +742,9 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
             {
                 entry.RecentConnectionTimestamps.Clear();
 
-                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    _logger.LogDebug("[NW.ConnectionGuard] cleared-queue ip={Address} reason=oversized", key.Address);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "cleared-queue", key.Address, Reason = "oversized" });
                 }
             }
 
@@ -798,16 +792,16 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
             _map.Clear();
 
-            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                _logger.LogDebug("[NW.ConnectionGuard:Dispose] disposed");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "ConnectionGuard disposed" });
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Critical))
             {
-                _logger.LogError(ex, "[NW.ConnectionGuard:Dispose] dispose-error");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Critical, new { Message = "ConnectionGuard dispose-error", Exception = ex });
             }
         }
 

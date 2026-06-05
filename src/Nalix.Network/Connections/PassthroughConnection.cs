@@ -7,7 +7,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
@@ -63,7 +62,7 @@ public sealed class PassthroughConnection :
 
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
-    private readonly ILogger? _logger;
+
     private readonly long _createdAtMs;
     private readonly EndPoint _endPointKey;
 
@@ -84,13 +83,12 @@ public sealed class PassthroughConnection :
     /// </summary>
     /// <param name="packetClassifier">The opcode extractor for classifying incoming packets.</param>
     /// <param name="remoteEndPoint">The remote UDP endpoint (must be an <see cref="IPEndPoint"/>).</param>
-    /// <param name="logger">The logger instance.</param>
-    public PassthroughConnection(IOpCodeExtractor packetClassifier, EndPoint remoteEndPoint, ILogger? logger = null)
+
+    public PassthroughConnection(IOpCodeExtractor packetClassifier, EndPoint remoteEndPoint)
     {
         ArgumentNullException.ThrowIfNull(remoteEndPoint);
         ArgumentNullException.ThrowIfNull(packetClassifier);
 
-        _logger = logger;
         _endPointKey = remoteEndPoint;
         _lastPingTime = _createdAtMs = Clock.UnixMillisecondsNow();
 
@@ -327,9 +325,9 @@ public sealed class PassthroughConnection :
                         }
                         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                         {
-                            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                             {
-                                _logger.LogError(ex, "[NW.PassthroughConnection:Dispose] close-handler-error");
+                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "close-handler-error", Exception = ex });
                             }
                         }
                     }
@@ -342,9 +340,9 @@ public sealed class PassthroughConnection :
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                _logger.LogError(ex, "[NW.PassthroughConnection:Dispose] close-event-error");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "close-event-error", Exception = ex });
             }
         }
 

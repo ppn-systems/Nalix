@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using Microsoft.Extensions.Logging;
+
 using Nalix.Abstractions.Exceptions;
 
 namespace Nalix.Network.Internal.Security;
@@ -18,7 +18,7 @@ internal static class NetworkStore
     /// <summary>
     /// Loads IP networks from a line-separated plain-text file.
     /// </summary>
-    public static List<IPNetwork> Load(string filePath, int maxRecords, ILogger? logger = null)
+    public static List<IPNetwork> Load(string filePath, int maxRecords)
     {
         List<IPNetwork> records = new();
         if (!File.Exists(filePath))
@@ -62,30 +62,30 @@ internal static class NetworkStore
                     }
                     else
                     {
-                        if (logger != null && logger.IsEnabled(LogLevel.Warning))
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                         {
-                            logger.LogWarning("[NW.NetworkStore] invalid line in file={FilePath} line={LineNumber} content={Content}", filePath, lineNumber, line);
+                            // "[NW.NetworkStore] invalid line in file={FilePath} line={LineNumber} content={Content}", filePath, lineNumber, line);
                         }
                     }
                 }
 
                 return records;
             }
-            catch (IOException ex) when (retryCount < backoffDelays.Length)
+            catch (IOException) when (retryCount < backoffDelays.Length)
             {
-                if (logger != null && logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
                     int delay = backoffDelays[retryCount];
-                    logger.LogDebug(ex, "[NW.NetworkStore] file locked, retrying in {Delay}ms file={FilePath}", delay, filePath);
+                    // ex, "[NW.NetworkStore] file locked, retrying in {Delay}ms file={FilePath}", delay, filePath);
                 }
                 System.Threading.Thread.Sleep(backoffDelays[retryCount]);
                 retryCount++;
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (logger != null && logger.IsEnabled(LogLevel.Error))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                 {
-                    logger.LogError(ex, "[NW.NetworkStore] error loading file={FilePath}", filePath);
+                    // ex, "[NW.NetworkStore] error loading file={FilePath}", filePath);
                 }
                 throw;
             }
@@ -163,3 +163,8 @@ internal static class NetworkStore
         }
     }
 }
+
+
+
+
+

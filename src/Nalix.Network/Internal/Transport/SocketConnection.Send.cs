@@ -8,7 +8,6 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
@@ -77,20 +76,20 @@ internal sealed partial class SocketConnection
             try
             {
 #if DEBUG
-                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    _logger.LogDebug("[NW.SocketConnection:Send] stackalloc len={Length} ep={RemoteEndpoint}", data.Length, _socket.RemoteEndPoint);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "stackalloc", Length = data.Length, RemoteEndpoint = _socket.RemoteEndPoint });
                 }
 #endif
                 Span<byte> frameS = stackalloc byte[totalLength];
                 WRITE_FRAME_HEADER(frameS, (ushort)totalLength, data);
 
 #if DEBUG
-                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
                     Span<byte> payloadSpan = frameS.Slice(HeaderSize, data.Length);
                     string payload = FORMAT_FRAME_FOR_LOG(payloadSpan);
-                    _logger.LogDebug("[NW.SocketConnection:Send] sending frame totalLen={TotalLength} payload={Payload} ep={RemoteEndpoint}", totalLength, payload, _socket.RemoteEndPoint);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "sending frame", TotalLength = totalLength, Payload = payload, RemoteEndpoint = _socket.RemoteEndPoint });
                 }
 #endif
 
@@ -103,9 +102,9 @@ internal sealed partial class SocketConnection
                         if (n == 0)
                         {
 #if DEBUG
-                            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                             {
-                                _logger.LogDebug("[NW.SocketConnection:Send] stackalloc peer-closed ep={RemoteEndpoint}", _socket.RemoteEndPoint);
+                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "stackalloc peer-closed", RemoteEndpoint = _socket.RemoteEndPoint });
                             }
 #endif
                             this.CANCEL_RECEIVE_ONCE();
@@ -126,19 +125,22 @@ internal sealed partial class SocketConnection
                 if (IS_BENIGN_DISCONNECT(ex))
                 {
 #if DEBUG
-                    if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                     {
                         string exceptionType = ex.GetType().Name;
-                        _logger.LogDebug(ex, "[NW.SocketConnection:Send] stackalloc-benign-disconnect ep={Endpoint} ex={ExceptionType}", _endpointString, exceptionType);
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "stackalloc-benign-disconnect", Endpoint = _endpointString, ExceptionType = exceptionType, Exception = ex });
                     }
 #endif
                 }
                 else
                 {
-                    _owner.ThrottledError(
-                        _logger,
-                        s_keySendStackallocError,
-                        "[NW.SocketConnection:Send] stackalloc-error ep=" + _endpointString, ex);
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+                    {
+                        if (Security.ThrottledEventGate.TryAcquire(ref s_sendStackallocErrorTicks, ref s_sendStackallocErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
+                        {
+                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "stackalloc-error", Endpoint = _endpointString, Exception = ex, SuppressedCount = suppressed });
+                        }
+                    }
                 }
                 throw;
             }
@@ -154,20 +156,20 @@ internal sealed partial class SocketConnection
         try
         {
 #if DEBUG
-            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                _logger.LogDebug("[NW.SocketConnection:Send] pooled len={Length} ep={RemoteEndpoint}", data.Length, _socket.RemoteEndPoint);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "pooled", Length = data.Length, RemoteEndpoint = _socket.RemoteEndPoint });
             }
 #endif
             BinaryPrimitives.WriteUInt16LittleEndian(MemoryExtensions.AsSpan(heapBuf), (ushort)totalLength);
             data.CopyTo(MemoryExtensions.AsSpan(heapBuf, HeaderSize));
 
 #if DEBUG
-            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
                 Span<byte> payloadSpan = MemoryExtensions.AsSpan(heapBuf, HeaderSize, data.Length);
                 string payload = FORMAT_FRAME_FOR_LOG(payloadSpan);
-                _logger.LogDebug("[NW.SocketConnection:Send] sending frame totalLen={TotalLength} payload={Payload} ep={RemoteEndpoint}", totalLength, payload, _socket.RemoteEndPoint);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "sending frame", TotalLength = totalLength, Payload = payload, RemoteEndpoint = _socket.RemoteEndPoint });
             }
 #endif
 
@@ -181,9 +183,9 @@ internal sealed partial class SocketConnection
                     if (n == 0)
                     {
 #if DEBUG
-                        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                         {
-                            _logger.LogDebug("[NW.SocketConnection:Send] pooled peer-closed ep={Ep}", _socket.RemoteEndPoint);
+                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "pooled peer-closed", RemoteEndpoint = _socket.RemoteEndPoint });
                         }
 #endif
                         this.CANCEL_RECEIVE_ONCE();
@@ -204,19 +206,22 @@ internal sealed partial class SocketConnection
             if (IS_BENIGN_DISCONNECT(ex))
             {
 #if DEBUG
-                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
                     string exceptionType = ex.GetType().Name;
-                    _logger.LogDebug(ex, "[NW.SocketConnection:Send] pooled-benign-disconnect ep={Ep} ex={ExType}", _endpointString, exceptionType);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "pooled-benign-disconnect", Endpoint = _endpointString, ExceptionType = exceptionType, Exception = ex });
                 }
 #endif
             }
             else
             {
-                _owner.ThrottledError(
-                    _logger,
-                    s_keySendPooledError,
-                    "[NW.SocketConnection:Send] pooled-error ep=" + _endpointString, ex);
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+                {
+                    if (Security.ThrottledEventGate.TryAcquire(ref s_sendPooledErrorTicks, ref s_sendPooledErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
+                    {
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "pooled-error", Endpoint = _endpointString, Exception = ex, SuppressedCount = suppressed });
+                    }
+                }
             }
             throw;
         }
@@ -275,19 +280,19 @@ internal sealed partial class SocketConnection
         try
         {
 #if DEBUG
-            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                _logger.LogDebug("[NW.SocketConnection:SendAsync] len={Len} ep={Ep}", data.Length, _socket.RemoteEndPoint);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "SendAsync", Length = data.Length, RemoteEndpoint = _socket.RemoteEndPoint });
             }
 #endif
             WRITE_FRAME_HEADER(MemoryExtensions.AsSpan(heapBuf), (ushort)totalLength, data.Span);
 
 #if DEBUG
-            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
                 ReadOnlySpan<byte> payloadSpan = data.Span;
                 string payload = FORMAT_FRAME_FOR_LOG(payloadSpan);
-                _logger.LogDebug("[NW.SocketConnection:SendAsync] sending frame totalLen={Total} payload={Payload} ep={Ep}", totalLength, payload, _socket.RemoteEndPoint);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "sending frame", TotalLength = totalLength, Payload = payload, RemoteEndpoint = _socket.RemoteEndPoint });
             }
 #endif
 
@@ -381,7 +386,13 @@ internal sealed partial class SocketConnection
         {
             if (!IS_BENIGN_DISCONNECT(ex))
             {
-                self._owner.ThrottledError(self._logger, s_keySendError, "[NW.SocketConnection:Send] error ep=" + self._endpointString, ex);
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+                {
+                    if (Security.ThrottledEventGate.TryAcquire(ref s_sendErrorTicks, ref s_sendErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
+                    {
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "send error", Endpoint = self._endpointString, Exception = ex, SuppressedCount = suppressed });
+                    }
+                }
             }
             return ValueTask.FromException(ex);
         }
@@ -390,7 +401,13 @@ internal sealed partial class SocketConnection
         {
             if (!IS_BENIGN_DISCONNECT(ex))
             {
-                self._owner.ThrottledError(self._logger, s_keySendError, "[NW.SocketConnection:Send] error ep=" + self._endpointString, ex);
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+                {
+                    if (Security.ThrottledEventGate.TryAcquire(ref s_sendErrorTicks, ref s_sendErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
+                    {
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "send error", Endpoint = self._endpointString, Exception = ex, SuppressedCount = suppressed });
+                    }
+                }
             }
             return ex;
         }

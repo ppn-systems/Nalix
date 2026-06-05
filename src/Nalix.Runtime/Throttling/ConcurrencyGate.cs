@@ -14,6 +14,7 @@ using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
+using Nalix.Runtime.Microsoft;
 using Nalix.Runtime.Options;
 
 namespace Nalix.Runtime.Throttling;

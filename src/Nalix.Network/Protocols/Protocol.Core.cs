@@ -5,7 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Microsoft.Extensions.Logging;
+
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Protocols;
@@ -22,7 +22,7 @@ namespace Nalix.Network.Protocols;
 [DebuggerDisplay("Disposed={_isDisposed != 0}, KeepConnectionOpen={KeepConnectionOpen}")]
 public abstract partial class Protocol : IProtocol
 {
-    private static readonly ThrottleKey s_keyPostFail = new("protocol.post_fail");
+    private static long s_postFailTicks; private static long s_postFailSuppressed;
 
     /// <inheritdoc/>
     public abstract IFrameProcessor FrameProcessor { get; }
@@ -70,11 +70,11 @@ public abstract partial class Protocol : IProtocol
 
             if (!this.KeepConnectionOpen)
             {
-                args.Connection?.Disconnect();
+                args.Connection.Disconnect();
 
-                if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
                 {
-                    s_logger.LogTrace("[NW.Protocol:PostProcessMessage] disconnect id={ArgsConnectionID}", args.Connection?.ID);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "disconnect id={ArgsConnectionID}", Context = "PostProcessMessage", Args = new object[] { args.Connection.ID } });
                 }
             }
         }
@@ -91,7 +91,7 @@ public abstract partial class Protocol : IProtocol
 
         if (args.Connection != null)
         {
-            args.Connection.ThrottledError(s_logger, s_keyPostFail, "[NW.Protocol:PostProcessMessage] post-fail id=" + args.Connection.ID, ex);
+            if (Internal.Security.ThrottledEventGate.TryAcquire(ref s_postFailTicks, ref s_postFailSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed)) { if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error)) { DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "post-fail", Id = args.Connection.ID, Suppressed = suppressed, Exception = ex }); } }
 
             // Give the derived protocol a chance to observe the failure before the socket closes.
             this.OnConnectionError(args.Connection, ex);
@@ -110,10 +110,11 @@ public abstract partial class Protocol : IProtocol
     {
         _ = Interlocked.Exchange(ref _accepting, isEnabled ? 1 : 0);
 
-        if (s_logger != null && s_logger.IsEnabled(LogLevel.Information))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
             string state = isEnabled ? "enabled" : "disabled";
-            s_logger.LogInformation("[NW.Protocol:SetConnectionAcceptance] accepting={State}", state);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new { Message = "accepting={State}", Context = "SetConnectionAcceptance", Args = new object[] { state } });
         }
     }
 }
+

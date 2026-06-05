@@ -3,7 +3,7 @@
 
 using Microsoft.Extensions.Logging;
 
-namespace Nalix.Abstractions;
+namespace Nalix.Runtime.Microsoft;
 
 /// <summary>
 /// Defines a contract for adding logging capability to a component.

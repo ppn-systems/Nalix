@@ -6,7 +6,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Microsoft.Extensions.Logging;
+
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
@@ -189,16 +189,16 @@ public sealed class UdpPassthroughListener : UdpListenerBase
     {
         if (_connGuard is not null && !_connGuard.TryAccept(ipEndPoint))
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                this.Logger.LogTrace("[NW.UdpPassthroughListener:GetOrCreateConnection] rate-limit-drop remote={IpEndPoint}", ipEndPoint);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "rate-limit-drop", IpEndPoint = ipEndPoint });
             }
 
             lease.Dispose();
             return null;
         }
 
-        PassthroughConnection newConnection = new(this.Protocol.OpCodeExtractor, ipEndPoint, this.Logger);
+        PassthroughConnection newConnection = new(this.Protocol.OpCodeExtractor, ipEndPoint);
 
         PassthroughConnection connection = _connections.AddOrUpdate(
             ipEndPoint,

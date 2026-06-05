@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Environment.Memory;
 using Nalix.Environment.Time;
@@ -41,9 +40,9 @@ internal sealed partial class SocketConnection
 
                     if (payloadLen < 0 || payloadLen > _maxVarIntPayloadSize)
                     {
-                        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
                         {
-                            _logger.LogTrace("[NW.SocketConnection:SAEA_RECEIVE_LOOP_VARINT_ASYNC] varint-invalid-size-drop size={PayloadLength} max={MaxVarIntPayloadSize} ep={Endpoint}", payloadLen, _maxVarIntPayloadSize, _endpointString);
+                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "varint-invalid-size-drop", PayloadLength = payloadLen, MaxVarIntPayloadSize = _maxVarIntPayloadSize, Endpoint = _endpointString });
                         }
 
                         throw new InternalErrorException($"VarInt payload size {payloadLen} is invalid or exceeds the maximum allowed size of {_maxVarIntPayloadSize}.");
@@ -110,27 +109,27 @@ internal sealed partial class SocketConnection
         }
         catch (Exception ex) when (IS_BENIGN_DISCONNECT(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                _logger.LogTrace("[NW.SocketConnection:SAEA_RECEIVE_LOOP_VARINT_ASYNC] ended (peer closed/shutdown) ep={OwnerNetworkEndpointAddress}", _owner?.NetworkEndpoint.Address);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "saea-receive-loop varint ended (peer closed/shutdown)", Endpoint = _owner?.NetworkEndpoint.Address });
             }
         }
         catch (OperationCanceledException)
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                _logger.LogTrace("[NW.SocketConnection:SAEA_RECEIVE_LOOP_VARINT_ASYNC] cancelled ep={OwnerNetworkEndpointAddress}", _owner?.NetworkEndpoint.Address);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "saea-receive-loop varint cancelled", Endpoint = _owner?.NetworkEndpoint.Address });
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
                 Exception e = (ex as AggregateException)?.Flatten() ?? ex;
-
-                _owner.ThrottledError(
-                    _logger, s_keyReceiveVarIntFaulted,
-                    "[NW.SocketConnection:ReceiveVarInt] faulted ep=" + _owner.NetworkEndpoint.Address, e);
+                if (Internal.Security.ThrottledEventGate.TryAcquire(ref s_receiveVarIntFaultedTicks, ref s_receiveVarIntFaultedSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
+                {
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "receive varint faulted", Endpoint = _owner.NetworkEndpoint.Address, Exception = e, SuppressedCount = suppressed });
+                }
             }
         }
         finally
@@ -156,18 +155,18 @@ internal sealed partial class SocketConnection
 
         if (!_sink.OnFrameReceived(_owner, lease, isReliable: true))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                _logger.LogTrace("[NW.SocketConnection:PROCESS_VARINT_FRAME_FROM_BUFFER] sink-rejected-frame-drop size={PayloadLength} ep={Endpoint}", payloadLen, _endpointString);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "sink-rejected-frame-drop", PayloadLength = payloadLen, Endpoint = _endpointString });
             }
 
             lease.Dispose();
             return;
         }
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            _logger.LogTrace("[NW.SocketConnection:PROCESS_VARINT_FRAME_FROM_BUFFER] accepted payload={PayloadLength} ep={Endpoint}", payloadLen, _endpointString);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "accepted", PayloadLength = payloadLen, Endpoint = _endpointString });
         }
     }
 }

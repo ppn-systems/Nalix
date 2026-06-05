@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Time;
@@ -222,9 +221,9 @@ public sealed partial class ConnectionGuard
 
             if (removed > 0 || subnetRemoved > 0)
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    _logger.LogDebug("[NW.ConnectionGuard] cleanup scanned={Scanned} removed={Removed} subnetRemoved={SubnetRemoved} remaining={MapCount}", scanned, removed, subnetRemoved, _map.Count);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "cleanup-scanned", Scanned = scanned, Removed = removed, SubnetRemoved = subnetRemoved, MapCount = _map.Count });
                 }
             }
 
@@ -232,9 +231,9 @@ public sealed partial class ConnectionGuard
         }
         catch (Exception ex) when (ex is not ObjectDisposedException)
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
             {
-                _logger.LogError(ex, "[NW.ConnectionGuard] cleanup-error");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new { Message = "cleanup-error", Exception = ex });
             }
         }
     }
@@ -269,9 +268,9 @@ public sealed partial class ConnectionGuard
         if (Math.Abs(drift) > 5)
         {
             _ = Interlocked.Exchange(ref _globalConnections, actualTotal);
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Security.LimitDriftCorrected))
             {
-                _logger.LogWarning("[NW.ConnectionGuard] drift-corrected global counter reported={Reported} actual={Actual}", reported, actualTotal);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Security.LimitDriftCorrected, new { Reported = reported, Actual = actualTotal });
             }
         }
     }
@@ -339,9 +338,9 @@ public sealed partial class ConnectionGuard
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                _logger.LogWarning(ex, "[NW.ConnectionGuard] failed to initialize FileSystemWatcher, relying on 60s periodic polling.");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "failed to initialize FileSystemWatcher, relying on 60s periodic polling.", Exception = ex });
             }
         }
     }
@@ -368,9 +367,9 @@ public sealed partial class ConnectionGuard
                     }
                     catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
-                        if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
                         {
-                            _logger.LogError(ex, "[NW.ConnectionGuard] hot-reload error in OnFileChanged handler");
+                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new { Message = "hot-reload error in OnFileChanged handler", Exception = ex });
                         }
                     }
                     finally
@@ -421,9 +420,9 @@ public sealed partial class ConnectionGuard
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
             {
-                _logger.LogError(ex, "[NW.ConnectionGuard] error checking file changes for hot reload.");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new { Message = "error checking file changes for hot reload.", Exception = ex });
             }
         }
     }

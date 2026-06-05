@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using Microsoft.Extensions.Logging;
+
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Network.Internal.Transport;
@@ -23,7 +23,7 @@ internal static class NetworkBanStore
     /// <summary>
     /// Loads banned IPs from disk, filtering expired entries and applying BanCount decay.
     /// </summary>
-    public static List<NetworkBanRecord> Load(string filePath, int maxRecords, TimeSpan decayWindow, long nowTicks, ILogger? logger = null)
+    public static List<NetworkBanRecord> Load(string filePath, int maxRecords, TimeSpan decayWindow, long nowTicks)
     {
         List<NetworkBanRecord> records = new();
         if (!File.Exists(filePath))
@@ -98,12 +98,12 @@ internal static class NetworkBanStore
 
                 return records;
             }
-            catch (IOException ex) when (retryCount < backoffDelays.Length)
+            catch (IOException) when (retryCount < backoffDelays.Length)
             {
-                if (logger != null && logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    int delay = backoffDelays[retryCount];
-                    logger.LogDebug(ex, "[NW.NetworkBanStore] file locked, retrying in {Delay}ms file={FilePath}", delay, filePath);
+                    _ = backoffDelays[retryCount];
+                    // ex, "[NW.NetworkBanStore] file locked, retrying in {Delay}ms file={FilePath}", delay, filePath);
                 }
                 System.Threading.Thread.Sleep(backoffDelays[retryCount]);
                 retryCount++;
@@ -189,3 +189,8 @@ internal readonly struct NetworkBanRecord
         LastSeenAtTicks = lastSeenAtTicks;
     }
 }
+
+
+
+
+

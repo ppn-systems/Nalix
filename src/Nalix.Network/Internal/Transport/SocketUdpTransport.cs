@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -9,7 +9,6 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
@@ -42,7 +41,6 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     #region Static Factory
 
     private static readonly NetworkSocketOptions s_options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
-    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     private TransportSequencer _sequencer = new();
 
@@ -164,10 +162,10 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                 }
                 catch (Exception ex) when (ex is SocketException or NotSupportedException or ObjectDisposedException or InvalidOperationException)
                 {
-                    if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                     {
                         string exceptionType = ex.GetType().Name;
-                        s_logger.LogDebug(ex, "[NW.SocketUdpTransport:Initialize] dualmode-not-applied reason={ExceptionType}", exceptionType);
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "dualmode-not-applied", ExceptionType = exceptionType, Exception = ex });
                     }
                 }
             }
@@ -181,34 +179,34 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             }
             catch (SocketException ex)
             {
-                if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
                     System.Net.Sockets.SocketError socketError = ex.SocketErrorCode;
-                    s_logger.LogDebug(ex, "[NW.SocketUdpTransport:Initialize] dontfragment-not-applied reason={SocketError}", socketError);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "dontfragment-not-applied", SocketError = socketError, Exception = ex });
                 }
             }
             catch (NotSupportedException ex)
             {
-                if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
                     string exceptionType = ex.GetType().Name;
-                    s_logger.LogDebug(ex, "[NW.SocketUdpTransport:Initialize] dontfragment-not-supported reason={ExceptionType}", exceptionType);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "dontfragment-not-supported", ExceptionType = exceptionType, Exception = ex });
                 }
             }
             catch (ObjectDisposedException ex)
             {
-                if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
                     string exceptionType = ex.GetType().Name;
-                    s_logger.LogDebug(ex, "[NW.SocketUdpTransport:Initialize] dontfragment-object-disposed reason={ExceptionType}", exceptionType);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "dontfragment-object-disposed", ExceptionType = exceptionType, Exception = ex });
                 }
             }
             catch (InvalidOperationException ex)
             {
-                if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
                     string exceptionType = ex.GetType().Name;
-                    s_logger.LogDebug(ex, "[NW.SocketUdpTransport:Initialize] dontfragment-invalid-op reason={ExceptionType}", exceptionType);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "dontfragment-invalid-op", ExceptionType = exceptionType, Exception = ex });
                 }
             }
 
@@ -221,10 +219,10 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                 }
                 catch (Exception ex) when (ex is SocketException or NotSupportedException or ObjectDisposedException)
                 {
-                    if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                     {
                         string exceptionType = ex.GetType().Name;
-                        s_logger.LogDebug(ex, "[NW.SocketUdpTransport:Initialize] udp-connreset-ioctl-not-applied reason={ExceptionType}", exceptionType);
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "udp-connreset-ioctl-not-applied", ExceptionType = exceptionType, Exception = ex });
                     }
                 }
             }

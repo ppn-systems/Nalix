@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-using Microsoft.Extensions.Logging;
+
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Security;
@@ -187,9 +187,9 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_owner.Logger != null && _owner.Logger.IsEnabled(LogLevel.Error))
+            if (false)
             {
-                _owner.Logger.LogError(ex, "[NW.WebSocketConnection] Receive loop error");
+                // ex, "[NW.WebSocketConnection] Receive loop error");
             }
         }
         finally
@@ -268,30 +268,25 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
         {
             if (receiveLoopTask.Exception?.GetBaseException() is Exception ex)
             {
-                LOG_RECEIVE_LOOP_FAULT(_owner, ex, "during-dispose");
+                LOG_RECEIVE_LOOP_FAULT(ex, "during-dispose");
             }
             return;
         }
 
         _ = receiveLoopTask.ContinueWith(static (task, state) =>
         {
-            if (state is not WebSocketConnection owner)
-            {
-                return;
-            }
-
             if (task.Exception?.GetBaseException() is Exception ex)
             {
-                LOG_RECEIVE_LOOP_FAULT(owner, ex, "after-dispose");
+                LOG_RECEIVE_LOOP_FAULT(ex, "after-dispose");
             }
         }, _owner, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
     }
 
-    private static void LOG_RECEIVE_LOOP_FAULT(WebSocketConnection owner, Exception ex, string phase)
+    private static void LOG_RECEIVE_LOOP_FAULT(Exception ex, string phase)
     {
-        if (owner.Logger != null && owner.Logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            owner.Logger.LogDebug(ex, "[NW.WebSocketTransport:Dispose] receive-loop-faulted-{Phase}", phase);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "receive-loop-faulted-{Phase}", Phase = phase, Exception = ex });
         }
     }
 
@@ -315,3 +310,9 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
 
     #endregion Dispose
 }
+
+
+
+
+
+

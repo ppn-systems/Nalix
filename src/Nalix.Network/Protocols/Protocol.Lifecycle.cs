@@ -1,11 +1,11 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Microsoft.Extensions.Logging;
+
 using Nalix.Abstractions.Networking;
 
 namespace Nalix.Network.Protocols;
@@ -67,9 +67,9 @@ public abstract partial class Protocol
             return;
         }
 
-        if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            s_logger.LogTrace("[NW.Protocol:Dispose] disposed");
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "disposed", Context = "Dispose" });
         }
 
         // Derived protocols can release managed resources when disposing == true.
@@ -77,3 +77,4 @@ public abstract partial class Protocol
 
     #endregion Disposal
 }
+

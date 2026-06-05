@@ -6,12 +6,10 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
-using Nalix.Framework.Injection;
 using Nalix.Network.Options;
 using Nalix.Network.RateLimiting;
 
@@ -71,9 +69,6 @@ public abstract partial class UdpListenerBase
     #region Properties
 
     /// <inheritdoc/>
-    protected ILogger? Logger { get; }
-
-    /// <inheritdoc/>
     protected IProtocol Protocol { get; }
 
     /// <summary>
@@ -113,7 +108,6 @@ public abstract partial class UdpListenerBase
         ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
         ArgumentNullException.ThrowIfNull(hub, nameof(hub));
 
-        this.Logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
         _options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
         _datagramGuardOptions = ConfigurationManager.Instance.Get<DatagramGuardOptions>();
@@ -141,10 +135,10 @@ public abstract partial class UdpListenerBase
         // Default to IPv4 any-address; Initialize() may switch to IPv6 based on config.
         _anyEndPoint = new IPEndPoint(IPAddress.Any, 0);
 
-        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
             string protocolType = protocol.GetType().Name;
-            this.Logger.LogDebug("[NW.UdpListenerBase] created port={Port} protocol={ProtocolType}", _port, protocolType);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "created", Port = _port, ProtocolType = protocolType });
         }
     }
 
@@ -200,16 +194,16 @@ public abstract partial class UdpListenerBase
             }
             catch (ObjectDisposedException ex)
             {
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    this.Logger.LogDebug(ex, "[NW.UdpListenerBase:Dispose] cts-dispose-ignored port={Port} reason={ExceptionType}", _port, ex.GetType().Name);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "cts-dispose-ignored", Port = _port, ExceptionType = ex.GetType().Name, Exception = ex });
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    this.Logger.LogWarning(ex, "[NW.UdpListenerBase:Dispose] cts-dispose-failed port={Port}", _port);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "cts-dispose-failed", Port = _port, Exception = ex });
                 }
             }
 
@@ -223,16 +217,16 @@ public abstract partial class UdpListenerBase
             }
             catch (ObjectDisposedException ex)
             {
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    this.Logger.LogDebug(ex, "[NW.UdpListenerBase:Dispose] socket-dispose-ignored port={Port} reason={ExceptionType}", _port, ex.GetType().Name);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "socket-dispose-ignored", Port = _port, ExceptionType = ex.GetType().Name, Exception = ex });
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    this.Logger.LogWarning(ex, "[NW.UdpListenerBase:Dispose] socket-dispose-failed port={Port}", _port);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "socket-dispose-failed", Port = _port, Exception = ex });
                 }
             }
 
@@ -242,9 +236,9 @@ public abstract partial class UdpListenerBase
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
 
-        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            this.Logger.LogDebug("[NW.UdpListenerBase:Dispose] disposed port={Port}", _port);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "disposed", Port = _port });
         }
     }
 

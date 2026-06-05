@@ -7,11 +7,11 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Runtime.Internal.Compilation;
+using Nalix.Runtime.Microsoft;
 using Nalix.Runtime.Middleware;
 using Nalix.Runtime.Options;
 

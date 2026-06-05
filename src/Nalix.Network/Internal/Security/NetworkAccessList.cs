@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Runtime.CompilerServices;
-using Microsoft.Extensions.Logging;
+
 using Nalix.Abstractions.Exceptions;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.IO;
@@ -24,7 +24,7 @@ namespace Nalix.Network.Internal.Security;
 /// </summary>
 internal sealed class NetworkAccessList
 {
-    private readonly ILogger? _logger;
+
     private readonly TrustedProxyOptions _proxyConfig;
     private readonly ConnectionBlacklistStoreOptions _blacklistConfig;
     private volatile AccessListState _state;
@@ -43,9 +43,8 @@ internal sealed class NetworkAccessList
         public List<IPNetwork> BlacklistedNetworks { get; }
     }
 
-    public NetworkAccessList(ILogger? logger, TrustedProxyOptions proxyConfig)
+    public NetworkAccessList(TrustedProxyOptions proxyConfig)
     {
-        _logger = logger;
         _proxyConfig = proxyConfig;
 
         ConnectionBlacklistStoreOptions blacklistConfig = ConfigurationManager.Instance.Get<ConnectionBlacklistStoreOptions>();
@@ -122,9 +121,9 @@ internal sealed class NetworkAccessList
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 proxies = _state.TrustedProxies; // Retain old state on failure
-                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    _logger.LogWarning(ex, "[NW.NetworkAccessList] failed to reload trusted proxies, retaining old state.");
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "failed to reload trusted proxies, retaining old state.", Exception = ex });
                 }
             }
 
@@ -136,9 +135,9 @@ internal sealed class NetworkAccessList
             {
                 ips = _state.BlacklistedIps; // Retain old state on failure
                 networks = _state.BlacklistedNetworks;
-                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    _logger.LogWarning(ex, "[NW.NetworkAccessList] failed to reload blacklists, retaining old state.");
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "failed to reload blacklists, retaining old state.", Exception = ex });
                 }
             }
 
@@ -146,9 +145,9 @@ internal sealed class NetworkAccessList
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                _logger.LogError(ex, "[NW.NetworkAccessList] unexpected error during reload.");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "unexpected error during reload.", Exception = ex });
             }
         }
     }
@@ -160,11 +159,11 @@ internal sealed class NetworkAccessList
         {
             NetworkStore.Save(path, Array.Empty<IPNetwork>(), "Trusted Proxies");
         }
-        List<IPNetwork> networks = NetworkStore.Load(path, proxyConfig.MaxTrustedProxies, _logger);
+        List<IPNetwork> networks = NetworkStore.Load(path, proxyConfig.MaxTrustedProxies);
 
-        if (networks.Count > 0 && _logger != null && _logger.IsEnabled(LogLevel.Information))
+        if (networks.Count > 0 && DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
-            _logger.LogInformation("[NW.NetworkAccessList] Loaded {NetworksCount} trusted proxies from disk.", networks.Count);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new { Message = "Loaded {NetworksCount} trusted proxies from disk.", Args = new object[] { networks.Count } });
         }
 
         return networks;
@@ -185,7 +184,7 @@ internal sealed class NetworkAccessList
         {
             NetworkStore.Save(path, Array.Empty<IPNetwork>(), "Blacklisted IPs/Networks");
         }
-        List<IPNetwork> networks = NetworkStore.Load(path, blacklistConfig.MaxBlacklistedIps, _logger);
+        List<IPNetwork> networks = NetworkStore.Load(path, blacklistConfig.MaxBlacklistedIps);
 
         foreach (IPNetwork network in networks)
         {
@@ -200,9 +199,9 @@ internal sealed class NetworkAccessList
             }
         }
 
-        if (networks.Count > 0 && _logger != null && _logger.IsEnabled(LogLevel.Information))
+        if (networks.Count > 0 && DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
-            _logger.LogInformation("[NW.NetworkAccessList] Loaded {NetworksCount} blacklisted IP/networks from disk (single IPs: {BlacklistedIpsCount}, CIDR networks: {BlacklistedNetworksCount}).", networks.Count, ips.Count, netList.Count);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new { Message = "Loaded {NetworksCount} blacklisted IP/networks from disk (single IPs: {BlacklistedIpsCount}, CIDR networks: {BlacklistedNetworksCount}).", Args = new object[] { networks.Count, ips.Count, netList.Count } });
         }
 
         return (ips, netList);
@@ -210,3 +209,8 @@ internal sealed class NetworkAccessList
 
     #endregion Loading Methods
 }
+
+
+
+
+

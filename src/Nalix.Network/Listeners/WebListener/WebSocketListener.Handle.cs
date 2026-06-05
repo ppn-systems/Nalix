@@ -9,7 +9,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
@@ -76,16 +75,16 @@ public abstract partial class WebSocketListenerBase
                 _hub.RegisterConnection(connection);
             }
 
-            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                _logger.LogTrace("[NW.WebSocketListenerBase:ProcessConnection] new={RemoteEndpoint}", connection?.NetworkEndpoint);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "new-connection", RemoteEndpoint = connection?.NetworkEndpoint });
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
             {
-                _logger.LogError(ex, "[NW.WebSocketListenerBase:ProcessConnection] process-error={RemoteEndpoint}", connection?.NetworkEndpoint);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new { Message = "process-error", RemoteEndpoint = connection?.NetworkEndpoint, Exception = ex });
             }
             connection?.Dispose();
         }
@@ -119,9 +118,9 @@ public abstract partial class WebSocketListenerBase
                         context.Request.RemoteEndPoint is IPEndPoint remoteEp &&
                         !_limiter.IsTrustedProxy(remoteEp))
                     {
-                        if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                         {
-                            _logger.LogWarning("[NW.WebSocketListenerBase:AcceptConnectionsAsync] untrusted-proxy-rejected remote={RemoteEndpoint}", remoteEp);
+                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "untrusted-proxy-rejected", RemoteEndpoint = remoteEp });
                         }
 
                         context.Response.StatusCode = 403; // Forbidden
@@ -147,7 +146,7 @@ public abstract partial class WebSocketListenerBase
                     HttpListenerWebSocketContext wsContext = await context.AcceptWebSocketAsync(_config.SubProtocol).ConfigureAwait(false);
 
 #pragma warning disable CA2000
-                    WebSocketConnection connection = new(wsContext.WebSocket, _protocol.OpCodeExtractor, realEndpoint, _logger);
+                    WebSocketConnection connection = new(wsContext.WebSocket, _protocol.OpCodeExtractor, realEndpoint);
 #pragma warning restore CA2000
 
                     try
@@ -168,9 +167,9 @@ public abstract partial class WebSocketListenerBase
                     }
                     catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
-                        if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                         {
-                            _logger.LogError(ex, "[NW.WebSocketListenerBase] Failed to initialize connection");
+                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "Failed to initialize connection", Exception = ex });
                         }
                         connection.Dispose();
                     }
@@ -277,9 +276,9 @@ public abstract partial class WebSocketListenerBase
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                _logger.LogError(ex, "[NW.WebSocketListenerBase:PROCESS_CHANNEL_LOOP_ASYNC] unhandled-error port={Port}", _port);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "unhandled-error", Port = _port, Exception = ex });
             }
         }
         finally
@@ -312,10 +311,10 @@ public abstract partial class WebSocketListenerBase
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void HANDLE_PROCESS_ERROR(IConnection connection, Exception ex)
     {
-        if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
         {
             string remoteEndpoint = connection?.NetworkEndpoint?.ToString() ?? "<null>";
-            _logger.LogError(ex, "[NW.WebSocketListenerBase:INVOKE_PROCESS] error remote={RemoteEndpoint}", remoteEndpoint);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "error remote", RemoteEndpoint = remoteEndpoint, Exception = ex });
         }
         connection?.Disconnect();
     }

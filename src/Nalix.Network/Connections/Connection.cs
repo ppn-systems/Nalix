@@ -7,7 +7,6 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
@@ -48,7 +47,6 @@ public sealed partial class Connection :
     private static readonly ConnectionGuardOptions s_options = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
     private static readonly DatagramGuardOptions s_datagramOptions = ConfigurationManager.Instance.Get<DatagramGuardOptions>();
 
-    private readonly ILogger? _logger;
 
     private readonly Lock _lock;
     private readonly SocketEventBridge _bridge;
@@ -84,10 +82,9 @@ public sealed partial class Connection :
     /// <summary>Initializes a new instance of the <see cref="Connection"/> class.</summary>
     /// <param name="socket">The connected socket used for the connection.</param>
     /// <param name="packetClassifier">The opcode extractor for classifying incoming packets.</param>
-    /// <param name="logger">The logger instance for logging connection events.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="socket"/> is null.</exception>
-    public Connection(Socket socket, IOpCodeExtractor packetClassifier, ILogger? logger = null)
-        : this(socket, packetClassifier, socket?.RemoteEndPoint ?? throw new InternalErrorException("Socket does not expose a remote endpoint."), logger)
+    public Connection(Socket socket, IOpCodeExtractor packetClassifier)
+        : this(socket, packetClassifier, socket?.RemoteEndPoint ?? throw new InternalErrorException("Socket does not expose a remote endpoint."))
     {
     }
 
@@ -95,12 +92,11 @@ public sealed partial class Connection :
     /// Initializes a Connection with an overridden real endpoint (Proxy Protocol).
     /// Use this overload when the TCP peer is a proxy that injects a PROXY header.
     /// </summary>
-    public Connection(Socket socket, IOpCodeExtractor packetClassifier, System.Net.EndPoint realEndPoint, ILogger? logger = null)
+    public Connection(Socket socket, IOpCodeExtractor packetClassifier, System.Net.EndPoint realEndPoint)
     {
         ArgumentNullException.ThrowIfNull(realEndPoint);
         ArgumentNullException.ThrowIfNull(packetClassifier);
 
-        _logger = logger;
         _disposed = false;
         _lock = new Lock();
 
@@ -121,11 +117,11 @@ public sealed partial class Connection :
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(realEndPoint);
 
         // Initialize the TCP transport with the socket and event bridge.
-        this.TcpTransport = new SocketTcpTransport(socket, this, _bridge, logger);
+        this.TcpTransport = new SocketTcpTransport(socket, this, _bridge);
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            _logger.LogTrace("[NW.Connection] created remote={RemoteEndpoint} id={ConnectionId}", this.NetworkEndpoint, this.ID);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "created remote={RemoteEndpoint} id={ConnectionId}", Args = new object[] { this.NetworkEndpoint, this.ID } });
         }
     }
 
@@ -322,13 +318,9 @@ public sealed partial class Connection :
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public void Disconnect(string? reason = null)
     {
-        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            _logger.LogTrace(
-                "[NW.Connection:Disconnect] disconnect request id={ConnectionId} remote={Remote} reason={Reason}",
-                this.ID,
-                this.NetworkEndpoint,
-                reason);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "disconnect request", Id = this.ID, Remote = this.NetworkEndpoint, Reason = reason });
         }
 
         this.Dispose();
@@ -373,9 +365,9 @@ public sealed partial class Connection :
                                 }
                                 catch (Exception handlerEx) when (ExceptionClassifier.IsNonFatal(handlerEx))
                                 {
-                                    if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                                     {
-                                        _logger.LogError(handlerEx, "[NW.Connection:this.Dispose] close-handler-error");
+                                        // handlerEx, "[NW.Connection:this.Dispose] close-handler-error");
                                     }
                                 }
                             }
@@ -389,9 +381,9 @@ public sealed partial class Connection :
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                 {
-                    _logger.LogError(ex, "[NW.Connection:this.Dispose] close-event-error");
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "close-event-error", Context = "this.Dispose", Exception = ex });
                 }
             }
             finally
@@ -486,11 +478,11 @@ public sealed partial class Connection :
 
         GC.SuppressFinalize(this);
 
-        void LOG_ERROR(Exception ex, string component)
+        static void LOG_ERROR(Exception ex, string component)
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                _logger.LogError(ex, "[NW.Connection:this.Dispose] {Component}-dispose-error", component);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "{Component}-dispose-error", Context = "this.Dispose", Args = new object[] { component }, Exception = ex });
             }
         }
     }
@@ -651,9 +643,9 @@ public sealed partial class Connection :
                     }
                     catch (Exception handlerEx) when (ExceptionClassifier.IsNonFatal(handlerEx))
                     {
-                        if (self._logger != null && self._logger.IsEnabled(LogLevel.Error))
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                         {
-                            self._logger.LogError(handlerEx, "[NW.Connection:OnCloseEventDispatchBridge] close-handler-error");
+                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new { Message = "close-handler-error", Context = "OnCloseEventDispatchBridge", Exception = handlerEx });
                         }
                     }
                 }
@@ -676,3 +668,6 @@ public sealed partial class Connection :
 
     #endregion Event Bridges
 }
+
+
+

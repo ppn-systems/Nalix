@@ -99,7 +99,7 @@ internal static class ServiceRegistrar
             return;
         }
 
-        ConnectionHub hub = new(logger: state.Logger);
+        ConnectionHub hub = new();
         try
         {
             InstanceManager.Instance.Register<IConnectionHub>(hub);

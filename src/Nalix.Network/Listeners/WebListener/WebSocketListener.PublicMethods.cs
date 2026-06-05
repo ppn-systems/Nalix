@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -9,7 +9,6 @@ using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
@@ -30,16 +29,16 @@ public abstract partial class WebSocketListenerBase
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, this);
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            _logger.LogDebug("[NW.WebSocketListenerBase:Activate] activate-request port={Port}", _port);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "activate-request", Port = _port });
         }
 
         if (!_lock.Wait(0, CancellationToken.None))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                _logger.LogWarning("[NW.WebSocketListenerBase:Activate] activate-skipped lock-busy port={Port}", _port);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "activate-skipped lock-busy", Port = _port });
             }
             return;
         }
@@ -50,9 +49,9 @@ public abstract partial class WebSocketListenerBase
         {
             if ((ListenerState)Volatile.Read(ref _state) != ListenerState.STOPPED)
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    _logger.LogWarning("[NW.WebSocketListenerBase:Activate] ignored-activate state={State}", this.State);
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new { Message = "ignored-activate", this.State });
                 }
                 return;
             }
@@ -80,9 +79,9 @@ public abstract partial class WebSocketListenerBase
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.RUNNING);
 
-            if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                _logger.LogInformation("[NW.WebSocketListenerBase:Activate] start protocol={Protocol} port={Port} path={Path}", _protocol, _port, _path);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "start", Protocol = _protocol, Port = _port, Path = _path });
             }
 
             if (_config.EnableTimeout)
@@ -119,17 +118,17 @@ public abstract partial class WebSocketListenerBase
         }
         catch (OperationCanceledException)
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                _logger.LogInformation("[NW.WebSocketListenerBase:Activate] cancel port={Port}", _port);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "cancel", Port = _port });
             }
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Critical))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Critical))
             {
-                _logger.LogCritical(ex, "[NW.WebSocketListenerBase:Activate] critical-error port={Port}", _port);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Critical, new { Message = "critical-error", Port = _port, Exception = ex });
             }
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
@@ -150,9 +149,9 @@ public abstract partial class WebSocketListenerBase
             return;
         }
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            _logger.LogDebug("[NW.WebSocketListenerBase:Deactivate] deactivate-request port={Port}", _port);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "deactivate-request", Port = _port });
         }
 
         int prev = Interlocked.CompareExchange(ref _state, (int)ListenerState.STOPPING, (int)ListenerState.RUNNING);
@@ -198,9 +197,9 @@ public abstract partial class WebSocketListenerBase
                 InstanceManager.Instance.GetOrCreateInstance<TimingWheel>().Deactivate(CancellationToken.None);
             }
 
-            if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                _logger.LogInformation("[NW.WebSocketListenerBase:Deactivate] stop protocol={Protocol} port={Port}", _protocol, _port);
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new { Message = "stop", Protocol = _protocol, Port = _port });
             }
         }
         finally
@@ -236,9 +235,9 @@ public abstract partial class WebSocketListenerBase
         _listener.Prefixes.Add(prefix);
         _listener.Start();
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            _logger.LogDebug("[NW.WebSocketListenerBase:Initialize] bound to {Prefix}", prefix);
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new { Message = "bound to prefix", Prefix = prefix });
         }
     }
 
