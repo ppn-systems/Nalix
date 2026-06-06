@@ -12,8 +12,8 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using System.Security.AccessControl;
 using System.Security.Principal;
-using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Diagnostics;
+using Nalix.Abstractions.Exceptions;
 
 namespace Nalix.Environment.IO;
 

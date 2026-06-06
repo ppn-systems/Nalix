@@ -782,9 +782,10 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
                     {
                         System.Net.Sockets.SocketError socketError = ex.SocketErrorCode;
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"socket-shutdown-benign endpoint={_endpointString} socket-error={socketError}", ex));
-        };
+                        {
+                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"socket-shutdown-benign endpoint={_endpointString} socket-error={socketError}", ex));
+                        }
+                        ;
                     }
 #endif
                 }

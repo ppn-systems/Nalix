@@ -9,8 +9,8 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Security;
 using System.Threading;
-using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Diagnostics;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Environment.Configuration.Binding;
 using Nalix.Environment.IO;
 

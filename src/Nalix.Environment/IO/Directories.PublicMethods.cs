@@ -4,8 +4,8 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Diagnostics;
+using Nalix.Abstractions.Exceptions;
 
 namespace Nalix.Environment.IO;
 

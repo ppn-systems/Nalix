@@ -10,12 +10,11 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
-
 using Nalix.Runtime.Dispatching;
-using System.Threading.Tasks;
 namespace Nalix.Runtime.Internal.Compilation;
 
 internal sealed partial class PacketHandlerCompiler<TController, TPacket>

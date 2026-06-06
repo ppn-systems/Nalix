@@ -7,9 +7,9 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Framework.Memory.Pools;
-using Nalix.Abstractions.Diagnostics;
 
 namespace Nalix.Framework.Memory.Objects;
 
