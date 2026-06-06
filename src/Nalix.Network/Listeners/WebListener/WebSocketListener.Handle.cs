@@ -74,6 +74,11 @@ public abstract partial class WebSocketListenerBase
                 // Register to the global connection pool/hub so that the server can broadcast
                 // messages or force-close connections globally.
                 _hub.RegisterConnection(connection);
+                this.Metrics.RECORD_ACCEPTED();
+            }
+            else
+            {
+                this.Metrics.RECORD_REJECTED();
             }
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
@@ -83,6 +88,7 @@ public abstract partial class WebSocketListenerBase
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
+            this.Metrics.RECORD_ERROR();
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
             {
                 DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.WebSocketListenerBase:ProcessConnection", $"process-error remote-endpoint={connection?.NetworkEndpoint}", ex));
@@ -128,6 +134,7 @@ public abstract partial class WebSocketListenerBase
                             ;
                         }
 
+                        this.Metrics.RECORD_LIMITER_REJECTION();
                         context.Response.StatusCode = 403; // Forbidden
                         context.Response.Close();
                         continue;
@@ -141,6 +148,7 @@ public abstract partial class WebSocketListenerBase
                     // we want to drop the request as early and as cheaply as possible with HTTP 429.
                     if (realEndpoint is not IPEndPoint ip || !_limiter.TryAccept(ip))
                     {
+                        this.Metrics.RECORD_LIMITER_REJECTION();
                         context.Response.StatusCode = 429;
                         context.Response.Close();
                         continue;
@@ -162,16 +170,19 @@ public abstract partial class WebSocketListenerBase
                         {
                             if (!_processChannel.Writer.TryWrite(connection))
                             {
+                                this.Metrics.RECORD_QUEUE_FULL_REJECTION();
                                 connection.Disconnect("Queue full");
                             }
                         }
                         else
                         {
+                            this.Metrics.RECORD_QUEUE_FULL_REJECTION();
                             connection.Disconnect("Queue completed");
                         }
                     }
                     catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
+                        this.Metrics.RECORD_ERROR();
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                         {
                             DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.WebSocketListenerBase:AcceptConnectionsAsync", "Failed to initialize connection", ex));
@@ -181,6 +192,7 @@ public abstract partial class WebSocketListenerBase
                 }
                 else
                 {
+                    this.Metrics.RECORD_REJECTED();
                     context.Response.StatusCode = 400;
                     context.Response.Close();
                 }
@@ -190,6 +202,7 @@ public abstract partial class WebSocketListenerBase
             catch (HttpListenerException) { break; }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
+                this.Metrics.RECORD_ERROR();
                 await Task.Delay(50, cancellationToken).ConfigureAwait(false);
             }
         }
@@ -316,6 +329,7 @@ public abstract partial class WebSocketListenerBase
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void HANDLE_PROCESS_ERROR(IConnection connection, Exception ex)
     {
+        this.Metrics.RECORD_ERROR();
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
         {
             string remoteEndpoint = connection?.NetworkEndpoint?.ToString() ?? "<null>";

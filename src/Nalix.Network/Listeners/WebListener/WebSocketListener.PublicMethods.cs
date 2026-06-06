@@ -254,6 +254,16 @@ public abstract partial class WebSocketListenerBase
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"StateWrapper        : {this.State}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"MaxParallelAccepts  : {_config.MaxParallel}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Disposed            : {_isDisposed}");
+        _ = sb.AppendLine();
+
+        _ = sb.AppendLine("Metrics:");
+        _ = sb.AppendLine("--------------------------------------------");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Accepted      : {this.Metrics.TotalAccepted}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Rejected      : {this.Metrics.TotalRejected}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  - Queue Full      : {this.Metrics.TotalQueueFullRejections}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  - Limiter/Guard   : {this.Metrics.TotalLimiterRejections}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Errors        : {this.Metrics.TotalErrors}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Accept Queue Depth  : {this.ProcessChannelCount}");
         _ = sb.AppendLine("--------------------------------------------");
         return sb.ToString();
     }
@@ -269,6 +279,16 @@ public abstract partial class WebSocketListenerBase
         writer.WriteString(nameof(this.State), this.State.ToString());
         writer.WriteNumber("MaxParallelAccepts", _config.MaxParallel);
         writer.WriteBoolean("Disposed", _isDisposed != 0);
+
+        writer.WriteStartObject(nameof(this.Metrics));
+        writer.WriteNumber("TotalAccepted", this.Metrics.TotalAccepted);
+        writer.WriteNumber("TotalRejected", this.Metrics.TotalRejected);
+        writer.WriteNumber("QueueFullRejections", this.Metrics.TotalQueueFullRejections);
+        writer.WriteNumber("LimiterRejections", this.Metrics.TotalLimiterRejections);
+        writer.WriteNumber("TotalErrors", this.Metrics.TotalErrors);
+        writer.WriteNumber("AcceptQueueDepth", this.ProcessChannelCount);
+        writer.WriteEndObject();
+
         writer.WriteEndObject();
     }
 }

@@ -110,7 +110,7 @@ public abstract partial class UdpListenerBase
         }
         catch (ObjectDisposedException ex)
         {
-            _ = Interlocked.Increment(ref _recvErrors);
+            this.Metrics.RECORD_RECV_ERROR();
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
@@ -119,7 +119,7 @@ public abstract partial class UdpListenerBase
         }
         catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
         {
-            _ = Interlocked.Increment(ref _recvErrors);
+            this.Metrics.RECORD_RECV_ERROR();
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
@@ -150,7 +150,7 @@ public abstract partial class UdpListenerBase
             Exception? error = task.Exception?.GetBaseException();
             if (error is not null && Volatile.Read(ref self._isDisposed) == 0 && !cancellationToken.IsCancellationRequested)
             {
-                _ = Interlocked.Increment(ref self._recvErrors);
+                self.Metrics.RECORD_RECV_ERROR();
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                 {
                     DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.UdpListenerBase:ScheduleRetryStartReceive", $"retry-failed port={self._port}", error));
@@ -296,7 +296,7 @@ public abstract partial class UdpListenerBase
         // --- 1. Minimum-size and null gate ---
         if (lease == null || remoteEndPoint == null || lease.Length < SessionTokenSize)
         {
-            _ = Interlocked.Increment(ref _dropShort);
+            this.Metrics.RECORD_DROP_SHORT();
             this.LOG_SHORT_PACKET_DROP_SESSION_TOKEN(remoteEndPoint, lease?.Length);
             lease?.Dispose();
             return;
@@ -311,7 +311,7 @@ public abstract partial class UdpListenerBase
         // And the transport byte must be UDP.
         if (payload.Length < PacketHeader.Size)
         {
-            _ = Interlocked.Increment(ref _dropShort);
+            this.Metrics.RECORD_DROP_SHORT();
             this.LOG_SHORT_PACKET_DROP_HEADER(remoteEndPoint, payload.Length);
             lease.Dispose();
             return;
@@ -321,7 +321,7 @@ public abstract partial class UdpListenerBase
 
         if ((header.Flags & PacketFlags.UNRELIABLE) == 0)
         {
-            _ = Interlocked.Increment(ref _dropShort);
+            this.Metrics.RECORD_DROP_SHORT();
             this.LOG_INVALID_FLAGS_DROP(remoteEndPoint, header.Flags);
             lease.Dispose();
             return;
@@ -335,7 +335,7 @@ public abstract partial class UdpListenerBase
         if (!this.TryResolveConnection(_hub, sessionToken, out Connection? connection) || connection is null || connection.IsDisposed)
 #pragma warning restore CA2000
         {
-            _ = Interlocked.Increment(ref _dropUnknown);
+            this.Metrics.RECORD_DROP_UNKNOWN();
             this.LOG_UNKNOWN_TOKEN_DROP(remoteEndPoint);
             lease.Dispose();
             return;
@@ -346,7 +346,7 @@ public abstract partial class UdpListenerBase
             remoteEndPoint is not IPEndPoint remoteIpEndPoint ||
             !this.IsPinnedEndpointMatch(connection.NetworkEndpoint, remoteIpEndPoint))
         {
-            _ = Interlocked.Increment(ref _dropUnauth);
+            this.Metrics.RECORD_DROP_UNAUTH();
             this.LOG_ENDPOINT_MISMATCH_DROP(connection.NetworkEndpoint, remoteEndPoint, connection.ID);
             lease.Dispose();
             return;
@@ -355,7 +355,7 @@ public abstract partial class UdpListenerBase
         // --- 4. Replay protection (SEC-27, SEC-71) ---
         if (!connection.UdpReplayWindow.TryCheck(header.SequenceId))
         {
-            _ = Interlocked.Increment(ref _dropUnauth);
+            this.Metrics.RECORD_DROP_UNAUTH();
             this.LOG_REPLAY_WINDOW_DROP(header.SequenceId, connection.ID);
             lease.Dispose();
             return;
@@ -364,7 +364,7 @@ public abstract partial class UdpListenerBase
         // --- 5. Application authentication hook ---
         if (!this.IsAuthenticated(connection, remoteEndPoint, payload))
         {
-            _ = Interlocked.Increment(ref _dropUnauth);
+            this.Metrics.RECORD_DROP_UNAUTH();
             this.LOG_UNAUTH_DROP(remoteEndPoint, connection.ID);
             lease.Dispose();
             return;
@@ -373,8 +373,8 @@ public abstract partial class UdpListenerBase
         // Ensure the connection has a UDP transport bound to our socket.
         SocketUdpTransport.CreateUDP(connection, (IPEndPoint)remoteEndPoint, _socket!);
 
-        _ = Interlocked.Increment(ref _rxPackets);
-        _ = Interlocked.Add(ref _rxBytes, lease.Length);
+        this.Metrics.RECORD_RX_PACKET();
+        this.Metrics.RECORD_RX_BYTES(lease.Length);
 
         connection.UdpTransport?.RecordBytesReceived(lease.Length);
 
@@ -475,7 +475,7 @@ public abstract partial class UdpListenerBase
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void LOG_RATE_LIMIT_DROP(IPEndPoint ip)
     {
-        _ = Interlocked.Increment(ref _dropRateLimited);
+        this.Metrics.RECORD_DROP_RATE_LIMITED();
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
             DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"rate-limit-drop ip={ip}"));
@@ -485,7 +485,7 @@ public abstract partial class UdpListenerBase
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void LOG_OVERSIZE_DROP(EndPoint? remoteEndPoint, int size)
     {
-        _ = Interlocked.Increment(ref _dropOversize);
+        this.Metrics.RECORD_DROP_OVERSIZE();
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
             DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"oversize-drop remote-end-point={remoteEndPoint} size={size}"));
@@ -495,7 +495,7 @@ public abstract partial class UdpListenerBase
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void LOG_HANDLE_RECEIVE_ERROR(Exception ex)
     {
-        _ = Interlocked.Increment(ref _recvErrors);
+        this.Metrics.RECORD_RECV_ERROR();
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
             DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.UdpListenerBase:Internal", "handle-receive non-fatal", ex));

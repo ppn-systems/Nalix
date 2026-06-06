@@ -388,7 +388,6 @@ public abstract partial class TcpListenerBase
         _ = sb.AppendLine("Connections:");
         _ = sb.AppendLine("--------------------------------------------");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ActiveConnections   : {_hub.Count}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"LimiterEnabled      : {true}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("Threading:");
@@ -441,7 +440,6 @@ public abstract partial class TcpListenerBase
 
         writer.WriteStartObject("Connections");
         writer.WriteNumber("ActiveConnections", _hub.Count);
-        writer.WriteBoolean("LimiterEnabled", true);
         writer.WriteEndObject();
 
         writer.WriteStartObject("Threading");

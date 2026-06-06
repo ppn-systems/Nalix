@@ -55,16 +55,6 @@ public abstract partial class UdpListenerBase
     private int _isDisposed;
     private int _stopInitiated;
 
-    // Diagnostic counters — grouped for clarity, accessed via Interlocked.
-    private long _rxPackets;
-    private long _rxBytes;
-    private long _dropShort;
-    private long _dropUnauth;
-    private long _dropUnknown;
-    private long _recvErrors;
-    private long _dropOversize;
-    private long _dropRateLimited;
-
     #endregion Fields
 
     #region Properties
