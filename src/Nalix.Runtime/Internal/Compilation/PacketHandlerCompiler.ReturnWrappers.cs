@@ -7,7 +7,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Nalix.Abstractions.Exceptions;
 
 using Nalix.Runtime.Dispatching;
 namespace Nalix.Runtime.Internal.Compilation;

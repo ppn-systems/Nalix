@@ -118,7 +118,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     public IConnection.ITransport TCP => _tcp ??= new WebSocketTransport(this);
 
     /// <inheritdoc/>
-    public IConnection.ITransport UDP => throw new NotSupportedException("UDP is not supported over WebSocket connections.");
+    public IConnection.ITransport? UDP => null;
 
     /// <inheritdoc/>
     public INetworkEndpoint NetworkEndpoint { get; }

@@ -148,12 +148,12 @@ public sealed class SessionHandlers
         {
             if (connection.Attributes.TryGetValue(ConnectionAttributes.UdpSendSequence, out object? us) && us is uint udpSend)
             {
-                connection.UDP.SendSequence.ResumeFrom(udpSend);
+                connection.UDP!.SendSequence.ResumeFrom(udpSend);
             }
 
             if (connection.Attributes.TryGetValue(ConnectionAttributes.UdpReceiveSequence, out object? ur) && ur is uint udpRecv)
             {
-                connection.UDP.ReceiveSequence.ResumeFrom(udpRecv);
+                connection.UDP!.ReceiveSequence.ResumeFrom(udpRecv);
             }
         }
 

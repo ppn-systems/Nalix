@@ -27,7 +27,14 @@ internal sealed class MemoryReturnHandler<TPacket> : IReturnHandler<TPacket> whe
         }
         else
         {
-            await context.Connection.UDP.SendAsync(memory).ConfigureAwait(false);
+            if (context.Connection.UDP is { } udp)
+            {
+                await udp.SendAsync(memory).ConfigureAwait(false);
+            }
+            else
+            {
+                await context.Connection.TCP.SendAsync(memory).ConfigureAwait(false);
+            }
         }
     }
 }

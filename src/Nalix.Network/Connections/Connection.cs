@@ -20,7 +20,6 @@ using Nalix.Environment.Time;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Security;
 using Nalix.Network.Internal.Time;
@@ -146,14 +145,13 @@ public sealed partial class Connection :
     public IConnection.ITransport TCP => this.TcpTransport;
 
     /// <inheritdoc/>
-    public IConnection.ITransport UDP
+    public IConnection.ITransport? UDP
     {
         get
         {
             if (this.UdpTransport is not { } udp)
             {
-                Throw.UdpTransportNotCreated();
-                return default;
+                return null;
             }
             return udp;
         }

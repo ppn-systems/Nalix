@@ -23,7 +23,7 @@ public partial interface IConnection
     /// It is initialized from the accepted TCP connection endpoint and is intended
     /// only for datagram replies or mixed TCP/UDP protocols.
     /// </remarks>
-    ITransport UDP { get; }
+    ITransport? UDP { get; }
 
     /// <summary>
     /// Represents a transport interface for sending data packets.

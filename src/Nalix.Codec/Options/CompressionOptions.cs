@@ -27,9 +27,9 @@ public sealed partial class CompressionOptions : ConfigurationLoader, IValidatab
     /// so this threshold prevents wasted CPU time on messages that are too small
     /// to benefit from compression.
     /// </remarks>
-    [IniComment("Minimum data size (bytes) to trigger compression (e.g. 1024 = 1KB)")]
+    [IniComment("Minimum data size (bytes) to trigger compression (e.g. 1024 = 512B)")]
     [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "MinSizeToCompress must be greater than 0.")]
-    public int MinSizeToCompress { get; set; } = 1024; // 1KB default
+    public int MinSizeToCompress { get; set; } = 512; // 512B default
 
     /// <summary>
     /// Gets or sets the maximum allowed size, in bytes, for a decompressed packet payload.
