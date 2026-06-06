@@ -46,6 +46,10 @@ public sealed partial class ObjectPoolManager
             {
                 int removed = kvp.Value.Trim(trimPercentage);
                 totalRemoved += removed;
+                if (removed > 0)
+                {
+                    _ = Interlocked.Add(ref metrics.TrimCount, removed);
+                }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {

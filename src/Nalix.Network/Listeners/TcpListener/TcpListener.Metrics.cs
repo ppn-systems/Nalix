@@ -22,6 +22,9 @@ public abstract partial class TcpListenerBase
         private long _totalErrors;
         private long _totalAccepted;
         private long _totalRejected;
+        private long _totalProxyProtocolErrors;
+        private long _totalQueueFullRejections;
+        private long _totalLimiterRejections;
 
         #endregion Fields
 
@@ -38,9 +41,24 @@ public abstract partial class TcpListenerBase
         public long TotalAccepted => Volatile.Read(ref _totalAccepted);
 
         /// <summary>
-        /// Gets the total number of rejected connections.
+        /// Gets the total number of rejected connections (includes queue-full and limiter rejections).
         /// </summary>
-        public long TotalRejected => Volatile.Read(ref _totalRejected);
+        public long TotalRejected => Volatile.Read(ref _totalRejected) + TotalQueueFullRejections + TotalLimiterRejections;
+
+        /// <summary>
+        /// Gets the total number of proxy protocol handshake errors.
+        /// </summary>
+        public long TotalProxyProtocolErrors => Volatile.Read(ref _totalProxyProtocolErrors);
+
+        /// <summary>
+        /// Gets the total number of queue full rejections.
+        /// </summary>
+        public long TotalQueueFullRejections => Volatile.Read(ref _totalQueueFullRejections);
+
+        /// <summary>
+        /// Gets the total number of connection limiter/guard rejections.
+        /// </summary>
+        public long TotalLimiterRejections => Volatile.Read(ref _totalLimiterRejections);
 
         #endregion Properties
 
@@ -63,6 +81,24 @@ public abstract partial class TcpListenerBase
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void RECORD_ERROR() => Interlocked.Increment(ref _totalErrors);
+
+        /// <summary>
+        /// Records a proxy protocol handshake error.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void RECORD_PROXY_ERROR() => Interlocked.Increment(ref _totalProxyProtocolErrors);
+
+        /// <summary>
+        /// Records a queue full rejection.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void RECORD_QUEUE_FULL_REJECTION() => Interlocked.Increment(ref _totalQueueFullRejections);
+
+        /// <summary>
+        /// Records a limiter/guard connection rejection.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void RECORD_LIMITER_REJECTION() => Interlocked.Increment(ref _totalLimiterRejections);
 
         #endregion Internal Methods
     }

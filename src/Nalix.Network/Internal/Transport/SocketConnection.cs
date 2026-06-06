@@ -621,6 +621,10 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
         // to the event sink (SocketEventBridge).
         if (!_sink.OnFrameReceived(_owner, lease, isReliable: true))
         {
+            if (_owner is IConnectionTrafficMetrics trafficMetrics)
+            {
+                trafficMetrics.IncrementPacketsDropped();
+            }
 #if DEBUG
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
@@ -685,6 +689,10 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 
                 if (!_sink.OnFrameReceived(_owner, assembledLease, isReliable: true))
                 {
+                    if (_owner is IConnectionTrafficMetrics trafficMetrics)
+                    {
+                        trafficMetrics.IncrementPacketsDropped();
+                    }
                     Interlocked.Decrement(ref _openFragmentStreams);
                     assembledLease.Dispose();
                 }

@@ -27,6 +27,11 @@ public sealed partial class ObjectPoolManager
         /// </summary>
         public long CacheHits;
 
+        /// <summary>
+        /// Number of objects evicted/trimmed from this pool.
+        /// </summary>
+        public long TrimCount;
+
         public long TotalCreated;
         public long TotalDisposed;
         public DateTime LastAccessUtc;

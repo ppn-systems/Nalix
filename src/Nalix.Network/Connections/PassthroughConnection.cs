@@ -219,6 +219,9 @@ public sealed class PassthroughConnection :
     /// <inheritdoc />
     public long BytesReceived => _udpTransport?.BytesReceived ?? 0;
 
+    /// <inheritdoc />
+    public long PacketsDropped => 0;
+
     #endregion IConnection Properties
 
     #region ITimeoutTrackedConnection
@@ -274,6 +277,9 @@ public sealed class PassthroughConnection :
 
     /// <inheritdoc />
     public void IncrementBytesReceived(int bytes) { }
+
+    /// <inheritdoc />
+    public void IncrementPacketsDropped() { }
 
     /// <inheritdoc />
     public void Disconnect(string? reason = null) => this.Dispose();

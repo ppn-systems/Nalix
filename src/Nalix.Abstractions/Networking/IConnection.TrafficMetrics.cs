@@ -20,6 +20,11 @@ public interface IConnectionTrafficMetrics
     long BytesReceived { get; }
 
     /// <summary>
+    /// Gets the total number of dropped packets for this connection.
+    /// </summary>
+    long PacketsDropped { get; }
+
+    /// <summary>
     /// Increments the total number of bytes sent.
     /// </summary>
     void IncrementBytesSent(int bytes);
@@ -28,4 +33,9 @@ public interface IConnectionTrafficMetrics
     /// Increments the total number of bytes received.
     /// </summary>
     void IncrementBytesReceived(int bytes);
+
+    /// <summary>
+    /// Increments the total number of dropped packets.
+    /// </summary>
+    void IncrementPacketsDropped();
 }

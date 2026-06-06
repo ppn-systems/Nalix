@@ -31,7 +31,7 @@ namespace Nalix.Network.Connections;
 /// Represents a network connection that manages WebSocket communication, stream
 /// transformation, and event handling.
 /// </summary>
-public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, TimingWheel.ITimeoutTrackedConnection, IPooledConnectContextPool
+public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, IConnectionTrafficMetrics, TimingWheel.ITimeoutTrackedConnection, IPooledConnectContextPool
 {
     #region Fields
 
@@ -49,6 +49,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
     private long _bytesSent;
     private long _bytesReceived;
+    private long _packetsDropped;
     private int _pendingProcessCallbacks;
 
     private WebSocketTransport? _tcp;
@@ -143,6 +144,18 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     /// <inheritdoc/>
     public long BytesReceived => Interlocked.Read(ref _bytesReceived);
 
+    /// <inheritdoc/>
+    public long PacketsDropped => Interlocked.Read(ref _packetsDropped);
+
+    /// <inheritdoc/>
+    public void IncrementBytesSent(int bytes) => Interlocked.Add(ref _bytesSent, bytes);
+
+    /// <inheritdoc/>
+    public void IncrementBytesReceived(int bytes) => Interlocked.Add(ref _bytesReceived, bytes);
+
+    /// <inheritdoc/>
+    public void IncrementPacketsDropped() => Interlocked.Increment(ref _packetsDropped);
+
     /// <summary>
     /// Gets or sets the timestamp (in milliseconds) of the last received ping.
     /// </summary>
@@ -233,6 +246,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
         {
             _ = Interlocked.Decrement(ref _pendingProcessCallbacks);
             lease.Dispose();
+            this.IncrementPacketsDropped();
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {

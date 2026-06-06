@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking;
 using Nalix.Environment.Memory;
 using Nalix.Environment.Time;
 
@@ -160,6 +161,11 @@ internal sealed partial class SocketConnection
 
         if (!_sink.OnFrameReceived(_owner, lease, isReliable: true))
         {
+            if (_owner is IConnectionTrafficMetrics trafficMetrics)
+            {
+                trafficMetrics.IncrementPacketsDropped();
+            }
+
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
                 DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"sink-rejected-frame-drop payload-length={payloadLen} endpoint={_endpointString}"));

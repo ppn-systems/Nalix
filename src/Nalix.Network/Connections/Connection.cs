@@ -53,6 +53,7 @@ public sealed partial class Connection :
 
     private long _bytesSent;
     private long _bytesReceived;
+    private long _packetsDropped;
 
     private int _errorCount;
     private int _disposeState; // 0=Active, 1=Closing(Event running), 2=Disposed
@@ -222,6 +223,12 @@ public sealed partial class Connection :
     /// It represents raw wire data before any frame processing or decompression.
     /// </remarks>
     public long BytesReceived => this.TcpTransport.BytesReceived + (this.UdpTransport?.BytesReceived ?? 0) + Volatile.Read(ref _bytesReceived);
+
+    /// <inheritdoc />
+    public long PacketsDropped => Volatile.Read(ref _packetsDropped);
+
+    /// <inheritdoc />
+    public void IncrementPacketsDropped() => Interlocked.Increment(ref _packetsDropped);
 
     #endregion Properties
 

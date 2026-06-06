@@ -372,7 +372,12 @@ public abstract partial class TcpListenerBase
         _ = sb.AppendLine("--------------------------------------------");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Accepted      : {this.Metrics.TotalAccepted}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Rejected      : {this.Metrics.TotalRejected}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  - Queue Full      : {this.Metrics.TotalQueueFullRejections}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  - Limiter/Guard   : {this.Metrics.TotalLimiterRejections}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Errors        : {this.Metrics.TotalErrors}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Proxy Protocol Errs : {this.Metrics.TotalProxyProtocolErrors}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Pending Proxies     : {Volatile.Read(ref _pendingProxyConnections)}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Accept Queue Depth  : {this.ProcessChannelCount}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("Protocol:");
@@ -422,7 +427,12 @@ public abstract partial class TcpListenerBase
         writer.WriteStartObject(nameof(this.Metrics));
         writer.WriteNumber("TotalAccepted", this.Metrics.TotalAccepted);
         writer.WriteNumber("TotalRejected", this.Metrics.TotalRejected);
+        writer.WriteNumber("QueueFullRejections", this.Metrics.TotalQueueFullRejections);
+        writer.WriteNumber("LimiterRejections", this.Metrics.TotalLimiterRejections);
         writer.WriteNumber("TotalErrors", this.Metrics.TotalErrors);
+        writer.WriteNumber("ProxyProtocolErrors", this.Metrics.TotalProxyProtocolErrors);
+        writer.WriteNumber("PendingProxyConnections", Volatile.Read(ref _pendingProxyConnections));
+        writer.WriteNumber("AcceptQueueDepth", this.ProcessChannelCount);
         writer.WriteEndObject();
 
         writer.WriteStartObject(nameof(_protocol));

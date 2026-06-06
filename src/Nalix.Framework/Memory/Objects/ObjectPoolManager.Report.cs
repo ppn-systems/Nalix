@@ -82,11 +82,11 @@ public sealed partial class ObjectPoolManager
         _ = sb.AppendLine();
 
         // Pool Details
-        _ = sb.AppendLine("==========================================================================================================");
+        _ = sb.AppendLine("========================================================================================================================");
         _ = sb.AppendLine("Object Details (Dashboard):");
-        _ = sb.AppendLine("==========================================================================================================");
-        _ = sb.AppendLine("TYPE                         | STORAGE (A/M)     | USAGE (O/P)       | TRAFFIC (G/R)     | HIT%   | STATUS");
-        _ = sb.AppendLine("-----------------------------+-------------------+-------------------+-------------------+--------+-------");
+        _ = sb.AppendLine("========================================================================================================================");
+        _ = sb.AppendLine("TYPE                         | STORAGE (A/M)     | USAGE (O/P)       | TRAFFIC (G/R)     | FALLBACK | TRIMMED | HIT%   | STATUS");
+        _ = sb.AppendLine("-----------------------------+-------------------+-------------------+-------------------+----------+---------+--------+-------");
 
         // Fix: create sortable list from dictionary
         List<KeyValuePair<Type, ObjectPool>> sortedPools = [.. _poolDict];
@@ -102,7 +102,7 @@ public sealed partial class ObjectPoolManager
             int maxCap = Convert.ToInt32(typeInfo["MaxCapacity"], CultureInfo.InvariantCulture);
             int available = Convert.ToInt32(typeInfo["AvailableCount"], CultureInfo.InvariantCulture);
 
-            long gets = 0, returns = 0, peak = 0, active = 0;
+            long gets = 0, returns = 0, peak = 0, active = 0, misses = 0, trimmed = 0;
             double hitPercent = 0.0;
             string status = "OK";
 
@@ -112,6 +112,8 @@ public sealed partial class ObjectPoolManager
                 returns = metrics.TotalReturns;
                 peak = metrics.PeakOutstanding;
                 active = metrics.Outstanding;
+                misses = metrics.CacheMisses;
+                trimmed = metrics.TrimCount;
                 hitPercent = gets > 0 ? (metrics.CacheHits / (double)gets * 100.0) : 0.0;
 
                 string poolStatus = GET_POOL_STATUS(metrics);
@@ -122,7 +124,7 @@ public sealed partial class ObjectPoolManager
             string usage = ReportExtensions.FormatGroup(active, peak, compact: true);
             string traffic = ReportExtensions.FormatGroup(gets, returns, compact: true);
 
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{typeName} | {storage,-17} | {usage,-17} | {traffic,-17} | {hitPercent,5:F1}% | {status}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{typeName} | {storage,-17} | {usage,-17} | {traffic,-17} | {misses.FormatCompact(),-8} | {trimmed.FormatCompact(),-7} | {hitPercent,5:F1}% | {status}");
 
             if (_config.EnableDiagnostics && metrics != null && metrics.TotalReturns > 0)
             {
@@ -224,6 +226,7 @@ public sealed partial class ObjectPoolManager
                 writer.WriteNumber("Gets", gets);
                 writer.WriteNumber("Hits", hits);
                 writer.WriteNumber("Misses", misses);
+                writer.WriteNumber("Trimmed", metrics.TrimCount);
                 writer.WriteNumber("HitRate", hitPercent);
                 writer.WriteString("LastAccessUtc", metrics.LastAccessUtc);
                 writer.WriteString("LastAccessType", metrics.LastAccessType ?? "None");
