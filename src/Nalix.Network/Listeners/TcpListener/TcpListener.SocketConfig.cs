@@ -227,115 +227,135 @@ public abstract partial class TcpListenerBase
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     [SuppressMessage(
         "Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
-    protected void InitializeOptions(Socket socket)
+    protected bool InitializeOptions(Socket socket)
     {
         ArgumentNullException.ThrowIfNull(socket, nameof(socket));
 
         // When you want to disconnect immediately without making sure the data has been sent.
         // socket.LingerState = new LingerOption(true, NetworkSocketOptions.False);
 
-        // Keep the socket in blocking mode.
-        // WHY: Task-based async I/O works well with socket blocking.
-        // Non-blocking mode requires handling WouldBlock errors in every recv/send call ->, which is much more complex.
-        socket.Blocking = true;
-
-        // OS-level buffer for each connection.
-        // Larger -> fewer syscalls when throughput is high (batching more recv/send into the OS buffer).
-        // Smaller -> saves memory when there are multiple connections simultaneously.
-        socket.NoDelay = _config.NoDelay;
-        socket.SendBufferSize = _config.BufferSize;
-        socket.ReceiveBufferSize = _config.BufferSize;
-
-        if (_config.KeepAlive)
+        try
         {
-            // Enable TCP Keep-Alive -> OS will automatically send probes when connection idle.
-            // WHY requires Keep-Alive: NAT/firewall usually drops the "silent" connection after a few minutes.
-            // Keep-Alive keeps the connection alive and detects that the peer is dead (network failure).
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+            // Keep the socket in blocking mode.
+            // WHY: Task-based async I/O works well with socket blocking.
+            // Non-blocking mode requires handling WouldBlock errors in every recv/send call ->, which is much more complex.
+            socket.Blocking = true;
 
-            try
+            // OS-level buffer for each connection.
+            // Larger -> fewer syscalls when throughput is high (batching more recv/send into the OS buffer).
+            // Smaller -> saves memory when there are multiple connections simultaneously.
+            socket.NoDelay = _config.NoDelay;
+            socket.SendBufferSize = _config.BufferSize;
+            socket.ReceiveBufferSize = _config.BufferSize;
+
+            if (_config.KeepAlive)
             {
-                // Cross-platform API (.NET 5+): Windows, Linux, and macOS all support it.
-                // Time = 120s: After 120 seconds of idle, start sending the first probe.
-                socket.SetSocketOption(SocketOptionLevel.Tcp,
-                                       SocketOptionName.TcpKeepAliveTime, 120);
+                // Enable TCP Keep-Alive -> OS will automatically send probes when connection idle.
+                // WHY requires Keep-Alive: NAT/firewall usually drops the "silent" connection after a few minutes.
+                // Keep-Alive keeps the connection alive and detects that the peer is dead (network failure).
+                socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
 
-                // Interval = 30s: If no response is given, send the next probe after 30 second.
-                socket.SetSocketOption(SocketOptionLevel.Tcp,
-                                       SocketOptionName.TcpKeepAliveInterval, 30);
-
-                // RetryCount = 5: after 30 probes, there is no response -> connection dead -> close socket.
-                // Total time to detect dead connection: 120 + (5 × 30) = 270 seconds.
-                socket.SetSocketOption(SocketOptionLevel.Tcp,
-                                       SocketOptionName.TcpKeepAliveRetryCount, 5);
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-            {
-                // Fallback Windows-only: SIO_KEEPALIVE_VALS IOControl.
-                // WHY fallback: Older runtime or restricted environment does not support cross-platform API.
-                // SIO_KEEPALIVE_VALS = 12-byte struct: [on(4 bytes)][time_ms(4 bytes)][interval_ms(4 bytes)].
-                if (OperatingSystem.IsWindows())
+                try
                 {
-                    const int on = 1;
-                    const int time = 120_000;
-                    const int interval = 30_000;
+                    // Cross-platform API (.NET 5+): Windows, Linux, and macOS all support it.
+                    // Time = 120s: After 120 seconds of idle, start sending the first probe.
+                    socket.SetSocketOption(SocketOptionLevel.Tcp,
+                                           SocketOptionName.TcpKeepAliveTime, 120);
 
-                    byte[] vals = new byte[12];
-                    // WHY BinaryPrimitives instead of BitConverter: BinaryPrimitives does not allocate,
-                    // Write directly to the buffer. LittleEndian because the Windows API requires it.
-                    System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(MemoryExtensions.AsSpan(vals)[0..4], on);
-                    System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(MemoryExtensions.AsSpan(vals)[4..8], time);
-                    System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(MemoryExtensions.AsSpan(vals)[8..12], interval);
-                    _ = socket.IOControl(IOControlCode.KeepAliveValues, vals, null);
+                    // Interval = 30s: If no response is given, send the next probe after 30 second.
+                    socket.SetSocketOption(SocketOptionLevel.Tcp,
+                                           SocketOptionName.TcpKeepAliveInterval, 30);
+
+                    // RetryCount = 5: after 30 probes, there is no response -> connection dead -> close socket.
+                    // Total time to detect dead connection: 120 + (5 × 30) = 270 seconds.
+                    socket.SetSocketOption(SocketOptionLevel.Tcp,
+                                           SocketOptionName.TcpKeepAliveRetryCount, 5);
                 }
-                // Non-Windows without support cross-platform API -> ignore silently.
-                // WHY not throw: Best-effort; Keep-Alive will still work without it.
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                {
+                    // Fallback Windows-only: SIO_KEEPALIVE_VALS IOControl.
+                    // WHY fallback: Older runtime or restricted environment does not support cross-platform API.
+                    // SIO_KEEPALIVE_VALS = 12-byte struct: [on(4 bytes)][time_ms(4 bytes)][interval_ms(4 bytes)].
+                    if (OperatingSystem.IsWindows())
+                    {
+                        const int on = 1;
+                        const int time = 120_000;
+                        const int interval = 30_000;
+
+                        byte[] vals = new byte[12];
+                        // WHY BinaryPrimitives instead of BitConverter: BinaryPrimitives does not allocate,
+                        // Write directly to the buffer. LittleEndian because the Windows API requires it.
+                        System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(MemoryExtensions.AsSpan(vals)[0..4], on);
+                        System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(MemoryExtensions.AsSpan(vals)[4..8], time);
+                        System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(MemoryExtensions.AsSpan(vals)[8..12], interval);
+                        _ = socket.IOControl(IOControlCode.KeepAliveValues, vals, null);
+                    }
+                    // Non-Windows without support cross-platform API -> ignore silently.
+                    // WHY not throw: Best-effort; Keep-Alive will still work without it.
+                }
             }
+
+            // SO_REUSEPORT - multi-thread/process load balancing on Linux
+            if (_config.ReusePort)
+            {
+                try
+                {
+                    if (OperatingSystem.IsLinux())
+                    {
+                        socket.SetSocketOption(SocketOptionLevel.Socket, ReusePortOption, 1);
+                    }
+                    else if (OperatingSystem.IsWindows())
+                    {
+                        socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseUnicastPort, 1);
+                    }
+                }
+                catch (SocketException ex) when (ex.SocketErrorCode is SocketError.OperationNotSupported or SocketError.ProtocolNotSupported)
+                {
+                    // Graceful fallback
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
+                    {
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TcpListenerBase:InitializeOptions", "SO_REUSEPORT not-supported platform/kernel"));
+                    }
+                }
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { /* Ignore if not supported. */ }
+            }
+
+            // TCP Fast Open (TFO) - reduces latency by 1 RTT
+            if (_config.TcpFastOpen)
+            {
+                try
+                {
+                    socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.FastOpen, 5);
+                }
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { /* Ignore if not supported. */ }
+            }
+
+            if (OperatingSystem.IsLinux())
+            {
+                try
+                {
+                    socket.SetSocketOption(SocketOptionLevel.Tcp, (SocketOptionName)3, 1);    // TCP_CORK = 3
+                    socket.SetSocketOption(SocketOptionLevel.Tcp, (SocketOptionName)0x0C, 1); // TCP_QUICKACK = 12
+                }
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { /* Ignore if not supported. */ }
+            }
+
+            return true;
         }
-
-        // SO_REUSEPORT - multi-thread/process load balancing on Linux
-        if (_config.ReusePort)
+        catch (SocketException ex) when (ex.SocketErrorCode is
+            SocketError.ConnectionAborted or
+            SocketError.ConnectionReset or
+            SocketError.NotSocket or
+            SocketError.OperationAborted or
+            SocketError.Shutdown or
+            SocketError.Disconnecting or
+            SocketError.Fault)
         {
-            try
-            {
-                if (OperatingSystem.IsLinux())
-                {
-                    socket.SetSocketOption(SocketOptionLevel.Socket, ReusePortOption, 1);
-                }
-                else if (OperatingSystem.IsWindows())
-                {
-                    socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseUnicastPort, 1);
-                }
-            }
-            catch (SocketException ex) when (ex.SocketErrorCode is SocketError.OperationNotSupported or SocketError.ProtocolNotSupported)
-            {
-                // Graceful fallback
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-                {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TcpListenerBase:InitializeOptions", "SO_REUSEPORT not-supported platform/kernel"));
-                }
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { /* Ignore if not supported. */ }
+            return false;
         }
-
-        // TCP Fast Open (TFO) - reduces latency by 1 RTT
-        if (_config.TcpFastOpen)
+        catch (ObjectDisposedException)
         {
-            try
-            {
-                socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.FastOpen, 5);
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { /* Ignore if not supported. */ }
-        }
-
-        if (OperatingSystem.IsLinux())
-        {
-            try
-            {
-                socket.SetSocketOption(SocketOptionLevel.Tcp, (SocketOptionName)3, 1);    // TCP_CORK = 3
-                socket.SetSocketOption(SocketOptionLevel.Tcp, (SocketOptionName)0x0C, 1); // TCP_QUICKACK = 12
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { /* Ignore if not supported. */ }
+            return false;
         }
     }
 

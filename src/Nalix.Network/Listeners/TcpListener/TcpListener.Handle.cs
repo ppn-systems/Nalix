@@ -169,7 +169,7 @@ public abstract partial class TcpListenerBase
     /// </para>
     /// </remarks>
     [DebuggerStepThrough]
-    private IConnection InitializeConnection(Socket socket, PooledAcceptContext context)
+    private IConnection? InitializeConnection(Socket socket, PooledAcceptContext context)
     {
         Connection? connection = null;
         bool eventsHooked = false;
@@ -186,7 +186,22 @@ public abstract partial class TcpListenerBase
             // It still holds the reference socket and will close it itself in its catch block.
             // If the return context is here when throw -> caller doesn't know the context has been returned ->
             // double-return bug: context returned twice -> pool corrupted.
-            this.InitializeOptions(socket);
+            if (!this.InitializeOptions(socket))
+            {
+                _pool.Return(context);
+                try
+                {
+                    if (socket.RemoteEndPoint is IPEndPoint ip)
+                    {
+                        _limiter.Release(ip);
+                    }
+                }
+                catch (SocketException) { }
+                catch (ObjectDisposedException) { }
+                SafeCloseSocket(socket);
+                this.Metrics.RECORD_ERROR();
+                return null;
+            }
 
             // Context only needs to return immediately during the accept — phase after the socket has been claimed.
             // This pool slot will be reused for the next accept without waiting.
@@ -226,9 +241,17 @@ public abstract partial class TcpListenerBase
             {
                 connection.Dispose();
             }
-            else if (!eventsHooked && socket.RemoteEndPoint is IPEndPoint ip)
+            else if (!eventsHooked)
             {
-                _limiter.Release(ip);
+                try
+                {
+                    if (socket.RemoteEndPoint is IPEndPoint ip)
+                    {
+                        _limiter.Release(ip);
+                    }
+                }
+                catch (SocketException) { }
+                catch (ObjectDisposedException) { }
             }
             throw;
         }
@@ -236,7 +259,7 @@ public abstract partial class TcpListenerBase
 
     /// <inheritdoc/>
     [DebuggerStepThrough]
-    private IConnection InitializeConnection(Socket socket, EndPoint? realEndPoint, int headerBytesConsumed, byte[]? receiveBuffer, int bytesReceived)
+    private IConnection? InitializeConnection(Socket socket, EndPoint? realEndPoint, int headerBytesConsumed, byte[]? receiveBuffer, int bytesReceived)
     {
         Connection? connection = null;
         bool eventsHooked = false;
@@ -244,7 +267,21 @@ public abstract partial class TcpListenerBase
 
         try
         {
-            this.InitializeOptions(socket);
+            if (!this.InitializeOptions(socket))
+            {
+                try
+                {
+                    if (endpoint is IPEndPoint ip)
+                    {
+                        _limiter.Release(ip);
+                    }
+                }
+                catch (SocketException) { }
+                catch (ObjectDisposedException) { }
+                SafeCloseSocket(socket);
+                this.Metrics.RECORD_ERROR();
+                return null;
+            }
             connection = new(socket, _protocol.OpCodeExtractor, endpoint);
 
             connection.OnCloseEvent += this.HandleConnectionClose;
@@ -273,9 +310,17 @@ public abstract partial class TcpListenerBase
             {
                 connection.Dispose();
             }
-            else if (!eventsHooked && endpoint is IPEndPoint ip)
+            else if (!eventsHooked)
             {
-                _limiter.Release(ip);
+                try
+                {
+                    if (endpoint is IPEndPoint ip)
+                    {
+                        _limiter.Release(ip);
+                    }
+                }
+                catch (SocketException) { }
+                catch (ObjectDisposedException) { }
             }
             throw;
         }
@@ -963,7 +1008,13 @@ public abstract partial class TcpListenerBase
             // Set contextOwned = false BEFORE calling so that if InitializeConnection throws an error, it will not double-return.
             // // After returning the context, it will not double-return.
             contextOwned = false;
-            IConnection connection = this.InitializeConnection(socket, context);
+#pragma warning disable CA2000
+            IConnection? connection = this.InitializeConnection(socket, context);
+#pragma warning restore CA2000
+            if (connection is null)
+            {
+                return new AcceptResult(AcceptConnectionResult.Failed, null);
+            }
             return new AcceptResult(AcceptConnectionResult.Accepted, connection);
         }
         catch (OperationCanceledException)
@@ -1054,7 +1105,13 @@ public abstract partial class TcpListenerBase
 
         try
         {
-            IConnection connection = this.InitializeConnection(socket, context);
+#pragma warning disable CA2000
+            IConnection? connection = this.InitializeConnection(socket, context);
+#pragma warning restore CA2000
+            if (connection is null)
+            {
+                return new AcceptResult(AcceptConnectionResult.Failed, null);
+            }
             return new AcceptResult(AcceptConnectionResult.Accepted, connection);
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
