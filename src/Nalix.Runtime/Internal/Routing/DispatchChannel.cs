@@ -332,7 +332,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void Push(IConnection connection, [Borrowed] IBufferLease raw)
     {
-        if (!this.PushCore(connection, raw))
+        if (!this.PushCore(connection, raw, out _))
         {
             raw?.Dispose();
         }
@@ -367,11 +367,14 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
     /// </summary>
     /// <param name="connection">The destination connection.</param>
     /// <param name="raw">The packet lease to enqueue.</param>
+    /// <param name="readyEmitted">When <see langword="true"/>, indicates that a ready queue entry was emitted.</param>
     /// <param name="noBlock">When <see langword="true"/>, block-mode overflow will fail fast instead of waiting for capacity.</param>
-    /// <returns><see langword="true"/> if a ready queue entry was emitted.</returns>
+    /// <returns><see langword="true"/> if the packet was successfully enqueued.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    internal bool PushCore(IConnection connection, [Borrowed] IBufferLease raw, bool noBlock = false)
+    internal bool PushCore(IConnection connection, [Borrowed] IBufferLease raw, out bool readyEmitted, bool noBlock = false)
     {
+        readyEmitted = false;
+
         if (connection is null)
         {
             return false;
@@ -434,6 +437,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
         {
             _ = Interlocked.Increment(ref _readyConnections);
             this.EnqueueReady(state, priority);
+            readyEmitted = true;
         }
 
         return true;
@@ -853,7 +857,14 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
         private readonly Channel<IBufferLease> _channel = Channel.CreateUnbounded<IBufferLease>(
             new UnboundedChannelOptions
             {
-                SingleReader = false,
+                // SingleReader = true: only one DispatchSession consumer holds
+                // exclusive access via Interlocked.Exchange(ref _disposed, 1) in
+                // DispatchSession.Dispose.  No concurrent readers are possible.
+                //
+                // SingleWriter = false: MPSC — multiple ThreadPool process callbacks
+                // (up to MaxPerConnectionPendingPackets = 16) can call TryEnqueue
+                // concurrently for the same connection.
+                SingleReader = true,
                 SingleWriter = false,
                 AllowSynchronousContinuations = false
             });
