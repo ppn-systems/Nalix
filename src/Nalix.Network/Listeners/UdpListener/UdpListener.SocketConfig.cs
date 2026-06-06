@@ -9,7 +9,6 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions.Diagnostics;
 
-
 namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase

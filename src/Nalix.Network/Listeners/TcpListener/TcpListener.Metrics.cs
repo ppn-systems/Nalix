@@ -43,7 +43,7 @@ public abstract partial class TcpListenerBase
         /// <summary>
         /// Gets the total number of rejected connections (includes queue-full and limiter rejections).
         /// </summary>
-        public long TotalRejected => Volatile.Read(ref _totalRejected) + TotalQueueFullRejections + TotalLimiterRejections;
+        public long TotalRejected => Volatile.Read(ref _totalRejected) + this.TotalQueueFullRejections + this.TotalLimiterRejections;
 
         /// <summary>
         /// Gets the total number of proxy protocol handshake errors.

@@ -182,7 +182,6 @@ public abstract partial class TcpListenerBase
             {
                 this.DetachProxyContext(state);
             }
-            
             this.Metrics.RECORD_PROXY_ERROR();
             this.ReleaseProxyContext(state, args, success: false);
             return;
