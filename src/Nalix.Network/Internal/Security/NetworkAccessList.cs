@@ -166,7 +166,7 @@ internal sealed class NetworkAccessList
 
         if (networks.Count > 0 && hasChanges && DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.AccessListState:LoadTrustedProxies", $"loaded networks-count={networks.Count} source=disk"));
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.AccessListState:Internal", $"loaded trusted-proxies networks-count={networks.Count} source=disk"));
         }
 
         return networks;
@@ -206,7 +206,7 @@ internal sealed class NetworkAccessList
 
         if (networks.Count > 0 && hasChanges && DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.AccessListState:LoadTrustedProxies", $"loaded networks-count={networks.Count} blacklisted-ips-count={ips.Count} blacklisted-networks-count={netList.Count} source=disk"));
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.AccessListState:Internal", $"loaded networks-count={networks.Count} blacklisted-ips-count={ips.Count} blacklisted-networks-count={netList.Count} source=disk"));
         }
 
         return (ips, netList);
@@ -232,8 +232,3 @@ internal sealed class NetworkAccessList
 
     #endregion Loading Methods
 }
-
-
-
-
-
