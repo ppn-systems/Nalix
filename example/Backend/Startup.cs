@@ -13,6 +13,7 @@ using Nalix.Logging;
 using Nalix.Logging.Sinks;
 using Nalix.Network.Connections;
 using Nalix.Network.Options;
+using Nalix.Observability;
 using Nalix.Runtime.Middleware.Standard;
 using Nalix.Runtime.Options;
 
@@ -40,6 +41,7 @@ internal class Startup
         NetworkApplication host = NetworkApplication.CreateBuilder()
             .UseTimeSync()
             .UseSessions()
+            .UseObservability()
             .UseSystemControl()
             .UseSecureConnections()
             .ConfigureLogging(logger)
@@ -245,13 +247,14 @@ internal class Startup
             })
             .Configure<ConnectionQuotaOptions>(o =>
             {
-                // For single-machine/local benchmark, this must be high enough,
+                // Standard production limits for DDoS protection.
+                // For single-machine/local benchmark, these must be increased,
                 // otherwise your tester IP becomes the bottleneck.
-                o.MaxConnectionsPerIpAddress = 50;
+                o.MaxConnectionsPerIpAddress = 10;
 
                 // Connection attempts per IP within ConnectionRateWindow.
-                o.MaxCleanupKeysPerRun = 50_000;
-                o.MaxConnectionsPerWindow = 100_000;
+                o.MaxCleanupKeysPerRun = 0; // 0 = scale automatically based on load
+                o.MaxConnectionsPerWindow = 20; // Maximum 20 connection attempts per 5s window
 
                 o.CleanupInterval = TimeSpan.FromSeconds(30);
                 o.InactivityThreshold = TimeSpan.FromSeconds(30);
@@ -300,7 +303,7 @@ internal class Startup
                 // Enable only if your TCP proxy actually sends PROXY protocol V1/V2.
                 // For direct TCP benchmark, keep this false.
                 o.Enabled = false;
-                o.RequireTrustedProxy = true;
+                o.RequireTrustedProxy = false;
                 o.HeaderTimeoutMs = 1000;
             })
             .Configure<ForwardedHeadersOptions>(o =>

@@ -113,9 +113,8 @@ public static class PacketRegistry
             s_runtimeFastDispatcher = COMPOSE(s_pendingFastDispatchers?.ToArray() ?? []);
             Volatile.Write(ref s_table, table);
 
-            // Cleanup
-            s_pendingNames = null;
-            s_pendingDeserializers = null;
+            // Cleanup fast dispatchers since they are fully merged.
+            // Do NOT nullify s_pendingNames and s_pendingDeserializers to allow late collision detection.
             s_pendingFastDispatchers = null;
         }
 
@@ -199,31 +198,32 @@ public static class PacketRegistry
 
         lock (s_gate)
         {
-            if (s_table is not null)
+            PacketDeserializer?[]? table = s_table;
+            if (table is not null)
             {
+                THROW_IF_OPCODE_COLLISION(opcode, name, s_pendingNames);
+
+                Volatile.Write(ref table[opcode], deserializer);
                 (s_pendingDeserializers ??= new())[opcode] = deserializer;
-                _ = s_pendingNames?[opcode] = name;
+                (s_pendingNames ??= new())[opcode] = name;
 
                 return;
             }
 
             // Early registration
-            Dictionary<ushort, PacketDeserializer> dict = s_pendingDeserializers!;
-            Dictionary<ushort, string> names = s_pendingNames!;
+            THROW_IF_OPCODE_COLLISION(opcode, name, s_pendingNames);
 
-            if (dict.TryGetValue(opcode, out _))
-            {
-                string oldName = names.TryGetValue(opcode, out string? n) ? n : "<unknown>";
-                if (StringComparer.Ordinal.Equals(oldName, name))
-                {
-                    return;
-                }
+            s_pendingDeserializers![opcode] = deserializer;
+            s_pendingNames![opcode] = name;
+        }
+    }
 
-                throw new InternalErrorException($"[PacketRegistry] OpCode collision! {opcode}: {oldName} vs {name}");
-            }
-
-            dict[opcode] = deserializer;
-            names[opcode] = name;
+    private static void THROW_IF_OPCODE_COLLISION(ushort opcode, string name, Dictionary<ushort, string>? names)
+    {
+        if (names is not null && names.TryGetValue(opcode, out string? oldName) &&
+            !StringComparer.Ordinal.Equals(oldName, name))
+        {
+            throw new InternalErrorException($"[PacketRegistry] OpCode collision! {opcode}: {oldName} vs {name}");
         }
     }
 
@@ -257,7 +257,7 @@ public static class PacketRegistry
 
         ref readonly PacketHeader header = ref raw.AsHeaderRef();
         PacketDeserializer?[] table = GetBuilt();
-        PacketDeserializer? deserializer = table[header.OpCode] ?? throw new InvalidOperationException(
+        PacketDeserializer? deserializer = Volatile.Read(ref table[header.OpCode]) ?? throw new InvalidOperationException(
                 $"Cannot deserialize packet: OpCode {header.OpCode} is not registered. " +
                 "Check generated packet registration and assembly load order.");
         return deserializer(raw);
@@ -281,10 +281,13 @@ public static class PacketRegistry
 
         try
         {
-            PacketDispatch? dispatcher = s_runtimeFastDispatcher;
+            PacketDispatch? dispatcher = Volatile.Read(ref s_runtimeFastDispatcher);
             if (dispatcher is not null)
             {
-                return dispatcher(opcode, raw, out packet);
+                if (dispatcher(opcode, raw, out packet))
+                {
+                    return true;
+                }
             }
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or SerializationFailureException)
@@ -299,7 +302,7 @@ public static class PacketRegistry
         static bool TRY_DESERIALIZE_FALLBACK(ushort opcode, ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet)
         {
             PacketDeserializer?[] table = GetBuilt();
-            PacketDeserializer? deserializer = table[opcode];
+            PacketDeserializer? deserializer = Volatile.Read(ref table[opcode]);
             if (deserializer is null)
             {
                 packet = null;

@@ -522,6 +522,52 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
             // 4. Runtime ban active -> Reject (Trusted proxies are never banned at runtime)
             if (!isTrustedProxy && bannedUntil > nowTicks)
             {
+                int currentConns;
+                bool lockTaken = false;
+                try
+                {
+                    entry.SpinLock.Enter(ref lockTaken);
+
+                    // Track connection attempts during ban to evaluate sustained spamming
+                    entry.RecentConnectionTimestamps.Enqueue(nowTicks);
+                    this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, nowTicks);
+
+                    long lastAccept = entry.LastAcceptTimeTicks;
+                    long gap = (nowTicks - lastAccept) / TimeSpan.TicksPerMillisecond;
+                    bool isBurst = lastAccept > 0
+                        && gap < _config.MinConnectionIntervalMs
+                        && entry.RecentConnectionTimestamps.Count >= _config.BurstThreshold;
+
+                    int effectiveMaxAttempts = isBurst
+                        ? Math.Max(1, maxAttempts / _config.BurstPenaltyDivisor)
+                        : maxAttempts;
+
+                    if (entry.RecentConnectionTimestamps.Count > effectiveMaxAttempts)
+                    {
+                        // Escalate the ban tier and duration if they keep spamming beyond the window
+                        if (nowTicks - entry.LastBanTimeTicks > _windowTicks)
+                        {
+                            entry.BanCount++;
+                            entry.LastBanTimeTicks = nowTicks;
+
+                            TimeSpan banDuration = this.CALCULATE_PROGRESSIVE_BAN_DURATION(entry.BanCount);
+                            long newBanUntilTicks = nowTicks + banDuration.Ticks;
+                            _ = Interlocked.Exchange(ref entry.BannedUntilTicks, newBanUntilTicks);
+                            bannedUntil = newBanUntilTicks; // Update local variable for the log call below
+                            _banRepository.MarkDirty();
+                        }
+                    }
+
+                    currentConns = entry.Info.CurrentConnections;
+                }
+                finally
+                {
+                    if (lockTaken)
+                    {
+                        entry.SpinLock.Exit();
+                    }
+                }
+
                 if (ThrottledEventGate.TryAcquire(
                         ref entry.LastRejectLogTicks,
                         ref entry.SuppressedRejectCount,
@@ -530,22 +576,11 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
                 {
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Security.Banned))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Security.Banned, new DiagnosticLog("NW.ConnectionGuard:Internal", $" address={key.Address} banned-until={new DateTime(bannedUntil, DateTimeKind.Utc)} suppressed-count={suppressed}"));
-                    }
-                }
-
-                int currentConns;
-                bool lockTaken = false;
-                try
-                {
-                    entry.SpinLock.Enter(ref lockTaken);
-                    currentConns = entry.Info.CurrentConnections;
-                }
-                finally
-                {
-                    if (lockTaken)
-                    {
-                        entry.SpinLock.Exit();
+                        DiagnosticsEvents.Source.Write(
+                            DiagnosticsEvents.Security.Banned,
+                            new DiagnosticLog(
+                                "NW.ConnectionGuard:Internal",
+                                $" address={key.Address} banned-until={new DateTime(bannedUntil, DateTimeKind.Utc)} suppressed-count={suppressed}"));
                     }
                 }
 
@@ -565,6 +600,8 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
                     continue; // Retry with a fresh GetOrAdd, this one is tombstoned
                 }
 
+                entry.RecentConnectionTimestamps.Enqueue(nowTicks);
+
                 long lastAccept = entry.LastAcceptTimeTicks;
                 long gap = (nowTicks - lastAccept) / TimeSpan.TicksPerMillisecond;
                 bool isBurst = lastAccept > 0
@@ -575,7 +612,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
                     ? Math.Max(1, maxAttempts / _config.BurstPenaltyDivisor)
                     : maxAttempts;
 
-                if (entry.RecentConnectionTimestamps.Count >= effectiveMaxAttempts)
+                if (entry.RecentConnectionTimestamps.Count > effectiveMaxAttempts)
                 {
                     // 6. On violation -> Update ban state (if not trusted)
                     if (!isTrustedProxy)
@@ -631,7 +668,6 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
                         LastConnectionTime = now
                     };
 
-                    entry.RecentConnectionTimestamps.Enqueue(nowTicks);
                     entry.LastAcceptTimeTicks = nowTicks;
 
                     result = new ConnectionAllowResult { Allowed = true, CurrentConnections = entry.Info.CurrentConnections };

@@ -15,7 +15,10 @@ using Nalix.Environment.Configuration;
 using Nalix.Environment.Configuration.Binding;
 using Nalix.Environment.Memory;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Hosting.Internal;
+using Nalix.Network.Connections;
 using Nalix.Network.Listeners.Udp;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Routing;
@@ -87,6 +90,12 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
         _state.HasCustomConnectionHub = true;
         InstanceManager.Instance.Register<IConnectionHub>(connectionHub);
+
+        if (connectionHub is ConnectionHub concrete)
+        {
+            InstanceManager.Instance.Register<ConnectionHub>(concrete);
+        }
+
         return this;
     }
 
@@ -122,6 +131,12 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
         _state.HasCustomBufferPoolManager = true;
         InstanceManager.Instance.Register<IBufferPoolManager>(manager);
+
+        if (manager is BufferPoolManager concrete)
+        {
+            InstanceManager.Instance.Register<BufferPoolManager>(concrete);
+        }
+
         BufferLease.ByteArrayPool.Configure(manager);
 
         return this;
@@ -136,6 +151,11 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     {
         ArgumentNullException.ThrowIfNull(manager);
         InstanceManager.Instance.Register<IObjectPoolManager>(manager);
+
+        if (manager is ObjectPoolManager concrete)
+        {
+            InstanceManager.Instance.Register<ObjectPoolManager>(concrete);
+        }
 
         BufferLease.Configure(manager);
         PacketRegistry.Configure(manager);

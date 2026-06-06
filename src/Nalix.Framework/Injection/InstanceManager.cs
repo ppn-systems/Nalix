@@ -658,7 +658,12 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     public void Clear(bool dispose = true)
     {
         ObjectDisposedException.ThrowIf(Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
+        this.ClearInternal(dispose);
+    }
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private void ClearInternal(bool dispose)
+    {
         if (dispose)
         {
             // Snapshot keys to avoid modifying collection during enumeration.
@@ -732,7 +737,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
         }
 
         // Clear caches without disposing again.
-        this.Clear(dispose: false);
+        this.ClearInternal(dispose: false);
 
         if (s_processMutexOwner && s_processMutex != null)
         {
