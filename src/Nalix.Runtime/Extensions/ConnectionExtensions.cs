@@ -91,7 +91,7 @@ public static class ConnectionExtensions
 
         IConnection.ITransport activeTransport = transport switch
         {
-            NetworkTransport.UDP => connection.UDP,
+            NetworkTransport.UDP => connection.UDP ?? throw new InvalidOperationException("UDP companion transport is not created on this connection."),
             NetworkTransport.TCP => connection.TCP,
             NetworkTransport.WEBSOCKET => connection.TCP,
             _ => connection.TCP

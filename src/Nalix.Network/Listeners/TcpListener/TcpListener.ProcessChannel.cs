@@ -156,7 +156,7 @@ public abstract partial class TcpListenerBase
         // - The new connection (dropped) could be part of a DDoS burst -> drop is correct.
         // - Backpressure signal: If the channel is consistently full, increase ProcessChannelCapacity or
         //   optimize ProcessConnection for faster execution.
-        this.Metrics.RECORD_REJECTED();
+        this.Metrics.RECORD_QUEUE_FULL_REJECTION();
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
         {

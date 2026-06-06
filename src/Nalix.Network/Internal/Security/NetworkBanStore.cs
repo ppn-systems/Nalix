@@ -189,8 +189,3 @@ internal readonly struct NetworkBanRecord
         LastSeenAtTicks = lastSeenAtTicks;
     }
 }
-
-
-
-
-

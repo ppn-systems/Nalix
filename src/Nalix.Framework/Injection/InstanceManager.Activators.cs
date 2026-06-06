@@ -9,8 +9,8 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions;
-using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Diagnostics;
+using Nalix.Abstractions.Exceptions;
 
 namespace Nalix.Framework.Injection;
 

@@ -58,6 +58,11 @@ public abstract partial class WebSocketListenerBase : IListener
     /// </summary>
     private ListenerState State => (ListenerState)Volatile.Read(ref _state);
 
+    /// <summary>
+    /// Gets the number of connections currently in the accept queue.
+    /// </summary>
+    public int ProcessChannelCount => _processChannel?.Reader.CanCount == true ? _processChannel.Reader.Count : 0;
+
     #endregion Properties
 
     #region Enums

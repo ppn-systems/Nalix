@@ -18,7 +18,7 @@ public sealed class FrameworkOptionsTests
         CompressionOptions options = new();
 
         Assert.True(options.Enabled);
-        Assert.Equal(1024, options.MinSizeToCompress);
+        Assert.Equal(512, options.MinSizeToCompress);
         options.Validate();
     }
 

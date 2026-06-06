@@ -358,31 +358,22 @@ public abstract partial class UdpListenerBase : IListener
         _ = sb.AppendLine();
 
         // Traffic counters.
-        long rxPackets = Interlocked.Read(ref _rxPackets);
-        long rxBytes = Interlocked.Read(ref _rxBytes);
-        long dropShort = Interlocked.Read(ref _dropShort);
-        long dropUnauth = Interlocked.Read(ref _dropUnauth);
-        long dropUnknown = Interlocked.Read(ref _dropUnknown);
-        long dropRateLimited = Interlocked.Read(ref _dropRateLimited);
-        long dropOversize = Interlocked.Read(ref _dropOversize);
-
         _ = sb.AppendLine("Traffic:");
         _ = sb.AppendLine("------------------------------------------------------------");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReceivedPackets    : {rxPackets}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReceivedBytes      : {rxBytes}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DroppedShort       : {dropShort}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DroppedUnauth      : {dropUnauth}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DroppedUnknown     : {dropUnknown}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DroppedRateLimited : {dropRateLimited}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DroppedOversize    : {dropOversize}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReceivedPackets    : {this.Metrics.ReceivedPackets}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReceivedBytes      : {this.Metrics.ReceivedBytes}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalDropped       : {this.Metrics.TotalDropped}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  - DroppedShort   : {this.Metrics.DroppedShort}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  - DroppedUnauth  : {this.Metrics.DroppedUnauth}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  - DroppedUnknown : {this.Metrics.DroppedUnknown}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  - RateLimited    : {this.Metrics.DroppedRateLimited}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  - Oversize       : {this.Metrics.DroppedOversize}");
         _ = sb.AppendLine();
 
         // Error counters.
-        long recvErrors = Interlocked.Read(ref _recvErrors);
-
         _ = sb.AppendLine("Errors:");
         _ = sb.AppendLine("------------------------------------------------------------");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReceiveErrors   : {recvErrors}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReceiveErrors   : {this.Metrics.ReceiveErrors}");
         _ = sb.AppendLine();
 
         // Runtime objects.
@@ -390,7 +381,6 @@ public abstract partial class UdpListenerBase : IListener
         _ = sb.AppendLine("------------------------------------------------------------");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Socket          : {(_socket is null ? "<null>" : "OK")}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CTS             : {(_cts is null ? "<null>" : "OK")}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"RateLimiter     : OK");
         _ = sb.AppendLine();
 
         return sb.ToString();
@@ -422,23 +412,23 @@ public abstract partial class UdpListenerBase : IListener
         writer.WriteEndObject();
 
         writer.WriteStartObject("Traffic");
-        writer.WriteNumber("ReceivedPackets", Interlocked.Read(ref _rxPackets));
-        writer.WriteNumber("ReceivedBytes", Interlocked.Read(ref _rxBytes));
-        writer.WriteNumber("DroppedShort", Interlocked.Read(ref _dropShort));
-        writer.WriteNumber("DroppedUnauth", Interlocked.Read(ref _dropUnauth));
-        writer.WriteNumber("DroppedUnknown", Interlocked.Read(ref _dropUnknown));
-        writer.WriteNumber("DroppedRateLimited", Interlocked.Read(ref _dropRateLimited));
-        writer.WriteNumber("DroppedOversize", Interlocked.Read(ref _dropOversize));
+        writer.WriteNumber("ReceivedPackets", this.Metrics.ReceivedPackets);
+        writer.WriteNumber("ReceivedBytes", this.Metrics.ReceivedBytes);
+        writer.WriteNumber("TotalDropped", this.Metrics.TotalDropped);
+        writer.WriteNumber("DroppedShort", this.Metrics.DroppedShort);
+        writer.WriteNumber("DroppedUnauth", this.Metrics.DroppedUnauth);
+        writer.WriteNumber("DroppedUnknown", this.Metrics.DroppedUnknown);
+        writer.WriteNumber("DroppedRateLimited", this.Metrics.DroppedRateLimited);
+        writer.WriteNumber("DroppedOversize", this.Metrics.DroppedOversize);
         writer.WriteEndObject();
 
         writer.WriteStartObject("Errors");
-        writer.WriteNumber("ReceiveErrors", Interlocked.Read(ref _recvErrors));
+        writer.WriteNumber("ReceiveErrors", this.Metrics.ReceiveErrors);
         writer.WriteEndObject();
 
         writer.WriteStartObject("Runtime");
         writer.WriteString("Socket", _socket is null ? "<null>" : "OK");
         writer.WriteString("CTS", _cts is null ? "<null>" : "OK");
-        writer.WriteString("RateLimiter", "OK");
         writer.WriteEndObject();
 
         writer.WriteEndObject();

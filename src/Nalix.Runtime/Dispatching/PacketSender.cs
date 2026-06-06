@@ -156,7 +156,7 @@ public sealed class PacketSender : IPacketSender
 
         return transport switch
         {
-            NetworkTransport.UDP => connection.UDP,
+            NetworkTransport.UDP => connection.UDP ?? throw new InvalidOperationException("UDP companion transport is not created on this connection."),
             NetworkTransport.TCP => connection.TCP,
             NetworkTransport.WEBSOCKET => connection.TCP,
             _ => throw new InvalidOperationException($"Unsupported transport type: {transport}")

@@ -6,9 +6,9 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
-using Nalix.Abstractions.Diagnostics;
 
 namespace Nalix.Framework.Tasks;
 

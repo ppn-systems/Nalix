@@ -49,8 +49,8 @@ public sealed class SessionFactory : ISessionFactory
 
         if (connection.IsUdpCreated)
         {
-            attributes[ConnectionAttributes.UdpSendSequence] = connection.UDP.SendSequence;
-            attributes[ConnectionAttributes.UdpReceiveSequence] = connection.UDP.ReceiveSequence;
+            attributes[ConnectionAttributes.UdpSendSequence] = connection.UDP!.SendSequence;
+            attributes[ConnectionAttributes.UdpReceiveSequence] = connection.UDP!.ReceiveSequence;
         }
 
         SessionSnapshot snapshot = new()

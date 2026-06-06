@@ -380,7 +380,7 @@ public abstract partial class TcpListenerBase
 
                 if (this.IsProcessChannelFull())
                 {
-                    this.Metrics.RECORD_REJECTED();
+                    this.Metrics.RECORD_QUEUE_FULL_REJECTION();
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                     {
                         DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TcpListenerBase:if", $"channel-full - dropped socket directly port={_port}"));
@@ -403,7 +403,7 @@ public abstract partial class TcpListenerBase
                             ;
                         }
 
-                        this.Metrics.RECORD_REJECTED();
+                        this.Metrics.RECORD_LIMITER_REJECTION();
                         SafeCloseSocket(socket);
                         this.RebindAcceptContext((PooledSocketAsyncEventArgs)args);
                         return;
@@ -439,6 +439,19 @@ public abstract partial class TcpListenerBase
                     DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TcpListenerBase:if", $"disposed-during-accept remote-endpoint={socket.RemoteEndPoint?.ToString() ?? "<null>"}"));
                 }
 
+                if (connection != null)
+                {
+                    connection.Dispose();
+                }
+                else
+                {
+                    SafeCloseSocket(socket);
+                }
+
+                this.RebindAcceptContext((PooledSocketAsyncEventArgs)args);
+            }
+            catch (NetworkException)
+            {
                 if (connection != null)
                 {
                     connection.Dispose();
@@ -861,6 +874,7 @@ public abstract partial class TcpListenerBase
 
             if (this.IsProcessChannelFull())
             {
+                this.Metrics.RECORD_QUEUE_FULL_REJECTION();
                 SafeCloseSocket(socket);
                 Throw.ProcessChannelFull();
             }
@@ -878,6 +892,7 @@ public abstract partial class TcpListenerBase
             {
                 if (_proxyConfig.RequireTrustedProxy && socket.RemoteEndPoint is IPEndPoint remoteEp && !_limiter.IsTrustedProxy(remoteEp))
                 {
+                    this.Metrics.RECORD_LIMITER_REJECTION();
                     SafeCloseSocket(socket);
                     Throw.ConnectionRejectedByLimiter();
                 }
@@ -885,6 +900,7 @@ public abstract partial class TcpListenerBase
                 if (Interlocked.Increment(ref _pendingProxyConnections) > _proxyConfig.MaxPendingProxyConnections)
                 {
                     _ = Interlocked.Decrement(ref _pendingProxyConnections);
+                    this.Metrics.RECORD_LIMITER_REJECTION();
                     SafeCloseSocket(socket);
                     Throw.ConnectionRejectedByLimiter();
                 }
@@ -899,6 +915,7 @@ public abstract partial class TcpListenerBase
 
             if (socket.RemoteEndPoint is not IPEndPoint ip || !_limiter.TryAccept(ip))
             {
+                this.Metrics.RECORD_LIMITER_REJECTION();
                 SafeCloseSocket(socket);
                 Throw.ConnectionRejectedByLimiter();
             }
@@ -1013,6 +1030,7 @@ public abstract partial class TcpListenerBase
         // If the limiter rejects the connection, close the socket and throw to trigger the appropriate metrics and logging in the caller.
         if (socket.RemoteEndPoint is not IPEndPoint ip || !_limiter.TryAccept(ip))
         {
+            this.Metrics.RECORD_LIMITER_REJECTION();
             SafeCloseSocket(socket);
             Throw.ConnectionRejectedByLimiter();
         }

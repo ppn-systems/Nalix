@@ -7,9 +7,9 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Framework.Memory.Pools;
-using Nalix.Abstractions.Diagnostics;
 
 namespace Nalix.Framework.Memory.Objects;
 
@@ -46,6 +46,10 @@ public sealed partial class ObjectPoolManager
             {
                 int removed = kvp.Value.Trim(trimPercentage);
                 totalRemoved += removed;
+                if (removed > 0)
+                {
+                    _ = Interlocked.Add(ref metrics.TrimCount, removed);
+                }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {

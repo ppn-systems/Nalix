@@ -118,8 +118,17 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
         }
         else
         {
+            if (args.Connection.UDP is not { } udp)
+            {
+                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug("[NW.DefaultFrameProcessor:ProcessFrame] Discarding unreliable frame because UDP transport is not initialized.");
+                }
+                return;
+            }
+
             window = _sequenceOptions.UdpWindow;
-            counter = args.Connection.UDP.ReceiveSequence;
+            counter = udp.ReceiveSequence;
         }
 
         try

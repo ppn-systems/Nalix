@@ -91,9 +91,10 @@ internal sealed partial class SocketConnection
                     Span<byte> payloadSpan = frameS.Slice(HeaderSize, data.Length);
                     string payload = FORMAT_FRAME_FOR_LOG(payloadSpan);
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"sending frame total-length={totalLength} payload={payload} remote-endpoint={_socket.RemoteEndPoint}"));
-        };
+                    {
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"sending frame total-length={totalLength} payload={payload} remote-endpoint={_socket.RemoteEndPoint}"));
+                    }
+                    ;
                 }
 #endif
 
@@ -109,9 +110,10 @@ internal sealed partial class SocketConnection
                             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                             {
                                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"stackalloc peer-closed remote-endpoint={_socket.RemoteEndPoint}"));
-        };
+                                {
+                                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"stackalloc peer-closed remote-endpoint={_socket.RemoteEndPoint}"));
+                                }
+                                ;
                             }
 #endif
                             this.CANCEL_RECEIVE_ONCE();
@@ -136,9 +138,10 @@ internal sealed partial class SocketConnection
                     {
                         string exceptionType = ex.GetType().Name;
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"stackalloc-benign-disconnect endpoint={_endpointString} exception-type={exceptionType}", ex));
-        };
+                        {
+                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"stackalloc-benign-disconnect endpoint={_endpointString} exception-type={exceptionType}", ex));
+                        }
+                        ;
                     }
 #endif
                 }
@@ -184,9 +187,10 @@ internal sealed partial class SocketConnection
                 Span<byte> payloadSpan = MemoryExtensions.AsSpan(heapBuf, HeaderSize, data.Length);
                 string payload = FORMAT_FRAME_FOR_LOG(payloadSpan);
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"sending frame total-length={totalLength} payload={payload} remote-endpoint={_socket.RemoteEndPoint}"));
-        };
+                {
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"sending frame total-length={totalLength} payload={payload} remote-endpoint={_socket.RemoteEndPoint}"));
+                }
+                ;
             }
 #endif
 
@@ -227,9 +231,10 @@ internal sealed partial class SocketConnection
                 {
                     string exceptionType = ex.GetType().Name;
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"pooled-benign-disconnect endpoint={_endpointString} exception-type={exceptionType}", ex));
-        };
+                    {
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"pooled-benign-disconnect endpoint={_endpointString} exception-type={exceptionType}", ex));
+                    }
+                    ;
                 }
 #endif
             }
@@ -317,9 +322,10 @@ internal sealed partial class SocketConnection
                 ReadOnlySpan<byte> payloadSpan = data.Span;
                 string payload = FORMAT_FRAME_FOR_LOG(payloadSpan);
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-        {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"sending frame total-length={totalLength} payload={payload} remote-endpoint={_socket.RemoteEndPoint}"));
-        };
+                {
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"sending frame total-length={totalLength} payload={payload} remote-endpoint={_socket.RemoteEndPoint}"));
+                }
+                ;
             }
 #endif
 

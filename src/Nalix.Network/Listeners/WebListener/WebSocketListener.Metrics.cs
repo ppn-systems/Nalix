@@ -1,28 +1,27 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Nalix.Network.Listeners.Tcp;
+namespace Nalix.Network.Listeners.Web;
 
-public abstract partial class TcpListenerBase
+public abstract partial class WebSocketListenerBase
 {
     #region Nested Metrics Class
 
     /// <summary>
-    /// Metrics for tracking TCP listener connection lifecycle and errors.
+    /// Metrics for tracking WebSocket listener connection lifecycle and errors.
     /// Lock-free, thread-safe, zero-allocation design using atomic operations.
     /// </summary>
-    public sealed class LMetrics
+    public sealed class WMetrics
     {
         #region Fields
 
         private long _totalErrors;
         private long _totalAccepted;
         private long _totalRejected;
-        private long _totalProxyProtocolErrors;
         private long _totalQueueFullRejections;
         private long _totalLimiterRejections;
 
@@ -44,11 +43,6 @@ public abstract partial class TcpListenerBase
         /// Gets the total number of rejected connections (includes queue-full and limiter rejections).
         /// </summary>
         public long TotalRejected => Volatile.Read(ref _totalRejected) + this.TotalQueueFullRejections + this.TotalLimiterRejections;
-
-        /// <summary>
-        /// Gets the total number of proxy protocol handshake errors.
-        /// </summary>
-        public long TotalProxyProtocolErrors => Volatile.Read(ref _totalProxyProtocolErrors);
 
         /// <summary>
         /// Gets the total number of queue full rejections.
@@ -77,18 +71,6 @@ public abstract partial class TcpListenerBase
         internal void RECORD_REJECTED() => Interlocked.Increment(ref _totalRejected);
 
         /// <summary>
-        /// Records an acceptance error.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void RECORD_ERROR() => Interlocked.Increment(ref _totalErrors);
-
-        /// <summary>
-        /// Records a proxy protocol handshake error.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void RECORD_PROXY_ERROR() => Interlocked.Increment(ref _totalProxyProtocolErrors);
-
-        /// <summary>
         /// Records a queue full rejection.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -100,13 +82,19 @@ public abstract partial class TcpListenerBase
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void RECORD_LIMITER_REJECTION() => Interlocked.Increment(ref _totalLimiterRejections);
 
+        /// <summary>
+        /// Records an acceptance error.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void RECORD_ERROR() => Interlocked.Increment(ref _totalErrors);
+
         #endregion Internal Methods
     }
 
     #endregion Nested Metrics Class
 
     /// <inheritdoc/>
-    public LMetrics Metrics
+    public WMetrics Metrics
     {
         [DebuggerStepThrough]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

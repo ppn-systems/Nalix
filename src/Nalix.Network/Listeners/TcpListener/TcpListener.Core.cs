@@ -61,6 +61,11 @@ public abstract partial class TcpListenerBase : IListener
     /// </summary>
     private ListenerState State => (ListenerState)Volatile.Read(ref _state);
 
+    /// <summary>
+    /// Gets the current number of connections queued in the accept processing channel.
+    /// </summary>
+    public int ProcessChannelCount => _processChannel?.Reader.CanCount == true ? _processChannel.Reader.Count : 0;
+
     #endregion Properties
 
     #region Enums

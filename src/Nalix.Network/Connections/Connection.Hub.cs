@@ -53,12 +53,14 @@ public sealed class ConnectionHub : IConnectionHub
 
     private long _totalBytesSent;
     private long _totalBytesReceived;
+    private long _totalPacketsDropped;
 
     private long _ingressBytesPerSecond;
     private long _egressBytesPerSecond;
 
     private long _lastTotalBytesSentSnapshot;
     private long _lastTotalBytesReceivedSnapshot;
+    private long _lastTotalPacketsDroppedSnapshot;
 
     private readonly IRecurringHandle? _throughputTask;
 
@@ -366,6 +368,7 @@ public sealed class ConnectionHub : IConnectionHub
     {
         long sumBytesSent = Volatile.Read(ref _totalBytesSent);
         long sumBytesReceived = Volatile.Read(ref _totalBytesReceived);
+        long sumPacketsDropped = Volatile.Read(ref _totalPacketsDropped);
         long sumUptime = 0, maxUptime = 0, minUptime = long.MaxValue;
 
         StringBuilder sb = new(1024);
@@ -386,6 +389,7 @@ public sealed class ConnectionHub : IConnectionHub
                 {
                     sumBytesSent += metrics.BytesSent;
                     sumBytesReceived += metrics.BytesReceived;
+                    sumPacketsDropped += metrics.PacketsDropped;
                 }
 
                 long up = conn.UpTime;
@@ -411,6 +415,7 @@ public sealed class ConnectionHub : IConnectionHub
 
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Bytes Sent   : {sumBytesSent:N0}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Bytes Received : {sumBytesReceived:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Packets Dropped: {sumPacketsDropped:N0}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Ingress Bps          : {Volatile.Read(ref _ingressBytesPerSecond):N0} B/s");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Egress Bps           : {Volatile.Read(ref _egressBytesPerSecond):N0} B/s");
         _ = sb.AppendLine(CultureInfo.InvariantCulture,
@@ -459,6 +464,7 @@ public sealed class ConnectionHub : IConnectionHub
         writer.WriteNumber("ShardCount", _shardCount);
         writer.WriteNumber("TotalBytesSent", Volatile.Read(ref _lastTotalBytesSentSnapshot));
         writer.WriteNumber("TotalBytesReceived", Volatile.Read(ref _lastTotalBytesReceivedSnapshot));
+        writer.WriteNumber("TotalPacketsDropped", Volatile.Read(ref _lastTotalPacketsDroppedSnapshot));
         writer.WriteNumber("IngressBytesPerSecond", Volatile.Read(ref _ingressBytesPerSecond));
         writer.WriteNumber("EgressBytesPerSecond", Volatile.Read(ref _egressBytesPerSecond));
 
@@ -590,6 +596,7 @@ public sealed class ConnectionHub : IConnectionHub
             {
                 _ = Interlocked.Add(ref _totalBytesSent, metrics.BytesSent);
                 _ = Interlocked.Add(ref _totalBytesReceived, metrics.BytesReceived);
+                _ = Interlocked.Add(ref _totalPacketsDropped, metrics.PacketsDropped);
             }
 
             removedConnection.Dispose();
@@ -896,6 +903,7 @@ public sealed class ConnectionHub : IConnectionHub
 
         long sumBytesSent = Volatile.Read(ref _totalBytesSent);
         long sumBytesReceived = Volatile.Read(ref _totalBytesReceived);
+        long sumPacketsDropped = Volatile.Read(ref _totalPacketsDropped);
 
         foreach (ConcurrentDictionary<ulong, IConnection> shard in _registry.Shards)
         {
@@ -908,9 +916,11 @@ public sealed class ConnectionHub : IConnectionHub
 
                 long sent = metrics.BytesSent;
                 long received = metrics.BytesReceived;
+                long dropped = metrics.PacketsDropped;
 
                 sumBytesSent += sent;
                 sumBytesReceived += received;
+                sumPacketsDropped += dropped;
             }
         }
 
@@ -925,6 +935,7 @@ public sealed class ConnectionHub : IConnectionHub
 
         Volatile.Write(ref _lastTotalBytesSentSnapshot, sumBytesSent);
         Volatile.Write(ref _lastTotalBytesReceivedSnapshot, sumBytesReceived);
+        Volatile.Write(ref _lastTotalPacketsDroppedSnapshot, sumPacketsDropped);
 
         return ValueTask.CompletedTask;
     }
