@@ -1,0 +1,96 @@
+===== 2026-06-06 22:43:45 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          4.8  4.8 201584 273056512 27     00:31 ./Backend
+
+===== 2026-06-06 22:43:50 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend         29.6  6.4 267152 273209040 30     00:36 ./Backend
+
+===== 2026-06-06 22:43:55 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend         70.7  9.6 398208 273363152 32     00:41 ./Backend
+
+===== 2026-06-06 22:44:00 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          102 10.7 447360 273363120 32     00:46 ./Backend
+
+===== 2026-06-06 22:44:05 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          116 10.8 448640 273363104 32     00:51 ./Backend
+
+===== 2026-06-06 22:44:10 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          127 11.9 494208 273363120 32     00:56 ./Backend
+
+===== 2026-06-06 22:44:15 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          125 13.3 552064 273363120 32     01:01 ./Backend
+
+===== 2026-06-06 22:44:20 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          143 13.3 555136 273363136 32     01:06 ./Backend
+
+===== 2026-06-06 22:44:25 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          142 13.8 573056 273363136 32     01:11 ./Backend
+
+===== 2026-06-06 22:44:30 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          150 15.2 634496 273363136 32     01:16 ./Backend
+
+===== 2026-06-06 22:44:35 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          154 15.2 634496 273363088 31     01:21 ./Backend
+
+===== 2026-06-06 22:44:40 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          160 16.1 668800 273363088 31     01:26 ./Backend
+
+===== 2026-06-06 22:44:45 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          158 16.1 668800 273363120 32     01:31 ./Backend
+
+===== 2026-06-06 22:44:50 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          150 16.1 669824 273371424 33     01:36 ./Backend
+
+===== 2026-06-06 22:44:55 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          155 16.1 671872 273388048 35     01:41 ./Backend
+
+===== 2026-06-06 22:45:00 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          156 16.4 681088 273388272 35     01:47 ./Backend
+
+===== 2026-06-06 22:45:05 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          151 16.6 689280 273388272 35     01:52 ./Backend
+
+===== 2026-06-06 22:45:10 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          155 16.8 699520 273396576 36     01:57 ./Backend
+
+===== 2026-06-06 22:45:15 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          152 17.4 725120 273396576 36     02:02 ./Backend
+
+===== 2026-06-06 22:45:20 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          151 18.7 777904 273396560 36     02:07 ./Backend
+
+===== 2026-06-06 22:45:25 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          147 18.7 777904 273396512 35     02:12 ./Backend
+
+===== 2026-06-06 22:45:30 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          152 18.9 784560 273396560 36     02:17 ./Backend
+
+===== 2026-06-06 22:45:35 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          158 20.0 829616 273396240 34     02:22 ./Backend
+
+===== 2026-06-06 22:45:40 =====
+    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
+ 131662 nalix    Backend          161 22.1 918704 273396288 35     02:27 ./Backend
+

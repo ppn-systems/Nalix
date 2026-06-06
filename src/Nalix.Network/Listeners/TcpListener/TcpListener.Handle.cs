@@ -22,6 +22,29 @@ namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
 {
+    internal enum AcceptConnectionResult
+    {
+        Accepted,
+        InvalidSocket,
+        RejectedByLimiter,
+        ProcessChannelFull,
+        ListenerClosed,
+        SocketAborted,
+        Failed
+    }
+
+    internal readonly struct AcceptResult
+    {
+        public AcceptConnectionResult Result { get; }
+        public IConnection? Connection { get; }
+
+        public AcceptResult(AcceptConnectionResult result, IConnection? connection)
+        {
+            this.Result = result;
+            this.Connection = connection;
+        }
+    }
+
     /// <summary>
     /// Finalizes the acceptance of an incoming connection by invoking the protocol handler
     /// and recording the accepted metric.
@@ -415,12 +438,17 @@ public abstract partial class TcpListenerBase
                 }
                 else
                 {
-#pragma warning disable CA2000
-                    connection = this.ProcessAcceptedSocket(socket, context);
-#pragma warning restore CA2000
-
-                    // Process the connection
-                    this.DISPATCH_CONNECTION(connection);
+                    AcceptResult result = this.ProcessAcceptedSocket(socket, context);
+                    if (result.Result == AcceptConnectionResult.Accepted)
+                    {
+                        connection = result.Connection;
+                        this.DISPATCH_CONNECTION(connection!);
+                    }
+                    else
+                    {
+                        this.RebindAcceptContext((PooledSocketAsyncEventArgs)args);
+                        return;
+                    }
                 }
 
                 // Prepare args for the NEXT accept immediately.
@@ -439,19 +467,6 @@ public abstract partial class TcpListenerBase
                     DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TcpListenerBase:if", $"disposed-during-accept remote-endpoint={socket.RemoteEndPoint?.ToString() ?? "<null>"}"));
                 }
 
-                if (connection != null)
-                {
-                    connection.Dispose();
-                }
-                else
-                {
-                    SafeCloseSocket(socket);
-                }
-
-                this.RebindAcceptContext((PooledSocketAsyncEventArgs)args);
-            }
-            catch (NetworkException)
-            {
                 if (connection != null)
                 {
                     connection.Dispose();
@@ -717,64 +732,27 @@ public abstract partial class TcpListenerBase
             // It can detect and restart/alert based on heartbeat timeout.
             ctx.Beat();
 
-            IConnection? connection;
+            AcceptResult acceptResult;
             try
             {
-                connection = await this.CreateConnectionAsync(cancellationToken)
-                                       .ConfigureAwait(false);
+                acceptResult = await this.CreateConnectionAsync(cancellationToken)
+                                         .ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
                 {
-                    // Token cancelled -> shutdown graceful -> exit loop.
-                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
-                    {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync", $"shutdown-requested port={_port}"));
-                    }
-                    ;
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync", "shutdown-requested port=" + _port));
                 }
-
                 break;
-            }
-            catch (NetworkException)
-            {
-                if (cancellationToken.IsCancellationRequested || this.State != ListenerState.RUNNING)
-                {
-                    break;
-                }
-
-                // Rate-limited or limiter rejects -> short delay and then try again.
-                // WHY 10ms: Enough for the limiter to "cool down" but not too long -> responsive.
-                // WHY CancellationToken.None: This delay must be completed completely (without interruptions).
-                await Task.Delay(10, CancellationToken.None).ConfigureAwait(false);
-                continue;
-            }
-            catch (SocketException ex) when (IsIgnorableAcceptError(ex.SocketErrorCode, cancellationToken))
-            {
-                if (cancellationToken.IsCancellationRequested || this.State != ListenerState.RUNNING)
-                {
-                    break;
-                }
-
-                this.Metrics.RECORD_ERROR();
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
-                {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync", $"transient-socket-error socket-error={ex.SocketErrorCode} port={_port}", ex));
-                }
-
-                // Transient OS-level error -> record metric + delay + retry.
-                // WHY 50ms: Longer than NetworkException delay because OS-level errors often require a recovery time.
-                await Task.Delay(50, CancellationToken.None).ConfigureAwait(false);
-
-                continue;
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 this.Metrics.RECORD_ERROR();
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync", $"accept-error port={_port}", ex));
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted,
+                        new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync", "accept-error port=" + _port, ex));
                 }
 
                 // Unexpected error -> record + log + delay 50ms to avoid CPU spin.
@@ -782,22 +760,61 @@ public abstract partial class TcpListenerBase
                 continue;
             }
 
-            if (connection != null)
+            switch (acceptResult.Result)
             {
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
-                {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync", $"accepted connection-network-endpoint={connection.NetworkEndpoint} port={_port}"));
-                }
+                case AcceptConnectionResult.Accepted:
+                    if (acceptResult.Connection != null)
+                    {
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+                        {
+                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace,
+                                new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync", "accepted connection-network-endpoint=" + acceptResult.Connection.NetworkEndpoint + " port=" + _port));
+                        }
 
-                // Send the connection to process channel -> consumer thread for processing.
-                this.DISPATCH_CONNECTION(connection);
+                        // Send the connection to process channel -> consumer thread for processing.
+                        this.DISPATCH_CONNECTION(acceptResult.Connection);
+                    }
+                    ctx.Advance(1, note: "accepted");
+                    break;
+
+                case AcceptConnectionResult.RejectedByLimiter:
+                case AcceptConnectionResult.ProcessChannelFull:
+                    if (cancellationToken.IsCancellationRequested || this.State != ListenerState.RUNNING)
+                    {
+                        break;
+                    }
+                    // Rate-limited or limiter rejects -> short delay and then try again.
+                    // WHY 10ms: Enough for the limiter to "cool down" but not too long -> responsive.
+                    // WHY CancellationToken.None: This delay must be completed completely (without interruptions).
+                    await Task.Delay(10, CancellationToken.None).ConfigureAwait(false);
+                    break;
+
+                case AcceptConnectionResult.InvalidSocket:
+                case AcceptConnectionResult.Failed:
+                    if (cancellationToken.IsCancellationRequested || this.State != ListenerState.RUNNING)
+                    {
+                        break;
+                    }
+                    // Transient accept failures. We shouldn't sleep 50ms on expected accept pressure.
+                    // No delay is needed for transient / expected pressure failures.
+                    break;
+
+                case AcceptConnectionResult.ListenerClosed:
+                case AcceptConnectionResult.SocketAborted:
+                default:
+                    // Stop accepting, break loop.
+                    break;
             }
-            ctx.Advance(1, note: "accepted");
+            if (acceptResult.Result is AcceptConnectionResult.ListenerClosed or AcceptConnectionResult.SocketAborted)
+            {
+                break;
+            }
         }
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync", $"loop-exited port={_port}"));
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace,
+                new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync", "loop-exited port=" + _port));
         }
     }
 
@@ -849,9 +866,12 @@ public abstract partial class TcpListenerBase
     [MethodImpl(MethodImplOptions.NoInlining)]
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     [SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    protected async ValueTask<IConnection?> CreateConnectionAsync(CancellationToken cancellationToken)
+    internal async ValueTask<AcceptResult> CreateConnectionAsync(CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return new AcceptResult(AcceptConnectionResult.ListenerClosed, null);
+        }
 
         // contextOwned = true: context is the responsibility of this method (requires return to pool).
         // contextOwned = false: ownership has been transferred to InitializeConnection.
@@ -865,18 +885,37 @@ public abstract partial class TcpListenerBase
 
             if (_listener == null)
             {
-                throw new InternalErrorException("Socket is not initialized.");
+                return new AcceptResult(AcceptConnectionResult.ListenerClosed, null);
             }
 
             // Wait async accept:
-            socket = await context.BeginAcceptAsync(_listener, cancellationToken)
-                                  .ConfigureAwait(false);
+            try
+            {
+                socket = await context.BeginAcceptAsync(_listener, cancellationToken)
+                                      .ConfigureAwait(false);
+            }
+            catch (ObjectDisposedException)
+            {
+                return new AcceptResult(AcceptConnectionResult.ListenerClosed, null);
+            }
+            catch (SocketException ex) when (ex.SocketErrorCode is
+                   SocketError.Interrupted or
+                   SocketError.OperationAborted or
+                   SocketError.ConnectionAborted or
+                   SocketError.Shutdown)
+            {
+                return new AcceptResult(AcceptConnectionResult.SocketAborted, null);
+            }
+            catch (SocketException)
+            {
+                return new AcceptResult(AcceptConnectionResult.Failed, null);
+            }
 
             if (this.IsProcessChannelFull())
             {
                 this.Metrics.RECORD_QUEUE_FULL_REJECTION();
                 SafeCloseSocket(socket);
-                Throw.ProcessChannelFull();
+                return new AcceptResult(AcceptConnectionResult.ProcessChannelFull, null);
             }
 
             // Validate and limit checks occur BEFORE ownership transfer.
@@ -885,7 +924,7 @@ public abstract partial class TcpListenerBase
             if (!socket.Connected || socket.Handle.ToInt64() == -1)
             {
                 SafeCloseSocket(socket);
-                Throw.InvalidSocket();
+                return new AcceptResult(AcceptConnectionResult.InvalidSocket, null);
             }
 
             if (_proxyConfig.Enabled)
@@ -894,7 +933,7 @@ public abstract partial class TcpListenerBase
                 {
                     this.Metrics.RECORD_LIMITER_REJECTION();
                     SafeCloseSocket(socket);
-                    Throw.ConnectionRejectedByLimiter();
+                    return new AcceptResult(AcceptConnectionResult.RejectedByLimiter, null);
                 }
 
                 if (Interlocked.Increment(ref _pendingProxyConnections) > _proxyConfig.MaxPendingProxyConnections)
@@ -902,7 +941,7 @@ public abstract partial class TcpListenerBase
                     _ = Interlocked.Decrement(ref _pendingProxyConnections);
                     this.Metrics.RECORD_LIMITER_REJECTION();
                     SafeCloseSocket(socket);
-                    Throw.ConnectionRejectedByLimiter();
+                    return new AcceptResult(AcceptConnectionResult.RejectedByLimiter, null);
                 }
 
                 // We return the context right away because the proxy header read is async.
@@ -910,56 +949,35 @@ public abstract partial class TcpListenerBase
                 contextOwned = false; // So finally block doesn't double-return
 
                 this.BeginProxyHeaderRead(socket);
-                return null;
+                return new AcceptResult(AcceptConnectionResult.Accepted, null);
             }
 
             if (socket.RemoteEndPoint is not IPEndPoint ip || !_limiter.TryAccept(ip))
             {
                 this.Metrics.RECORD_LIMITER_REJECTION();
                 SafeCloseSocket(socket);
-                Throw.ConnectionRejectedByLimiter();
+                return new AcceptResult(AcceptConnectionResult.RejectedByLimiter, null);
             }
 
             // Transfer ownership: InitializeConnection will return the inner context.
             // Set contextOwned = false BEFORE calling so that if InitializeConnection throws an error, it will not double-return.
             // // After returning the context, it will not double-return.
             contextOwned = false;
-            return this.InitializeConnection(socket, context);
-        }
-        catch (SocketException ex)
-        {
-            throw new NetworkException($"Socket error while accepting. Code={ex.SocketErrorCode}", ex);
+            IConnection connection = this.InitializeConnection(socket, context);
+            return new AcceptResult(AcceptConnectionResult.Accepted, connection);
         }
         catch (OperationCanceledException)
         {
             throw;
         }
-        catch (NetworkException)
-        {
-            throw;
-        }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            string remote = "unknown";
-            try
+            this.Metrics.RECORD_ERROR();
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
             {
-                remote = _listener?.LocalEndPoint?.ToString() ?? "<null>";
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.TcpListenerBase:CreateConnectionAsync", "unexpected-accept-error", ex));
             }
-            catch (ObjectDisposedException ode)
-            {
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-                {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync", $"listener-endpoint-disposed port={_port} type={ode.GetType().Name}", ex));
-                }
-            }
-            catch (Exception lookupEx) when (ExceptionClassifier.IsNonFatal(lookupEx))
-            {
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
-                {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync", $"listener-endpoint-lookup-failed port={_port}", lookupEx));
-                }
-            }
-            throw new NetworkException($"TryAccept failed. Listener={remote}", ex);
+            return new AcceptResult(AcceptConnectionResult.Failed, null);
         }
         finally
         {
@@ -1014,8 +1032,7 @@ public abstract partial class TcpListenerBase
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNullIfNotNull(nameof(socket))]
-    private IConnection ProcessAcceptedSocket(Socket socket, PooledAcceptContext context)
+    private AcceptResult ProcessAcceptedSocket(Socket socket, PooledAcceptContext context)
     {
         // Validate and limit checks occur BEFORE ownership transfer.
         // If a throw occurs here (invalid socket, limiter reject), contextOwned remains true.
@@ -1023,7 +1040,7 @@ public abstract partial class TcpListenerBase
         if (!socket.Connected || socket.Handle.ToInt64() == -1)
         {
             SafeCloseSocket(socket);
-            Throw.InvalidSocket();
+            return new AcceptResult(AcceptConnectionResult.InvalidSocket, null);
         }
 
         // Check the connection limiter before proceeding.
@@ -1032,12 +1049,18 @@ public abstract partial class TcpListenerBase
         {
             this.Metrics.RECORD_LIMITER_REJECTION();
             SafeCloseSocket(socket);
-            Throw.ConnectionRejectedByLimiter();
+            return new AcceptResult(AcceptConnectionResult.RejectedByLimiter, null);
         }
 
-        IConnection connection = this.InitializeConnection(socket, context);
-
-        return connection;
+        try
+        {
+            IConnection connection = this.InitializeConnection(socket, context);
+            return new AcceptResult(AcceptConnectionResult.Accepted, connection);
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            return new AcceptResult(AcceptConnectionResult.Failed, null);
+        }
     }
 
     #endregion Private Methods

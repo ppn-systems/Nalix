@@ -7,7 +7,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
-using System.Threading;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
@@ -340,23 +339,4 @@ public abstract partial class TcpListenerBase
         }
     }
 
-    // These SocketError occur when the listener is shutting down normally:
-    // Shutdown -> socket.Shutdown() is called.
-    // TimedOut -> accept timeout (if a socket timeout is set).
-    // NotSocket -> The socket was closed before accepting.
-    // WouldBlock -> non-blocking socket without pending connection.
-    // Interrupted -> accept is interrupted by signal/close.
-    // InvalidArgument -> invalid sockets args (usually after Close).
-    // OperationAborted -> async operation is destroyed (usually when Dispose).
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsIgnorableAcceptError(SocketError code, CancellationToken token)
-        => token.IsCancellationRequested || code
-        is SocketError.Shutdown
-        or SocketError.TimedOut
-        or SocketError.NotSocket
-        or SocketError.WouldBlock
-        or SocketError.Interrupted
-        or SocketError.InvalidArgument
-        or SocketError.OperationAborted;
 }

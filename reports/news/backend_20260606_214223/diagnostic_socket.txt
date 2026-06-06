@@ -1,0 +1,1 @@
+srw------- 1 nalix nalix 0 Jun  6 21:41 /tmp/dotnet-diagnostic-120819-8553495-socket
