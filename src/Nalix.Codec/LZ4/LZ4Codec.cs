@@ -98,6 +98,29 @@ public static class LZ4Codec
     public static int Decode(ReadOnlySpan<byte> input, Span<byte> output) => LZ4Decoder.Decode(input, output);
 
     /// <summary>
+    /// Attempts to decompress the input data into the specified output buffer.
+    /// Does not throw on malformed data or buffer constraints.
+    /// </summary>
+    /// <param name="input">The compressed input data.</param>
+    /// <param name="output">The destination span.</param>
+    /// <param name="bytesWritten">The number of bytes successfully written.</param>
+    /// <returns><c>true</c> if decompression succeeded; otherwise <c>false</c>.</returns>
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryDecode(ReadOnlySpan<byte> input, Span<byte> output, out int bytesWritten)
+    {
+        int result = LZ4Decoder.TryDecode(input, output);
+        if (result < 0)
+        {
+            bytesWritten = 0;
+            return false;
+        }
+
+        bytesWritten = result;
+        return true;
+    }
+
+    /// <summary>
     /// Decompresses the compressed input into a pooled <see cref="BufferLease"/>.
     /// </summary>
     /// <remarks>
@@ -124,4 +147,21 @@ public static class LZ4Codec
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void Decode(ReadOnlySpan<byte> input, out BufferLease? lease, out int bytesWritten) => _ = LZ4Decoder.Decode(input, out lease, out bytesWritten);
+
+    /// <summary>
+    /// Attempts to decompress the compressed input into a pooled <see cref="BufferLease"/>.
+    /// Does not throw on decode failure.
+    /// </summary>
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static bool TryDecode(ReadOnlySpan<byte> input, out BufferLease? lease, out int bytesWritten)
+    {
+        int result = LZ4Decoder.TryDecode(input, out lease, out bytesWritten);
+        if (result < 0)
+        {
+            return false;
+        }
+
+        return true;
+    }
 }

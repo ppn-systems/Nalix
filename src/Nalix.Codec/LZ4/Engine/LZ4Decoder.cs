@@ -22,6 +22,10 @@ namespace Nalix.Codec.LZ4.Engine;
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal static class LZ4Decoder
 {
+    public const int ErrorInvalidHeader = -1;
+    public const int ErrorOutputBufferTooSmall = -2;
+    public const int ErrorCorruptPayload = -3;
+
     #region APIs
 
     /// <summary>
@@ -33,7 +37,22 @@ internal static class LZ4Decoder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int Decode(ReadOnlySpan<byte> input, Span<byte> output)
     {
-        ReadAndValidateHeader(input, out LZ4BlockHeader header);
+        int result = TryDecode(input, output);
+        if (result < 0)
+        {
+            ThrowDecodeError(result);
+        }
+        return result;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int TryDecode(ReadOnlySpan<byte> input, Span<byte> output)
+    {
+        int headerStatus = TryReadAndValidateHeader(input, out LZ4BlockHeader header);
+        if (headerStatus < 0)
+        {
+            return headerStatus;
+        }
         return DecodeInternal(input, output, header);
     }
 
@@ -53,28 +72,69 @@ internal static class LZ4Decoder
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static bool Decode(ReadOnlySpan<byte> input, out BufferLease? lease, out int bytesWritten)
     {
+        int result = TryDecode(input, out lease, out bytesWritten);
+        if (result < 0)
+        {
+            ThrowDecodeError(result);
+        }
+        return true;
+    }
+
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    internal static int TryDecode(ReadOnlySpan<byte> input, out BufferLease? lease, out int bytesWritten)
+    {
         lease = null;
         bytesWritten = 0;
 
-        ReadAndValidateHeader(input, out LZ4BlockHeader header);
+        int headerStatus = TryReadAndValidateHeader(input, out LZ4BlockHeader header);
+        if (headerStatus < 0)
+        {
+            return headerStatus;
+        }
 
         if (header.OriginalLength == 0)
         {
-            return true;
+            return 0;
         }
 
         BufferLease rentedLease = BufferLease.Rent(header.OriginalLength);
         try
         {
-            bytesWritten = DecodeInternal(input, rentedLease.SpanFull, header);
+            int result = DecodeInternal(input, rentedLease.SpanFull, header);
+            if (result < 0)
+            {
+                rentedLease.Dispose();
+                return result;
+            }
+            bytesWritten = result;
             rentedLease.CommitLength(bytesWritten);
             lease = rentedLease;
-            return true;
+            return result;
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             rentedLease.Dispose();
             throw;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void ThrowDecodeError(int errorCode)
+    {
+        switch (errorCode)
+        {
+            case ErrorInvalidHeader:
+                Throw.InvalidHeader();
+                break;
+            case ErrorOutputBufferTooSmall:
+                Throw.OutputBufferTooSmall();
+                break;
+            case ErrorCorruptPayload:
+                Throw.CorruptPayload();
+                break;
+            default:
+                break;
         }
     }
 
@@ -89,34 +149,37 @@ internal static class LZ4Decoder
     /// <param name="input"></param>
     /// <param name="header"></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ReadAndValidateHeader(ReadOnlySpan<byte> input, out LZ4BlockHeader header)
+    private static int TryReadAndValidateHeader(ReadOnlySpan<byte> input, out LZ4BlockHeader header)
     {
+        header = default;
         if (input.Length < LZ4BlockHeader.Size)
         {
-            Throw.InvalidHeader();
+            return ErrorInvalidHeader;
         }
 
         header = MemOps.ReadUnaligned<LZ4BlockHeader>(input);
 
         if (header.OriginalLength < 0)
         {
-            Throw.InvalidHeader();
+            return ErrorInvalidHeader;
         }
 
         if (header.CompressedLength < LZ4BlockHeader.Size)
         {
-            Throw.InvalidHeader();
+            return ErrorInvalidHeader;
         }
 
         if (header.CompressedLength != input.Length)
         {
-            Throw.InvalidHeader();
+            return ErrorInvalidHeader;
         }
 
         if (header.OriginalLength > LZ4CompressionConstants.MaxBlockSize)
         {
-            Throw.InvalidHeader();
+            return ErrorInvalidHeader;
         }
+
+        return 0;
     }
 
     [StackTraceHidden]
@@ -125,7 +188,7 @@ internal static class LZ4Decoder
     {
         if (header.OriginalLength > output.Length)
         {
-            Throw.OutputBufferTooSmall();
+            return ErrorOutputBufferTooSmall;
         }
 
         if (header.OriginalLength == 0)
@@ -154,7 +217,7 @@ internal static class LZ4Decoder
                         if (bytesRead == -1 || extraLength < 0)
                         {
                             MemorySecurity.ZeroMemory(output);
-                            Throw.CorruptPayload();
+                            return ErrorCorruptPayload;
                         }
 
                         literalLength += extraLength;
@@ -165,7 +228,7 @@ internal static class LZ4Decoder
                         if (inputPtr + literalLength > inputEnd || outputPtr + literalLength > outputEnd)
                         {
                             MemorySecurity.ZeroMemory(output);
-                            Throw.CorruptPayload();
+                            return ErrorCorruptPayload;
                         }
 
                         MemOps.Copy(inputPtr, outputPtr, literalLength);
@@ -181,7 +244,7 @@ internal static class LZ4Decoder
                     if (inputPtr + sizeof(ushort) > inputEnd)
                     {
                         MemorySecurity.ZeroMemory(output);
-                        Throw.CorruptPayload();
+                        return ErrorCorruptPayload;
                     }
 
                     int offset = MemOps.ReadUnaligned<ushort>(inputPtr);
@@ -189,7 +252,7 @@ internal static class LZ4Decoder
                     if (offset == 0 || offset > (outputPtr - outputBase))
                     {
                         MemorySecurity.ZeroMemory(output);
-                        Throw.CorruptPayload();
+                        return ErrorCorruptPayload;
                     }
 
                     int matchLength = token & LZ4CompressionConstants.TokenMatchMask;
@@ -199,7 +262,7 @@ internal static class LZ4Decoder
                         if (bytesRead == -1 || extraLength < 0)
                         {
                             MemorySecurity.ZeroMemory(output);
-                            Throw.CorruptPayload();
+                            return ErrorCorruptPayload;
                         }
 
                         matchLength += extraLength;
@@ -210,7 +273,7 @@ internal static class LZ4Decoder
                     if (outputPtr + matchLength > outputEnd)
                     {
                         MemorySecurity.ZeroMemory(output);
-                        Throw.CorruptPayload();
+                        return ErrorCorruptPayload;
                     }
 
                     MemOps.Copy(matchSourcePtr, outputPtr, matchLength);
@@ -220,7 +283,7 @@ internal static class LZ4Decoder
                 if (outputPtr != outputEnd || inputPtr != inputEnd)
                 {
                     MemorySecurity.ZeroMemory(output);
-                    Throw.CorruptPayload();
+                    return ErrorCorruptPayload;
                 }
 
                 return header.OriginalLength;
