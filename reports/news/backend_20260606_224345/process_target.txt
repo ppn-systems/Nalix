@@ -1,2 +1,0 @@
-    PID USER     COMMAND         COMMAND
- 131662 nalix    Backend         ./Backend

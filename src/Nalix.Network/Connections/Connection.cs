@@ -504,7 +504,7 @@ public sealed partial class Connection :
     /// </summary>
     internal ConnectionEventArgs AcquireEventArgs()
     {
-        ConnectionEventArgs? arg_local = _argsPool.Acquire(arg => arg.Initialize(this));
+        ConnectionEventArgs? arg_local = _argsPool.Acquire(this, static (arg, self) => arg.Initialize(self));
         if (arg_local != null)
         {
             return arg_local;
@@ -524,7 +524,7 @@ public sealed partial class Connection :
     /// </summary>
     PooledConnectEventContext IPooledConnectContextPool.AcquireContext()
     {
-        PooledConnectEventContext? arg_local = _contextPool.Acquire(ctx => ctx.LocalOwner = this);
+        PooledConnectEventContext? arg_local = _contextPool.Acquire(this, static (ctx, self) => ctx.LocalOwner = self);
         if (arg_local != null)
         {
             return arg_local;

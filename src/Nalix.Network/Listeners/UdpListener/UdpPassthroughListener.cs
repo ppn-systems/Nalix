@@ -13,6 +13,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Environment.Memory;
 using Nalix.Environment.Time;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.RateLimiting;
@@ -53,6 +54,8 @@ namespace Nalix.Network.Listeners.Udp;
 public sealed class UdpPassthroughListener : UdpListenerBase
 {
     #region Fields
+
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     private readonly ConcurrentDictionary<EndPoint, PassthroughConnection> _connections = new();
 
@@ -157,9 +160,8 @@ public sealed class UdpPassthroughListener : UdpListenerBase
 
         lease.IsReliable = false;
 
-#pragma warning disable CA2000
-        PassthroughArgs args = new(lease, connection, this);
-#pragma warning restore CA2000
+        PassthroughArgs args = s_pool.Get<PassthroughArgs>();
+        args.Initialize(lease, connection, this);
 
         if (!ThreadPool.UnsafeQueueUserWorkItem(s_processCallback, args))
         {
@@ -209,10 +211,11 @@ public sealed class UdpPassthroughListener : UdpListenerBase
 
         if (connection != newConnection)
         {
-#pragma warning disable CA2000 // Dummy args used only for closing event
-            PassthroughArgs dummyArgs = new(null!, newConnection, this);
-#pragma warning restore CA2000
+            PassthroughArgs dummyArgs = s_pool.Get<PassthroughArgs>();
+
+            dummyArgs.Initialize(null!, newConnection, this);
             _connGuard?.OnConnectionClosed(this, dummyArgs);
+            dummyArgs.Dispose();
             newConnection.Dispose();
 
             if (connection.IsDisposed)
@@ -273,30 +276,45 @@ public sealed class UdpPassthroughListener : UdpListenerBase
 
     #region PassthroughArgs
 
-    private sealed class PassthroughArgs : IConnectEventArgs
+    private sealed class PassthroughArgs : IConnectEventArgs, IPoolable
     {
         private IBufferLease? _lease;
+        private IConnection? _connection;
+        private UdpPassthroughListener? _listener;
 
-        public PassthroughArgs(IBufferLease lease, IConnection connection, UdpPassthroughListener listener)
+        public PassthroughArgs()
         {
-            _lease = lease;
-            this.Listener = listener;
-            this.Connection = connection;
         }
 
-        public IConnection Connection { get; }
+        public void Initialize(IBufferLease lease, IConnection connection, UdpPassthroughListener listener)
+        {
+            _lease = lease;
+            _connection = connection;
+            _listener = listener;
+        }
+
+        public IConnection Connection => _connection ?? throw new InvalidOperationException("Args not initialized.");
 
         public IBufferLease? Lease => _lease;
 
         public INetworkEndpoint? NetworkEndpoint => this.Connection.NetworkEndpoint;
 
-        internal UdpPassthroughListener Listener { get; }
+        internal UdpPassthroughListener? Listener => _listener;
+
+        public void ResetForPool()
+        {
+            _lease = null;
+            _connection = null;
+            _listener = null;
+        }
 
         public void Dispose()
         {
             IBufferLease? lease = _lease;
             _lease = null;
             lease?.Dispose();
+
+            s_pool.Return(this);
         }
     }
 

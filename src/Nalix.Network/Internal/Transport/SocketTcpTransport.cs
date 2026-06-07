@@ -10,14 +10,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Security;
+using Nalix.Environment.Sequencing;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Abstractions;
-using Nalix.Network.Internal.Security;
 
-#if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
-#endif
 
 namespace Nalix.Network.Internal.Transport;
 
@@ -30,7 +28,8 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IDispos
 
     private readonly Connection _outer;
     private readonly SocketConnection _socket;
-    private readonly TransportSequencer _sequencer;
+    private readonly ISequenceCounter _sendSequence;
+    private readonly ISequenceCounter _receiveSequence;
 
     #endregion Fields
 
@@ -42,10 +41,10 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IDispos
     public System.Net.Sockets.Socket Socket => _socket.Socket;
 
     /// <inheritdoc/>
-    public ISequenceCounter SendSequence => _sequencer.SendSequence;
+    public ISequenceCounter SendSequence => _sendSequence;
 
     /// <inheritdoc/>
-    public ISequenceCounter ReceiveSequence => _sequencer.ReceiveSequence;
+    public ISequenceCounter ReceiveSequence => _receiveSequence;
 
     /// <inheritdoc/>
     public long BytesSent => _socket.BytesSent;
@@ -67,7 +66,8 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IDispos
     /// <inheritdoc/>
     public SocketTcpTransport(Socket socket, Connection connection, ITransportEventSink eventSink)
     {
-        _sequencer = new();
+        _sendSequence = new SequenceCounter();
+        _receiveSequence = new SequenceCounter();
         _outer = connection;
         _socket = new SocketConnection(socket, connection, eventSink);
     }

@@ -86,6 +86,7 @@ internal static class AsyncCallback
 
     private static readonly NetworkCallbackOptions s_netOpts = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
     private static readonly PoolingOptions s_pooling = ConfigurationManager.Instance.Get<PoolingOptions>();
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     #endregion Options
 
@@ -291,13 +292,16 @@ internal static class AsyncCallback
         bool releasePendingPacketOnCompletion,
         CallbackLane lane)
     {
-        if (sender is not IPooledConnectContextPool owner)
+        PooledConnectEventContext wrapper;
+        if (sender is IPooledConnectContextPool owner)
         {
-            throw new InvalidOperationException("Invalid sender type.");
+            wrapper = owner.AcquireContext() ?? throw new InvalidOperationException("Failed to acquire context.");
         }
-
-        PooledConnectEventContext wrapper = owner.AcquireContext()
-            ?? throw new InvalidOperationException("Failed to acquire context.");
+        else
+        {
+            wrapper = s_pool.Get<PooledConnectEventContext>();
+            wrapper.LocalOwner = null;
+        }
 
         wrapper.Initialize(callback, sender, args, releasePendingPacketOnCompletion);
 

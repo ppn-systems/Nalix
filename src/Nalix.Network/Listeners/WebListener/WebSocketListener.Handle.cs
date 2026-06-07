@@ -21,6 +21,7 @@ using Nalix.Network.Connections;
 
 #pragma warning disable IDE0079
 #pragma warning disable CA2213
+#pragma warning disable CA1031
 
 namespace Nalix.Network.Listeners.Web;
 
@@ -154,9 +155,29 @@ public abstract partial class WebSocketListenerBase
                         continue;
                     }
 
-                    // 2. Negotiate the WebSocket handshake.
+                    HttpListenerWebSocketContext wsContext;
+                    try
+                    {
+                        wsContext = await context.AcceptWebSocketAsync(_config.SubProtocol).ConfigureAwait(false);
+                    }
+#pragma warning disable CA1031
+                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+#pragma warning restore CA1031
+                    {
+                        this.Metrics.RECORD_REJECTED();
+                        try
+                        {
+                            context.Response.Close();
+                        }
+#pragma warning disable CA1031
+                        catch
+#pragma warning restore CA1031
+                        {
+                            // Ignore close failures on aborted clients.
+                        }
 
-                    HttpListenerWebSocketContext wsContext = await context.AcceptWebSocketAsync(_config.SubProtocol).ConfigureAwait(false);
+                        continue;
+                    }
 
 #pragma warning disable CA2000
                     WebSocketConnection connection = new(wsContext.WebSocket, _protocol.OpCodeExtractor, realEndpoint);

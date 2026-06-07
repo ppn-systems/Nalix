@@ -29,7 +29,7 @@ internal class Startup
 
     public static ILogger CreateBootstrapLogger() => new NLogixBuilder()
         .AddTarget(new BatchConsoleLogTarget(t => t.EnableColors = false))
-        .SetMinimumLevel(LogLevel.Information)
+        .SetMinimumLevel(LogLevel.Debug)
         .Build();
 
     public static NetworkApplication Configure(ILogger logger)
@@ -232,29 +232,38 @@ internal class Startup
             {
                 // Global concurrent connection ceiling.
                 // Set higher than the target benchmark peak.
-                o.MaxConnections = 10_000;
+                o.MaxConnections = 20_000;
 
                 // Per-connection packet rate.
                 // This is not global PPS.
-                o.MaxPacketPerSecond = 80;
+                o.MaxPacketPerSecond = 10_000;
 
                 // Disconnect noisy/malformed connections earlier.
                 o.MaxErrorThreshold = 20;
 
-                o.EnableProgressiveBanning = true;
+                o.EnableProgressiveBanning = false;
                 o.BanDuration = TimeSpan.FromMinutes(5);
                 o.DDoSLogSuppressWindow = TimeSpan.FromSeconds(20);
+            })
+            .Configure<TokenBucketOptions>(o =>
+            {
+                // Raise global rate limiter capacity and refill rate to prevent lockouts during local load testing.
+                o.CapacityTokens = 100_000;
+                o.RefillTokensPerSecond = 100_000.0;
+                o.HardLockoutSeconds = 0;
             })
             .Configure<ConnectionQuotaOptions>(o =>
             {
                 // Standard production limits for DDoS protection.
                 // For single-machine/local benchmark, these must be increased,
                 // otherwise your tester IP becomes the bottleneck.
-                o.MaxConnectionsPerIpAddress = 10;
+                o.MaxConnectionsPerIpAddress = 1000;
+                o.MaxConnectionsPerSubnet = 1000;
 
                 // Connection attempts per IP within ConnectionRateWindow.
                 o.MaxCleanupKeysPerRun = 0; // 0 = scale automatically based on load
-                o.MaxConnectionsPerWindow = 20; // Maximum 20 connection attempts per 5s window
+                o.MaxConnectionsPerWindow = 1000; // Maximum 1000 connection attempts per 5s window
+                o.MaxSubnetConnectionsPerWindow = 1000;
 
                 o.CleanupInterval = TimeSpan.FromSeconds(30);
                 o.InactivityThreshold = TimeSpan.FromSeconds(30);
@@ -302,7 +311,7 @@ internal class Startup
             {
                 // Enable only if your TCP proxy actually sends PROXY protocol V1/V2.
                 // For direct TCP benchmark, keep this false.
-                o.Enabled = true;
+                o.Enabled = false;
                 o.RequireTrustedProxy = false;
                 o.HeaderTimeoutMs = 1000;
             })
@@ -329,6 +338,10 @@ internal class Startup
                 _ = o.WithErrorHandling((ex, cmd) => logger.LogError(ex, "Dispatch error: {Cmd}", cmd));
             })
             .BindTcp<DefaultProtocol>()
+                .OnPort(ListenPort)
+                .Bind()
+
+            .BindUdp<DefaultProtocol>()
                 .OnPort(ListenPort)
                 .Bind()
 

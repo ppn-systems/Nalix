@@ -420,7 +420,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
     internal ConnectionEventArgs AcquireEventArgs()
     {
-        ConnectionEventArgs? argLocal = _argsPool.Acquire(arg => arg.Initialize(this));
+        ConnectionEventArgs? argLocal = _argsPool.Acquire(this, static (arg, self) => arg.Initialize(self));
         if (argLocal != null)
         {
             return argLocal;
@@ -436,7 +436,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
     PooledConnectEventContext IPooledConnectContextPool.AcquireContext()
     {
-        PooledConnectEventContext? ctxLocal = _contextPool.Acquire(ctx => ctx.LocalOwner = this);
+        PooledConnectEventContext? ctxLocal = _contextPool.Acquire(this, static (ctx, self) => ctx.LocalOwner = self);
         if (ctxLocal != null)
         {
             return ctxLocal;

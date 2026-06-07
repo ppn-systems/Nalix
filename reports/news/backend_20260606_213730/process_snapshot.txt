@@ -1,2 +1,0 @@
-    PID USER     COMMAND         %CPU %MEM   RSS    VSZ NLWP     ELAPSED COMMAND
- 115158 nalix    Backend         98.4 19.3 800864 273387872 33     02:23 ./Backend

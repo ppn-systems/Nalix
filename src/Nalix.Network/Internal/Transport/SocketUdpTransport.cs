@@ -15,18 +15,15 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Security;
 using Nalix.Environment.Configuration;
+using Nalix.Environment.Sequencing;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
-using Nalix.Network.Internal.Security;
 using Nalix.Network.Options;
 
-
-#if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
-#endif
 
 namespace Nalix.Network.Internal.Transport;
 
@@ -43,7 +40,8 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
 
     private static readonly NetworkSocketOptions s_options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
 
-    private TransportSequencer _sequencer = new();
+    private readonly ISequenceCounter _sendSequence = new SequenceCounter();
+    private readonly ISequenceCounter _receiveSequence = new SequenceCounter();
 
     #endregion Static Factory
 
@@ -53,10 +51,10 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     public TransportFraming Framing => TransportFraming.None;
 
     /// <inheritdoc/>
-    public ISequenceCounter SendSequence => _sequencer.SendSequence;
+    public ISequenceCounter SendSequence => _sendSequence;
 
     /// <inheritdoc/>
-    public ISequenceCounter ReceiveSequence => _sequencer.ReceiveSequence;
+    public ISequenceCounter ReceiveSequence => _receiveSequence;
 
     /// <summary>
     /// Gets the total number of bytes sent by this UDP transport instance.
@@ -377,6 +375,9 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
 
         _bytesSent = 0;
         _bytesReceived = 0;
+
+        _sendSequence.Reset(0);
+        _receiveSequence.Reset(0);
     }
 
     /// <inheritdoc/>
