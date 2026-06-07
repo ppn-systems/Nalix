@@ -631,6 +631,123 @@ public static class LiteSerializer
     }
 
     /// <summary>
+    /// Attempts to deserialize an object from a read-only span of bytes without throwing exceptions.
+    /// </summary>
+    /// <typeparam name="T">The type of object to deserialize.</typeparam>
+    /// <param name="buffer">The span containing serialized data.</param>
+    /// <param name="value">The reference to the object where deserialized data will be stored.</param>
+    /// <param name="bytesRead">The number of bytes read during deserialization.</param>
+    /// <returns>True if deserialization succeeded, otherwise false.</returns>
+    [Pure]
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    public static bool TryDeserialize<[
+        DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ReadOnlySpan<byte> buffer, ref T value, out int bytesRead)
+    {
+        bytesRead = 0;
+
+        if (buffer.IsEmpty)
+        {
+            return false;
+        }
+
+        if (TypeMetadata.IsUnmanaged<T>())
+        {
+            if (buffer.Length < TypeMetadata.SizeOf<T>())
+            {
+                return false;
+            }
+            value = Unsafe.ReadUnaligned<T>(
+                ref MemoryMarshal.GetReference(buffer));
+
+            bytesRead = TypeMetadata.SizeOf<T>();
+            return true;
+        }
+
+        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
+
+        if (kind is TypeKind.UnmanagedSZArray)
+        {
+            if (IsNullArrayMarker(buffer))
+            {
+                value = (T)(object)null!;
+                bytesRead = 4;
+                return true;
+            }
+
+            if (IsEmptyArrayMarker(buffer))
+            {
+                value = (T)(object)CreateArray<T>(0);
+                bytesRead = 4;
+                return true;
+            }
+
+            if (buffer.Length < 4)
+            {
+                return false;
+            }
+
+            int length = Unsafe.ReadUnaligned<int>(
+                ref MemoryMarshal.GetReference(buffer));
+
+            if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
+            {
+                return false;
+            }
+
+            long dataSizeLong = (long)size * length;
+            if (buffer.Length < dataSizeLong + 4)
+            {
+                return false;
+            }
+
+            int dataSize = (int)dataSizeLong;
+
+            Array arr;
+            if (typeof(T) == typeof(byte[]))
+            {
+                arr = GC.AllocateUninitializedArray<byte>(length);
+            }
+            else
+            {
+                arr = CreateArray<T>(length);
+            }
+
+            ref byte dest = ref MemoryMarshal.GetArrayDataReference(arr);
+
+            Unsafe.CopyBlockUnaligned(
+                ref dest,
+                ref Unsafe.Add(
+                ref MemoryMarshal.GetReference(buffer), 4), (uint)dataSize);
+
+            value = (T)(object)arr;
+            bytesRead = dataSize + 4;
+            return true;
+        }
+
+        IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
+        IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable;
+
+        DataReader reader = new(buffer);
+        if (value is not null && fillable is not null)
+        {
+            fillable.Fill(ref reader, value);
+        }
+        else
+        {
+            value = formatter.Deserialize(ref reader);
+        }
+
+        if (reader.IsFailed)
+        {
+            return false;
+        }
+
+        bytesRead = reader.BytesRead;
+        return true;
+    }
+
+    /// <summary>
     /// Deserializes an object from a byte array.
     /// </summary>
     /// <typeparam name="T">The type of object to deserialize.</typeparam>

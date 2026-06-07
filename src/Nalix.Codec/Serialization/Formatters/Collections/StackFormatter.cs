@@ -165,7 +165,10 @@ internal sealed class StackFormatter<
             return null;
         }
 
-        CollectionGuard.EnsureRead(ref reader, count);
+        if (!CollectionGuard.TryEnsureRead(ref reader, count))
+        {
+            return default;
+        }
 
         System.Collections.Generic.Stack<T> stack = new(count);
 
@@ -209,7 +212,10 @@ internal sealed class StackFormatter<
             return;
         }
 
-        CollectionGuard.EnsureRead(ref reader, count);
+        if (!CollectionGuard.TryEnsureRead(ref reader, count))
+        {
+            return;
+        }
 
         T[] buffer = new T[count];
         for (int i = 0; i < count; i++)

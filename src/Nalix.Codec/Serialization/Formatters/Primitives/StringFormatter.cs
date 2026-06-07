@@ -111,9 +111,10 @@ internal sealed class StringFormatter : IFormatter<string>
         }
 
         int limit = SerializationStaticOptions.Instance.MaxStringLength;
-        if (length < 0 || length > limit)
+        if (length < 0 || length > limit || length > reader.BytesRemaining)
         {
-            throw new SerializationFailureException($"String length {length} out of range (Config: Serialization.MaxStringLength)");
+            SerializationDiagnostics.Poison(ref reader, "Out of bounds read");
+            return null!;
         }
 
         // Build a read-only span over the exact UTF-8 byte range and decode it directly.

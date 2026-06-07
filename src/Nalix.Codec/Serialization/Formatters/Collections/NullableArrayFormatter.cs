@@ -75,7 +75,10 @@ internal sealed class NullableArrayFormatter<
             return [];
         }
 
-        CollectionGuard.EnsureRead(ref reader, length);
+        if (!CollectionGuard.TryEnsureRead(ref reader, length))
+        {
+            return default!;
+        }
 
         T?[] array = new T?[length];
 

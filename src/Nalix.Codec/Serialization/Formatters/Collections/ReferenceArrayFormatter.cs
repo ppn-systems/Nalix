@@ -75,7 +75,10 @@ internal sealed class ReferenceArrayFormatter<
             return [];
         }
 
-        CollectionGuard.EnsureRead(ref reader, length);
+        if (!CollectionGuard.TryEnsureRead(ref reader, length))
+        {
+            return default!;
+        }
 
         T[] array = new T[length];
         for (int i = 0; i < length; i++)

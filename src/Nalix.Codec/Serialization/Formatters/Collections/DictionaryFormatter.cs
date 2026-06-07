@@ -182,7 +182,10 @@ internal sealed class DictionaryFormatter<
             return null;
         }
 
-        CollectionGuard.EnsureRead(ref reader, count);
+        if (!CollectionGuard.TryEnsureRead(ref reader, count))
+        {
+            return default;
+        }
 
         System.Collections.Generic.Dictionary<TKey, TValue> dict = new(count);
 
@@ -213,7 +216,10 @@ internal sealed class DictionaryFormatter<
             return;
         }
 
-        CollectionGuard.EnsureRead(ref reader, count);
+        if (!CollectionGuard.TryEnsureRead(ref reader, count))
+        {
+            return;
+        }
 
         for (int i = 0; i < count; i++)
         {

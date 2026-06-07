@@ -168,7 +168,10 @@ internal sealed class HashSetFormatter<
             return null;
         }
 
-        CollectionGuard.EnsureRead(ref reader, count);
+        if (!CollectionGuard.TryEnsureRead(ref reader, count))
+        {
+            return default;
+        }
 
         System.Collections.Generic.HashSet<T> set = new(count);
 
@@ -198,7 +201,10 @@ internal sealed class HashSetFormatter<
             return;
         }
 
-        CollectionGuard.EnsureRead(ref reader, count);
+        if (!CollectionGuard.TryEnsureRead(ref reader, count))
+        {
+            return;
+        }
 
         for (int i = 0; i < count; i++)
         {

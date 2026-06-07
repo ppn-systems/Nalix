@@ -81,7 +81,10 @@ internal sealed class ReferenceListFormatter<
             return null!;
         }
 
-        CollectionGuard.EnsureRead(ref reader, count);
+        if (!CollectionGuard.TryEnsureRead(ref reader, count))
+        {
+            return default!;
+        }
 
         System.Collections.Generic.List<T> list = new(count);
         CollectionsMarshal.SetCount(list, count);
@@ -107,7 +110,10 @@ internal sealed class ReferenceListFormatter<
             return;
         }
 
-        CollectionGuard.EnsureRead(ref reader, length);
+        if (!CollectionGuard.TryEnsureRead(ref reader, length))
+        {
+            return;
+        }
 
         value.Clear();
         CollectionsMarshal.SetCount(value, length);

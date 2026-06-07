@@ -36,8 +36,24 @@ public static class DiagnosticsEvents
         public const string Failure = "Serialization.Failure";
 
         /// <summary>
+        /// Fired when a DataReader is poisoned due to malformed or out-of-bounds data.
+        /// </summary>
+        public const string Poisoned = "Serialization.Poisoned";
+
+        /// <summary>
         /// Fired when the serialization system is initialized.
         /// </summary>
         public const string Initialization = "Serialization.Initialization";
+    }
+
+    /// <summary>
+    /// Packet processing related diagnostic events.
+    /// </summary>
+    public static class Packet
+    {
+        /// <summary>
+        /// Fired when a packet payload is malformed, truncated, or fails deserialization validation.
+        /// </summary>
+        public const string Malformed = "Packet.Malformed";
     }
 }

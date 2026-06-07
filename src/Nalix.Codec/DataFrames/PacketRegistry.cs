@@ -218,15 +218,6 @@ public static class PacketRegistry
         }
     }
 
-    private static void THROW_IF_OPCODE_COLLISION(ushort opcode, string name, Dictionary<ushort, string>? names)
-    {
-        if (names is not null && names.TryGetValue(opcode, out string? oldName) &&
-            !StringComparer.Ordinal.Equals(oldName, name))
-        {
-            throw new InternalErrorException($"[PacketRegistry] OpCode collision! {opcode}: {oldName} vs {name}");
-        }
-    }
-
     /// <summary>
     /// Returns <see langword="true"/> if a deserializer is registered for the operation code.
     /// </summary>
@@ -260,6 +251,7 @@ public static class PacketRegistry
         PacketDeserializer? deserializer = Volatile.Read(ref table[header.OpCode]) ?? throw new InvalidOperationException(
                 $"Cannot deserialize packet: OpCode {header.OpCode} is not registered. " +
                 "Check generated packet registration and assembly load order.");
+
         return deserializer(raw);
     }
 
@@ -279,21 +271,13 @@ public static class PacketRegistry
 
         ushort opcode = raw.AsHeaderRef().OpCode;
 
-        try
+        PacketDispatch? dispatcher = Volatile.Read(ref s_runtimeFastDispatcher);
+        if (dispatcher is not null)
         {
-            PacketDispatch? dispatcher = Volatile.Read(ref s_runtimeFastDispatcher);
-            if (dispatcher is not null)
+            if (dispatcher(opcode, raw, out packet))
             {
-                if (dispatcher(opcode, raw, out packet))
-                {
-                    return true;
-                }
+                return true;
             }
-        }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or SerializationFailureException)
-        {
-            packet = null;
-            return false;
         }
 
         return TRY_DESERIALIZE_FALLBACK(opcode, raw, out packet);
@@ -303,22 +287,15 @@ public static class PacketRegistry
         {
             PacketDeserializer?[] table = GetBuilt();
             PacketDeserializer? deserializer = Volatile.Read(ref table[opcode]);
+
             if (deserializer is null)
             {
                 packet = null;
                 return false;
             }
 
-            try
-            {
-                packet = deserializer(raw);
-                return packet is not null;
-            }
-            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or SerializationFailureException)
-            {
-                packet = null;
-                return false;
-            }
+            packet = deserializer(raw);
+            return packet is not null;
         }
     }
 
@@ -326,7 +303,17 @@ public static class PacketRegistry
 
     #region Private Methods
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_IF_OPCODE_COLLISION(ushort opcode, string name, Dictionary<ushort, string>? names)
+    {
+        if (names is not null && names.TryGetValue(opcode, out string? oldName) &&
+            !StringComparer.Ordinal.Equals(oldName, name))
+        {
+            throw new InternalErrorException($"[PacketRegistry] OpCode collision! {opcode}: {oldName} vs {name}");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static PacketDeserializer?[] GetBuilt()
     {
         return Volatile.Read(ref s_table)
