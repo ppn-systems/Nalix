@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
@@ -17,6 +18,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
+using Nalix.Network.Internal.Pooling;
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -37,7 +39,7 @@ namespace Nalix.Network.Listeners.Udp;
 /// </para>
 /// </remarks>
 [DebuggerDisplay("Port={_port}, State={State}")]
-public abstract partial class UdpListenerBase : IListener
+public abstract partial class UdpListenerBase : IListener, IPooledConnectContextPool
 {
     /// <summary>
     /// Starts listening for incoming UDP datagrams and processes them using the bound protocol.
@@ -456,6 +458,35 @@ public abstract partial class UdpListenerBase : IListener
     }
 
     #endregion Private Helpers
+
+    #region IPooledConnectContextPool Implementation
+
+    private readonly ConcurrentQueue<PooledConnectEventContext> _contextPool = new();
+
+    PooledConnectEventContext IPooledConnectContextPool.AcquireContext()
+    {
+        if (_contextPool.TryDequeue(out PooledConnectEventContext? context))
+        {
+            return context;
+        }
+        PooledConnectEventContext newContext = new()
+        {
+            LocalOwner = this
+        };
+        return newContext;
+    }
+
+    void IPooledConnectContextPool.ReleasePendingPacket()
+    {
+    }
+
+    void IPooledConnectContextPool.ReturnContext(PooledConnectEventContext context)
+    {
+        context.ResetForPool();
+        _contextPool.Enqueue(context);
+    }
+
+    #endregion IPooledConnectContextPool Implementation
 }
 
 

@@ -76,21 +76,46 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     /// Gets an existing UDP transport instance or creates one, injecting the provided socket if available.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void CreateUDP(Connection connection, IPEndPoint remoteEndPoint, Socket socket)
+    public static void CreateUDP(Connection connection, IPEndPoint remoteEndPoint, Socket socket) => EnsureUDP(connection, remoteEndPoint, socket);
+
+    /// <summary>
+    /// Ensures that the connection has a valid UDP transport bound to the specified socket and remote endpoint.
+    /// Reuses the existing transport if it is already bound to the same socket and endpoint.
+    /// If the socket or endpoint changes, the previous transport is returned to the pool before a new one is rented.
+    /// </summary>
+    public static void EnsureUDP(Connection connection, IPEndPoint remoteEndPoint, Socket socket)
     {
         ArgumentNullException.ThrowIfNull(socket);
         ArgumentNullException.ThrowIfNull(remoteEndPoint);
 
+        SocketUdpTransport? current = connection.UdpTransport;
+        if (current is not null)
+        {
+            if (ReferenceEquals(current._socket, socket) && current._endPoint is IPEndPoint ep && ep.Equals(remoteEndPoint))
+            {
+                return;
+            }
+
+            // A replacement is required. Clear connection reference first to prevent double-return or race usage.
+            connection.SetUdpTransport(null!);
+
+            try
+            {
+                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Return(current);
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            {
+                // Suppress non-fatal pool errors during cleanup
+            }
+        }
+
         SocketUdpTransport transport = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                                                .Get<SocketUdpTransport>();
 
-        if (socket != null)
-        {
-            transport.SetSocket(socket);
-        }
+        transport.SetSocket(socket);
 
-        IPEndPoint ep = remoteEndPoint;
-        transport.Initialize(ref ep);
+        IPEndPoint epTarget = remoteEndPoint;
+        transport.Initialize(ref epTarget);
         connection.SetUdpTransport(transport);
 
         if (connection.Attributes.TryGetValue(ConnectionAttributes.UdpSendSequence, out object? us) && us is uint udpSend)

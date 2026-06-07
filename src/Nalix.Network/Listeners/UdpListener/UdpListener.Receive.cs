@@ -371,7 +371,7 @@ public abstract partial class UdpListenerBase
         }
 
         // Ensure the connection has a UDP transport bound to our socket.
-        SocketUdpTransport.CreateUDP(connection, (IPEndPoint)remoteEndPoint, _socket!);
+        SocketUdpTransport.EnsureUDP(connection, (IPEndPoint)remoteEndPoint, _socket!);
 
         this.Metrics.RECORD_RX_PACKET();
         this.Metrics.RECORD_RX_BYTES(lease.Length);
@@ -408,19 +408,15 @@ public abstract partial class UdpListenerBase
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool IsPinnedEndpointMatch(INetworkEndpoint pinnedEndPoint, IPEndPoint remoteEndPoint)
     {
-        IPAddress remoteAddress = remoteEndPoint.Address;
+        SocketEndpoint pinned = SocketEndpoint.FromNetworkEndpoint(pinnedEndPoint);
+        SocketEndpoint remote = SocketEndpoint.FromEndPoint(remoteEndPoint);
 
-        if (remoteAddress.IsIPv4MappedToIPv6)
-        {
-            remoteAddress = remoteAddress.MapToIPv4();
-        }
-
-        if (!string.Equals(pinnedEndPoint.Address, remoteAddress.ToString(), StringComparison.Ordinal))
+        if (!pinned.Equals(remote))
         {
             return false;
         }
 
-        if (pinnedEndPoint.HasPort && pinnedEndPoint.Port != remoteEndPoint.Port)
+        if (pinned.HasPort && pinned.Port != remote.Port)
         {
             return false;
         }

@@ -455,6 +455,7 @@ public sealed partial class Connection :
                 if (this.UdpTransport != null)
                 {
                     s_pool.Return(this.UdpTransport);
+                    this.UdpTransport = null;
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "udptransport"); }

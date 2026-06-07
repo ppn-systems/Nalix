@@ -59,8 +59,47 @@ public sealed class DatagramGuard : IDisposable
     private readonly Task _cleanupTask;
     private readonly CancellationTokenSource _cts;
     private readonly ConcurrentDictionary<uint, WindowSlot> _ipv4Map;
-    private readonly ConcurrentDictionary<string, WindowSlot> _ipv6Map;
+    private readonly ConcurrentDictionary<IpV6Key, WindowSlot> _ipv6Map;
 
+    private readonly struct IpV6Key : IEquatable<IpV6Key>
+    {
+        private readonly ulong _hi;
+        private readonly ulong _lo;
+
+        public IpV6Key(IPAddress ip)
+        {
+            if (ip.IsIPv4MappedToIPv6)
+            {
+                ip = ip.MapToIPv4();
+            }
+
+            Span<byte> buf = stackalloc byte[16];
+            if (!ip.TryWriteBytes(buf, out int written))
+            {
+                byte[] tmp = ip.GetAddressBytes();
+                MemoryExtensions.CopyTo(tmp, buf);
+                written = tmp.Length;
+            }
+
+            if (written == 4)
+            {
+                _hi = 0UL;
+                _lo = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(buf[..4]);
+            }
+            else
+            {
+                _hi = System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(buf[..8]);
+                _lo = System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(buf.Slice(8, 8));
+            }
+        }
+
+        public bool Equals(IpV6Key other) => _hi == other._hi && _lo == other._lo;
+        public override bool Equals(object? obj) => obj is IpV6Key other && this.Equals(other);
+        public override int GetHashCode() => HashCode.Combine(_hi, _lo);
+    }
+
+    private int _ipv4Count;
+    private int _ipv6Count;
 
     private int _disposed;
 
@@ -99,8 +138,7 @@ public sealed class DatagramGuard : IDisposable
         // Capacity hint to avoid early resizes, concurrencyLevel = number of CPU cores.
         int concurrency = System.Environment.ProcessorCount;
         _ipv4Map = new ConcurrentDictionary<uint, WindowSlot>(concurrency, Math.Max(1, initialIPv4Capacity));
-        _ipv6Map = new ConcurrentDictionary<string, WindowSlot>(
-            concurrency, Math.Max(1, initialIPv6Capacity), StringComparer.Ordinal);
+        _ipv6Map = new ConcurrentDictionary<IpV6Key, WindowSlot>(concurrency, Math.Max(1, initialIPv6Capacity));
 
         _cts = new CancellationTokenSource();
         _cleanupTask = this.CleanupLoopAsync(_cts.Token);
@@ -156,12 +194,23 @@ public sealed class DatagramGuard : IDisposable
 
         if (!_ipv4Map.TryGetValue(key, out WindowSlot? slot))
         {
-            if (_ipv4Map.Count >= _maxTrackedIPv4Windows)
+            if (Volatile.Read(ref _ipv4Count) >= _maxTrackedIPv4Windows)
             {
                 return _failOpenWhenFull;
             }
 
-            slot = _ipv4Map.GetOrAdd(key, static _ => new WindowSlot());
+            WindowSlot newSlot = new();
+            if (_ipv4Map.TryAdd(key, newSlot))
+            {
+                _ = Interlocked.Increment(ref _ipv4Count);
+                slot = newSlot;
+            }
+            else
+            {
+                _ = _ipv4Map.TryGetValue(key, out slot);
+            }
+
+            slot ??= newSlot;
         }
 
         return this.CasAccept(slot, currentSecond);
@@ -170,16 +219,27 @@ public sealed class DatagramGuard : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool TryAcceptIPv6(IPAddress address, uint currentSecond)
     {
-        // For IPv6, use the address as a string key (less Abstractions for UDP DDoS scenarios)
-        string key = address.ToString();
+        // For IPv6, use the zero-allocation struct key.
+        IpV6Key key = new(address);
         if (!_ipv6Map.TryGetValue(key, out WindowSlot? slot))
         {
-            if (_ipv6Map.Count >= _maxTrackedIPv6Windows)
+            if (Volatile.Read(ref _ipv6Count) >= _maxTrackedIPv6Windows)
             {
                 return _failOpenWhenFull;
             }
 
-            slot = _ipv6Map.GetOrAdd(key, static _ => new WindowSlot());
+            WindowSlot newSlot = new();
+            if (_ipv6Map.TryAdd(key, newSlot))
+            {
+                _ = Interlocked.Increment(ref _ipv6Count);
+                slot = newSlot;
+            }
+            else
+            {
+                _ = _ipv6Map.TryGetValue(key, out slot);
+            }
+
+            slot ??= newSlot;
         }
 
         return this.CasAccept(slot, currentSecond);
@@ -267,31 +327,43 @@ public sealed class DatagramGuard : IDisposable
     {
         uint currentSecond = (uint)(System.Environment.TickCount64 / 1000);
         uint staleThreshold = _staleWindowThresholdSeconds;
-        int removed = 0;
+        int ipv4Removed = 0;
+        int ipv6Removed = 0;
 
         foreach ((uint key, WindowSlot? slot) in _ipv4Map)
         {
             uint slotSecond = (uint)(Volatile.Read(ref slot.Packed) >> SecondShift);
             if ((currentSecond - slotSecond) > staleThreshold && _ipv4Map.TryRemove(key, out _))
             {
-                removed++;
+                ipv4Removed++;
             }
         }
 
-        foreach ((string? key, WindowSlot? slot) in _ipv6Map)
+        foreach ((IpV6Key key, WindowSlot? slot) in _ipv6Map)
         {
             uint slotSecond = (uint)(Volatile.Read(ref slot.Packed) >> SecondShift);
             if ((currentSecond - slotSecond) > staleThreshold && _ipv6Map.TryRemove(key, out _))
             {
-                removed++;
+                ipv6Removed++;
             }
         }
 
+        if (ipv4Removed > 0)
+        {
+            _ = Interlocked.Add(ref _ipv4Count, -ipv4Removed);
+        }
+
+        if (ipv6Removed > 0)
+        {
+            _ = Interlocked.Add(ref _ipv6Count, -ipv6Removed);
+        }
+
+        int removed = ipv4Removed + ipv6Removed;
         if (removed > 0)
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.IpComparer:EvictStaleWindows", $"Evicted idle windows removed={removed} ipv4-count={_ipv4Map.Count} ipv6-count={_ipv6Map.Count}"));
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.IpComparer:EvictStaleWindows", $"Evicted idle windows removed={removed} ipv4-count={Volatile.Read(ref _ipv4Count)} ipv6-count={Volatile.Read(ref _ipv6Count)}"));
             }
         }
     }
@@ -311,6 +383,8 @@ public sealed class DatagramGuard : IDisposable
             _cts.Dispose();
             _ipv4Map.Clear();
             _ipv6Map.Clear();
+            _ = Interlocked.Exchange(ref _ipv4Count, 0);
+            _ = Interlocked.Exchange(ref _ipv6Count, 0);
 
             if (_cleanupTask.IsCompleted && _cleanupTask.Exception?.GetBaseException() is Exception ex)
             {

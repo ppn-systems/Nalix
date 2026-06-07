@@ -29,6 +29,12 @@ public class SessionState
     public bool EncryptionEnabled { get; set; }
 
     /// <summary>
+    /// Gets or sets the local port of the companion TCP session.
+    /// Used to bind the companion UDP socket to the same local port for endpoint pinning.
+    /// </summary>
+    public int LocalPort { get; set; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="SessionState"/> struct with default values.
     /// </summary>
     public SessionState()
@@ -36,6 +42,7 @@ public class SessionState
         this.Secret = Bytes32.Zero;
         this.SessionToken = 0;
         this.EncryptionEnabled = false;
+        this.LocalPort = 0;
     }
 
     /// <summary>
@@ -46,5 +53,6 @@ public class SessionState
         this.Secret = Bytes32.Zero;
         this.SessionToken = 0;
         this.EncryptionEnabled = false;
+        this.LocalPort = 0;
     }
 }

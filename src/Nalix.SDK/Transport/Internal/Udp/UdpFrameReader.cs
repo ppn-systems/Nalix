@@ -127,18 +127,6 @@ internal sealed class UdpFrameReader : IDisposable
 
         try
         {
-            ulong token = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(datagram.Span[..Abstractions.Identity.ISnowflake.Size]);
-            if (token != _state.SessionToken)
-            {
-                // Drop datagram quietly
-                return;
-            }
-
-            // Shift data left to remove token
-            int payloadLength = datagram.Length - Abstractions.Identity.ISnowflake.Size;
-            datagram.Span[Abstractions.Identity.ISnowflake.Size..].CopyTo(datagram.SpanFull);
-            datagram.CommitLength(payloadLength);
-
             // 2) Decompress / Decrypt
             FramePipeline.ProcessInbound(ref datagram, _state.Secret.AsSpan(), _options.Algorithm, out uint? seq);
 
