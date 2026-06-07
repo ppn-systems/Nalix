@@ -86,7 +86,8 @@ public abstract partial class TcpListenerBase
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TcpListenerBase:ConfigureListenerSocket", "SO_REUSEPORT not-supported platform/kernel"));
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug,
+                        new DiagnosticLog("NW.TcpListenerBase:ConfigureListenerSocket", "SO_REUSEPORT not-supported platform/kernel"));
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { /* Ignore if not supported. */ }
@@ -128,7 +129,8 @@ public abstract partial class TcpListenerBase
 
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TcpListenerBase:Initialize", $"config-bind ep-v6-any={epV6Any}"));
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug,
+                        new DiagnosticLog("NW.TcpListenerBase:Initialize", $"config-bind ep-v6-any={epV6Any}"));
                 }
 
                 sock.Bind(epV6Any);
@@ -137,7 +139,8 @@ public abstract partial class TcpListenerBase
                 _listener = sock;
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TcpListenerBase:Initialize", $"config-listen local-endpoint={_listener.LocalEndPoint}"));
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug,
+                        new DiagnosticLog("NW.TcpListenerBase:Initialize", $"config-listen local-endpoint={_listener.LocalEndPoint}"));
                 }
 
                 return;
@@ -148,7 +151,8 @@ public abstract partial class TcpListenerBase
                 // WHY not rethrow: Failover automatically is better than crashing the server.
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TcpListenerBase:Initialize", "failed-bind", ex));
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning,
+                        new DiagnosticLog("NW.TcpListenerBase:Initialize", "failed-bind", ex));
                 }
 
                 try
@@ -159,14 +163,16 @@ public abstract partial class TcpListenerBase
                 {
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TcpListenerBase:Initialize", $"ipv6-fallback-close-ignored type={closeEx.GetType().Name}", ex));
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug,
+                            new DiagnosticLog("NW.TcpListenerBase:Initialize", $"ipv6-fallback-close-ignored type={closeEx.GetType().Name}", ex));
                     }
                 }
                 catch (Exception closeEx) when (ExceptionClassifier.IsNonFatal(closeEx))
                 {
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TcpListenerBase:Initialize", "ipv6-fallback-close-failed", closeEx));
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning,
+                            new DiagnosticLog("NW.TcpListenerBase:Initialize", "ipv6-fallback-close-failed", closeEx));
                     }
                 }
 
@@ -178,7 +184,8 @@ public abstract partial class TcpListenerBase
                 {
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TcpListenerBase:Initialize", "ipv6-fallback-dispose-failed", disposeEx));
+                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning,
+                            new DiagnosticLog("NW.TcpListenerBase:Initialize", "ipv6-fallback-dispose-failed", disposeEx));
                     }
                 }
             }
@@ -193,7 +200,8 @@ public abstract partial class TcpListenerBase
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TcpListenerBase:Initialize", $"config-bind ep-v4-any={epV4Any}"));
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug,
+                new DiagnosticLog("NW.TcpListenerBase:Initialize", $"config-bind ep-v4-any={epV4Any}"));
         }
 
         _listener.Bind(epV4Any);
@@ -201,7 +209,8 @@ public abstract partial class TcpListenerBase
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TcpListenerBase:Initialize", $"config-listen local-endpoint={_listener.LocalEndPoint}"));
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug,
+                new DiagnosticLog("NW.TcpListenerBase:Initialize", $"config-listen local-endpoint={_listener.LocalEndPoint}"));
         }
     }
 
