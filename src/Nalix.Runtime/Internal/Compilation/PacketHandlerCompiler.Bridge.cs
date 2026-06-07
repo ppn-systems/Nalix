@@ -123,9 +123,23 @@ internal sealed partial class PacketHandlerCompiler<TController, TPacket>
             bridgedContext.SkipOutbound = context.SkipOutbound;
 
             object? result = compiledHandler(instance, bridgedContext);
+            context.SkipOutbound = bridgedContext.SkipOutbound;
+
+            if (context.SkipOutbound)
+            {
+                if (result is Task task)
+                {
+                    await task.ConfigureAwait(false);
+                    return null!;
+                }
+                if (result is ValueTask valueTask)
+                {
+                    await valueTask.ConfigureAwait(false);
+                    return null!;
+                }
+            }
 
             object normalized = await normalizer(result).ConfigureAwait(false);
-            context.SkipOutbound = bridgedContext.SkipOutbound;
             return normalized;
         }
         finally
