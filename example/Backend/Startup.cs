@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Backend.Attributes;
-using Backend.Middleware;
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
@@ -14,7 +13,6 @@ using Nalix.Logging.Sinks;
 using Nalix.Network.Connections;
 using Nalix.Network.Options;
 using Nalix.Observability;
-using Nalix.Runtime.Middleware.Standard;
 using Nalix.Runtime.Options;
 
 #pragma warning disable IDE0079 // Remove unnecessary suppression
@@ -51,7 +49,7 @@ internal class Startup
             .AddMetadataProvider<PacketTagMetadataProvider>()
             .Configure<BufferOptions>(o =>
             {
-                o.TotalBuffers = 30_000;
+                o.TotalBuffers = 20_000;
 
                 // Keep trimming enabled so the server can recover after burst traffic.
                 o.EnableMemoryTrimming = true;
@@ -175,17 +173,17 @@ internal class Startup
             {
                 // Layer 1: per-connection receive pressure.
                 // Higher for benchmark, lower for production.
-                o.MaxPerConnectionPendingPackets = 128;
-                o.MaxPerConnectionOpenFragmentStreams = 16;
+                o.MaxPerConnectionPendingPackets = 16;
+                o.MaxPerConnectionOpenFragmentStreams = 4;
 
                 // Layer 2: global callback backlog.
                 // This is the main GC/lag protection boundary.
-                o.MaxPendingNormalCallbacks = 250_000;
-                o.CallbackWarningThreshold = 50_000;
+                o.MaxPendingNormalCallbacks = 100_000;
+                o.CallbackWarningThreshold = 20_000;
 
                 // For local/single-IP benchmark, keep this high.
                 // For production, use 64-512 instead.
-                o.MaxPendingPerIp = 512;
+                o.MaxPendingPerIp = 128;
 
                 o.MaxPooledCallbackStates = 100_000;
                 o.FairnessMapSize = 65_536;
@@ -202,7 +200,7 @@ internal class Startup
 
                 // Keep this close to your real protocol payload size.
                 // 1 MiB is too large if benchmark packets are small.
-                o.MaxMessageSize = 64 * 1024;
+                o.MaxMessageSize = 16 * 1024;
             })
             .Configure<TimingWheelOptions>(o =>
             {
@@ -213,9 +211,9 @@ internal class Startup
                 o.TickDuration = 1000;
 
                 // Shorter timeout helps clear idle flood connections.
-                o.IdleTimeoutMs = 30_000;
+                o.IdleTimeoutMs = 20_000;
 
-                o.WheelDrainTimeoutMs = 5_000;
+                o.WheelDrainTimeoutMs = 1_000;
             })
             .Configure<ConnectionHubOptions>(o =>
             {
@@ -232,41 +230,41 @@ internal class Startup
             {
                 // Global concurrent connection ceiling.
                 // Set higher than the target benchmark peak.
-                o.MaxConnections = 20_000;
+                o.MaxConnections = 2_000;
 
                 // Per-connection packet rate.
                 // This is not global PPS.
-                o.MaxPacketPerSecond = 10_000;
+                o.MaxPacketPerSecond = 30;
 
                 // Disconnect noisy/malformed connections earlier.
-                o.MaxErrorThreshold = 20;
+                o.MaxErrorThreshold = 5;
 
-                o.EnableProgressiveBanning = false;
-                o.BanDuration = TimeSpan.FromMinutes(5);
-                o.DDoSLogSuppressWindow = TimeSpan.FromSeconds(20);
+                o.EnableProgressiveBanning = true;
+                o.BanDuration = TimeSpan.FromMinutes(15);
+                o.DDoSLogSuppressWindow = TimeSpan.FromSeconds(30);
             })
             .Configure<TokenBucketOptions>(o =>
             {
                 // Raise global rate limiter capacity and refill rate to prevent lockouts during local load testing.
-                o.CapacityTokens = 100_000;
-                o.RefillTokensPerSecond = 100_000.0;
-                o.HardLockoutSeconds = 0;
+                o.CapacityTokens = 10_000;
+                o.RefillTokensPerSecond = 5_000.0;
+                o.HardLockoutSeconds = 30;
             })
             .Configure<ConnectionQuotaOptions>(o =>
             {
                 // Standard production limits for DDoS protection.
                 // For single-machine/local benchmark, these must be increased,
                 // otherwise your tester IP becomes the bottleneck.
-                o.MaxConnectionsPerIpAddress = 1000;
-                o.MaxConnectionsPerSubnet = 1000;
+                o.MaxConnectionsPerIpAddress = 32;
+                o.MaxConnectionsPerSubnet = 256;
 
                 // Connection attempts per IP within ConnectionRateWindow.
                 o.MaxCleanupKeysPerRun = 0; // 0 = scale automatically based on load
-                o.MaxConnectionsPerWindow = 1000; // Maximum 1000 connection attempts per 5s window
-                o.MaxSubnetConnectionsPerWindow = 1000;
+                o.MaxConnectionsPerWindow = 50; // Maximum 50 connection attempts per 5s window
+                o.MaxSubnetConnectionsPerWindow = 300;
 
                 o.CleanupInterval = TimeSpan.FromSeconds(30);
-                o.InactivityThreshold = TimeSpan.FromSeconds(30);
+                o.InactivityThreshold = TimeSpan.FromSeconds(15);
                 o.ConnectionRateWindow = TimeSpan.FromSeconds(5);
 
                 // Vietnam timezone daily reset offset.
@@ -329,11 +327,11 @@ internal class Startup
             })
             .ConfigureDispatchOptions(o =>
             {
-                _ = o.WithMiddleware(new TimeoutMiddleware());
-                _ = o.WithMiddleware(new PacketTagMiddleware());
-                _ = o.WithMiddleware(new RateLimitMiddleware());
-                _ = o.WithMiddleware(new PermissionMiddleware());
-                _ = o.WithMiddleware(new ConcurrencyMiddleware());
+                //_ = o.WithMiddleware(new TimeoutMiddleware());
+                //_ = o.WithMiddleware(new PacketTagMiddleware());
+                //_ = o.WithMiddleware(new RateLimitMiddleware());
+                //_ = o.WithMiddleware(new PermissionMiddleware());
+                //_ = o.WithMiddleware(new ConcurrencyMiddleware());
                 _ = o.WithDispatchLoopCount(16);
                 _ = o.WithErrorHandling((ex, cmd) => logger.LogError(ex, "Dispatch error: {Cmd}", cmd));
             })
