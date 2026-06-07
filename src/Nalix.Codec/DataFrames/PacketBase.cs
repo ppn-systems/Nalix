@@ -12,7 +12,6 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Serialization;
-using Nalix.Environment.Extensions;
 
 namespace Nalix.Codec.DataFrames;
 
@@ -174,7 +173,7 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
     {
         // Reset all FrameBase header fields to well-known defaults.
         this.SequenceId = 0;
-        this.Flags = PacketFlags.SYSTEM;
+        this.Flags = PacketFlags.NONE;
         this.Priority = PacketPriority.NONE;
 
         // Restore type identity.
@@ -254,12 +253,6 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
         }
 
         if (buffer.Length < PacketSchema<TSelf>.StaticSize)
-        {
-            return false;
-        }
-
-        ref readonly PacketHeader header = ref buffer.AsHeaderRef();
-        if (header.OpCode != TSelf.StaticOpCode)
         {
             return false;
         }

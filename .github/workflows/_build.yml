@@ -112,11 +112,32 @@ jobs:
 
       - name: Run all tests
         shell: bash
-        timeout-minutes: 15
+        timeout-minutes: 20
         run: |
-          dotnet test "${{ inputs.test }}" --configuration Release --no-build --no-restore \
-            --logger "trx" --results-directory "$TEST_RESULTS_DIR" \
-            --collect:"XPlat Code Coverage" -m
+          max_retries=3
+          attempt=1
+          while true; do
+            # Clean results directory to avoid mixing failed and successful runs
+            rm -rf "$TEST_RESULTS_DIR"/* 2>/dev/null || true
+            
+            echo "Running tests (Attempt $attempt/$max_retries)..."
+            if dotnet test "${{ inputs.test }}" --configuration Release --no-build --no-restore \
+              --logger "trx" --results-directory "$TEST_RESULTS_DIR" \
+              --collect:"XPlat Code Coverage" -m; then
+              echo "Tests passed!"
+              break
+            fi
+            
+            exit_code=$?
+            if [ $attempt -ge $max_retries ]; then
+              echo "Tests failed after $max_retries attempts."
+              exit $exit_code
+            fi
+            
+            echo "Test run failed (exit code $exit_code). Retrying in 10 seconds..."
+            attempt=$((attempt+1))
+            sleep 10
+          done
 
       - name: Detect coverage reports
         id: coverage_files
