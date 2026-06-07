@@ -289,16 +289,16 @@ public sealed partial class PacketComplexCollectionsTests
     }
 
     [Fact]
-    public void Serialization_Extreme_MalformedBuffer_ThrowsGracefully()
+    public void Serialization_Extreme_MalformedBuffer_ReturnsNullGracefully()
     {
         LargeDataPacket packet = new() { Payload = ["valid", "test"] };
         byte[] validBytes = packet.Serialize();
 
         // Corrupt the length of a string in the middle of the payload
-        // This should cause a SerializationFailureException or ArgumentException
+        // This should cause the Zero-Throw pipeline to return null instead of crashing
         byte[] corrupted = [.. validBytes.Take(validBytes.Length - 5)];
 
-        _ = Assert.ThrowsAny<Exception>(() => LargeDataPacket.Deserialize(corrupted));
+        Assert.Null(LargeDataPacket.Deserialize(corrupted));
     }
 
     [GenerateFormatter]

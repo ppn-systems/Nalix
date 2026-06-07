@@ -99,21 +99,13 @@ public sealed class DataReaderWriterExtensionsTests
     }
 
     [Fact]
-    public void DataReaderExtensionsReadBytesWhenCountIsNegativeThrowsSerializationFailureException()
+    public void DataReaderExtensionsReadBytesWhenCountIsNegativeReturnsEmptyAndPoisonsReader()
     {
         DataReader reader = new([1, 2, 3]);
 
-        SerializationFailureException? exception = null;
-        try
-        {
-            _ = reader.ReadBytes(-1);
-        }
-        catch (SerializationFailureException ex)
-        {
-            exception = ex;
-        }
+        _ = reader.ReadBytes(-1);
 
-        Assert.NotNull(exception);
+        Assert.True(reader.IsFailed);
         Assert.Equal(3, reader.Remaining());
     }
 
@@ -130,20 +122,13 @@ public sealed class DataReaderWriterExtensionsTests
     }
 
     [Fact]
-    public void DataReaderExtensionsWhenNotEnoughDataThrowsSerializationFailureException()
+    public void DataReaderExtensionsWhenNotEnoughDataReturnsEmptyAndPoisonsReader()
     {
         DataReader reader = new([1, 2, 3]);
-        SerializationFailureException? exception = null;
-        try
-        {
-            _ = reader.ReadUInt64();
-        }
-        catch (SerializationFailureException ex)
-        {
-            exception = ex;
-        }
 
-        Assert.NotNull(exception);
+        _ = reader.ReadUInt64();
+
+        Assert.True(reader.IsFailed);
     }
 
     private enum ByteEnum : byte
