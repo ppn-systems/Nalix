@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Security;
+using Nalix.Codec.Internal;
 using Nalix.Codec.Security.Engine;
 using Nalix.Codec.Security.Internal;
 using Nalix.Codec.Security.Symmetric;
@@ -283,8 +284,40 @@ public static class EnvelopeCipher
         CipherSuiteType expectedAlgorithm,
         out int written, out uint seq)
     {
+        if (!TryDecrypt(key, envelope, plaintext, aad, expectedAlgorithm, out written, out seq, out CipherError error))
+        {
+            ThrowCipherError(error, expectedAlgorithm);
+        }
+    }
+
+    /// <summary>
+    /// Attempts to decrypt an encrypted envelope without throwing exceptions on authentication or formatting failures.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public static bool TryDecrypt(
+        ReadOnlySpan<byte> key,
+        ReadOnlySpan<byte> envelope,
+        Span<byte> plaintext,
+        ReadOnlySpan<byte> aad,
+        CipherSuiteType expectedAlgorithm,
+        out int written, out uint seq) => TryDecrypt(key, envelope, plaintext, aad, expectedAlgorithm, out written, out seq, out _);
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    internal static bool TryDecrypt(
+        ReadOnlySpan<byte> key,
+        ReadOnlySpan<byte> envelope,
+        Span<byte> plaintext,
+        ReadOnlySpan<byte> aad,
+        CipherSuiteType expectedAlgorithm,
+        out int written, out uint seq, out CipherError error)
+    {
         written = 0;
-        EnvelopeFormat.Envelope env = EnvelopeFormat.ParseEnvelope(envelope);
+        seq = 0;
+
+        if (!EnvelopeFormat.TryParseEnvelope(envelope, out EnvelopeFormat.Envelope env, out error))
+        {
+            return false;
+        }
 
         seq = env.Seq;
 
@@ -292,25 +325,50 @@ public static class EnvelopeCipher
         // expected by the session state. Prevents AEAD -> non-AEAD downgrade attacks.
         if (env.AeadType != expectedAlgorithm)
         {
-            throw new CipherException(
-                $"Ciphertext algorithm mismatch: received='{env.AeadType}', expected='{expectedAlgorithm}'. " +
-                "Potential downgrade attack or protocol state divergence.");
+            error = CipherError.AlgorithmMismatch;
+            return false;
         }
 
         switch (env.AeadType)
         {
             case CipherSuiteType.Salsa20:
             case CipherSuiteType.Chacha20:
-                SymmetricEngine.Decrypt(key, envelope, plaintext, out written);
-                return;
+                return SymmetricEngine.TryDecrypt(key, envelope, plaintext, out written, out error);
 
             case CipherSuiteType.None:
             case CipherSuiteType.Salsa20Poly1305:
             case CipherSuiteType.Chacha20Poly1305:
-                AeadEngine.Decrypt(key, envelope, plaintext, aad, out written);
-                return;
+                return AeadEngine.TryDecrypt(key, envelope, plaintext, aad, out written, out error);
             default:
-                throw new CipherException($"Unsupported cipher type '{env.AeadType}'.");
+                error = CipherError.UnsupportedAlgorithm;
+                return false;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void ThrowCipherError(CipherError error, CipherSuiteType expectedAlgorithm)
+    {
+        switch (error)
+        {
+            case CipherError.AlgorithmMismatch:
+                throw new CipherException($"Ciphertext algorithm mismatch: expected='{expectedAlgorithm}'. Potential downgrade attack or protocol state divergence.");
+            case CipherError.DestinationTooSmall:
+                throw new ArgumentException("The destination plaintext buffer is too small for the decrypted payload.");
+            case CipherError.AuthenticationFailed:
+                Throw.AeadAuthenticationFailed();
+                break;
+            case CipherError.UnsupportedAlgorithm:
+                Throw.UnsupportedAlgorithm();
+                break;
+            case CipherError.Success:
+            case CipherError.InvalidHeader:
+            case CipherError.InvalidTagLength:
+            case CipherError.EnvelopeTooShort:
+            case CipherError.InvalidNonceLength:
+            case CipherError.CiphertextTooShort:
+            default:
+                EnvelopeFormat.ThrowCipherError(error);
+                break;
         }
     }
 
@@ -393,6 +451,18 @@ public static class EnvelopeCipher
         CipherSuiteType expectedAlgorithm,
         out int written,
         out uint receivedSeq) => Decrypt(key, envelope, plaintext, default, expectedAlgorithm, out written, out receivedSeq);
+
+    /// <summary>
+    /// Attempts to decrypt an encrypted envelope without throwing exceptions.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public static bool TryDecrypt(
+        ReadOnlySpan<byte> key,
+        ReadOnlySpan<byte> envelope,
+        Span<byte> plaintext,
+        CipherSuiteType expectedAlgorithm,
+        out int written,
+        out uint receivedSeq) => TryDecrypt(key, envelope, plaintext, default, expectedAlgorithm, out written, out receivedSeq, out _);
 
     #endregion Public API
 }
