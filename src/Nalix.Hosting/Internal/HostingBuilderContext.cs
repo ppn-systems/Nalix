@@ -97,13 +97,33 @@ internal sealed class HostingBuilderContext
 /// <summary>
 /// Describes an options configuration applied during host building.
 /// </summary>
-/// <param name="OptionsType">
-/// The options type being configured.
-/// </param>
-/// <param name="Apply">
-/// The delegate that applies configuration to the options instance.
-/// </param>
-internal sealed record OptionsConfiguration(Type OptionsType, Action<object> Apply);
+internal sealed class OptionsConfiguration
+{
+    /// <summary>
+    /// Gets the options type being configured. Retained for diagnostics only.
+    /// </summary>
+    public Type OptionsType { get; }
+
+    /// <summary>
+    /// Gets the AOT-safe delegate that loads, configures, and validates the options instance.
+    /// The delegate was captured at generic registration time, so the closed generic type
+    /// is known to the compiler and does not require runtime <c>MakeGenericMethod</c>.
+    /// </summary>
+    public Action Apply { get; }
+
+    /// <summary>
+    /// Initialises a new <see cref="OptionsConfiguration"/> with a pre-captured typed delegate.
+    /// </summary>
+    /// <param name="optionsType">The options type (for diagnostics).</param>
+    /// <param name="apply">
+    /// A delegate that loads, configures, and validates the options instance.
+    /// </param>
+    public OptionsConfiguration(Type optionsType, Action apply)
+    {
+        this.OptionsType = optionsType;
+        this.Apply = apply;
+    }
+}
 
 /// <summary>
 /// Describes an assembly used for packet type discovery.

@@ -32,23 +32,11 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 {
     #region Fields
 
-    private static readonly MethodInfo s_applyOptionsMethod;
-    private static readonly MethodInfo s_registerHandlerMethod;
-
     internal readonly HostingBuilderContext _state;
 
     #endregion Fields
 
     #region Constructors
-
-    static NetworkApplicationBuilder()
-    {
-        s_applyOptionsMethod = typeof(NetworkApplicationBuilder).GetMethod(nameof(ApplyOptionsCore), BindingFlags.NonPublic | BindingFlags.Static)
-            ?? throw new MissingMethodException(typeof(NetworkApplicationBuilder).FullName, nameof(ApplyOptionsCore));
-
-        s_registerHandlerMethod = typeof(ServiceRegistrar).GetMethod(nameof(ServiceRegistrar.RegisterHandler), BindingFlags.Public | BindingFlags.Static)
-            ?? throw new MissingMethodException(typeof(ServiceRegistrar).FullName, nameof(ServiceRegistrar.RegisterHandler));
-    }
 
     internal NetworkApplicationBuilder(HostingBuilderContext state) => _state = state ?? throw new ArgumentNullException(nameof(state));
 
@@ -64,7 +52,16 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
         _state.Options.Add(new OptionsConfiguration(
             typeof(TOptions),
-            options => configure((TOptions)options)));
+            apply: () =>
+            {
+                TOptions options = ConfigurationManager.Instance.Get<TOptions>();
+                configure(options);
+
+                if (options is IValidatableConfiguration validatable)
+                {
+                    validatable.Validate();
+                }
+            }));
 
         return this;
     }
@@ -453,7 +450,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
             foreach (HandlerDescriptor registration in ResolveHandlerRegistrations(state))
             {
-                _ = s_registerHandlerMethod.Invoke(obj: null, parameters: [dispatchOptions, registration.HandlerType, registration.Factory]);
+                ServiceRegistrar.RegisterHandler(dispatchOptions, registration.HandlerType, registration.Factory);
             }
         }
 
@@ -513,20 +510,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     {
         for (int i = 0; i < state.Options.Count; i++)
         {
-            OptionsConfiguration registration = state.Options[i];
-            _ = s_applyOptionsMethod.MakeGenericMethod(registration.OptionsType)
-                                    .Invoke(obj: null, parameters: [registration]);
+            state.Options[i].Apply();
         }
-    }
-
-    private static void ApplyOptionsCore<TOptions>(OptionsConfiguration registration)
-        where TOptions : ConfigurationLoader, new()
-    {
-        TOptions options = ConfigurationManager.Instance.Get<TOptions>();
-        registration.Apply(options);
-
-        MethodInfo? validateMethod = typeof(TOptions).GetMethod("Validate", BindingFlags.Instance | BindingFlags.Public);
-        _ = (validateMethod?.Invoke(options, parameters: null));
     }
 
     #endregion
