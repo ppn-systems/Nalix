@@ -29,11 +29,6 @@ internal sealed class HostingBuilderContext
     public List<OptionsConfiguration> Options { get; } = [];
 
     /// <summary>
-    /// Gets the assemblies scanned for packet handlers.
-    /// </summary>
-    public HashSet<Assembly> HandlerAssemblies { get; } = [];
-
-    /// <summary>
     /// Gets the registered packet handler descriptors.
     /// </summary>
     public List<HandlerDescriptor> Handlers { get; } = [];
@@ -178,7 +173,8 @@ internal sealed record PacketNamespaceDescriptor(
 /// A factory delegate used to create handler instances.
 /// </param>
 internal sealed record HandlerDescriptor(
-    Type HandlerType,
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] Type HandlerType,
     Func<object> Factory);
 
 

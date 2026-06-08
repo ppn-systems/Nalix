@@ -2,10 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -14,7 +14,6 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Codec.Serialization.Formatters.Cache;
 using Nalix.Codec.Serialization.Formatters.Collections;
 using Nalix.Codec.Serialization.Formatters.Primitives;
-using Nalix.Codec.Serialization.Internal.Types;
 
 namespace Nalix.Codec.Serialization;
 
@@ -35,22 +34,6 @@ public static class FormatterProvider
 
     private static readonly Stopwatch s_sw = Stopwatch.StartNew();
 
-    private static readonly HashSet<Type> s_valueTupleDefinitions =
-    [
-        typeof(ValueTuple<,>),
-        typeof(ValueTuple<,,>),
-        typeof(ValueTuple<,,,>),
-        typeof(ValueTuple<,,,,>)
-    ];
-
-    private static readonly Dictionary<int, Type> s_valueTupleFormatterDefs = new()
-    {
-        { 2, typeof(ValueTupleFormatter<,>)    },
-        { 3, typeof(ValueTupleFormatter<,,>)   },
-        { 4, typeof(ValueTupleFormatter<,,,>)  },
-        { 5, typeof(ValueTupleFormatter<,,,,>) },
-    };
-
     #endregion Fields
 
     #region Static Constructor
@@ -58,103 +41,71 @@ public static class FormatterProvider
     static FormatterProvider()
     {
         // String formatters are registered first because they are among the most
-        // Abstractions and often participate in higher-level composite serializers.
+        // common and often participate in higher-level composite serializers.
         Register(new StringFormatter());
         Register(new StringArrayFormatter());
+        Register(new ReferenceListFormatter<string>());
+        Register(new ReferenceArrayFormatter<string>());
+        Register(new QueueFormatter<string>());
+        Register(new StackFormatter<string>());
+        Register(new HashSetFormatter<string>());
+        Register(new ReferenceArrayFormatter<object>());
+        Register(new ReferenceListFormatter<object>());
 
-        // Primitive unmanaged formatters cover the Abstractions scalar types that can
-        // be serialized directly without per-element reference tracking.
-        Register(new UnmanagedFormatter<char>());
-        Register(new UnmanagedFormatter<byte>());
-        Register(new UnmanagedFormatter<sbyte>());
-        Register(new UnmanagedFormatter<short>());
-        Register(new UnmanagedFormatter<int>());
-        Register(new UnmanagedFormatter<long>());
-        Register(new UnmanagedFormatter<ushort>());
-        Register(new UnmanagedFormatter<uint>());
-        Register(new UnmanagedFormatter<ulong>());
-        Register(new UnmanagedFormatter<float>());
-        Register(new UnmanagedFormatter<double>());
-        Register(new UnmanagedFormatter<bool>());
-        Register(new UnmanagedFormatter<decimal>());
-        Register(new UnmanagedFormatter<Guid>());
-        Register(new UnmanagedFormatter<DateOnly>());
-        Register(new UnmanagedFormatter<DateTime>());
-        Register(new UnmanagedFormatter<TimeSpan>());
-        Register(new UnmanagedFormatter<TimeOnly>());
-        Register(new UnmanagedFormatter<DateTimeOffset>());
+        // Pre-register all formatter variants for every built-in unmanaged type.
+        // The AOT compiler emits closed generics for each new XxxFormatter<T>() call
+        // because the type argument is a compile-time constant at each call site.
+        RegisterAllUnmanaged<char>();
+        RegisterAllUnmanaged<byte>();
+        RegisterAllUnmanaged<sbyte>();
+        RegisterAllUnmanaged<short>();
+        RegisterAllUnmanaged<int>();
+        RegisterAllUnmanaged<long>();
+        RegisterAllUnmanaged<ushort>();
+        RegisterAllUnmanaged<uint>();
+        RegisterAllUnmanaged<ulong>();
+        RegisterAllUnmanaged<float>();
+        RegisterAllUnmanaged<double>();
+        RegisterAllUnmanaged<bool>();
+        RegisterAllUnmanaged<decimal>();
+        RegisterAllUnmanaged<Guid>();
+        RegisterAllUnmanaged<DateOnly>();
+        RegisterAllUnmanaged<DateTime>();
+        RegisterAllUnmanaged<TimeSpan>();
+        RegisterAllUnmanaged<TimeOnly>();
+        RegisterAllUnmanaged<DateTimeOffset>();
 
-        // Array formatters are registered separately so fixed-size element types
-        // can be serialized as contiguous buffers with minimal per-item overhead.
-        Register(new ArrayFormatter<char>());
-        Register(new ArrayFormatter<byte>());
-        Register(new ArrayFormatter<sbyte>());
-        Register(new ArrayFormatter<short>());
-        Register(new ArrayFormatter<int>());
-        Register(new ArrayFormatter<long>());
-        Register(new ArrayFormatter<ushort>());
-        Register(new ArrayFormatter<uint>());
-        Register(new ArrayFormatter<ulong>());
-        Register(new ArrayFormatter<float>());
-        Register(new ArrayFormatter<double>());
-        Register(new ArrayFormatter<bool>());
-        Register(new ArrayFormatter<Guid>());
-        Register(new ArrayFormatter<DateOnly>());
-        Register(new ArrayFormatter<DateTime>());
-        Register(new ArrayFormatter<TimeSpan>());
-        Register(new ArrayFormatter<TimeOnly>());
-        Register(new ArrayFormatter<DateTimeOffset>());
+        // Pre-register NullableValueListFormatter for all built-in unmanaged types.
+        RegisterNullableValueLists();
 
-        // Nullable<T> formatters preserve the distinction between "no value" and
-        // the default value of the underlying type.
-        Register(new NullableFormatter<char>());
-        Register(new NullableFormatter<byte>());
-        Register(new NullableFormatter<sbyte>());
-        Register(new NullableFormatter<short>());
-        Register(new NullableFormatter<int>());
-        Register(new NullableFormatter<long>());
-        Register(new NullableFormatter<ushort>());
-        Register(new NullableFormatter<uint>());
-        Register(new NullableFormatter<ulong>());
-        Register(new NullableFormatter<float>());
-        Register(new NullableFormatter<double>());
-        Register(new NullableFormatter<decimal>());
-        Register(new NullableFormatter<bool>());
-        Register(new NullableFormatter<Guid>());
-        Register(new NullableFormatter<DateOnly>());
-        Register(new NullableFormatter<DateTime>());
-        Register(new NullableFormatter<TimeSpan>());
-        Register(new NullableFormatter<TimeOnly>());
-        Register(new NullableFormatter<DateTimeOffset>());
+        // Pre-register common Dictionary<K,V> formatters.
+        Register(new DictionaryFormatter<string, string>());
+        Register(new DictionaryFormatter<string, int>());
+        Register(new DictionaryFormatter<string, long>());
+        Register(new DictionaryFormatter<string, byte>());
+        Register(new DictionaryFormatter<int, int>());
+        Register(new DictionaryFormatter<int, long>());
+        Register(new DictionaryFormatter<int, string>());
 
-        // NullableArray<T> formatters do the same for collections that may contain
-        // missing entries at arbitrary positions.
-        Register(new NullableArrayFormatter<char>());
-        Register(new NullableArrayFormatter<byte>());
-        Register(new NullableArrayFormatter<sbyte>());
-        Register(new NullableArrayFormatter<short>());
-        Register(new NullableArrayFormatter<int>());
-        Register(new NullableArrayFormatter<long>());
-        Register(new NullableArrayFormatter<ushort>());
-        Register(new NullableArrayFormatter<uint>());
-        Register(new NullableArrayFormatter<ulong>());
-        Register(new NullableArrayFormatter<float>());
-        Register(new NullableArrayFormatter<double>());
-        Register(new NullableArrayFormatter<bool>());
-        Register(new NullableArrayFormatter<decimal>());
-        Register(new NullableArrayFormatter<Guid>());
-        Register(new NullableArrayFormatter<DateOnly>());
-        Register(new NullableArrayFormatter<DateTime>());
-        Register(new NullableArrayFormatter<TimeSpan>());
-        Register(new NullableArrayFormatter<TimeOnly>());
-        Register(new NullableArrayFormatter<DateTimeOffset>());
-
-        // ulong is a project-specific numeric type, so it gets the same full
-        // formatter coverage as the built-in primitives.
-        Register(new ArrayFormatter<ulong>());
-        Register(new UnmanagedFormatter<ulong>());
-        Register(new NullableFormatter<ulong>());
-        Register(new NullableArrayFormatter<ulong>());
+        // Pre-register common ValueTuple formatters.
+        Register(new ValueTupleFormatter<int, int>());
+        Register(new ValueTupleFormatter<int, string>());
+        Register(new ValueTupleFormatter<int, bool>());
+        Register(new ValueTupleFormatter<string, int>());
+        Register(new ValueTupleFormatter<string, string>());
+        Register(new ValueTupleFormatter<string, bool>());
+        Register(new ValueTupleFormatter<bool, int>());
+        Register(new ValueTupleFormatter<bool, string>());
+        Register(new ValueTupleFormatter<int, string, bool>());
+        Register(new ValueTupleFormatter<int, string, float>());
+        Register(new ValueTupleFormatter<int, int, int>());
+        Register(new ValueTupleFormatter<string, string, string>());
+        Register(new ValueTupleFormatter<int, string, bool, double>());
+        Register(new ValueTupleFormatter<int, string, float, long>());
+        Register(new ValueTupleFormatter<int, int, int, int>());
+        Register(new ValueTupleFormatter<int, string, bool, double, long>());
+        Register(new ValueTupleFormatter<int, string, float, long, bool>());
+        Register(new ValueTupleFormatter<int, int, int, int, int>());
 
         if (s_listener?.IsEnabled(DiagnosticsEvents.Serialization.Initialization) == true)
         {
@@ -167,56 +118,123 @@ public static class FormatterProvider
         }
     }
 
-    #endregion Static Constructor
-
-    #region Formatter Factory
+    /// <summary>
+    /// Pre-registers all formatter variants for a single unmanaged element type.
+    /// The AOT compiler emits the closed generic for each <c>new XxxFormatter&lt;T&gt;()</c>
+    /// call because the type argument is a compile-time constant at each call site.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void RegisterAllUnmanaged<T>() where T : unmanaged
+    {
+        Register(new UnmanagedFormatter<T>());
+        Register(new ArrayFormatter<T>());
+        Register(new NullableFormatter<T>());
+        Register(new NullableArrayFormatter<T>());
+        Register(new ListFormatter<T>());
+        Register(new QueueFormatter<T>());
+        Register(new StackFormatter<T>());
+        Register(new HashSetFormatter<T>());
+        Register(new MemoryFormatter<T>());
+        Register(new ReadOnlyMemoryFormatter<T>());
+    }
 
     /// <summary>
-    /// Closes a generic formatter definition over <paramref name="typeArg"/>
-    /// and returns a live <see cref="IFormatter{T}"/> instance.
-    /// Used exclusively for built-in collection/nullable/memory/tuple formatters
-    /// whose type arguments are fully visible to the AOT compiler.
+    /// Pre-registers <see cref="NullableValueListFormatter{T}"/> for all built-in unmanaged types.
+    /// This cannot use a generic helper because the formatter's type parameter is the
+    /// underlying (non-nullable) type, not the nullable wrapper.
     /// </summary>
-    [UnconditionalSuppressMessage("AOT", "IL3050",
-        Justification = "Only closed over AOT-visible built-in types (primitives, enums, and source-generated DTOs).")]
-    [UnconditionalSuppressMessage("Trimming", "IL2055",
-        Justification = "Formatter type arguments are always fully preserved by source generation and static registration.")]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static IFormatter<T> EmitCreate<T>(
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type genericFormatterDef,
-        Type typeArg)
+    private static void RegisterNullableValueLists()
     {
-        Type concrete = genericFormatterDef.MakeGenericType(typeArg);
-        return (IFormatter<T>)Activator.CreateInstance(concrete)!;
+        Register(new NullableValueListFormatter<char>());
+        Register(new NullableValueListFormatter<byte>());
+        Register(new NullableValueListFormatter<sbyte>());
+        Register(new NullableValueListFormatter<short>());
+        Register(new NullableValueListFormatter<int>());
+        Register(new NullableValueListFormatter<long>());
+        Register(new NullableValueListFormatter<ushort>());
+        Register(new NullableValueListFormatter<uint>());
+        Register(new NullableValueListFormatter<ulong>());
+        Register(new NullableValueListFormatter<float>());
+        Register(new NullableValueListFormatter<double>());
+        Register(new NullableValueListFormatter<decimal>());
+        Register(new NullableValueListFormatter<bool>());
+        Register(new NullableValueListFormatter<Guid>());
+        Register(new NullableValueListFormatter<DateOnly>());
+        Register(new NullableValueListFormatter<DateTime>());
+        Register(new NullableValueListFormatter<TimeSpan>());
+        Register(new NullableValueListFormatter<TimeOnly>());
+        Register(new NullableValueListFormatter<DateTimeOffset>());
     }
 
-    [UnconditionalSuppressMessage("AOT", "IL3050",
-        Justification = "Only closed over AOT-visible built-in types (primitives, enums, and source-generated DTOs).")]
-    [UnconditionalSuppressMessage("Trimming", "IL2055",
-        Justification = "Formatter type arguments are always fully preserved by source generation and static registration.")]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static IFormatter<T> EmitCreate<T>(
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type genericFormatterDef,
-        Type typeArg1, Type typeArg2)
+    #endregion Static Constructor
+
+    #region Generated Formatter Registry
+
+    /// <summary>
+    /// Stores source-generated formatters registered via <c>[ModuleInitializer]</c>
+    /// bootstrapper code emitted by <c>SerializeFormatterGenerator</c>.
+    /// </summary>
+    private static readonly ConcurrentDictionary<Type, object> s_generatedFormatters = new();
+
+    /// <summary>
+    /// Registers a source-generated formatter for runtime lookup.
+    /// Called by source-generated <c>[ModuleInitializer]</c> code — do not call manually.
+    /// </summary>
+    /// <typeparam name="T">The serialization target type.</typeparam>
+    /// <param name="formatter">The source-generated formatter instance.</param>
+    public static void RegisterGenerated<T>(IFormatter<T> formatter)
     {
-        Type concrete = genericFormatterDef.MakeGenericType(typeArg1, typeArg2);
-        return (IFormatter<T>)Activator.CreateInstance(concrete)!;
+        ArgumentNullException.ThrowIfNull(formatter);
+        s_generatedFormatters[typeof(T)] = formatter;
+        Register(formatter);
     }
 
-    [UnconditionalSuppressMessage("AOT", "IL3050",
-        Justification = "Only closed over AOT-visible built-in types (primitives, enums, and source-generated DTOs).")]
-    [UnconditionalSuppressMessage("Trimming", "IL2055",
-        Justification = "Formatter type arguments are always fully preserved by source generation and static registration.")]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static IFormatter<T> EmitCreate<T>(
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type genericFormatterDef,
-        Type[] typeArgs)
+    /// <summary>
+    /// Attempts to retrieve a source-generated formatter for <typeparamref name="T"/>.
+    /// Returns <see langword="null"/> if no generated formatter exists for the type.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static IFormatter<T>? TryGetGenerated<T>()
     {
-        Type concrete = genericFormatterDef.MakeGenericType(typeArgs);
-        return (IFormatter<T>)Activator.CreateInstance(concrete)!;
+        if (s_generatedFormatters.TryGetValue(typeof(T), out object? obj))
+        {
+            return (IFormatter<T>)obj;
+        }
+        return null;
     }
 
-    #endregion Formatter Factory
+    #endregion Generated Formatter Registry
+
+    #region Public Registration Helpers
+
+    /// <summary>
+    /// Pre-registers all formatter variants for an unmanaged element type <typeparamref name="T"/>.
+    /// Call this for custom enum or struct types to enable automatic collection, nullable,
+    /// and array formatting without runtime reflection.
+    /// </summary>
+    /// <typeparam name="T">An unmanaged type (primitive, enum, or blittable struct).</typeparam>
+    public static void RegisterAllFormatters<T>() where T : unmanaged
+        => RegisterAllUnmanaged<T>();
+
+    /// <summary>
+    /// Pre-registers <see cref="List{T}"/> and <c>T[]</c> formatters for a reference type.
+    /// Called by source-generated bootstrapper code for <c>[GenerateFormatter]</c> class types.
+    /// </summary>
+    /// <typeparam name="T">A reference type (class) with a registered formatter.</typeparam>
+    public static void RegisterCollectionFormatters<T>() where T : class
+    {
+        Register(new ReferenceListFormatter<T>());
+        Register(new ReferenceArrayFormatter<T>());
+    }
+
+    /// <summary>
+    /// Pre-registers a <see cref="Dictionary{TKey, TValue}"/> formatter.
+    /// Use this for dictionary types with non-standard key/value combinations.
+    /// </summary>
+    public static void RegisterDictionary<TKey, TValue>() where TKey : notnull => Register(new DictionaryFormatter<TKey, TValue>());
+
+    #endregion Public Registration Helpers
 
     #region APIs
 
@@ -288,9 +306,12 @@ public static class FormatterProvider
     }
 
     /// <summary>
-    /// Retrieves the registered formatter for <typeparamref name="T"/>, creating
-    /// one on-demand for built-in collection/enum/nullable types (cached after first call).
-    /// Complex DTO types must be pre-registered via source-generated bootstrappers.
+    /// Retrieves the registered formatter for <typeparamref name="T"/>.
+    /// All common built-in types (primitives, collections, nullable, tuples) are
+    /// pre-registered in the static constructor. Source-generated DTO formatters are
+    /// registered via <see cref="RegisterGenerated{T}"/>. Enum types are created
+    /// on-demand (AOT-safe: <typeparamref name="T"/> is the enum type itself).
+    /// Unregistered types throw <see cref="SerializationFailureException"/>.
     /// </summary>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -303,55 +324,23 @@ public static class FormatterProvider
             return cached;
         }
 
-        // ── Slow path: built-in types resolved on first access ───────────
-        IFormatter<T>? f;
-
-        if ((f = TryCreateEnumFormatter<T>()) is not null)
+        // ── Source-generated formatters (registered via [ModuleInitializer]) ──
+        IFormatter<T>? generated = TryGetGenerated<T>();
+        if (generated is not null)
         {
-            return CacheOrGetExisting(f);
+            return CacheOrGetExisting(generated);
         }
 
-        if ((f = TryCreateArrayFormatter<T>()) is not null)
+        // ── Enum types: created on-demand (T is the enum type, AOT-safe) ──
+        if (typeof(T).IsEnum)
         {
-            return CacheOrGetExisting(f);
+            EnumFormatter<T> f = new();
+            Register(f);
+            return f;
         }
 
-        if ((f = TryCreateListFormatter<T>()) is not null)
-        {
-            return CacheOrGetExisting(f);
-        }
-
-        if ((f = TryCreateDictionaryFormatter<T>()) is not null)
-        {
-            return CacheOrGetExisting(f);
-        }
-
-        if ((f = TryCreateCollectionFormatter<T>()) is not null)
-        {
-            return CacheOrGetExisting(f);
-        }
-
-        if ((f = TryCreateMemoryFormatter<T>()) is not null)
-        {
-            return CacheOrGetExisting(f);
-        }
-
-        if ((f = TryCreateValueTupleFormatter<T>()) is not null)
-        {
-            return CacheOrGetExisting(f);
-        }
-
-        Type t = typeof(T);
-
-        // Nullable<TUnderlying>
-        if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Nullable<>))
-        {
-            Type underlying = Nullable.GetUnderlyingType(t)!;
-            return CacheOrGetExisting(EmitCreate<T>(typeof(NullableFormatter<>), underlying));
-        }
-
-        // Complex type (class / struct) — must be pre-registered
-        return CacheOrGetExisting(GetComplex<T>());
+        // ── Complex type (class / struct): must be pre-registered ─────────
+        return GetComplex<T>();
     }
 
     /// <summary>
@@ -410,200 +399,8 @@ public static class FormatterProvider
     private static SerializationFailureException MissingGeneratedFormatter(Type type, string kind)
         => new(
             $"No formatter registered for {kind} '{type.FullName}'. " +
-            "Mark the type with [GenerateFormatter] or register a custom IFormatter<T> manually.");
-
-    // ─────────────────────────────────────────────────────────────────────
-    //  Built-in type resolution helpers (all type arguments are AOT-visible)
-    // ─────────────────────────────────────────────────────────────────────
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static EnumFormatter<T>? TryCreateEnumFormatter<T>()
-    {
-        if (!typeof(T).IsEnum)
-        {
-            return null;
-        }
-
-        EnumFormatter<T> f = new();
-        Register(f);
-        return f;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static IFormatter<T>? TryCreateArrayFormatter<T>()
-    {
-        Type type = typeof(T);
-        if (!type.IsArray || type.GetArrayRank() != 1)
-        {
-            return null;
-        }
-
-        Type elem = type.GetElementType()!;
-
-        // Nullable<U>[]
-        if (elem.IsGenericType && elem.GetGenericTypeDefinition() == typeof(Nullable<>))
-        {
-            return EmitCreate<T>(typeof(NullableArrayFormatter<>), elem.GetGenericArguments()[0]);
-        }
-
-        // Enum[]
-        if (elem.IsEnum)
-        {
-            return EmitCreate<T>(typeof(EnumArrayFormatter<>), elem);
-        }
-
-        // Unmanaged[]
-        if (TypeMetadata.IsUnmanaged(elem))
-        {
-            return EmitCreate<T>(typeof(ArrayFormatter<>), elem);
-        }
-
-        // Reference[]
-        return EmitCreate<T>(typeof(ReferenceArrayFormatter<>), elem);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static IFormatter<T>? TryCreateListFormatter<T>()
-    {
-        Type t = typeof(T);
-        if (!t.IsGenericType || t.GetGenericTypeDefinition() != typeof(List<>))
-        {
-            return null;
-        }
-
-        Type elem = t.GetGenericArguments()[0];
-
-        if (elem.IsEnum)
-        {
-            return EmitCreate<T>(typeof(EnumListFormatter<>), elem);
-        }
-
-        if (elem.IsGenericType && elem.GetGenericTypeDefinition() == typeof(Nullable<>))
-        {
-            return EmitCreate<T>(typeof(NullableValueListFormatter<>), elem.GetGenericArguments()[0]);
-        }
-
-        if (TypeMetadata.IsUnmanaged(elem) && !elem.IsEnum)
-        {
-            return EmitCreate<T>(typeof(ListFormatter<>), elem);
-        }
-
-        return EmitCreate<T>(typeof(ReferenceListFormatter<>), elem);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static IFormatter<T>? TryCreateDictionaryFormatter<T>()
-    {
-        Type t = typeof(T);
-        if (!t.IsGenericType || t.GetGenericTypeDefinition() != typeof(Dictionary<,>))
-        {
-            return null;
-        }
-
-        Type[] args = t.GetGenericArguments();
-        return EmitCreate<T>(typeof(DictionaryFormatter<,>), args[0], args[1]);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static IFormatter<T>? TryCreateCollectionFormatter<T>()
-    {
-        Type t = typeof(T);
-
-        if (!t.IsGenericType)
-        {
-            return null;
-        }
-
-        Type def = t.GetGenericTypeDefinition();
-        Type elem = t.GetGenericArguments()[0];
-
-        if (def == typeof(Queue<>))
-        {
-            if (elem.IsClass && elem != typeof(string))
-            {
-                return null;
-            }
-
-            return EmitCreate<T>(typeof(QueueFormatter<>), elem);
-        }
-
-        if (def == typeof(Stack<>))
-        {
-            if (elem.IsClass && elem != typeof(string))
-            {
-                return null;
-            }
-
-            return EmitCreate<T>(typeof(StackFormatter<>), elem);
-        }
-
-        if (def == typeof(HashSet<>))
-        {
-            if (elem.IsClass && elem != typeof(string))
-            {
-                return null;
-            }
-
-            return EmitCreate<T>(typeof(HashSetFormatter<>), elem);
-        }
-
-        return null;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static IFormatter<T>? TryCreateMemoryFormatter<T>()
-    {
-        Type t = typeof(T);
-        if (!t.IsGenericType)
-        {
-            return null;
-        }
-
-        Type def = t.GetGenericTypeDefinition();
-        if (def != typeof(Memory<>) && def != typeof(ReadOnlyMemory<>))
-        {
-            return null;
-        }
-
-        Type elem = t.GetGenericArguments()[0];
-
-        if (!TypeMetadata.IsUnmanaged(elem))
-        {
-            throw new SerializationFailureException(
-                $"MemoryFormatter only supports unmanaged element types. '{elem.Name}' is not unmanaged.");
-        }
-
-        return def == typeof(Memory<>)
-            ? EmitCreate<T>(typeof(MemoryFormatter<>), elem)
-            : EmitCreate<T>(typeof(ReadOnlyMemoryFormatter<>), elem);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static IFormatter<T>? TryCreateValueTupleFormatter<T>()
-    {
-        Type t = typeof(T);
-        if (!t.IsGenericType)
-        {
-            return null;
-        }
-
-        Type def = t.GetGenericTypeDefinition();
-        if (!s_valueTupleDefinitions.Contains(def))
-        {
-            return null;
-        }
-
-        Type[] typeArgs = t.GetGenericArguments();
-        int formatterArity = Math.Min(typeArgs.Length, 5);
-
-        if (!s_valueTupleFormatterDefs.TryGetValue(formatterArity, out Type? formatterDef))
-        {
-            throw new SerializationFailureException(
-                $"ValueTupleFormatter: arity {typeArgs.Length} is not supported.");
-        }
-
-        return EmitCreate<T>(formatterDef, typeArgs[..formatterArity]);
-    }
+            "Mark the type with [GenerateFormatter], call FormatterProvider.RegisterAllFormatters<T>(), " +
+            "or register a custom IFormatter<T> manually.");
 
     #endregion Private Methods
 }

@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
@@ -188,19 +189,9 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     #endregion Configuration Methods
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder ScanHandlers(Assembly assembly)
-    {
-        ArgumentNullException.ThrowIfNull(assembly);
-
-        _ = _state.HandlerAssemblies.Add(assembly);
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder ScanHandlers<TMarker>() => this.ScanHandlers(typeof(TMarker).Assembly);
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder AddHandler<THandler>() where THandler : class
+    public INetworkApplicationBuilder AddHandler<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods)] THandler>()
+        where THandler : class
     {
 #pragma warning disable CA2263 // Factory is Func<object>; generic overload not applicable
         _state.Handlers.Add(new HandlerDescriptor(
@@ -224,7 +215,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddHandler(Type controllerType)
+    public INetworkApplicationBuilder AddHandler(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods)] Type controllerType)
     {
         ArgumentNullException.ThrowIfNull(controllerType);
 
@@ -237,7 +229,9 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
     /// <inheritdoc />
     /// <inheritdoc />
-    public IProtocolBindingBuilder BindTcp<TProtocol>() where TProtocol : class, IProtocol
+    public IProtocolBindingBuilder BindTcp<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
+        where TProtocol : class, IProtocol
     {
         ProtocolBindingBuilder builder = new(this);
 
@@ -245,7 +239,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             typeof(TProtocol),
             dispatch => builder.Factory is not null
                 ? builder.Factory(dispatch)
-                : CreateProtocol(typeof(TProtocol), dispatch),
+                : CreateProtocol<TProtocol>(dispatch),
             Port: null,
             BindingBuilder: builder));
 
@@ -253,7 +247,9 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public IProtocolBindingBuilder BindUdp<TProtocol>() where TProtocol : class, IProtocol
+    public IProtocolBindingBuilder BindUdp<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
+        where TProtocol : class, IProtocol
     {
         ProtocolBindingBuilder builder = new(this);
 
@@ -261,7 +257,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             typeof(TProtocol),
             dispatch => builder.Factory is not null
                 ? builder.Factory(dispatch)
-                : CreateProtocol(typeof(TProtocol), dispatch),
+                : CreateProtocol<TProtocol>(dispatch),
             Port: null,
             Authentication: null,
             BindingBuilder: builder));
@@ -270,7 +266,9 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public IWebSocketBindingBuilder BindWebSocket<TProtocol>() where TProtocol : class, IProtocol
+    public IWebSocketBindingBuilder BindWebSocket<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
+        where TProtocol : class, IProtocol
     {
         WebSocketBindingBuilder builder = new(this);
 
@@ -278,7 +276,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             typeof(TProtocol),
             dispatch => builder.Factory is not null
                 ? builder.Factory(dispatch)
-                : CreateProtocol(typeof(TProtocol), dispatch),
+                : CreateProtocol<TProtocol>(dispatch),
             Port: null,
             Path: null,
             BindingBuilder: builder));
@@ -416,10 +414,22 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
     #region Factory Methods
 
-    internal static IProtocol CreateProtocol(Type protocolType, IPacketDispatch dispatch)
+    /// <summary>
+    /// Creates a protocol instance using the most appropriate constructor.
+    /// If the protocol type has a constructor accepting <see cref="IPacketDispatch"/>,
+    /// the provided dispatch instance is injected. Otherwise, the parameterless constructor is used.
+    /// </summary>
+    /// <typeparam name="TProtocol">The protocol type to instantiate.</typeparam>
+    /// <param name="dispatch">The packet dispatch instance to inject if the protocol supports it.</param>
+    /// <returns>A new protocol instance.</returns>
+    internal static IProtocol CreateProtocol<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>(
+        IPacketDispatch dispatch)
+        where TProtocol : class, IProtocol
     {
-        ArgumentNullException.ThrowIfNull(protocolType);
         ArgumentNullException.ThrowIfNull(dispatch);
+
+        Type protocolType = typeof(TProtocol);
 
         ConstructorInfo? dispatchConstructor = protocolType
             .GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
@@ -462,49 +472,10 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         return new PacketDispatchChannel(ConfigureOptions);
     }
 
-    private static IEnumerable<HandlerDescriptor> ResolveHandlerRegistrations(HostingBuilderContext state)
-    {
-        Dictionary<Type, HandlerDescriptor> handlers = [];
-
-        for (int i = 0; i < state.Handlers.Count; i++)
-        {
-            HandlerDescriptor registration = state.Handlers[i];
-            handlers[registration.HandlerType] = registration;
-        }
-
-        foreach (Assembly assembly in state.HandlerAssemblies)
-        {
-            Type[] types;
-            try
-            {
-                types = assembly.GetTypes();
-            }
-            catch (ReflectionTypeLoadException ex)
-            {
-                types = [.. ex.Types.Where(static type => type is not null).Cast<Type>()];
-            }
-
-            for (int i = 0; i < types.Length; i++)
-            {
-                Type type = types[i];
-                if (!type.IsClass || type.IsAbstract)
-                {
-                    continue;
-                }
-
-                if (type.GetCustomAttribute<PacketControllerAttribute>(inherit: false) is null)
-                {
-                    continue;
-                }
-
-                _ = handlers.TryAdd(type, new HandlerDescriptor(
-                    type,
-                    () => InstanceManager.Instance.CreateInstanceWithInjection(type)));
-            }
-        }
-
-        return handlers.Values;
-    }
+    // AOT-safe: assembly scanning (Assembly.GetTypes) has been removed.
+    // Handlers are registered explicitly via AddHandler<T>() / AddHandler(Type)
+    // or discovered at compile time via source-generated PacketHandlerRegistry.
+    private static IEnumerable<HandlerDescriptor> ResolveHandlerRegistrations(HostingBuilderContext state) => state.Handlers;
 
     private static void ApplyOptions(HostingBuilderContext state)
     {

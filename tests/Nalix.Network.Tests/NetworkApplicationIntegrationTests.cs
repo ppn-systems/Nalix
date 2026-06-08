@@ -72,8 +72,6 @@ public sealed class NetworkApplicationIntegrationTests
         // Listen on loopback with our test protocol
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
 
-        // Add current assembly for scanning controllers and packets
-        builder.ScanHandlers<NetworkApplicationIntegrationTests>();
         builder.AddHandler<IntegrationTestController>();
 
         using NetworkApplication app = builder.Build();

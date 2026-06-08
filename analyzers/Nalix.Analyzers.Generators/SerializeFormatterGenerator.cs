@@ -93,7 +93,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
             return;
         }
 
-        List<(string FullName, string FormatterName)> registeredFormatters = new(targets.Length);
+        List<(string FullName, string FormatterName, bool IsClass)> registeredFormatters = new(targets.Length);
         string generatedNamespace = SourceGenNamespaces.Get(targets.First(static t => t is not null)!);
 
         foreach (ITypeSymbol? type in targets)
@@ -124,7 +124,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
                 continue;
             }
 
-            registeredFormatters.Add((typeName, $"global::{generatedNamespace}.{KnownNames.FormatterName}.{formatterName}"));
+            registeredFormatters.Add((typeName, $"global::{generatedNamespace}.{KnownNames.FormatterName}.{formatterName}", isClass));
 
             List<ISymbol> members = SerializationMember.Resolve(type);
             string interfaceName = isClass ? $"IFillableFormatter<{typeName}>" : $"IFormatter<{typeName}>";
@@ -360,11 +360,11 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
 
     private static void GenerateBootstrapper(
         SourceProductionContext context,
-        List<(string FullName, string FormatterName)> registered,
+        List<(string FullName, string FormatterName, bool IsClass)> registered,
         string generatedNamespace)
     {
         int totalEntries = registered.Count;
-        StringBuilder sb = new((totalEntries * 80) + 512);
+        StringBuilder sb = new((totalEntries * 120) + 512);
         _ = sb.AppendLine("using System.Runtime.CompilerServices;");
         _ = sb.AppendLine();
         _ = sb.AppendLine("#pragma warning disable CA2255");
@@ -380,10 +380,20 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
         _ = sb.AppendLine("    [ModuleInitializer]");
         _ = sb.AppendLine("    public static void Initialize()");
         _ = sb.AppendLine("    {");
-        foreach ((_, string formatterName) in registered)
+        foreach ((_, string formatterName, _) in registered)
         {
-            _ = sb.AppendLine($"        global::{KnownNames.LiteSerializerNamespace}.{KnownNames.LiteSerializerName}.Register(new {formatterName}());");
+            _ = sb.AppendLine($"        global::{KnownNames.LiteSerializerNamespace}.{KnownNames.FormatterProviderName}.RegisterGenerated(new {formatterName}());");
         }
+
+        // Also register List<T> and T[] formatters for class types
+        foreach ((string fullName, _, bool isClass) in registered)
+        {
+            if (isClass)
+            {
+                _ = sb.AppendLine($"        global::{KnownNames.LiteSerializerNamespace}.{KnownNames.FormatterProviderName}.RegisterCollectionFormatters<{fullName}>();");
+            }
+        }
+
         _ = sb.AppendLine("    }");
         _ = sb.AppendLine("}");
         _ = sb.AppendLine();
@@ -395,7 +405,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
         _ = sb.AppendLine($"    internal static bool TryGet<T>(out global::{KnownNames.LiteSerializerNamespace}.IFormatter<T>? formatter)");
         _ = sb.AppendLine("    {");
 
-        foreach ((string fullName, string formatterName) in registered)
+        foreach ((string fullName, string formatterName, _) in registered)
         {
             _ = sb.AppendLine($"        if (typeof(T) == typeof({fullName}))");
             _ = sb.AppendLine("        {");

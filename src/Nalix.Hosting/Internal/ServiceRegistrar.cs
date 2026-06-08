@@ -29,7 +29,10 @@ internal static class ServiceRegistrar
         PacketRegistry.Build();
     }
 
-    public static void RegisterHandler(PacketDispatchOptions<IPacket> dispatchOptions, Type handlerType, Func<object> factory)
+    public static void RegisterHandler(
+        PacketDispatchOptions<IPacket> dispatchOptions,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)]
+        Type handlerType, Func<object> factory)
     {
         ArgumentNullException.ThrowIfNull(dispatchOptions);
         ArgumentNullException.ThrowIfNull(handlerType);

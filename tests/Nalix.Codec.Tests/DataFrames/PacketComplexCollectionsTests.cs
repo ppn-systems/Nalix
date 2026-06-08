@@ -4,11 +4,24 @@
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
+using Nalix.Codec.Serialization;
 
 namespace Nalix.Codec.Tests.DataFrames;
 
 public sealed partial class PacketComplexCollectionsTests
 {
+    static PacketComplexCollectionsTests()
+    {
+        // Pre-register formatters for types used in extreme/edge-case tests.
+        // These involve deeply nested generics and project-specific enums
+        // that are not covered by the built-in pre-registration.
+        FormatterProvider.RegisterAllFormatters<PacketPriority>();
+        FormatterProvider.RegisterCollectionFormatters<List<string>>();
+        FormatterProvider.RegisterCollectionFormatters<List<List<string>>>();
+        FormatterProvider.RegisterDictionary<string, List<int>>();
+        FormatterProvider.RegisterCollectionFormatters<Dictionary<string, List<int>>>();
+    }
+
     [Fact]
     public void LengthAndSerialization_WithComplexCollections_MatchesSerializedData()
     {

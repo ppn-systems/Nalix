@@ -11,6 +11,8 @@ internal class KnownNames
     public const string PacketBaseNamespace = "Nalix.Codec.DataFrames";
     public const string CodecExtensionsNamespace = "Nalix.Codec.Extensions";
     public const string LiteSerializerNamespace = "Nalix.Codec.Serialization";
+    public const string FormatterProviderName = "FormatterProvider";
+    public const string CollectionsFormattersNamespace = "Nalix.Codec.Serialization.Formatters.Collections";
     public const string GenerateFormatterAttributeName = "GenerateFormatterAttribute";
     public const string ExceptionsAbstractionsNamespace = "Nalix.Abstractions.Exceptions";
     public const string PacketAbstractionsNamespace = "Nalix.Abstractions.Networking.Packets";
