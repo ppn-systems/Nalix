@@ -16,6 +16,8 @@ internal class KnownNames
     public const string PacketAbstractionsNamespace = "Nalix.Abstractions.Networking.Packets";
     public const string SerializationAbstractionsNamespace = "Nalix.Abstractions.Serialization";
     public const string ConfigurationBindingNamespace = "Nalix.Environment.Configuration.Binding";
+    public const string ConfigurationManagerMetadataName = "Nalix.Environment.Configuration.ConfigurationManager";
+    public const string ConfigurationLoaderMetadataName = "Nalix.Environment.Configuration.Binding.ConfigurationLoader";
     public const string PacketAttributeMetadataName = "Nalix.Abstractions.Networking.Packets.PacketAttribute";
     public const string InjectableAttributeName = "InjectableAttribute";
     public const string InjectableAttributeMetadataName = "Nalix.Abstractions.Injection.InjectableAttribute";

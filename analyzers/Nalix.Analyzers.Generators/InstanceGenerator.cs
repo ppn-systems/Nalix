@@ -353,10 +353,14 @@ public sealed class InstanceGenerator : IIncrementalGenerator
             _ = sb.AppendLine();
         }
 
-        // Also register a parameterless factory in SingletonActivatorCache so that
+        // Also register a factory in SingletonActivatorCache so that
         // Singleton.Register<TInterface, TImplementation>() can resolve the implementation
-        // without reflection (Activator.CreateInstance). Only emitted when a
-        // public/internal parameterless constructor exists.
+        // without reflection (Activator.CreateInstance).
+        //
+        // Emitted when:
+        //  - a public/internal parameterless constructor exists, OR
+        //  - a public/internal constructor exists whose parameters are ALL derived from
+        //    ConfigurationLoader (resolvable via ConfigurationManager.Instance.Get<T>()).
         IMethodSymbol? parameterlessCtor = symbol.InstanceConstructors
             .FirstOrDefault(static c =>
                 c.Parameters.Length == 0 &&
@@ -368,6 +372,31 @@ public sealed class InstanceGenerator : IIncrementalGenerator
             _ = sb.AppendLine($"            typeof({classFullName}),");
             _ = sb.AppendLine($"            static () => new {classFullName}());");
             _ = sb.AppendLine();
+        }
+        else
+        {
+            // No parameterless ctor — look for a ctor whose params are all ConfigurationLoader-derived.
+            IMethodSymbol? allConfigCtor = symbol.InstanceConstructors
+                .Where(static c => c.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal)
+                .FirstOrDefault(static c => c.Parameters.Length > 0 &&
+                    c.Parameters.All(static p => !p.Type.IsValueType && INHERITS_FROM_CONFIGURATION_LOADER(p.Type)));
+
+            if (allConfigCtor is not null)
+            {
+                StringBuilder ctorArgs = new();
+                for (int p = 0; p < allConfigCtor.Parameters.Length; p++)
+                {
+                    if (p > 0) _ = ctorArgs.Append(", ");
+                    string paramTypeName = allConfigCtor.Parameters[p].Type
+                        .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                    _ = ctorArgs.Append($"global::{KnownNames.ConfigurationManagerMetadataName}.Instance.Get<{paramTypeName}>()");
+                }
+
+                _ = sb.AppendLine($"        global::{KnownNames.SingletonActivatorCacheMetadataName}.Register(");
+                _ = sb.AppendLine($"            typeof({classFullName}),");
+                _ = sb.AppendLine($"            static () => new {classFullName}({ctorArgs}));");
+                _ = sb.AppendLine();
+            }
         }
     }
 
@@ -408,74 +437,163 @@ public sealed class InstanceGenerator : IIncrementalGenerator
 
     private static string BUILD_ACTIVATOR_LAMBDA(string classFullName, List<IMethodSymbol> ctors)
     {
+        // Pre-compute check/cast triples for every constructor parameter so that the
+        // switch-case groups by *non-config* arity (args[] count) rather than total
+        // parameter count.  ConfigurationLoader-derived parameters are resolved from
+        // ConfigurationManager.Instance.Get<T>() and do not consume an args[] slot.
+        Dictionary<IMethodSymbol, List<(string Check, string Cast, bool IsConfig)>> ctorParamInfo =
+            new(SymbolEqualityComparer.Default);
+        foreach (IMethodSymbol ctor in ctors)
+        {
+            List<(string Check, string Cast, bool IsConfig)> paramInfo = new(ctor.Parameters.Length);
+            for (int p = 0; p < ctor.Parameters.Length; p++)
+            {
+                paramInfo.Add(GET_PARAM_CHECK_AND_CAST(ctor.Parameters[p], p));
+            }
+            ctorParamInfo[ctor] = paramInfo;
+        }
+
+        // Separate the true parameterless constructor (0 total params) so it can be
+        // emitted as the default: catch-all.  This avoids a collision with config-only
+        // constructors whose non-config arity is also 0 (they would both occupy case 0:
+        // and the first if(true) would make the rest unreachable).
+        IMethodSymbol? parameterlessCtor = ctors.FirstOrDefault(c => c.Parameters.Length == 0);
+        List<IMethodSymbol> remainingCtors = parameterlessCtor is not null
+            ? ctors.Where(c => c != parameterlessCtor).ToList()
+            : ctors;
+
+        // Group the remaining constructors by the number of NON-config parameters.
+        IEnumerable<IGrouping<int, IMethodSymbol>> ctorsByNonConfigArity = remainingCtors
+            .GroupBy(c => ctorParamInfo[c].Count(t => !t.IsConfig))
+            .OrderBy(static g => g.Key);
+
         StringBuilder lambda = new();
         _ = lambda.Append("static args => {\n");
         _ = lambda.Append("                switch (args.Length)\n");
         _ = lambda.Append("                {\n");
 
-        IEnumerable<IGrouping<int, IMethodSymbol>> ctorsByArity = ctors.GroupBy(static c => c.Parameters.Length).OrderBy(static g => g.Key);
-        foreach (IGrouping<int, IMethodSymbol> group in ctorsByArity)
+        foreach (IGrouping<int, IMethodSymbol> group in ctorsByNonConfigArity)
         {
-            int arity = group.Key;
-            _ = lambda.Append($"                    case {arity}:\n");
+            int nonConfigArity = group.Key;
+            _ = lambda.Append($"                    case {nonConfigArity}:\n");
             List<IMethodSymbol> groupCtors = group.ToList();
 
             if (groupCtors.Count == 1)
             {
-                IMethodSymbol ctor = groupCtors[0];
-                _ = lambda.Append("                        return new ").Append(classFullName).Append("(");
-                for (int p = 0; p < arity; p++)
-                {
-                    if (p > 0) _ = lambda.Append(", ");
-                    (string _, string cast) = GET_PARAM_CHECK_AND_CAST(ctor.Parameters[p], p);
-                    _ = lambda.Append(cast);
-                }
-                _ = lambda.Append(");\n");
+                EMIT_SINGLE_CTOR_BODY(lambda, classFullName, groupCtors[0], ctorParamInfo[groupCtors[0]]);
             }
             else
             {
                 for (int i = 0; i < groupCtors.Count; i++)
                 {
                     IMethodSymbol ctor = groupCtors[i];
+                    List<(string Check, string Cast, bool IsConfig)> infos = ctorParamInfo[ctor];
+
                     _ = lambda.Append("                        if (");
-                    for (int p = 0; p < arity; p++)
+                    int argsIdx = 0;
+                    bool firstCheck = true;
+                    for (int p = 0; p < infos.Count; p++)
                     {
-                        if (p > 0) _ = lambda.Append(" && ");
-                        (string check, string _) = GET_PARAM_CHECK_AND_CAST(ctor.Parameters[p], p);
-                        _ = lambda.Append(check);
+                        (string check, _, bool isConfig) = infos[p];
+                        if (isConfig)
+                        {
+                            continue; // config params always resolve — skip in type check
+                        }
+                        if (!firstCheck) _ = lambda.Append(" && ");
+                        // Re-map args index for the check too
+                        (string reindexedCheck, _, _) = GET_PARAM_CHECK_AND_CAST(ctor.Parameters[p], argsIdx);
+                        _ = lambda.Append(reindexedCheck);
+                        firstCheck = false;
+                        argsIdx++;
                     }
+                    if (firstCheck) _ = lambda.Append("true"); // all config — no runtime check
                     _ = lambda.Append(")\n");
                     _ = lambda.Append("                        {\n");
-                    _ = lambda.Append("                            return new ").Append(classFullName).Append("(");
-                    for (int p = 0; p < arity; p++)
-                    {
-                        if (p > 0) _ = lambda.Append(", ");
-                        (string _, string cast) = GET_PARAM_CHECK_AND_CAST(ctor.Parameters[p], p);
-                        _ = lambda.Append(cast);
-                    }
-                    _ = lambda.Append(");\n");
+                    _ = lambda.Append("                            ");
+                    EMIT_CTOR_RETURN(lambda, classFullName, ctor, infos);
                     _ = lambda.Append("                        }\n");
                 }
-                _ = lambda.Append($"                        throw new global::System.InvalidOperationException(\"No constructor of {classFullName} with {arity} parameters matched the argument types.\");\n");
+                _ = lambda.Append($"                        throw new global::System.InvalidOperationException(\"No constructor of {classFullName} with {nonConfigArity} non-config parameters matched the argument types.\");\n");
             }
         }
 
+        // default: — if a parameterless constructor exists, use it as the catch-all;
+        // otherwise throw.
         _ = lambda.Append("                    default:\n");
-        _ = lambda.Append($"                        throw new global::System.InvalidOperationException(\"No constructor of {classFullName} matches argument count \" + args.Length);\n");
+        if (parameterlessCtor is not null)
+        {
+            _ = lambda.Append("                        return new ").Append(classFullName).Append("();\n");
+        }
+        else
+        {
+            _ = lambda.Append($"                        throw new global::System.InvalidOperationException(\"No constructor of {classFullName} matches argument count \" + args.Length);\n");
+        }
         _ = lambda.Append("                }\n");
         _ = lambda.Append("            }");
 
         return lambda.ToString();
     }
 
-    private static (string Check, string Cast) GET_PARAM_CHECK_AND_CAST(IParameterSymbol param, int idx)
+    /// <summary>
+    /// Emits a single <c>return new T(…);</c> line, correctly re-indexing non-config
+    /// parameter slots.
+    /// </summary>
+    private static void EMIT_CTOR_RETURN(
+        StringBuilder lambda,
+        string classFullName,
+        IMethodSymbol ctor,
+        List<(string Check, string Cast, bool IsConfig)> infos)
+    {
+        _ = lambda.Append("return new ").Append(classFullName).Append("(");
+
+        int argsIdx = 0;
+        for (int p = 0; p < infos.Count; p++)
+        {
+            if (p > 0) _ = lambda.Append(", ");
+            (_, string cast, bool isConfig) = infos[p];
+            if (isConfig)
+            {
+                _ = lambda.Append(cast);
+            }
+            else
+            {
+                (string _, string reindexedCast, _) = GET_PARAM_CHECK_AND_CAST(ctor.Parameters[p], argsIdx);
+                _ = lambda.Append(reindexedCast);
+                argsIdx++;
+            }
+        }
+        _ = lambda.Append(");\n");
+    }
+
+    /// <summary>
+    /// Emits a case block with a single constructor (no if-check needed).
+    /// </summary>
+    private static void EMIT_SINGLE_CTOR_BODY(
+        StringBuilder lambda,
+        string classFullName,
+        IMethodSymbol ctor,
+        List<(string Check, string Cast, bool IsConfig)> infos)
+    {
+        _ = lambda.Append("                        ");
+        EMIT_CTOR_RETURN(lambda, classFullName, ctor, infos);
+    }
+
+    private static (string Check, string Cast, bool IsConfig) GET_PARAM_CHECK_AND_CAST(IParameterSymbol param, int idx)
     {
         ITypeSymbol type = param.Type;
         string typeName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
+        // ── ConfigurationLoader-derived: resolve from ConfigurationManager ──
+        if (!type.IsValueType && INHERITS_FROM_CONFIGURATION_LOADER(type))
+        {
+            string configExpr = $"global::{KnownNames.ConfigurationManagerMetadataName}.Instance.Get<{typeName}>()";
+            return ("true", configExpr, true);
+        }
+
+        // ── Original args[index] logic ──────────────────────────────────────
         if (type.SpecialType == SpecialType.System_Object)
         {
-            return ("true", $"args[{idx}]");
+            return ("true", $"args[{idx}]", false);
         }
 
         if (type.IsValueType)
@@ -484,16 +602,16 @@ public sealed class InstanceGenerator : IIncrementalGenerator
             {
                 ITypeSymbol underlying = named.TypeArguments[0];
                 string underlyingName = underlying.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                return ($"(args[{idx}] is {underlyingName} || args[{idx}] is null)", $"({typeName})args[{idx}]");
+                return ($"(args[{idx}] is {underlyingName} || args[{idx}] is null)", $"({typeName})args[{idx}]", false);
             }
             else
             {
-                return ($"args[{idx}] is {typeName}", $"({typeName})args[{idx}]!");
+                return ($"args[{idx}] is {typeName}", $"({typeName})args[{idx}]!", false);
             }
         }
         else
         {
-            return ($"(args[{idx}] is {typeName} || args[{idx}] is null)", $"({typeName})args[{idx}]!");
+            return ($"(args[{idx}] is {typeName} || args[{idx}] is null)", $"({typeName})args[{idx}]!", false);
         }
     }
 
@@ -554,6 +672,25 @@ public sealed class InstanceGenerator : IIncrementalGenerator
         while (current is not null)
         {
             if (SymbolEqualityComparer.Default.Equals(current, baseType))
+            {
+                return true;
+            }
+            current = current.BaseType;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Walks the base-type chain of <paramref name="type"/> looking for
+    /// <c>Nalix.Environment.Configuration.Binding.ConfigurationLoader</c>,
+    /// using metadata-name comparison so it works across assemblies.
+    /// </summary>
+    private static bool INHERITS_FROM_CONFIGURATION_LOADER(ITypeSymbol type)
+    {
+        INamedTypeSymbol? current = type.BaseType;
+        while (current is not null)
+        {
+            if (current.OriginalDefinition.ToDisplayString() == KnownNames.ConfigurationLoaderMetadataName)
             {
                 return true;
             }
