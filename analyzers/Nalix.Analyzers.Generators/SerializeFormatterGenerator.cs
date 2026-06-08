@@ -358,9 +358,13 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
     private static ITypeSymbol GetSymbolType(ISymbol symbol)
         => symbol is IPropertySymbol p ? p.Type : ((IFieldSymbol)symbol).Type;
 
-    private static void GenerateBootstrapper(SourceProductionContext context, List<(string FullName, string FormatterName)> registered, string generatedNamespace)
+    private static void GenerateBootstrapper(
+        SourceProductionContext context,
+        List<(string FullName, string FormatterName)> registered,
+        string generatedNamespace)
     {
-        StringBuilder sb = new((registered.Count * 80) + 256);
+        int totalEntries = registered.Count;
+        StringBuilder sb = new((totalEntries * 80) + 512);
         _ = sb.AppendLine("using System.Runtime.CompilerServices;");
         _ = sb.AppendLine();
         _ = sb.AppendLine("#pragma warning disable CA2255");
@@ -369,6 +373,8 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
         _ = sb.AppendLine();
         _ = sb.AppendLine($"namespace {generatedNamespace};");
         _ = sb.AppendLine();
+
+        // ── SerializeFormatterGenerated bootstrapper ──
         _ = sb.AppendLine("internal static class SerializeFormatterGenerated");
         _ = sb.AppendLine("{");
         _ = sb.AppendLine("    [ModuleInitializer]");
@@ -380,6 +386,31 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
         }
         _ = sb.AppendLine("    }");
         _ = sb.AppendLine("}");
+        _ = sb.AppendLine();
+
+        // ── GeneratedFormatterRegistry for runtime lookup ──
+        _ = sb.AppendLine("internal static partial class GeneratedFormatterRegistry");
+        _ = sb.AppendLine("{");
+        _ = sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
+        _ = sb.AppendLine($"    internal static bool TryGet<T>(out global::{KnownNames.LiteSerializerNamespace}.IFormatter<T>? formatter)");
+        _ = sb.AppendLine("    {");
+
+        foreach ((string fullName, string formatterName) in registered)
+        {
+            _ = sb.AppendLine($"        if (typeof(T) == typeof({fullName}))");
+            _ = sb.AppendLine("        {");
+            _ = sb.AppendLine($"            formatter = (global::{KnownNames.LiteSerializerNamespace}.IFormatter<T>)(object)new {formatterName}();");
+            _ = sb.AppendLine("            return true;");
+            _ = sb.AppendLine("        }");
+        }
+
+        _ = sb.AppendLine();
+        _ = sb.AppendLine("        formatter = default;");
+        _ = sb.AppendLine("        return false;");
+        _ = sb.AppendLine("    }");
+        _ = sb.AppendLine("}");
+
         context.AddSource("SerializeFormatterGenerated.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
+
 }
