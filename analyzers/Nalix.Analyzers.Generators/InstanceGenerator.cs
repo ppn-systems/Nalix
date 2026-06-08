@@ -26,7 +26,7 @@ namespace Nalix.Analyzers.Generators;
 /// and service mapping registrations for classes annotated with [Injectable].
 /// </summary>
 [Generator]
-public sealed class InstanceManagerGenerator : IIncrementalGenerator
+public sealed class InstanceGenerator : IIncrementalGenerator
 {
     #region Diagnostics
 
@@ -108,6 +108,7 @@ public sealed class InstanceManagerGenerator : IIncrementalGenerator
         }
 
         string assemblyName = compilation.AssemblyName ?? "Nalix";
+        string generatedNamespace = SourceGenNamespaces.Get(distinctTargets[0]);
         string safeAssemblyName = new string(assemblyName.Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray());
 
         StringBuilder sb = new();
@@ -126,9 +127,9 @@ public sealed class InstanceManagerGenerator : IIncrementalGenerator
         _ = sb.AppendLine();
         _ = sb.AppendLine("using System.Runtime.CompilerServices;");
         _ = sb.AppendLine();
-        _ = sb.AppendLine("namespace Nalix.Framework.Injection.Generated;");
+        _ = sb.AppendLine($"namespace {generatedNamespace};");
         _ = sb.AppendLine();
-        _ = sb.AppendLine($"internal static class InstanceManagerBootstrap_{safeAssemblyName}");
+        _ = sb.AppendLine($"internal static class InstanceGenerated");
         _ = sb.AppendLine("{");
         _ = sb.AppendLine("    [ModuleInitializer]");
         _ = sb.AppendLine("    internal static void Initialize()");
@@ -237,7 +238,7 @@ public sealed class InstanceManagerGenerator : IIncrementalGenerator
         _ = sb.AppendLine("    }");
         _ = sb.AppendLine("}");
 
-        context.AddSource($"InstanceManagerBootstrap_{safeAssemblyName}.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+        context.AddSource($"InstanceGenerated.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 
     private static string BUILD_ACTIVATOR_LAMBDA(string classFullName, List<IMethodSymbol> ctors)

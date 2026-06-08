@@ -32,7 +32,8 @@ public class WebSocketConnectionTimeoutTests : IDisposable
     }
     private readonly string _certificatePath = Path.Combine(Path.GetTempPath(), $"nalix-ws-test-{Guid.NewGuid():N}.private");
 
-    private sealed class IntegrationTestProtocol : Protocol
+    [Nalix.Abstractions.Injection.Injectable]
+    internal sealed class IntegrationTestProtocol : Protocol
     {
         private sealed class NoOpFrameProcessor : IFrameProcessor
         {

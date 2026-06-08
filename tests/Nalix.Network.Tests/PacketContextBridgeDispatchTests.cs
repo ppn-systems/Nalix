@@ -81,7 +81,8 @@ public sealed class PacketContextBridgeDispatchTests
     }
 
     [PacketController]
-    private sealed class InterfaceContextController
+    [Nalix.Abstractions.Injection.Injectable]
+    internal sealed class InterfaceContextController
     {
         public static TaskCompletionSource<Control> Observed { get; private set; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -96,7 +97,8 @@ public sealed class PacketContextBridgeDispatchTests
     }
 
     [PacketController]
-    private sealed class ConcreteContextController
+    [Nalix.Abstractions.Injection.Injectable]
+    internal sealed class ConcreteContextController
     {
         public TaskCompletionSource<Control> Observed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 

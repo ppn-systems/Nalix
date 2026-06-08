@@ -110,6 +110,7 @@ internal static class TestUtils
 /// A simple protocol for integration testing that dispatches packets to the Nalix runtime.
 /// Copied from NetworkApplicationIntegrationTests to satisfy "real server" requirement in SDK tests.
 /// </summary>
+[Nalix.Abstractions.Injection.Injectable]
 public class IntegrationTestProtocol : Protocol
 {
     private readonly IPacketDispatch _dispatch;

@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.6.11822.322 stable
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Analyzers.Generators", "Nalix.Analyzers.Generators\Nalix.Analyzers.Generators.csproj", "{05E6A257-FB04-ECBA-DA4F-F5DE6B9398ED}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{05E6A257-FB04-ECBA-DA4F-F5DE6B9398ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{05E6A257-FB04-ECBA-DA4F-F5DE6B9398ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{05E6A257-FB04-ECBA-DA4F-F5DE6B9398ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{05E6A257-FB04-ECBA-DA4F-F5DE6B9398ED}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {ACC422D0-22E0-4D91-8525-70674365F1E5}
+	EndGlobalSection
+EndGlobal
