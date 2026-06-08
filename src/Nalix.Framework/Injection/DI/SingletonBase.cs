@@ -4,7 +4,6 @@
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions.Exceptions;
@@ -31,7 +30,8 @@ public abstract class SingletonBase<T> : IDisposable where T : class
         new(valueFactory: CREATE_INSTANCE_INTERNAL, LazyThreadSafetyMode.ExecutionAndPublication);
 
     /// <summary>
-    /// Compiled .ctor delegate (private/protected allowed) � built once per closed generic.
+    /// Source-generated factory delegate — retrieved once per closed generic from
+    /// <see cref="SingletonActivatorCache"/>. 100 % Native AOT safe (no JIT / Expression.Compile).
     /// </summary>
     private static readonly Func<T> s_ctor = CREATE_CONSTRUCTORS();
 
@@ -133,27 +133,17 @@ public abstract class SingletonBase<T> : IDisposable where T : class
     }
 
     /// <summary>
-    /// Builds a compiled lambda that invokes the non-public parameterless constructor of T.
-    /// This runs once per closed generic T.
+    /// Retrieves the source-generated factory delegate for <typeparamref name="T"/>
+    /// from <see cref="SingletonActivatorCache"/>.  This runs once per closed generic T.
     /// </summary>
-    /// <exception cref="MissingMethodException">Thrown when <typeparamref name="T"/> does not declare a parameterless constructor.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when no compile-time factory has been registered for <typeparamref name="T"/>.
+    /// Ensure the type is detected by the source generator and the assembly's
+    /// <c>[ModuleInitializer]</c> has completed.
+    /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static Func<T> CREATE_CONSTRUCTORS()
-    {
-        const BindingFlags Flags =
-            BindingFlags.Instance |
-            BindingFlags.NonPublic |
-            BindingFlags.Public;
-
-        ConstructorInfo ctor = typeof(T).GetConstructor(Flags, binder: null, types: Type.EmptyTypes, modifiers: null)
-            ?? throw new MissingMethodException(
-                $"Type '{typeof(T).FullName}' must declare a parameterless constructor (private/protected/public).");
-
-        // Compile: () => new T()
-        System.Linq.Expressions.Expression newExpr = System.Linq.Expressions.Expression.New(ctor);
-        System.Linq.Expressions.Expression<Func<T>> lambda = System.Linq.Expressions.Expression.Lambda<Func<T>>(newExpr);
-        return lambda.Compile(); // JIT emits direct newobj path; no reflection after the first time.
-    }
+        => SingletonActivatorCache.GetRequired<T>();
 
     #endregion Finalizer
 }

@@ -21,7 +21,11 @@ public sealed class ReportRegistry : SingletonBase<ReportRegistry>, IReportable
     /// <summary>
     /// Initializes a new instance of the <see cref="ReportRegistry"/> class.
     /// </summary>
-    private ReportRegistry()
+    /// <remarks>
+    /// Internal visibility is required for the source-generated singleton activator.
+    /// Still not publicly constructible — the class is <see langword="sealed"/>.
+    /// </remarks>
+    internal ReportRegistry()
     {
     }
 

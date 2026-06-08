@@ -46,6 +46,14 @@ public sealed class InstanceGenerator : IIncrementalGenerator
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor s_singletonNoCtorRule = new(
+        id: "NALIX062",
+        title: "SingletonBase subclass missing accessible parameterless constructor",
+        messageFormat: "SingletonBase subclass '{0}' must have a public or internal parameterless constructor for source-generated activation",
+        category: "Nalix.Framework.Injection",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
     #endregion Diagnostics
 
     #region IIncrementalGenerator Implementation
@@ -53,15 +61,32 @@ public sealed class InstanceGenerator : IIncrementalGenerator
     /// <inheritdoc/>
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
+        // ── [Injectable] types (existing) ──────────────────────────────────
         IncrementalValuesProvider<INamedTypeSymbol?> injectables = context.SyntaxProvider
             .CreateSyntaxProvider(
                 predicate: static (node, _) => node is TypeDeclarationSyntax { AttributeLists.Count: > 0 },
                 transform: static (ctx, _) => GET_INJECTABLE_TYPE(ctx))
             .Where(static symbol => symbol is not null);
 
-        IncrementalValueProvider<(Compilation Left, ImmutableArray<INamedTypeSymbol?> Right)> compilationAndInjectables = context.CompilationProvider.Combine(injectables.Collect());
+        // ── SingletonBase<T> subclasses (new) ─────────────────────────────
+        IncrementalValuesProvider<INamedTypeSymbol?> singletons = context.SyntaxProvider
+            .CreateSyntaxProvider(
+                predicate: static (node, _) => node is TypeDeclarationSyntax { BaseList: not null },
+                transform: static (ctx, _) => GET_SINGLETON_TYPE(ctx))
+            .Where(static symbol => symbol is not null);
 
-        context.RegisterSourceOutput(compilationAndInjectables, static (spc, source) => Execute(source.Left, source.Right, spc));
+        // Combine all three providers
+        IncrementalValueProvider<(
+            Compilation Compilation,
+            ImmutableArray<INamedTypeSymbol?> Injectables,
+            ImmutableArray<INamedTypeSymbol?> Singletons
+        )> combined = context.CompilationProvider
+            .Combine(injectables.Collect())
+            .Combine(singletons.Collect())
+            .Select(static (tuple, _) => (tuple.Left.Left, tuple.Left.Right, tuple.Right));
+
+        context.RegisterSourceOutput(combined, static (spc, source)
+            => Execute(source.Compilation, source.Injectables, source.Singletons, spc));
     }
 
     #endregion IIncrementalGenerator Implementation
@@ -91,25 +116,93 @@ public sealed class InstanceGenerator : IIncrementalGenerator
         return hasInjectable ? symbol : null;
     }
 
-    private static void Execute(Compilation compilation, ImmutableArray<INamedTypeSymbol?> targets, SourceProductionContext context)
+    /// <summary>
+    /// Returns the symbol if it is a concrete (non-abstract, non-generic) class
+    /// that inherits from <c>SingletonBase&lt;T&gt;</c> and is accessible from generated code
+    /// (i.e. not a private nested type).
+    /// </summary>
+    private static INamedTypeSymbol? GET_SINGLETON_TYPE(GeneratorSyntaxContext context)
     {
-        HashSet<string> seen = new();
+        if (context.Node is not TypeDeclarationSyntax typeDecl)
+        {
+            return null;
+        }
 
-        List<INamedTypeSymbol> distinctTargets = targets
+        if (context.SemanticModel.GetDeclaredSymbol(typeDecl) is not INamedTypeSymbol symbol)
+        {
+            return null;
+        }
+
+        if (symbol.IsAbstract || symbol.IsGenericType)
+        {
+            return null;
+        }
+
+        // Skip private nested types — the generated code lives in a separate class
+        // and cannot reference private nested types.
+        if (symbol.DeclaredAccessibility == Accessibility.Private)
+        {
+            return null;
+        }
+
+        return IS_SINGLETON_BASE_SUBCLASS(symbol) ? symbol : null;
+    }
+
+    /// <summary>
+    /// Walks the base-type chain looking for <c>SingletonBase&lt;T&gt;</c>.
+    /// </summary>
+    private static bool IS_SINGLETON_BASE_SUBCLASS(INamedTypeSymbol symbol)
+    {
+        INamedTypeSymbol? current = symbol.BaseType;
+
+        while (current is not null)
+        {
+            if (current.OriginalDefinition.ToDisplayString() == KnownNames.SingletonBaseMetadataName)
+            {
+                return true;
+            }
+
+            current = current.BaseType;
+        }
+
+        return false;
+    }
+
+    private static void Execute(
+        Compilation compilation,
+        ImmutableArray<INamedTypeSymbol?> injectableTargets,
+        ImmutableArray<INamedTypeSymbol?> singletonTargets,
+        SourceProductionContext context)
+    {
+        // ── Deduplicate [Injectable] targets ───────────────────────────────
+        HashSet<string> seenInjectable = new();
+
+        List<INamedTypeSymbol> distinctInjectables = injectableTargets
             .Where(static p => p is not null)
             .Select(static p => p!)
-            .Where(p => seen.Add(p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))
+            .Where(p => seenInjectable.Add(p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))
             .OrderBy(static p => p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
             .ToList();
 
-        if (distinctTargets.Count == 0)
+        // ── Deduplicate SingletonBase<T> targets (exclude those already in injectable set) ──
+        HashSet<string> seenSingleton = new();
+
+        List<INamedTypeSymbol> distinctSingletons = singletonTargets
+            .Where(static p => p is not null)
+            .Select(static p => p!)
+            .Where(p => seenSingleton.Add(p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))
+            .Where(p => !seenInjectable.Contains(p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))
+            .OrderBy(static p => p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
+            .ToList();
+
+        if (distinctInjectables.Count == 0 && distinctSingletons.Count == 0)
         {
             return;
         }
 
-        string assemblyName = compilation.AssemblyName ?? "Nalix";
-        string generatedNamespace = SourceGenNamespaces.Get(distinctTargets[0]);
-        string safeAssemblyName = new string(assemblyName.Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray());
+        // Use the first available symbol to determine the generated namespace
+        INamedTypeSymbol anySymbol = distinctInjectables.Count > 0 ? distinctInjectables[0] : distinctSingletons[0];
+        string generatedNamespace = SourceGenNamespaces.Get(anySymbol);
 
         StringBuilder sb = new();
         _ = sb.AppendLine("// <auto-generated/>");
@@ -135,110 +228,165 @@ public sealed class InstanceGenerator : IIncrementalGenerator
         _ = sb.AppendLine("    internal static void Initialize()");
         _ = sb.AppendLine("    {");
 
-        foreach (INamedTypeSymbol symbol in distinctTargets)
+        // ── [Injectable] registrations (existing logic) ────────────────────
+        foreach (INamedTypeSymbol symbol in distinctInjectables)
         {
-            string classFullName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            EMIT_INJECTABLE_REGISTRATION(sb, symbol, compilation, context);
+        }
 
-            // Filter accessible constructors (public or internal)
-            List<IMethodSymbol> ctors = symbol.InstanceConstructors
-                .Where(static c => c.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal)
-                .ToList();
-
-            if (ctors.Count == 0)
-            {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    s_noAccessibleCtorRule,
-                    symbol.Locations.FirstOrDefault() ?? Location.None,
-                    symbol.Name));
-                continue;
-            }
-
-            // Check ambiguous constructors with the same parameter count
-            bool hasAmbiguity = false;
-            IEnumerable<IGrouping<int, IMethodSymbol>> ctorsByArity = ctors.GroupBy(static c => c.Parameters.Length);
-            foreach (IGrouping<int, IMethodSymbol> group in ctorsByArity)
-            {
-                List<IMethodSymbol> groupCtors = group.ToList();
-                if (groupCtors.Count > 1)
-                {
-                    for (int i = 0; i < groupCtors.Count; i++)
-                    {
-                        for (int j = i + 1; j < groupCtors.Count; j++)
-                        {
-                            IMethodSymbol c1 = groupCtors[i];
-                            IMethodSymbol c2 = groupCtors[j];
-                            bool isDisjoint = false;
-                            for (int p = 0; p < c1.Parameters.Length; p++)
-                            {
-                                if (ARE_TYPES_DISJOINT(c1.Parameters[p].Type, c2.Parameters[p].Type, compilation))
-                                {
-                                    isDisjoint = true;
-                                    break;
-                                }
-                            }
-                            if (!isDisjoint)
-                            {
-                                context.ReportDiagnostic(Diagnostic.Create(
-                                    s_ambiguousCtorRule,
-                                    symbol.Locations.FirstOrDefault() ?? Location.None,
-                                    symbol.Name));
-                                hasAmbiguity = true;
-                                break;
-                            }
-                        }
-                        if (hasAmbiguity)
-                        {
-                            break;
-                        }
-                    }
-                }
-                if (hasAmbiguity)
-                {
-                    break;
-                }
-            }
-
-            if (hasAmbiguity)
-            {
-                continue;
-            }
-
-            // Extract distinct mapped interfaces/service types from the Injectable attributes
-            List<string> mappedServices = new();
-            foreach (AttributeData attr in symbol.GetAttributes())
-            {
-                if (attr.AttributeClass?.ToDisplayString() == KnownNames.InjectableAttributeMetadataName)
-                {
-                    if (attr.ConstructorArguments.Length > 0 &&
-                        attr.ConstructorArguments[0].Value is ITypeSymbol serviceType)
-                    {
-                        string serviceFullName = serviceType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                        mappedServices.Add(serviceFullName);
-                    }
-                }
-            }
-
-            // Register activator factory
-            string activatorLambda = BUILD_ACTIVATOR_LAMBDA(classFullName, ctors);
-            _ = sb.AppendLine($"        global::{KnownNames.InstanceManagerMetadataName}.RegisterActivator(");
-            _ = sb.AppendLine($"            typeof({classFullName}),");
-            _ = sb.AppendLine($"            {activatorLambda});");
-            _ = sb.AppendLine();
-
-            // Register service mappings
-            foreach (string serviceName in mappedServices.Distinct())
-            {
-                _ = sb.AppendLine($"        global::{KnownNames.InstanceManagerMetadataName}.RegisterServiceMapping(");
-                _ = sb.AppendLine($"            typeof({classFullName}),");
-                _ = sb.AppendLine($"            typeof({serviceName}));");
-                _ = sb.AppendLine();
-            }
+        // ── SingletonBase<T> factory registrations (new) ──────────────────
+        foreach (INamedTypeSymbol symbol in distinctSingletons)
+        {
+            EMIT_SINGLETON_REGISTRATION(sb, symbol, context);
         }
 
         _ = sb.AppendLine("    }");
         _ = sb.AppendLine("}");
 
-        context.AddSource($"InstanceGenerated.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+        context.AddSource("InstanceGenerated.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+    }
+
+    /// <summary>
+    /// Emits <c>InstanceManager.RegisterActivator(…)</c> and service-mapping lines
+    /// for an <c>[Injectable]</c>-annotated type.
+    /// </summary>
+    private static void EMIT_INJECTABLE_REGISTRATION(
+        StringBuilder sb,
+        INamedTypeSymbol symbol,
+        Compilation compilation,
+        SourceProductionContext context)
+    {
+        string classFullName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+        // Filter accessible constructors (public or internal)
+        List<IMethodSymbol> ctors = symbol.InstanceConstructors
+            .Where(static c => c.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal)
+            .ToList();
+
+        if (ctors.Count == 0)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                s_noAccessibleCtorRule,
+                symbol.Locations.FirstOrDefault() ?? Location.None,
+                symbol.Name));
+            return;
+        }
+
+        // Check ambiguous constructors with the same parameter count
+        bool hasAmbiguity = false;
+        IEnumerable<IGrouping<int, IMethodSymbol>> ctorsByArity = ctors.GroupBy(static c => c.Parameters.Length);
+        foreach (IGrouping<int, IMethodSymbol> group in ctorsByArity)
+        {
+            List<IMethodSymbol> groupCtors = group.ToList();
+            if (groupCtors.Count > 1)
+            {
+                for (int i = 0; i < groupCtors.Count; i++)
+                {
+                    for (int j = i + 1; j < groupCtors.Count; j++)
+                    {
+                        IMethodSymbol c1 = groupCtors[i];
+                        IMethodSymbol c2 = groupCtors[j];
+                        bool isDisjoint = false;
+                        for (int p = 0; p < c1.Parameters.Length; p++)
+                        {
+                            if (ARE_TYPES_DISJOINT(c1.Parameters[p].Type, c2.Parameters[p].Type, compilation))
+                            {
+                                isDisjoint = true;
+                                break;
+                            }
+                        }
+                        if (!isDisjoint)
+                        {
+                            context.ReportDiagnostic(Diagnostic.Create(
+                                s_ambiguousCtorRule,
+                                symbol.Locations.FirstOrDefault() ?? Location.None,
+                                symbol.Name));
+                            hasAmbiguity = true;
+                            break;
+                        }
+                    }
+                    if (hasAmbiguity)
+                    {
+                        break;
+                    }
+                }
+            }
+            if (hasAmbiguity)
+            {
+                break;
+            }
+        }
+
+        if (hasAmbiguity)
+        {
+            return;
+        }
+
+        // Extract distinct mapped interfaces/service types from the Injectable attributes
+        List<string> mappedServices = new();
+        foreach (AttributeData attr in symbol.GetAttributes())
+        {
+            if (attr.AttributeClass?.ToDisplayString() == KnownNames.InjectableAttributeMetadataName)
+            {
+                if (attr.ConstructorArguments.Length > 0 &&
+                    attr.ConstructorArguments[0].Value is ITypeSymbol serviceType)
+                {
+                    string serviceFullName = serviceType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                    mappedServices.Add(serviceFullName);
+                }
+            }
+        }
+
+        // Register activator factory
+        string activatorLambda = BUILD_ACTIVATOR_LAMBDA(classFullName, ctors);
+        _ = sb.AppendLine($"        global::{KnownNames.InstanceManagerMetadataName}.RegisterActivator(");
+        _ = sb.AppendLine($"            typeof({classFullName}),");
+        _ = sb.AppendLine($"            {activatorLambda});");
+        _ = sb.AppendLine();
+
+        // Register service mappings
+        foreach (string serviceName in mappedServices.Distinct())
+        {
+            _ = sb.AppendLine($"        global::{KnownNames.InstanceManagerMetadataName}.RegisterServiceMapping(");
+            _ = sb.AppendLine($"            typeof({classFullName}),");
+            _ = sb.AppendLine($"            typeof({serviceName}));");
+            _ = sb.AppendLine();
+        }
+    }
+
+    /// <summary>
+    /// Emits <c>SingletonActivatorCache.Register(…)</c> for a <c>SingletonBase&lt;T&gt;</c> subclass.
+    /// Requires a parameterless constructor that is accessible from the generated code
+    /// (i.e. <see langword="public"/> or <see langword="internal"/>).
+    /// </summary>
+    private static void EMIT_SINGLETON_REGISTRATION(
+        StringBuilder sb,
+        INamedTypeSymbol symbol,
+        SourceProductionContext context)
+    {
+        string classFullName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+        // The generated code lives in InstanceGenerated (same assembly) so it can
+        // access public and internal parameterless constructors.
+        IMethodSymbol? parameterlessCtor = symbol.InstanceConstructors
+            .FirstOrDefault(static c =>
+                c.Parameters.Length == 0 &&
+                c.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal);
+
+        if (parameterlessCtor is null)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                s_singletonNoCtorRule,
+                symbol.Locations.FirstOrDefault() ?? Location.None,
+                symbol.Name));
+            return;
+        }
+
+        _ = sb.AppendLine($"        // SingletonBase<T> factory: {symbol.Name}");
+        _ = sb.AppendLine($"        global::{KnownNames.SingletonActivatorCacheMetadataName}.Register(");
+        _ = sb.AppendLine($"            typeof({classFullName}),");
+        _ = sb.AppendLine($"            static () => new {classFullName}());");
+        _ = sb.AppendLine();
     }
 
     private static string BUILD_ACTIVATOR_LAMBDA(string classFullName, List<IMethodSymbol> ctors)

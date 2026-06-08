@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
@@ -27,7 +28,7 @@ namespace Nalix.Runtime.Handlers;
 [PacketController("Nalix.Session")]
 public static partial class SessionHandlers
 {
-    [global::Nalix.Abstractions.Injection.Inject]
+    [Inject]
     private static ISessionService s_sessionService = null!;
 
     /// <summary>
