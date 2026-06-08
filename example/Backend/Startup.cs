@@ -27,7 +27,7 @@ internal class Startup
 
     public static ILogger CreateBootstrapLogger() => new NLogixBuilder()
         .AddTarget(new BatchConsoleLogTarget(t => t.EnableColors = false))
-        .SetMinimumLevel(LogLevel.Debug)
+        .SetMinimumLevel(LogLevel.Information)
         .Build();
 
     public static NetworkApplication Configure(ILogger logger)
@@ -245,9 +245,10 @@ internal class Startup
             })
             .Configure<TokenBucketOptions>(o =>
             {
-                // Raise global rate limiter capacity and refill rate to prevent lockouts during local load testing.
-                o.CapacityTokens = 10_000;
-                o.RefillTokensPerSecond = 5_000.0;
+                // Production rate limiter (Limits per IP Address).
+                // Prevents a single IP from spamming packets.
+                o.CapacityTokens = 1_000;
+                o.RefillTokensPerSecond = 100.0;
                 o.HardLockoutSeconds = 30;
             })
             .Configure<ConnectionQuotaOptions>(o =>
