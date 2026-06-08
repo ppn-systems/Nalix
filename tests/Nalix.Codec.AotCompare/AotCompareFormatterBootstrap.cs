@@ -1,7 +1,3 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
-// Licensed under the Apache License, Version 2.0.
-
-#if NALIX_AOT
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
@@ -13,6 +9,7 @@ using Nalix.Codec.DataFrames;
 using Nalix.Environment.Extensions;
 using Nalix.Environment.Memory;
 using Nalix.Codec.Serialization;
+using Nalix.Codec.Extensions;
 
 internal static class AotCompareFormatterBootstrap
 {
@@ -42,12 +39,12 @@ internal static class AotCompareFormatterBootstrap
         FormatterProvider.Register(new NodeMetaFormatter());
     }
 
-    private static void RegisterPacket<T>(PacketFormatter<T> formatter) where T : PacketBase<T>, new()
+    private static void RegisterPacket<T>(PacketFormatter<T> formatter) where T : PacketBase<T>, IPacketStaticOpcode, new()
     {
         FormatterProvider.RegisterComplex(formatter);
     }
 
-    private abstract class PacketFormatter<T> : IFormatter<T>, IFillableFormatter<T> where T : PacketBase<T>, new()
+    private abstract class PacketFormatter<T> : IFormatter<T>, IFillableFormatter<T> where T : PacketBase<T>, IPacketStaticOpcode, new()
     {
         public abstract void Serialize(ref DataWriter writer, in T value);
         public abstract T Deserialize(ref DataReader reader);
@@ -443,4 +440,3 @@ internal static class AotCompareFormatterBootstrap
         }
     }
 }
-#endif

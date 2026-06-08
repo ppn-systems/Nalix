@@ -156,7 +156,6 @@ public static class FormatterProvider
         Register(new NullableFormatter<ulong>());
         Register(new NullableArrayFormatter<ulong>());
 
-#if !NALIX_AOT
         if (s_listener?.IsEnabled(DiagnosticsEvents.Serialization.Initialization) == true)
         {
             string elapsed = s_sw.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture);
@@ -166,7 +165,6 @@ public static class FormatterProvider
                     "CD.FormatterProvider:Internal",
                     $"initialized elapsed-ms={elapsed} total={s_cntTotal} primitives={s_cntPrimitives} nullables={s_cntNullables} arrays={s_cntArrays} nullable-arrays={s_cntNullableArrays} lists={s_cntLists} enums={s_cntEnums} strings={s_cntStrings}"));
         }
-#endif
     }
 
     #endregion Static Constructor

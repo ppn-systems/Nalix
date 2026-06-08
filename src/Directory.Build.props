@@ -12,10 +12,6 @@
 		<BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)..\build\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
 	</PropertyGroup>
 
-	<!-- Auto-define NALIX_AOT when Native AOT publishing is enabled -->
-	<PropertyGroup Condition="'$(PublishAot)' == 'true'">
-		<DefineConstants>$(DefineConstants);NALIX_AOT</DefineConstants>
-	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)' == 'Debug'">
 		<DebugType>embedded</DebugType>

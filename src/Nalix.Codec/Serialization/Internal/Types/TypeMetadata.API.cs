@@ -7,7 +7,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 
 #if DEBUG
@@ -108,8 +107,7 @@ internal static partial class TypeMetadata
         [DynamicallyAccessedMembers(
             DynamicallyAccessedMemberTypes.PublicFields |
             DynamicallyAccessedMemberTypes.NonPublicFields)] Type type,
-        HashSet<Type>? visited = null,
-        bool warmCurrentType = false)
+        HashSet<Type>? visited = null)
     {
         // Walk the transitive closure of field types so formatter registration can be
         // preheated without revisiting the same type over and over.
@@ -123,60 +121,6 @@ internal static partial class TypeMetadata
         // root formatter. Re-entering FormatterProvider.Get<T>() for that same root type
         // would instantiate the formatter again and recurse forever for value types such
         // as Snowflake. Only dependency types should be proactively warmed here.
-#if !NALIX_AOT
-        if (warmCurrentType && !type.IsPrimitive && !type.IsEnum && type != typeof(string))
-        {
-            _ = typeof(FormatterProvider).GetMethod("Get")!.MakeGenericMethod(type).Invoke(null, null);
-        }
-#endif
-
-        if (type.IsPrimitive || type.IsEnum || type == typeof(string))
-        {
-            return;
-        }
-
-#if NALIX_AOT
-        return;
-#else
-        if (type.IsArray)
-        {
-            // Arrays depend on their element type, so recurse into that instead of the wrapper.
-            RecursiveWarmupFields(type.GetElementType()!, visited, warmCurrentType: true);
-            return;
-        }
-        if (type.IsGenericType)
-        {
-            Type def = type.GetGenericTypeDefinition();
-            foreach (Type ga in type.GetGenericArguments())
-            {
-                // Generic arguments may themselves need formatter warmup.
-                RecursiveWarmupFields(ga, visited, warmCurrentType: true);
-            }
-
-            // Standard collections (Dictionary, List, etc.) have specialized formatters
-            // and should NOT have their internal fields (like Dictionary.Entry) scanned.
-            if (def == typeof(List<>) ||
-                def == typeof(Dictionary<,>) ||
-                def == typeof(HashSet<>) ||
-                def == typeof(Queue<>) ||
-                def == typeof(Stack<>))
-            {
-                return;
-            }
-        }
-
-        foreach (FieldInfo field in type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
-        {
-            if (field.FieldType == type)
-            {
-                // Self-referential fields are legal, but we skip them to avoid infinite recursion.
-                continue;
-            }
-
-            // Recurse into nested field types so the full graph is warmed, not just the root type.
-            RecursiveWarmupFields(field.FieldType, visited, warmCurrentType: true);
-        }
-#endif
     }
 
     #endregion Private Method
