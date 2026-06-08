@@ -19,6 +19,7 @@ using Nalix.Environment.Time;
 using Nalix.Network.Internal.Security;
 using Nalix.Network.Internal.Transport;
 using Nalix.Network.Options;
+using Nalix.Abstractions.Injection;
 
 namespace Nalix.Network.RateLimiting;
 
@@ -29,6 +30,7 @@ namespace Nalix.Network.RateLimiting;
 /// plus a <see cref="System.Collections.Concurrent.ConcurrentQueue{T}"/> for rate-window tracking.
 /// Supports automatic cleanup of stale entries to bound memory usage.
 /// </summary>
+[Injectable]
 [SkipLocalsInit]
 [DebuggerNonUserCode]
 public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable

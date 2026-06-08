@@ -16,6 +16,7 @@ using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
+using Nalix.Abstractions.Injection;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Options;
@@ -29,6 +30,7 @@ namespace Nalix.Framework.Tasks;
 [DebuggerNonUserCode]
 [SkipLocalsInit]
 [DebuggerDisplay("TaskManager (Workers={_workers.Count}, Recurring={_recurring.Count})")]
+[Injectable(typeof(ITaskManager))]
 public sealed partial class TaskManager : ITaskManager, IDisposable
 {
     #region Fields

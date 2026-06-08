@@ -11,6 +11,7 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Runtime.Options;
@@ -22,8 +23,9 @@ namespace Nalix.Runtime.Throttling;
 /// using Stopwatch ticks for time arithmetic and fixed-point token precision.
 /// Provides precise Retry-After and Credit for client backoff and flow control.
 /// </summary>
-[DebuggerNonUserCode]
+[Injectable]
 [SkipLocalsInit]
+[DebuggerNonUserCode]
 public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReportable
 {
 

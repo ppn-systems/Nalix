@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Diagnostics;
+using Nalix.Abstractions.Injection;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Internal.Buffers;
@@ -26,6 +27,7 @@ namespace Nalix.Framework.Memory.Buffers;
 /// ArrayPool when a requested size cannot be satisfied by a managed pool.
 /// </summary>
 [DebuggerNonUserCode]
+[Injectable(typeof(IBufferPoolManager))]
 public sealed partial class BufferPoolManager : IBufferPoolManager, IDisposable
 {
     #region Fields & Constants

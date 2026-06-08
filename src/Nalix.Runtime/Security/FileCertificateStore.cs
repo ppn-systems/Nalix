@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Security.Asymmetric;
@@ -14,6 +15,7 @@ namespace Nalix.Runtime.Security;
 /// <summary>
 /// Implements <see cref="ICertificateStore"/> using the local file system.
 /// </summary>
+[Injectable(typeof(ICertificateStore))]
 public sealed class FileCertificateStore : ICertificateStore
 {
     /// <inheritdoc/>

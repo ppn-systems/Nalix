@@ -19,6 +19,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
+using Nalix.Abstractions.Injection;
 using Nalix.Network.Options;
 
 #if DEBUG
@@ -70,6 +71,7 @@ namespace Nalix.Network.Internal.Time;
 /// </code>
 /// </example>
 /// <seealso cref="IActivatable"/>
+[Injectable]
 [SkipLocalsInit]
 [DebuggerNonUserCode]
 internal sealed class TimingWheel : IActivatable
