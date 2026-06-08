@@ -59,12 +59,22 @@ public sealed class SingletonTests : IDisposable
     [Fact]
     public void SingletonRegisterInterfaceWithoutFactoryThenResolveCreatesImplementation()
     {
-        Singleton.Register<IService, DefaultService>();
+        Singleton.Register<IService, DefaultService>(() => new DefaultService());
 
         IService? resolved = Singleton.Resolve<IService>();
 
         Assert.NotNull(resolved);
         Assert.Equal("default", resolved!.Name);
+    }
+
+    [Fact]
+    public void SingletonRegisterInterfaceWithoutFactoryOrActivatorThrowsInvalidOperationException()
+    {
+        Singleton.Register<IService, DefaultService>();
+
+        // Must fail fast — no generated activator exists for DefaultService
+        // (it is a private nested test class, not [Injectable] or SingletonBase<T>).
+        Assert.Throws<InvalidOperationException>(() => Singleton.Resolve<IService>());
     }
 
     [Fact]

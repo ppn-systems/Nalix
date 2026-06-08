@@ -55,4 +55,32 @@ public static class SingletonActivatorCache
             "Ensure the type is annotated or detected by the source generator, " +
             "and that the containing assembly has finished its [ModuleInitializer] registration.");
     }
+
+    /// <summary>
+    /// Retrieves the registered factory for the given <paramref name="type"/> or throws.
+    /// This is the AOT-safe runtime lookup used by <see cref="Singleton"/> when resolving
+    /// interface-to-implementation mappings. Zero reflection.
+    /// </summary>
+    /// <param name="type">The concrete implementation type.</param>
+    /// <returns>The factory delegate registered by source-generated code.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when no source-generated activator exists for <paramref name="type"/>.
+    /// </exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Func<object> GetRequired(Type type)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+
+        // Fast path: registered by source-generated [ModuleInitializer] code.
+        if (s_factories.TryGetValue(type.TypeHandle, out Func<object>? factory))
+        {
+            return factory;
+        }
+
+        throw new InvalidOperationException(
+            $"No source-generated activator was found for type '{type.FullName}'. " +
+            "Ensure the type is annotated with [Injectable] or detected by the source generator " +
+            "as a SingletonBase<T> subclass, and that the containing assembly has finished " +
+            "its [ModuleInitializer] registration.");
+    }
 }

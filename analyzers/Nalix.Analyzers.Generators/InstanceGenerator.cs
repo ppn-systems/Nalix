@@ -352,6 +352,23 @@ public sealed class InstanceGenerator : IIncrementalGenerator
             _ = sb.AppendLine($"            typeof({serviceName}));");
             _ = sb.AppendLine();
         }
+
+        // Also register a parameterless factory in SingletonActivatorCache so that
+        // Singleton.Register<TInterface, TImplementation>() can resolve the implementation
+        // without reflection (Activator.CreateInstance). Only emitted when a
+        // public/internal parameterless constructor exists.
+        IMethodSymbol? parameterlessCtor = symbol.InstanceConstructors
+            .FirstOrDefault(static c =>
+                c.Parameters.Length == 0 &&
+                c.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal);
+
+        if (parameterlessCtor is not null)
+        {
+            _ = sb.AppendLine($"        global::{KnownNames.SingletonActivatorCacheMetadataName}.Register(");
+            _ = sb.AppendLine($"            typeof({classFullName}),");
+            _ = sb.AppendLine($"            static () => new {classFullName}());");
+            _ = sb.AppendLine();
+        }
     }
 
     /// <summary>
