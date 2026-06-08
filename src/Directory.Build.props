@@ -10,6 +10,7 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)..\build\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 	</PropertyGroup>
 
 
