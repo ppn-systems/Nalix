@@ -32,8 +32,7 @@ namespace Nalix.Runtime.Handlers;
 /// Provides handlers for the default server-side X25519 handshake protocol.
 /// </summary>
 [PacketController("Nalix.Handshake")]
-[Nalix.Abstractions.Injection.Injectable]
-public sealed class HandshakeHandlers
+public static partial class HandshakeHandlers
 {
     #region APIs
 
@@ -253,8 +252,11 @@ public sealed class HandshakeHandlers
     /// </summary>
     public static Bytes32 ServerPublicKey => s_serverPublicKey;
 
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-    private static readonly ISessionService? s_sessionService = InstanceManager.Instance.GetExistingInstance<ISessionService>();
+    [global::Nalix.Abstractions.Injection.Inject]
+    private static ObjectPoolManager s_pool = null!;
+
+    [global::Nalix.Abstractions.Injection.Inject]
+    private static ISessionService? s_sessionService;
 
     #endregion Fields
 

@@ -227,29 +227,18 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddMetadataProvider<TProvider>()
-        where TProvider : class, IPacketMetadataProvider
+    public INetworkApplicationBuilder AddHandler(Type controllerType)
     {
-        _state.MetadataProviders.Add(new PacketMetadataProviderDescriptor(
-            typeof(TProvider),
-            () => (IPacketMetadataProvider)InstanceManager.Instance.CreateInstance(typeof(TProvider))));
+        ArgumentNullException.ThrowIfNull(controllerType);
+
+        _state.Handlers.Add(new HandlerDescriptor(
+            controllerType,
+            () => InstanceManager.Instance.CreateInstanceWithInjection(controllerType)));
 
         return this;
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddMetadataProvider<TProvider>(Func<TProvider> factory)
-        where TProvider : class, IPacketMetadataProvider
-    {
-        ArgumentNullException.ThrowIfNull(factory);
-
-        _state.MetadataProviders.Add(new PacketMetadataProviderDescriptor(
-            typeof(TProvider),
-            () => factory()));
-
-        return this;
-    }
-
     /// <inheritdoc />
     public IProtocolBindingBuilder BindTcp<TProtocol>() where TProtocol : class, IProtocol
     {
@@ -424,7 +413,6 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
             ServiceRegistrar.RegisterLogger(_state);
             ServiceRegistrar.RegistererConnectionHub(_state);
-            ServiceRegistrar.RegisterMetadataProviders(_state);
             ServiceRegistrar.RegistererBufferPoolManager(_state);
         }
     }
@@ -465,8 +453,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
             foreach (HandlerDescriptor registration in ResolveHandlerRegistrations(state))
             {
-                _ = s_registerHandlerMethod.MakeGenericMethod(registration.HandlerType)
-                                           .Invoke(obj: null, parameters: [dispatchOptions, registration.Factory]);
+                _ = s_registerHandlerMethod.Invoke(obj: null, parameters: [dispatchOptions, registration.HandlerType, registration.Factory]);
             }
         }
 

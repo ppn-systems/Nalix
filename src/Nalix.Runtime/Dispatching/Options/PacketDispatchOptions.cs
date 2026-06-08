@@ -11,6 +11,7 @@ using Nalix.Framework.Memory.Objects;
 using Nalix.Runtime.Internal.Compilation;
 using Nalix.Runtime.Middleware;
 using Nalix.Runtime.Options;
+using Nalix.Runtime.Dispatching;
 
 namespace Nalix.Runtime.Routing;
 
@@ -21,7 +22,7 @@ namespace Nalix.Runtime.Routing;
 /// <typeparam name="TPacket">The type of packet being dispatched.</typeparam>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
-public sealed partial class PacketDispatchOptions<TPacket> where TPacket : IPacket
+public sealed partial class PacketDispatchOptions<TPacket> : IPacketHandlerBuilder<TPacket> where TPacket : IPacket
 {
     #region Fields
 

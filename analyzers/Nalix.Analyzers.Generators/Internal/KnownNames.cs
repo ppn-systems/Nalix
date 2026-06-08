@@ -20,6 +20,15 @@ internal class KnownNames
     public const string InjectableAttributeName = "InjectableAttribute";
     public const string InjectableAttributeMetadataName = "Nalix.Abstractions.Injection.InjectableAttribute";
     public const string InstanceManagerMetadataName = "Nalix.Framework.Injection.InstanceManager";
+    public const string PacketControllerAttributeMetadataName = "Nalix.Abstractions.Networking.Packets.PacketControllerAttribute";
+    public const string InjectAttributeMetadataName = "Nalix.Abstractions.Injection.InjectAttribute";
+    public const string PacketOpcodeAttributeMetadataName = "Nalix.Abstractions.Networking.Packets.PacketOpcodeAttribute";
+    public const string PacketTimeoutAttributeMetadataName = "Nalix.Abstractions.Networking.Packets.PacketTimeoutAttribute";
+    public const string PacketPermissionAttributeMetadataName = "Nalix.Abstractions.Networking.Packets.PacketPermissionAttribute";
+    public const string PacketEncryptionAttributeMetadataName = "Nalix.Abstractions.Networking.Packets.PacketEncryptionAttribute";
+    public const string PacketRateLimitAttributeMetadataName = "Nalix.Abstractions.Networking.Packets.PacketRateLimitAttribute";
+    public const string PacketConcurrencyLimitAttributeMetadataName = "Nalix.Abstractions.Networking.Packets.PacketConcurrencyLimitAttribute";
+    public const string PacketTransportAttributeMetadataName = "Nalix.Abstractions.Networking.Packets.PacketTransportAttribute";
 
     // Types
     public const string IniCommentShort = "IniComment";

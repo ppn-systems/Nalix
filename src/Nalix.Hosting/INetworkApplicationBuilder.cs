@@ -135,19 +135,13 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder AddHandler<THandler>(Func<THandler> factory) where THandler : class;
 
     /// <summary>
-    /// Adds a packet metadata provider using the default Nalix activator.
+    /// Adds a packet controller type directly (primarily for static classes).
     /// </summary>
-    /// <typeparam name="TProvider">The metadata provider type to register.</typeparam>
+    /// <param name="controllerType">The type of the controller to register.</param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddMetadataProvider<TProvider>() where TProvider : class, IPacketMetadataProvider;
+    INetworkApplicationBuilder AddHandler(Type controllerType);
 
-    /// <summary>
-    /// Adds a packet metadata provider using an explicit factory.
-    /// </summary>
-    /// <typeparam name="TProvider">The metadata provider type to register.</typeparam>
-    /// <param name="factory">The factory used to create provider instances.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddMetadataProvider<TProvider>(Func<TProvider> factory) where TProvider : class, IPacketMetadataProvider;
+
 
     /// <summary>
     /// Binds a TCP protocol using a fluent builder for port and factory configuration.

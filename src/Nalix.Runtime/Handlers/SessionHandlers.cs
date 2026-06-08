@@ -25,18 +25,10 @@ namespace Nalix.Runtime.Handlers;
 /// Handles dedicated session resume packets.
 /// </summary>
 [PacketController("Nalix.Session")]
-[Nalix.Abstractions.Injection.Injectable]
-public sealed class SessionHandlers
+public static partial class SessionHandlers
 {
-    private readonly ISessionService _sessionService;
-
-    /// <inheritdoc/>
-    public SessionHandlers(ISessionService sessionService)
-    {
-        ArgumentNullException.ThrowIfNull(sessionService);
-
-        _sessionService = sessionService;
-    }
+    [global::Nalix.Abstractions.Injection.Inject]
+    private static ISessionService s_sessionService = null!;
 
     /// <summary>
     /// Handles a session resume request and restores the connection state when the token is valid.
@@ -47,7 +39,7 @@ public sealed class SessionHandlers
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode(ProtocolOpCode.SESSION_SIGNAL)]
-    public async ValueTask HandleAsync(IPacketContext<SessionResume> context)
+    public static async ValueTask HandleAsync(IPacketContext<SessionResume> context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -83,7 +75,7 @@ public sealed class SessionHandlers
         // SEC-33: Use ConsumeAsync for atomic retrieve-and-remove to prevent TOCTOU race.
         // Two parallel requests with the same token: only the first gets the entry,
         // the second gets null because TryRemove is atomic.
-        SessionEntry? session = await _sessionService.ConsumeAsync(packet.SessionToken)
+        SessionEntry? session = await s_sessionService.ConsumeAsync(packet.SessionToken)
                                                      .ConfigureAwait(false);
         if (session == null)
         {
@@ -158,7 +150,7 @@ public sealed class SessionHandlers
             }
         }
 
-        await _sessionService.SaveSessionAsync(connection).ConfigureAwait(false);
+        await s_sessionService.SaveSessionAsync(connection).ConfigureAwait(false);
 
         ulong newToken = connection.ID.ToUInt64();
         Snowflake newTokenSnowflake = Snowflake.NewId(newToken);

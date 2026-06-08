@@ -38,10 +38,7 @@ internal sealed class HostingBuilderContext
     /// </summary>
     public List<HandlerDescriptor> Handlers { get; } = [];
 
-    /// <summary>
-    /// Gets the packet metadata providers used during routing and dispatch.
-    /// </summary>
-    public List<PacketMetadataProviderDescriptor> MetadataProviders { get; } = [];
+
 
     /// <summary>
     /// Gets the TCP protocol bindings configured for the host.
@@ -164,18 +161,7 @@ internal sealed record HandlerDescriptor(
     Type HandlerType,
     Func<object> Factory);
 
-/// <summary>
-/// Describes a packet metadata provider registration.
-/// </summary>
-/// <param name="ProviderType">
-/// The metadata provider type.
-/// </param>
-/// <param name="Factory">
-/// A factory delegate used to create the metadata provider instance.
-/// </param>
-internal sealed record PacketMetadataProviderDescriptor(
-    Type ProviderType,
-    Func<IPacketMetadataProvider> Factory);
+
 
 /// <summary>
 /// Represents a binding between a TCP transport and a protocol implementation.
