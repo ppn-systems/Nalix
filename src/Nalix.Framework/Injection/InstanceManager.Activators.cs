@@ -39,12 +39,40 @@ public sealed partial class InstanceManager
         return targets;
     }
 
-    private static class GenericSlot<T>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Func<object?[], object>> s_preRegisteredActivators = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, System.Collections.Generic.List<Type>> s_preRegisteredServiceMappings = new();
+
+    /// <summary>
+    /// Registers a compile-time activation factory for a concrete class type.
+    /// </summary>
+    /// <param name="type">The concrete class type.</param>
+    /// <param name="factory">The factory delegate.</param>
+    public static void RegisterActivator(Type type, Func<object?[], object> factory)
     {
-        /// <summary>
-        /// Published with Volatile.Write for cross-thread visibility
-        /// </summary>
-        public static object? Value;
+        ArgumentNullException.ThrowIfNull(type);
+        ArgumentNullException.ThrowIfNull(factory);
+
+        s_preRegisteredActivators[type] = factory;
+    }
+
+    /// <summary>
+    /// Registers a compile-time service mapping between a concrete type and its interface.
+    /// </summary>
+    /// <param name="concreteType">The concrete class type.</param>
+    /// <param name="serviceType">The service interface or base type.</param>
+    public static void RegisterServiceMapping(Type concreteType, Type serviceType)
+    {
+        ArgumentNullException.ThrowIfNull(concreteType);
+        ArgumentNullException.ThrowIfNull(serviceType);
+
+        System.Collections.Generic.List<Type> list = s_preRegisteredServiceMappings.GetOrAdd(concreteType, _ => new System.Collections.Generic.List<Type>());
+        lock (list)
+        {
+            if (!list.Contains(serviceType))
+            {
+                list.Add(serviceType);
+            }
+        }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -81,7 +109,6 @@ public sealed partial class InstanceManager
             }
 
             // Return the already-stored instance
-            TRY_PUBLISH_SLOT_BY_TYPE(type, stored);
             return stored;
         }
         // We successfully stored the created instance: track disposable and log.
@@ -97,78 +124,7 @@ public sealed partial class InstanceManager
 
         this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:Internal", $"created-signature type={type.Name}");
 
-        TRY_PUBLISH_SLOT_BY_TYPE(type, created);
-
         return created;
-    }
-
-    private static bool TRY_GET_FROM_GENERIC_SLOT<T>(out T? value) where T : class
-    {
-        // GenericSlot is not safe for replacement in multi-threaded test environments.
-        // We rely on the monotonic L1 cache (ThreadStatic) instead.
-        value = null;
-        return false;
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void TRY_PUBLISH_SLOT_BY_TYPE(Type type, object instance)
-    {
-        try
-        {
-            // Publish for the exact type
-            Type gslot = typeof(InstanceManager)
-                .GetNestedType("GenericSlot`1", BindingFlags.NonPublic | BindingFlags.Static)!
-                .MakeGenericType(type);
-            FieldInfo fld = gslot.GetField("Value", BindingFlags.Public | BindingFlags.Static)!;
-            fld.SetValue(null, instance);
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            // Non-fatal: reflection may fail in trimmed / restricted environments.
-            // attempt safe access if possible
-            // If we cannot get instance, ignore; otherwise log.
-            // We cannot call LogEvent here directly (static context) reliably, so swallow or let caller log if needed.
-            _ = Instance;
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void PUBLISH_TO_INTERFACE_SLOT(Type iface, object instance)
-    {
-        // Invoke the generic PublishGenericSlot<T>(object) via reflection.
-        MethodInfo method = typeof(InstanceManager)
-            .GetMethod(nameof(PUBLISH_GENERIC_SLOT), BindingFlags.NonPublic | BindingFlags.Static)!
-            .MakeGenericMethod(iface);
-        // Use proper parameter array and catch exceptions.
-        try
-        {
-            _ = method.Invoke(null, [instance]);
-        }
-        catch (TargetInvocationException tie) when (tie.InnerException != null)
-        {
-            throw tie.InnerException;
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static void PUBLISH_GENERIC_SLOT<T>(object instance) => Volatile.Write(ref GenericSlot<T>.Value, instance);
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void CLEAR_GENERIC_SLOT(Type type)
-    {
-        try
-        {
-            Type gslot = typeof(InstanceManager)
-                .GetNestedType("GenericSlot`1", BindingFlags.NonPublic | BindingFlags.Static)!
-                .MakeGenericType(type);
-
-            FieldInfo fld = gslot.GetField("Value", BindingFlags.Public | BindingFlags.Static)!;
-            fld.SetValue(null, null);
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            // ignore: best-effort clearing of generic slot
-        }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -245,19 +201,12 @@ public sealed partial class InstanceManager
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private object CREATE_VIA_ACTIVATOR(Type type, object?[] args)
     {
-        ActivatorKey sigKey = new(type, args);
-        if (!_activatorCache.TryGetValue(sigKey, out Func<object?[], object>? factory))
+        if (s_preRegisteredActivators.TryGetValue(type, out Func<object?[], object>? factory))
         {
-            this.THROW_IF_CACHE_LIMIT_REACHED(
-                _activatorCache.Count,
-                MaxActivatorFactories,
-                nameof(_activatorCache));
-
-            ConstructorInfo ctor = RESOLVE_BEST_CONSTRUCTOR(type, args);
-            factory = BUILD_DYNAMIC_FACTORY(type, ctor);
-            _ = _activatorCache.TryAdd(sigKey, factory);
+            return factory(args);
         }
-        return factory(args);
+
+        throw new InvalidOperationException($"Type {type.FullName} is not registered for source-generation-only activation. Ensure it is annotated with [Injectable] and its containing assembly is loaded.");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -284,143 +233,6 @@ public sealed partial class InstanceManager
             string.Create(
                 CultureInfo.InvariantCulture,
                 $"InstanceManager cache limit reached for {cacheName}: {currentCount}/{maxCount}. Call Lockdown() after startup or reduce dynamic service creation."));
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static ConstructorInfo RESOLVE_BEST_CONSTRUCTOR(Type type, object?[] args)
-    {
-        if (args.Length == 0)
-        {
-            ConstructorInfo? c0 = type.GetConstructor(Type.EmptyTypes);
-            if (c0 != null)
-            {
-                return c0;
-            }
-        }
-
-        // Manual scan – no LINQ, prefer exact match then compatible.
-        ConstructorInfo? best = null;
-        int bestScore = int.MinValue;
-
-        ConstructorInfo[] ctors = type.GetConstructors(
-            BindingFlags.Public |
-            BindingFlags.Instance |
-            BindingFlags.NonPublic);
-
-        for (int i = 0; i < ctors.Length; i++)
-        {
-            ConstructorInfo c = ctors[i];
-            ParameterInfo[] ps = c.GetParameters();
-            if (ps.Length != args.Length)
-            {
-                continue;
-            }
-
-            int score = 0;
-            for (int j = 0; j < ps.Length; j++)
-            {
-                Type p = ps[j].ParameterType;
-                Type? a = args[j]?.GetType();
-
-                if (a == null)
-                {
-                    // Reference types and Nullable<T> can accept null.
-                    if (!p.IsValueType || Nullable.GetUnderlyingType(p) != null)
-                    {
-                        score += 25;
-                    }
-                    else
-                    {
-                        // Non-nullable ValueType (struct/enum) cannot accept null.
-                        // We must reject this constructor entirely.
-                        score = int.MinValue;
-                        break;
-                    }
-
-                    continue;
-                }
-
-                if (p == a)
-                {
-                    score += 100;
-                }
-                else if (p.IsAssignableFrom(a))
-                {
-                    score += 50;
-                }
-            }
-
-            if (score > bestScore)
-            {
-                bestScore = score;
-                best = c;
-                if (score == 100 * ps.Length)
-                {
-                    break; // perfect match
-                }
-            }
-        }
-
-        return best ?? throw new InternalErrorException($"Type {type.Name} does not have a suitable constructor for the provided arguments.");
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static Func<object?[], object> BUILD_DYNAMIC_FACTORY(Type type, ConstructorInfo ctor)
-    {
-        ParameterInfo[] ps = ctor.GetParameters();
-        System.Reflection.Emit.DynamicMethod dm = new(
-            name: type.Name + "_CtorFast",
-            returnType: typeof(object),
-            parameterTypes: [typeof(object?[])],
-            m: type.Module,
-            skipVisibility: true);
-
-        System.Reflection.Emit.ILGenerator il = dm.GetILGenerator();
-
-        // Load each argument from object?[] and unbox/cast.
-        for (int i = 0; i < ps.Length; i++)
-        {
-            il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);           // args
-            Ldc_I4(il, i);                                             // index
-            il.Emit(System.Reflection.Emit.OpCodes.Ldelem_Ref);        // args[i]
-
-            Type pt = ps[i].ParameterType;
-            if (pt.IsValueType)
-            {
-                il.Emit(System.Reflection.Emit.OpCodes.Unbox_Any, pt); // unbox
-            }
-            else
-            {
-                il.Emit(System.Reflection.Emit.OpCodes.Castclass, pt); // cast
-            }
-        }
-
-        il.Emit(System.Reflection.Emit.OpCodes.Newobj, ctor);          // new T(..)
-        if (type.IsValueType)
-        {
-            il.Emit(System.Reflection.Emit.OpCodes.Box, type);         // box struct -> object
-        }
-
-        il.Emit(System.Reflection.Emit.OpCodes.Ret);
-
-        return (Func<object?[], object>)dm.CreateDelegate(typeof(Func<object?[], object>));
-
-        static void Ldc_I4(System.Reflection.Emit.ILGenerator il, int v)
-        {
-            switch (v)
-            {
-                case 0: il.Emit(System.Reflection.Emit.OpCodes.Ldc_I4_0); break;
-                case 1: il.Emit(System.Reflection.Emit.OpCodes.Ldc_I4_1); break;
-                case 2: il.Emit(System.Reflection.Emit.OpCodes.Ldc_I4_2); break;
-                case 3: il.Emit(System.Reflection.Emit.OpCodes.Ldc_I4_3); break;
-                case 4: il.Emit(System.Reflection.Emit.OpCodes.Ldc_I4_4); break;
-                case 5: il.Emit(System.Reflection.Emit.OpCodes.Ldc_I4_5); break;
-                case 6: il.Emit(System.Reflection.Emit.OpCodes.Ldc_I4_6); break;
-                case 7: il.Emit(System.Reflection.Emit.OpCodes.Ldc_I4_7); break;
-                case 8: il.Emit(System.Reflection.Emit.OpCodes.Ldc_I4_8); break;
-                default: il.Emit(System.Reflection.Emit.OpCodes.Ldc_I4, v); break;
-            }
-        }
     }
 
     #region Create Instance With Injection

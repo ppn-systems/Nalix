@@ -20,6 +20,7 @@ namespace Nalix.Runtime.Handlers;
 /// Provides handlers for system-level control packets like PING and PONG.
 /// </summary>
 [PacketController("Nalix.Control")]
+[Nalix.Abstractions.Injection.Injectable]
 public sealed class SystemControlHandlers
 {
     /// <summary>

@@ -25,6 +25,7 @@ namespace Nalix.Runtime.Handlers;
 /// Handles dedicated session resume packets.
 /// </summary>
 [PacketController("Nalix.Session")]
+[Nalix.Abstractions.Injection.Injectable]
 public sealed class SessionHandlers
 {
     private readonly ISessionService _sessionService;
