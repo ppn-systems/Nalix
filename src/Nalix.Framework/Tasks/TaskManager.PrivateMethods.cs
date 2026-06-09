@@ -144,9 +144,9 @@ public partial class TaskManager
 
             if (_workers.TryRemove(st.Id, out _))
             {
-                if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
                 {
-                    Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Cleanup", $"cleanup-remove-ok id={st.Id}"));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Cleanup", $"cleanup-remove-ok id={st.Id}"));
                 }
                 try
                 {
@@ -352,9 +352,9 @@ public partial class TaskManager
             _ = _groupGates.TryAdd(group, new Gate(newLimit));
         }
 
-        if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
         {
-            Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Internal", $"group-concurrency-adjusted group={group} new-limit={newLimit}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Internal", $"group-concurrency-adjusted group={group} new-limit={newLimit}"));
         }
     }
 
@@ -428,12 +428,12 @@ public partial class TaskManager
             };
             thread.Start();
 
-            bool isDebugEnabled = Listener.IsEnabled(DiagnosticsEvents.Tasks.Started);
+            bool isDebugEnabled = DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Started);
             if (isDebugEnabled)
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Started, new DiagnosticLog("FW.TaskManager", $"worker-start-dedicated id={id} name={name} group={group} os-priority={osPriority} tag={options.Tag ?? "-"}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Started, new DiagnosticLog("FW.TaskManager", $"worker-start-dedicated id={id} name={name} group={group} os-priority={osPriority} tag={options.Tag ?? "-"}"));
             }
-            else if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+            else if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
             {
                 this.LOG_WORKER_START_AGGREGATED(group, options.Priority, options.Tag ?? "-");
             }
@@ -441,12 +441,12 @@ public partial class TaskManager
         else
         {
             st.Task = this.EXECUTE_WORKER_ASYNC(st, gate, cts);
-            bool isDebugEnabled = Listener.IsEnabled(DiagnosticsEvents.Tasks.Started);
+            bool isDebugEnabled = DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Started);
             if (isDebugEnabled)
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Started, new DiagnosticLog("FW.TaskManager", $"worker-start id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Started, new DiagnosticLog("FW.TaskManager", $"worker-start id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}"));
             }
-            else if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+            else if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
             {
                 this.LOG_WORKER_START_AGGREGATED(group, options.Priority, options.Tag ?? "-");
             }
@@ -721,9 +721,9 @@ public partial class TaskManager
                     // A zero-timeout acquire keeps the scheduler from overlapping the same recurring job.
                     if (!await s.Gate.WaitAsync(0, ct).ConfigureAwait(false))
                     {
-                        if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
                         {
-                            Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Internal", $"gate-acquire-fail name={s.Name}"));
+                            DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Internal", $"gate-acquire-fail name={s.Name}"));
                         }
                         next += step;
                         continue;
@@ -922,9 +922,9 @@ public partial class TaskManager
             try
             {
                 gate.SemaphoreSlim.Dispose();
-                if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
                 {
-                    Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Internal", $"group-gate-dispose-ok group={group}"));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Internal", $"group-gate-dispose-ok group={group}"));
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -960,11 +960,11 @@ public partial class TaskManager
 
                 if (cpuUsage > threshHigh)
                 {
-                    if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
                     {
                         string usageStr = cpuUsage.ToString(System.Globalization.CultureInfo.InvariantCulture);
                         string thresholdStr = threshHigh.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                        Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Internal", $"cpu-high usage={usageStr} threshold={thresholdStr}"));
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Internal", $"cpu-high usage={usageStr} threshold={thresholdStr}"));
                     }
                 }
 
@@ -1133,9 +1133,10 @@ public partial class TaskManager
                 }
             }
 
-            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Internal", $"concurrency-limit-adjusted previous-limit={previousLimit} new-limit={_currentConcurrencyLimit} deficiency={_concurrencyDeficiency}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Dispatcher,
+                    new DiagnosticLog("FW.TaskManager:Internal", $"concurrency-limit-adjusted previous-limit={previousLimit} new-limit={_currentConcurrencyLimit} deficiency={_concurrencyDeficiency}"));
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -1168,9 +1169,9 @@ public partial class TaskManager
                     batch.Count = 0;
                     batch.FlushTask = null;
                 }
-                if (count > 0 && Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+                if (count > 0 && DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
                 {
-                    Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager", $"workers-started group={batch.Group} count={count} priority={batch.Priority.ToString().ToLowerInvariant()} tag={batch.Tag}"));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager", $"workers-started group={batch.Group} count={count} priority={batch.Priority.ToString().ToLowerInvariant()} tag={batch.Tag}"));
                 }
             });
         }

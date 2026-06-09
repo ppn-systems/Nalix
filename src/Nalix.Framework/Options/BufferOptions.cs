@@ -122,7 +122,6 @@ public sealed partial class BufferOptions : ConfigurationLoader, IValidatableCon
     /// </summary>
     [IniComment("Semicolon-separated size,ratio pairs for pool allocation (e.g. 1024,0.25; 4096,0.15)\nSizes must be strictly increasing and ratios must sum to <= 1.0")]
     [Length(1)]
-    
     public string BufferAllocations { get; set; } = "256,0.15; 1024,0.15; 4096,0.30; 16384,0.30; 32768,0.10";
 
     /// <summary>

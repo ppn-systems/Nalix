@@ -161,10 +161,11 @@ internal sealed class TcpFrameReader : IDisposable
     private void PROCESS_NORMAL_FRAME(IBufferLease lease)
     {
         IBufferLease original = lease;
+        uint? seq = null;
         try
         {
             // SEC-07: Verify signature/decrypt and decompress inbound packet.
-            FramePipeline.ProcessInbound(ref lease, _state.Secret.AsSpan(), _options.Algorithm, out uint? seq);
+            FramePipeline.ProcessInbound(ref lease, _state.Secret.AsSpan(), _options.Algorithm, out seq);
 
             if (!_sequence.IsValid(seq))
             {
@@ -172,14 +173,14 @@ internal sealed class TcpFrameReader : IDisposable
             }
 
             _onMessage(lease);
-
+        }
+        finally
+        {
             if (seq.HasValue)
             {
                 _sequence.UpdateTo(seq.Value);
             }
-        }
-        finally
-        {
+
             if (!ReferenceEquals(lease, original))
             {
                 lease.Dispose();

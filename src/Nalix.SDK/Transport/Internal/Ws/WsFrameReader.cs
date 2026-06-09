@@ -159,13 +159,14 @@ internal sealed class WsFrameReader : IDisposable
         lease.CommitLength(frameData.Length);
 
         IBufferLease original = lease;
+        uint? seq = null;
         try
         {
             FramePipeline.ProcessInbound(
                 ref lease,
                 _state.Secret.AsSpan(),
                 _options.Algorithm,
-                out uint? seq);
+                out seq);
 
             if (!_sequence.IsValid(seq))
             {
@@ -173,11 +174,6 @@ internal sealed class WsFrameReader : IDisposable
             }
 
             _onMessage(lease);
-
-            if (seq.HasValue)
-            {
-                _sequence.UpdateTo(seq.Value);
-            }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
@@ -185,6 +181,11 @@ internal sealed class WsFrameReader : IDisposable
         }
         finally
         {
+            if (seq.HasValue)
+            {
+                _sequence.UpdateTo(seq.Value);
+            }
+
             if (!ReferenceEquals(lease, original))
             {
                 lease.Dispose();

@@ -124,11 +124,12 @@ internal sealed class UdpFrameReader : IDisposable
     private async Task ProcessDatagramAsync(IBufferLease datagram, CancellationToken ct)
     {
         IBufferLease original = datagram;
+        uint? seq = null;
 
         try
         {
             // 2) Decompress / Decrypt
-            FramePipeline.ProcessInbound(ref datagram, _state.Secret.AsSpan(), _options.Algorithm, out uint? seq);
+            FramePipeline.ProcessInbound(ref datagram, _state.Secret.AsSpan(), _options.Algorithm, out seq);
 
             if (!_sequence.IsValid(seq, window: 64))
             {
@@ -137,14 +138,14 @@ internal sealed class UdpFrameReader : IDisposable
 
             // Dispatch
             await this.DispatchMessageAsync(datagram, ct).ConfigureAwait(false);
-
+        }
+        finally
+        {
             if (seq.HasValue)
             {
                 _sequence.UpdateTo(seq.Value);
             }
-        }
-        finally
-        {
+
             if (!ReferenceEquals(datagram, original))
             {
                 datagram.Dispose();

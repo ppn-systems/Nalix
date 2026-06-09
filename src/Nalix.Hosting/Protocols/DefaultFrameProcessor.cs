@@ -106,6 +106,7 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
         }
 
         uint window;
+        uint? seq = null;
         bool exchanged = false;
         ISequenceCounter counter;
         IBufferLease current = lease;
@@ -133,7 +134,7 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
 
         try
         {
-            if (!FramePipeline.TryProcessInbound(ref current, args.Connection.Secret.AsSpan(), args.Connection.Algorithm, out uint? seq))
+            if (!FramePipeline.TryProcessInbound(ref current, args.Connection.Secret.AsSpan(), args.Connection.Algorithm, out seq))
             {
                 args.Connection.IncrementErrorCount();
                 if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
@@ -156,11 +157,6 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
             }
 
             _protocol.ProcessMessage(sender, args);
-
-            if (seq.HasValue)
-            {
-                counter.UpdateTo(seq.Value);
-            }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
@@ -183,6 +179,11 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
         }
         finally
         {
+            if (seq.HasValue)
+            {
+                counter.UpdateTo(seq.Value);
+            }
+
             if (!exchanged && !ReferenceEquals(current, lease))
             {
                 current.Dispose();

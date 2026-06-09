@@ -92,7 +92,7 @@ public struct SequenceCounter : ISequenceCounter
             return true;
         }
 
-        return receivedSeq > current || (window > 0 && receivedSeq + window > current);
+        return receivedSeq > current || (window > 0 && receivedSeq < current && current - receivedSeq < window);
     }
 
     /// <summary>

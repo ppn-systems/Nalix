@@ -36,9 +36,9 @@ public sealed partial class TaskManager
             {
                 if (_workerDispatcherTask.Exception?.GetBaseException() is Exception ex)
                 {
-                    if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                     {
-                        Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "dispatcher-faulted", ex));
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "dispatcher-faulted", ex));
                     }
                 }
             }
@@ -48,9 +48,9 @@ public sealed partial class TaskManager
                 {
                     if (task.Exception?.GetBaseException() is Exception bgEx)
                     {
-                        if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                         {
-                            Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "dispatcher-faulted-after-dispose", bgEx));
+                            DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "dispatcher-faulted-after-dispose", bgEx));
                         }
                     }
                 }, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
@@ -58,9 +58,9 @@ public sealed partial class TaskManager
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "dispatcher-stop-error", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "dispatcher-stop-error", ex));
             }
         }
 
@@ -79,9 +79,9 @@ public sealed partial class TaskManager
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "cleanup-shutdown-error", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "cleanup-shutdown-error", ex));
             }
         }
 
@@ -98,17 +98,17 @@ public sealed partial class TaskManager
                         try { st.CancellationTokenSource.Dispose(); }
                         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                         {
-                            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                             {
-                                Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"recurring-cts-dispose-error name={st.Name}", ex));
+                                DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"recurring-cts-dispose-error name={st.Name}", ex));
                             }
                         }
                         try { st.Gate.Dispose(); }
                         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                         {
-                            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                             {
-                                Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"recurring-gate-dispose-error name={st.Name}", ex));
+                                DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"recurring-gate-dispose-error name={st.Name}", ex));
                             }
                         }
                     },
@@ -125,9 +125,9 @@ public sealed partial class TaskManager
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                     {
-                        Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"recurring-cts-dispose-error-sync name={st.Name}", ex));
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"recurring-cts-dispose-error-sync name={st.Name}", ex));
                     }
                 }
                 try
@@ -136,9 +136,9 @@ public sealed partial class TaskManager
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                     {
-                        Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"recurring-gate-dispose-error-sync name={st.Name}", ex));
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"recurring-gate-dispose-error-sync name={st.Name}", ex));
                     }
                 }
             }
@@ -158,9 +158,9 @@ public sealed partial class TaskManager
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                     {
-                        Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"worker-cts-dispose-error id={st.Id}", ex));
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"worker-cts-dispose-error id={st.Id}", ex));
                     }
                 }
             }
@@ -174,9 +174,9 @@ public sealed partial class TaskManager
                     }
                     catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
-                        if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                         {
-                            Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"worker-cts-dispose-error-async id={st.Id}", ex));
+                            DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"worker-cts-dispose-error-async id={st.Id}", ex));
                         }
                     }
                 }, CancellationToken.None,
@@ -191,9 +191,9 @@ public sealed partial class TaskManager
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                     {
-                        Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"worker-cts-dispose-error-no-task id={st.Id}", ex));
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"worker-cts-dispose-error-no-task id={st.Id}", ex));
                     }
                 }
             }
@@ -209,9 +209,9 @@ public sealed partial class TaskManager
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                 {
-                    Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"gate-dispose-error group={g.Key}", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"gate-dispose-error group={g.Key}", ex));
                 }
             }
         }
@@ -224,9 +224,9 @@ public sealed partial class TaskManager
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "pending-signal-dispose-error", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "pending-signal-dispose-error", ex));
             }
         }
 
@@ -236,9 +236,9 @@ public sealed partial class TaskManager
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "global-gate-dispose-error", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "global-gate-dispose-error", ex));
             }
         }
 
@@ -248,15 +248,15 @@ public sealed partial class TaskManager
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "dispatcher-cts-dispose-error", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "dispatcher-cts-dispose-error", ex));
             }
         }
 
-        if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Disposed))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Disposed))
         {
-            Listener.Write(DiagnosticsEvents.Tasks.Disposed, new DiagnosticLog("FW.TaskManager:Internal", "disposed"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Disposed, new DiagnosticLog("FW.TaskManager:Internal", "disposed"));
         }
 
         GC.SuppressFinalize(this);
