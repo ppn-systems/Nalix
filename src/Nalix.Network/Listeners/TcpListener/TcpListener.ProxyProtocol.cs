@@ -17,6 +17,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Internal.Protocol;
+using Nalix.Network.Internal.Transport;
 
 namespace Nalix.Network.Listeners.Tcp;
 
@@ -190,7 +191,9 @@ public abstract partial class TcpListenerBase
         state.BytesReceived += args.BytesTransferred;
         ReadOnlySpan<byte> buffer = state.Buffer.AsSpan(0, state.BytesReceived);
 
-        if (!ProxyProtocolParser.TryParse(buffer, out IPEndPoint? realIp, out int consumed))
+        // Use zero-alloc overload: returns SocketEndpoint (stack struct) instead of IPEndPoint.
+        // On the reject path, no IPAddress/IPEndPoint heap allocation occurs.
+        if (!ProxyProtocolParser.TryParse(buffer, out SocketEndpoint parsedEndpoint, out int consumed))
         {
             if (state.BytesReceived >= 232)
             {
@@ -237,19 +240,35 @@ public abstract partial class TcpListenerBase
             this.DetachProxyContext(state);
         }
 
-        IPEndPoint effectiveIp = realIp ?? (IPEndPoint)state.Socket!.RemoteEndPoint!;
+        // Zero-alloc reject path: TryAccept(SocketEndpoint) avoids IPEndPoint construction.
+        // If the parser returned Empty (LOCAL command), fall back to socket remote endpoint.
+        bool accepted;
+        if (parsedEndpoint != SocketEndpoint.Empty)
+        {
+            accepted = _limiter.TryAccept(parsedEndpoint);
+        }
+        else
+        {
+            IPEndPoint fallbackIp = (IPEndPoint)state.Socket!.RemoteEndPoint!;
+            accepted = _limiter.TryAccept(fallbackIp);
+        }
 
-        if (!_limiter.TryAccept(effectiveIp))
+        if (!accepted)
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
                 DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
-                    new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", $"proxy-rate-limit-drop effective-ip={effectiveIp}"));
+                    new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", "proxy-rate-limit-drop"));
             }
 
             this.ReleaseProxyContext(state, args, success: false);
             return;
         }
+
+        // Accept path: construct IPEndPoint only now (needed for Connection constructor).
+        IPEndPoint? realIp = parsedEndpoint != SocketEndpoint.Empty
+            ? new IPEndPoint(parsedEndpoint.ToIPAddress(), parsedEndpoint.Port)
+            : null;
 
         IConnection? connection = null;
 

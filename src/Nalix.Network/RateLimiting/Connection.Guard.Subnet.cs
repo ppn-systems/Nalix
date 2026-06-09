@@ -125,6 +125,15 @@ public sealed partial class ConnectionGuard
             return;
         }
 
+        this.RELEASE_SUBNET_ENTRY(entry, now);
+    }
+
+    /// <summary>
+    /// Releases a subnet entry. Called from OnConnectionClosed/Release after
+    /// obtaining the entry via TryGetSubnetKey (zero-alloc path).
+    /// </summary>
+    private void RELEASE_SUBNET_ENTRY(SubnetLimitEntry entry, DateTime now)
+    {
         bool lockTaken = false;
         try
         {
