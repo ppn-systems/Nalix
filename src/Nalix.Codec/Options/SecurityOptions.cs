@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Codec.Options;
@@ -17,7 +18,7 @@ public sealed partial class SecurityOptions : ConfigurationLoader, IValidatableC
     /// Higher values are more secure but slower. Default: 310,000.
     /// </summary>
     [IniComment("Iteration count for PBKDF2 hashing (default 310,000)")]
-    [System.ComponentModel.DataAnnotations.Range(1000, 10_000_000, ErrorMessage = "Pbkdf2Iterations must be between 1,000 and 10,000,000 for security and performance reasons.")]
+    [ValueRange(1000, 10_000_000)]
     public int Pbkdf2Iterations { get; set; } = 310_000;
 
     /// <summary>

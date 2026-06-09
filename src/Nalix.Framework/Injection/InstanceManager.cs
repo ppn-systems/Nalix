@@ -36,7 +36,6 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
 
     private const int MaxCachedInstances = 4096;
     private const int MaxSignatureInstances = 4096;
-    private const int MaxActivatorFactories = 8192;
 
     #endregion Constants
 
@@ -207,10 +206,9 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     /// </summary>
     /// <typeparam name="T">The type of the instance to register.</typeparam>
     /// <param name="instance">The instance to register.</param>
-    /// <param name="registerInterfaces">If <c>true</c>, also registers the instance for all its interfaces.</param>
     /// <exception cref="ObjectDisposedException">Thrown when the manager has already been disposed.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void Register<T>(T instance, bool registerInterfaces = true) where T : class
+    public void Register<T>(T instance) where T : class
     {
         if (Interlocked.CompareExchange(ref _isLocked, 0, 0) != 0)
         {
@@ -227,40 +225,20 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
         // Atomic add/replace for concrete type.
         TRY_ADD_OR_REPLACE_ATOMIC_COLLECT(key, instance, typeof(T).Name, prevsToDispose);
 
-        // Publish to generic slot for the concrete type
-        Volatile.Write(ref GenericSlot<T>.Value, instance);
-        _ = Interlocked.Increment(ref s_slotsInvalidated); // Invalidate all cached slots and L1
+        // Invalidate L1 cache (increment monotonic version counter)
+        _ = Interlocked.Increment(ref s_slotsInvalidated);
 
-        if (registerInterfaces)
+        // Interface registration is fully explicit. We check compile-time service mappings
+        // populated by the generated code for any attributes mapped on this type.
+        if (s_preRegisteredServiceMappings.TryGetValue(typeof(T), out System.Collections.Generic.List<Type>? serviceTypes))
         {
-            Type[] itfs = typeof(T).GetInterfaces();
-            for (int i = 0; i < itfs.Length; i++)
+            lock (serviceTypes)
             {
-                Type itf = itfs[i];
-
-                // Skip Abstractions infrastructure interfaces that many objects implement.
-                // Registrations for these would clobber each other and cause accidental disposal
-                // of previously registered objects (e.g. ConnectionHub clobbered by BufferPoolManager).
-                if (itf.Name is "IReportable" or
-                    "IPoolable" or "IPoolRentable" or
-                    "IDisposable" or "IAsyncDisposable" or
-                    "IActivatable" or "IActivatableAsync" or "IWorker")
+                for (int i = 0; i < serviceTypes.Count; i++)
                 {
-                    continue;
-                }
-
-                RuntimeTypeHandle itfKey = itf.TypeHandle;
-
-                TRY_ADD_OR_REPLACE_ATOMIC_COLLECT(itfKey, instance, itf.Name, prevsToDispose);
-
-                // Publish to interface generic slot (reflection may fail on trimmed apps; catch)
-                try
-                {
-                    PUBLISH_TO_INTERFACE_SLOT(itf, instance);
-                }
-                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-                {
-                    this.Emit(DiagnosticsEvents.Injection.Failure, "FW.InstanceManager:Register", $"publish-slot-failed interface={itf.Name}", ex);
+                    Type itf = serviceTypes[i];
+                    RuntimeTypeHandle itfKey = itf.TypeHandle;
+                    TRY_ADD_OR_REPLACE_ATOMIC_COLLECT(itfKey, instance, itf.Name, prevsToDispose);
                 }
             }
         }
@@ -365,7 +343,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     /// <typeparam name="T">The type of the instance to register.</typeparam>
     /// <param name="instance">The instance to register.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public void RegisterForClassOnly<T>(T instance) where T : class => this.Register(instance, registerInterfaces: false);
+    public void RegisterForClassOnly<T>(T instance) where T : class => this.Register(instance);
 
     /// <summary>
     /// Gets or creates an instance of the specified type with high performance.
@@ -383,14 +361,9 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
 
         args ??= Array.Empty<object?>();
 
-        // Fast-path generic slot when no signature is used
+        // Fast-path checking cache directly when no constructor arguments are provided.
         if (args.Length == 0)
         {
-            if (TRY_GET_FROM_GENERIC_SLOT(out T? viaSlot))
-            {
-                return viaSlot!;
-            }
-
             RuntimeTypeHandle key = typeof(T).TypeHandle;
             if (_instanceCache.TryGetValue(key, out object? existing))
             {
@@ -399,11 +372,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
             }
 
             _ = Interlocked.Increment(ref _instanceCreationCount);
-            T created = Unsafe.As<T>(this.GET_OR_CREATE_INSTANCE_SLOW(typeof(T), args));
-
-            // Publish to slot after creation
-            Volatile.Write(ref GenericSlot<T>.Value, created);
-            return created;
+            return Unsafe.As<T>(this.GET_OR_CREATE_INSTANCE_SLOW(typeof(T), args));
         }
         // Use signature cache for generic type when args provided.
         object obj = this.GetOrCreateInstance(typeof(T), args);
@@ -444,13 +413,10 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
             RuntimeTypeHandle key = type.TypeHandle;
             if (_instanceCache.TryGetValue(key, out object? existing))
             {
-                TRY_PUBLISH_SLOT_BY_TYPE(type, existing);
                 return existing;
             }
 
-            object created = this.GET_OR_CREATE_INSTANCE_SLOW(type, args);
-            TRY_PUBLISH_SLOT_BY_TYPE(type, created);
-            return created;
+            return this.GET_OR_CREATE_INSTANCE_SLOW(type, args);
         }
 
         // For args (signature) use signature cache keyed by ActivatorKey.
@@ -458,8 +424,6 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
 
         if (_signatureInstanceCache.TryGetValue(sigKey, out object? sigExisting))
         {
-            // Optionally publish to generic slot (we keep publishing by type to keep fast-path semantics)
-            TRY_PUBLISH_SLOT_BY_TYPE(type, sigExisting);
             return sigExisting;
         }
 
@@ -485,6 +449,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     public object CreateInstance(Type type, [MaybeNull] params object?[] args)
     {
         ObjectDisposedException.ThrowIf(Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
+        ArgumentNullException.ThrowIfNull(type, nameof(type));
 
         return this.CREATE_VIA_ACTIVATOR(type, args);
     }
@@ -511,12 +476,16 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
         {
             removedAny = true;
 
-            CLEAR_GENERIC_SLOT(type);
-
-            Type actual = instance.GetType();
-            foreach (Type itf in actual.GetInterfaces())
+            // Remove mapped interface entries from _instanceCache if any exist
+            if (s_preRegisteredServiceMappings.TryGetValue(type, out System.Collections.Generic.List<Type>? serviceTypes))
             {
-                CLEAR_GENERIC_SLOT(itf);
+                lock (serviceTypes)
+                {
+                    for (int i = 0; i < serviceTypes.Count; i++)
+                    {
+                        _ = _instanceCache.TryRemove(serviceTypes[i].TypeHandle, out _);
+                    }
+                }
             }
 
             if (instance is IDisposable d)
@@ -599,13 +568,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     {
         ObjectDisposedException.ThrowIf(Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
 
-        // 1) Generic slot (fastest)
-        if (TRY_GET_FROM_GENERIC_SLOT(out T? viaSlot))
-        {
-            return viaSlot;
-        }
-
-        // 2) Thread L1 (2-slot MRU with isolation)
+        // 1) Thread L1 (2-slot MRU with isolation)
         int globalInvalidated = Volatile.Read(ref s_slotsInvalidated);
         RuntimeTypeHandle key = typeof(T).TypeHandle;
 
@@ -631,7 +594,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
             }
         }
 
-        // 3) Dictionary fallback
+        // 2) Dictionary fallback
         if (!_instanceCache.TryGetValue(key, out object? instance))
         {
             return null;
@@ -642,9 +605,6 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
         // Publish to L1 (Slot 0)
         s_tsKey1 = s_tsKey0; s_tsVal1 = s_tsVal0; s_tsMgr1 = s_tsMgr0;
         s_tsKey0 = key; s_tsVal0 = instance; s_tsMgr0 = this;
-
-        // Publish to slot
-        Volatile.Write(ref GenericSlot<T>.Value, instance);
 
         return (T)instance;
     }
@@ -658,7 +618,12 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     public void Clear(bool dispose = true)
     {
         ObjectDisposedException.ThrowIf(Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
+        this.ClearInternal(dispose);
+    }
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private void ClearInternal(bool dispose)
+    {
         if (dispose)
         {
             // Snapshot keys to avoid modifying collection during enumeration.
@@ -687,7 +652,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
         _activatorCache.Clear();
         _disposables.Clear();
 
-        // Invalidate all generic slots at once (no need to enumerate)
+        // Invalidate L1 thread-static caches (no need to enumerate)
         _ = Interlocked.Increment(ref s_slotsInvalidated);
 
         // Optional: clear thread L1 (best-effort for current thread)
@@ -732,7 +697,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
         }
 
         // Clear caches without disposing again.
-        this.Clear(dispose: false);
+        this.ClearInternal(dispose: false);
 
         if (s_processMutexOwner && s_processMutex != null)
         {

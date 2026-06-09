@@ -5,7 +5,6 @@ using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,7 +16,6 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Framework.Injection;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Internal.Compilation;
-using Nalix.Runtime.Internal.Results;
 
 namespace Nalix.Runtime.Routing;
 
@@ -184,59 +182,101 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         Type controllerType = typeof(TController);
 
-        PacketControllerAttribute controllerAttr = CustomAttributeExtensions.GetCustomAttribute<PacketControllerAttribute>(controllerType)
-            ?? throw new InternalErrorException($"The controller '{controllerType.Name}' is missing the [PacketController] attribute.");
-
-        PacketHandler<TPacket>[] compiledHandlers = PacketHandlerCompiler<TController, TPacket>.CompileHandlers(factory);
-
-        Type contextType = typeof(PacketContext<TPacket>);
-
-        for (int i = 0; i < compiledHandlers.Length; i++)
+        if (!PacketHandlerRegistry.TryBuildHandlers<TPacket>(controllerType, this, () => factory()))
         {
-            PacketHandler<TPacket> descriptor = compiledHandlers[i];
-            Type? concretePacketType = ResolveConcretePacketType(descriptor.MethodInfo, contextType);
-            IReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.ResolveHandler(descriptor.ReturnType);
-
-            PacketHandler<TPacket> runtimeHandler = new(
-                descriptor.OpCode,
-                descriptor.Metadata,
-                descriptor.Instance,
-                descriptor.MethodInfo,
-                descriptor.ReturnType,
-                descriptor.Invoker,
-                concretePacketType,
-                returnHandler);
-
-            if (!_handlerTable.TryAdd(descriptor.OpCode, runtimeHandler))
-            {
-                throw new InternalErrorException($"OpCode '{descriptor.OpCode}' has already been registered.");
-            }
-
-            _ = Interlocked.Increment(ref _handlerCount);
-
-            if (concretePacketType is not null && concretePacketType != typeof(TPacket))
-            {
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-                {
-                    DiagnosticsEvents.Source.Write(
-                        DiagnosticsEvents.Internal.Debug,
-                        new DiagnosticLog(
-                            "RT.PacketDispatchOptions:Internal",
-                            $"type-map opcode=0x{descriptor.OpCode} -> {concretePacketType.Name}"));
-                }
-            }
+            throw new InternalErrorException($"Controller '{controllerType.Name}' was not processed by the Source Generator. Ensure it is marked with [PacketController].");
         }
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Information,
                 new DiagnosticLog(
                     "RT.PacketDispatchOptions:Internal",
-                    $"reg-handlers count={compiledHandlers.Length} controller={controllerType.Name}"));
+                    $"reg-controller name={controllerType.Name}"));
         }
 
         return this;
+    }
+
+    /// <summary>
+    /// Registers a controller type directly, primarily for static classes.
+    /// </summary>
+    /// <param name="controllerType">The type of the controller to register.</param>
+    /// <returns>The current <see cref="PacketDispatchOptions{TPacket}"/> instance for chaining.</returns>
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public PacketDispatchOptions<TPacket> WithHandler([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type controllerType) => this.WithHandler(controllerType, () => null!);
+
+    /// <summary>
+    /// Registers a controller type directly with a factory for instantiation.
+    /// </summary>
+    /// <param name="controllerType">The type of the controller to register.</param>
+    /// <param name="factory">The factory to create instances of the controller.</param>
+    /// <returns>The current <see cref="PacketDispatchOptions{TPacket}"/> instance for chaining.</returns>
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public PacketDispatchOptions<TPacket> WithHandler([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type controllerType, Func<object> factory)
+    {
+        ArgumentNullException.ThrowIfNull(controllerType);
+        ArgumentNullException.ThrowIfNull(factory);
+
+        if (!PacketHandlerRegistry.TryBuildHandlers<TPacket>(controllerType, this, factory))
+        {
+            throw new InternalErrorException($"Controller '{controllerType.Name}' was not processed by the Source Generator. Ensure it is marked with [PacketController].");
+        }
+
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
+        {
+            DiagnosticsEvents.Write(
+                DiagnosticsEvents.Internal.Information,
+                new DiagnosticLog(
+                    "RT.PacketDispatchOptions:Internal",
+                    $"reg-controller name={controllerType.Name}"));
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Registers a new packet handler generated by the source generator.
+    /// </summary>
+    void IPacketHandlerBuilder<TPacket>.RegisterHandler(
+        ushort opCode,
+        PacketMetadata metadata,
+        string methodName,
+        object? instance,
+        Type returnType,
+        Type? expectedPacketType,
+        Func<object?, PacketContext<TPacket>, ValueTask<object?>> invoker)
+    {
+        PacketHandler<TPacket> runtimeHandler = new(
+            opCode,
+            metadata,
+            instance,
+            methodName,
+            returnType,
+            invoker,
+            expectedPacketType);
+
+        if (!_handlerTable.TryAdd(opCode, runtimeHandler))
+        {
+            throw new InternalErrorException($"OpCode '{opCode}' has already been registered.");
+        }
+
+        _ = Interlocked.Increment(ref _handlerCount);
+
+        if (expectedPacketType is not null && expectedPacketType != typeof(TPacket))
+        {
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
+            {
+                DiagnosticsEvents.Write(
+                    DiagnosticsEvents.Internal.Debug,
+                    new DiagnosticLog(
+                        "RT.PacketDispatchOptions:Internal",
+                        $"type-map opcode=0x{opCode} -> {expectedPacketType.Name}"));
+            }
+        }
     }
 
     /// <summary>
@@ -320,7 +360,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Debug,
                 new DiagnosticLog(
                     "RT.PacketDispatchOptions:WithErrorHandling",
@@ -333,7 +373,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Debug,
                 new DiagnosticLog(
                     "RT.PacketDispatchOptions:WithMiddleware",
@@ -351,7 +391,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
             string loops = loopCount.HasValue ? loopCount.Value.ToString(CultureInfo.InvariantCulture) : "auto";
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Debug,
                 new DiagnosticLog(
                     "RT.PacketDispatchOptions:WithDispatchLoopCount",

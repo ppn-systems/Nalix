@@ -12,7 +12,6 @@ using Nalix.Environment.Memory;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
-using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Routing;
 using Nalix.Runtime.Sessions;
 
@@ -30,21 +29,15 @@ internal static class ServiceRegistrar
         PacketRegistry.Build();
     }
 
-    public static void RegisterMetadataProviders(HostingBuilderContext state)
-    {
-        for (int i = 0; i < state.MetadataProviders.Count; i++)
-        {
-            PacketMetadataProviderDescriptor registration = state.MetadataProviders[i];
-            PacketMetadataProviders.Register(registration.Factory());
-        }
-    }
-
-    public static void RegisterHandler<THandler>(PacketDispatchOptions<IPacket> dispatchOptions, Func<object> factory) where THandler : class
+    public static void RegisterHandler(
+        PacketDispatchOptions<IPacket> dispatchOptions,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)]
+        Type handlerType, Func<object> factory)
     {
         ArgumentNullException.ThrowIfNull(dispatchOptions);
-        ArgumentNullException.ThrowIfNull(factory);
+        ArgumentNullException.ThrowIfNull(handlerType);
 
-        _ = dispatchOptions.WithHandler(() => (THandler)factory());
+        _ = dispatchOptions.WithHandler(handlerType, factory);
     }
 
     public static void RegisterLogger(HostingBuilderContext state) => InstanceManager.Instance.Register<ILogger>(state.Logger);

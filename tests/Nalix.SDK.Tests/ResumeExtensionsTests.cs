@@ -86,6 +86,7 @@ TestUtils.SetupCertificate();
             // 3. Setup Client
             using TcpSession session = new(new TransportOptions 
             { 
+                ResumeTimeoutMillis = 30000
             });
             session.State.Secret = secret;
             session.State.SessionToken = token;

@@ -81,6 +81,27 @@ public static class FrameTransformer
     }
 
     /// <summary>
+    /// Attempts to get the plaintext length from an encrypted envelope without throwing.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryGetPlaintextLength(ReadOnlySpan<byte> envelope, out int length)
+    {
+        length = 0;
+        if (envelope.Length <= Offset)
+        {
+            return false;
+        }
+
+        if (!EnvelopeFormat.TryParseEnvelope(envelope[Offset..], out EnvelopeFormat.Envelope parsed, out _))
+        {
+            return false;
+        }
+
+        length = parsed.Ciphertext.Length;
+        return true;
+    }
+
+    /// <summary>
     /// Calculates the maximum compressed size for a given plaintext size using LZ4 compression.
     /// </summary>
     /// <param name="plaintextSize">Size of the plaintext input in bytes.</param>
@@ -116,6 +137,30 @@ public static class FrameTransformer
         }
 
         return header.OriginalLength;
+    }
+
+    /// <summary>
+    /// Attempts to get the uncompressed payload length from an LZ4 block header without throwing.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryGetDecompressedLength(ReadOnlySpan<byte> src, out int length)
+    {
+        length = 0;
+        if (src.Length < Unsafe.SizeOf<LZ4BlockHeader>())
+        {
+            return false;
+        }
+
+        LZ4BlockHeader header = MemOps.ReadUnaligned<LZ4BlockHeader>(src);
+        int limit = s_compressionOptions.MaxDecompressedSize;
+
+        if (header.OriginalLength <= 0 || header.OriginalLength > limit)
+        {
+            return false;
+        }
+
+        length = header.OriginalLength;
+        return true;
     }
 
     /// <summary>
@@ -214,6 +259,38 @@ public static class FrameTransformer
     }
 
     /// <summary>
+    /// Attempts to decrypt the payload (DATA_REGION) of a packet without throwing exceptions.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryDecrypt(
+        [Borrowed] IBufferLease src,
+        [Borrowed] IBufferLease dest, ReadOnlySpan<byte> key, CipherSuiteType expectedAlgorithm, out uint seq)
+    {
+        seq = 0;
+        if (src is null || dest is null || key.IsEmpty)
+        {
+            return false;
+        }
+
+        if (src.Length <= Offset || dest.Capacity < Offset)
+        {
+            return false;
+        }
+
+        Span<byte> destFull = dest.SpanFull;
+        ReadOnlySpan<byte> srcSpan = src.Span;
+
+        if (!EnvelopeCipher.TryDecrypt(key, srcSpan[Offset..], destFull[Offset..], null, expectedAlgorithm, out int decrypted, out seq, out _))
+        {
+            return false;
+        }
+
+        srcSpan[..Offset].CopyTo(destFull[..Offset]);
+        dest.CommitLength(Offset + decrypted);
+        return true;
+    }
+
+    /// <summary>
     /// Compresses the payload (DATA_REGION) of a packet using LZ4 while preserving the header.
     /// </summary>
     /// <param name="src">The source buffer containing the original packet.</param>
@@ -271,5 +348,34 @@ public static class FrameTransformer
 
         int decoded = LZ4Codec.Decode(srcSpan[Offset..], destFull[Offset..]);
         dest.CommitLength(Offset + decoded);
+    }
+
+    /// <summary>
+    /// Attempts to decompress the payload (DATA_REGION) of a packet using LZ4 without throwing exceptions.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryDecompress([Borrowed] IBufferLease src, [Borrowed] IBufferLease dest)
+    {
+        if (src is null || dest is null)
+        {
+            return false;
+        }
+
+        if (src.Length <= Offset || dest.Capacity <= Offset)
+        {
+            return false;
+        }
+
+        Span<byte> destFull = dest.SpanFull;
+        ReadOnlySpan<byte> srcSpan = src.Span;
+
+        if (!LZ4Codec.TryDecode(srcSpan[Offset..], destFull[Offset..], out int decoded))
+        {
+            return false;
+        }
+
+        srcSpan[..Offset].CopyTo(destFull[..Offset]);
+        dest.CommitLength(Offset + decoded);
+        return true;
     }
 }

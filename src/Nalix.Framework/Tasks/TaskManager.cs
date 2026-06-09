@@ -16,6 +16,7 @@ using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
+using Nalix.Abstractions.Injection;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Options;
@@ -29,6 +30,7 @@ namespace Nalix.Framework.Tasks;
 [DebuggerNonUserCode]
 [SkipLocalsInit]
 [DebuggerDisplay("TaskManager (Workers={_workers.Count}, Recurring={_recurring.Count})")]
+[Injectable(typeof(ITaskManager))]
 public sealed partial class TaskManager : ITaskManager, IDisposable
 {
     #region Fields
@@ -68,8 +70,6 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
     #endregion Fields
 
     #region Properties
-
-    private static DiagnosticListener Listener => DiagnosticsEvents.Source;
 
     /// <summary>
     /// Gets a compact status line for consoles and diagnostics.
@@ -200,9 +200,9 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
             catch (OperationCanceledException) { }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                 {
-                    Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "cleanup-loop-error", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "cleanup-loop-error", ex));
                 }
             }
         }, _cleanupCts.Token);
@@ -221,10 +221,10 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
             );
         }
 
-        if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
         {
             string cleanupSec = _options.CleanupInterval.TotalSeconds.ToString("0.000", CultureInfo.InvariantCulture);
-            Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Internal", $"init cleanup-interval-sec={cleanupSec} concurrency={_currentConcurrencyLimit}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Internal", $"init cleanup-interval-sec={cleanupSec} concurrency={_currentConcurrencyLimit}"));
         }
     }
 
@@ -362,10 +362,10 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
 
         st.Task = this.RECURRING_LOOP_ASYNC(st, work);
 
-        if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Started))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Started))
         {
             string intervalMs = interval.TotalMilliseconds.ToString("0.000", CultureInfo.InvariantCulture);
-            Listener.Write(DiagnosticsEvents.Tasks.Started, new DiagnosticLog("FW.TaskManager",
+            DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Started, new DiagnosticLog("FW.TaskManager",
                 $"recurring name={name} interval-ms={intervalMs} non-reentrant={options.NonReentrant} tag={options.Tag ?? "-"}"));
         }
         return st;
@@ -394,9 +394,9 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"run-once-failed name={name}", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"run-once-failed name={name}", ex));
             }
             throw;
         }
@@ -448,9 +448,9 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
         {
             st.Pause();
 
-            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Internal", $"recurring-paused name={name}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Internal", $"recurring-paused name={name}"));
             }
         }
     }
@@ -477,9 +477,9 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
         {
             st.Resume();
 
-            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Internal", $"recurring-resumed name={name}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Dispatcher, new DiagnosticLog("FW.TaskManager:Internal", $"recurring-resumed name={name}"));
             }
         }
     }
@@ -500,9 +500,9 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
         }
         if (n > 0)
         {
-            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Cancelled))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Cancelled))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Cancelled, new DiagnosticLog("FW.TaskManager:Internal", $"all count={n}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Cancelled, new DiagnosticLog("FW.TaskManager:Internal", $"all count={n}"));
             }
         }
 
@@ -532,16 +532,16 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
             catch (ObjectDisposedException) { } // Ignore if already disposed
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                 {
-                    Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"cts-dispose-error id={id}", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"cts-dispose-error id={id}", ex));
                 }
             }
         }
 
-        if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Cancelled))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Cancelled))
         {
-            Listener.Write(DiagnosticsEvents.Tasks.Cancelled, new DiagnosticLog("FW.TaskManager:Internal", $"worker-cancelled id={id} name={st.Name} group={st.Group}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Cancelled, new DiagnosticLog("FW.TaskManager:Internal", $"worker-cancelled id={id} name={st.Name} group={st.Group}"));
         }
     }
 
@@ -562,9 +562,9 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
         }
         if (n > 0)
         {
-            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Cancelled))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Cancelled))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Cancelled, new DiagnosticLog("FW.TaskManager:Internal", $"group group={group} count={n}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Cancelled, new DiagnosticLog("FW.TaskManager:Internal", $"group group={group} count={n}"));
             }
         }
 
@@ -598,18 +598,18 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
                 catch (ObjectDisposedException) { }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                     {
-                        Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"cts-dispose-error name={name}", ex));
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"cts-dispose-error name={name}", ex));
                     }
                 }
                 try { st.Gate.Dispose(); }
                 catch (ObjectDisposedException) { }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                     {
-                        Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"gate-dispose-error name={name}", ex));
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"gate-dispose-error name={name}", ex));
                     }
                 }
             },
@@ -626,9 +626,9 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                 {
-                    Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"cts-dispose-error-sync name={name}", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"cts-dispose-error-sync name={name}", ex));
                 }
             }
             try
@@ -637,16 +637,16 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                 {
-                    Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"gate-dispose-error-sync name={name}", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"gate-dispose-error-sync name={name}", ex));
                 }
             }
         }
 
-        if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Cancelled))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Cancelled))
         {
-            Listener.Write(DiagnosticsEvents.Tasks.Cancelled, new DiagnosticLog("FW.TaskManager:Internal", $"recurring-cancelled name={name}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Cancelled, new DiagnosticLog("FW.TaskManager:Internal", $"recurring-cancelled name={name}"));
         }
     }
 
@@ -751,9 +751,9 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
         {
             // We only care about waiting, not the result of the tasks.
             // If they faulted, it's already logged by the worker loop.
-            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"wait-group-async group={group}", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", $"wait-group-async group={group}", ex));
             }
         }
     }

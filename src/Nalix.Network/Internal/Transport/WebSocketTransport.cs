@@ -15,9 +15,11 @@ using Nalix.Abstractions.Security;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Memory;
 using Nalix.Environment.Options;
+using Nalix.Environment.Sequencing;
 using Nalix.Network.Connections;
-using Nalix.Network.Internal.Security;
 using Nalix.Network.Options;
+
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
 
 namespace Nalix.Network.Internal.Transport;
 
@@ -37,7 +39,9 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
     private int _disposed;
     private int _receiveStarted;
     private Task? _receiveLoopTask;
-    private TransportSequencer _sequencer;
+
+    private readonly ISequenceCounter _sendSequence;
+    private readonly ISequenceCounter _receiveSequence;
 
     #endregion Fields
 
@@ -45,7 +49,8 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
 
     public WebSocketTransport(WebSocketConnection owner)
     {
-        _sequencer = new TransportSequencer();
+        _sendSequence = new SequenceCounter();
+        _receiveSequence = new SequenceCounter();
         _owner = owner ?? throw new ArgumentNullException(nameof(owner));
         _options = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
     }
@@ -58,10 +63,10 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
     public TransportFraming Framing => TransportFraming.None;
 
     /// <inheritdoc/>
-    public ISequenceCounter SendSequence => _sequencer.SendSequence;
+    public ISequenceCounter SendSequence => _sendSequence;
 
     /// <inheritdoc/>
-    public ISequenceCounter ReceiveSequence => _sequencer.ReceiveSequence;
+    public ISequenceCounter ReceiveSequence => _receiveSequence;
 
     #endregion Properties
 
@@ -205,7 +210,16 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
             Throw.WebSocketMessageTooLarge();
         }
 
-        byte[] payload = BufferLease.ByteArrayPool.Rent(_options.MaxMessageSize);
+        // DO NOT rent the full MaxMessageSize upfront to prevent memory bloat/exhaustion under concurrent load.
+        // Instead, we start with a small, conservative buffer size (at least 4KB or the initial chunk size)
+        // and dynamically grow the buffer by doubling as needed up to MaxMessageSize.
+        int initialCapacity = Math.Max(4096, initialBytes);
+        if (initialCapacity > _options.MaxMessageSize)
+        {
+            initialCapacity = _options.MaxMessageSize;
+        }
+
+        byte[] payload = BufferLease.ByteArrayPool.Rent(initialCapacity);
         int written = initialBytes;
         initialBuffer.AsSpan(0, initialBytes).CopyTo(payload);
 
@@ -228,6 +242,24 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
                 if (nextWritten > _options.MaxMessageSize)
                 {
                     Throw.WebSocketMessageTooLarge();
+                }
+
+                if (nextWritten > payload.Length)
+                {
+                    int newCapacity = checked(payload.Length * 2);
+                    if (newCapacity < nextWritten)
+                    {
+                        newCapacity = nextWritten;
+                    }
+                    if (newCapacity > _options.MaxMessageSize)
+                    {
+                        newCapacity = _options.MaxMessageSize;
+                    }
+
+                    byte[] newPayload = BufferLease.ByteArrayPool.Rent(newCapacity);
+                    payload.AsSpan(0, written).CopyTo(newPayload);
+                    BufferLease.ByteArrayPool.Return(payload);
+                    payload = newPayload;
                 }
 
                 buffer.AsSpan(0, result.Count).CopyTo(payload.AsSpan(written));
@@ -285,7 +317,7 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.WebSocketTransport:Internal", $"receive-loop-faulted-{phase} phase={phase}", ex));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.WebSocketTransport:Internal", $"receive-loop-faulted-{phase} phase={phase}", ex));
         }
     }
 

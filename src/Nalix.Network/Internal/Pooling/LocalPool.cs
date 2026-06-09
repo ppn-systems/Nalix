@@ -1,4 +1,5 @@
-// Nalix.Network/Internal/Pooling/LocalPool.cs
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
@@ -93,6 +94,66 @@ internal sealed class LocalPool<T> where T : class, IPoolable, new()
         }
 
         this.EnsureInitialized(initialize);
+
+        T[]? items = _items;
+        if (items == null)
+        {
+            return null;
+        }
+        for (int i = 0; i < Size; i++)
+        {
+            long bit = 1L << i;
+            long oldMask;
+            long newMask;
+            bool success = false;
+
+            do
+            {
+                oldMask = Volatile.Read(ref _mask);
+                if ((oldMask & DestroyedBit) != 0)
+                {
+                    return null;
+                }
+
+                if ((oldMask & bit) != 0)
+                {
+                    break; // Slot is busy, try next slot
+                }
+
+                newMask = oldMask | bit;
+                success = Interlocked.CompareExchange(ref _mask, newMask, oldMask) == oldMask;
+            } while (!success);
+
+            if (success)
+            {
+                T item = items[i];
+
+                if (item is IPoolRentable rentable)
+                {
+                    rentable.OnRent();
+                }
+
+                return item;
+            }
+        }
+
+        // All slots are busy
+        return null;
+    }
+
+    /// <summary>
+    /// Attempts to acquire an object from the local pool with a custom state argument
+    /// passed to the initializer to avoid closures/allocations.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public T? Acquire<TState>(TState state, System.Action<T, TState> initialize)
+    {
+        if (Volatile.Read(ref _destroyed) != 0)
+        {
+            return null;
+        }
+
+        this.EnsureInitialized(state, initialize);
 
         T[]? items = _items;
         if (items == null)
@@ -292,6 +353,33 @@ internal sealed class LocalPool<T> where T : class, IPoolable, new()
             {
                 arr[i] = _globalPool.Get<T>();
                 initialize(arr[i]);
+            }
+
+            _items = arr;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void EnsureInitialized<TState>(TState state, System.Action<T, TState> initialize)
+    {
+        if (_items != null || Volatile.Read(ref _destroyed) != 0)
+        {
+            return;
+        }
+
+        lock (this)
+        {
+            if (_items != null || Volatile.Read(ref _destroyed) != 0)
+            {
+                return;
+            }
+
+            T[] arr = ArrayPool<T>.Shared.Rent(Size);
+
+            for (int i = 0; i < Size; i++)
+            {
+                arr[i] = _globalPool.Get<T>();
+                initialize(arr[i], state);
             }
 
             _items = arr;

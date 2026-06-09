@@ -17,7 +17,7 @@ namespace Nalix.Runtime.Handlers;
 /// Provides handlers for system-level time synchronization packets (PING, PONG, TIMESYNC).
 /// </summary>
 [PacketController("Nalix.TimeSync")]
-public sealed class SystemTimeSyncHandlers
+public static class SystemTimeSyncHandlers
 {
     /// <summary>
     /// Handles incoming time synchronization packets.

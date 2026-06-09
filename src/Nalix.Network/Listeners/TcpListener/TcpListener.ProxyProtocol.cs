@@ -201,7 +201,8 @@ public abstract partial class TcpListenerBase
 
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", $"invalid-proxy-header-drop state-socket-remote-end-point={state.Socket?.RemoteEndPoint}"));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
+                        new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", $"invalid-proxy-header-drop state-socket-remote-end-point={state.Socket?.RemoteEndPoint}"));
                 }
 
                 this.Metrics.RECORD_PROXY_ERROR();
@@ -242,7 +243,8 @@ public abstract partial class TcpListenerBase
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", $"proxy-rate-limit-drop effective-ip={effectiveIp}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
+                    new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", $"proxy-rate-limit-drop effective-ip={effectiveIp}"));
             }
 
             this.ReleaseProxyContext(state, args, success: false);
@@ -261,7 +263,8 @@ public abstract partial class TcpListenerBase
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", "socket-disposed-during-init"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
+                    new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", "socket-disposed-during-init"));
             }
         }
         catch (SocketException ex) when (
@@ -272,14 +275,16 @@ public abstract partial class TcpListenerBase
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", $"socket-error-during-init socket-error={ex.SocketErrorCode}", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
+                    new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", $"socket-error-during-init socket-error={ex.SocketErrorCode}", ex));
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", "init-error", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.LoopFaulted,
+                    new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", "init-error", ex));
             }
         }
 
@@ -335,7 +340,11 @@ public abstract partial class TcpListenerBase
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            lock (_proxyLock) { this.DetachProxyContext(state); }
+            lock (_proxyLock)
+            {
+                this.DetachProxyContext(state);
+            }
+
             this.Metrics.RECORD_PROXY_ERROR();
             this.ReleaseProxyContext(state, args, success: false);
             return;

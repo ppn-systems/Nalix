@@ -89,7 +89,9 @@ public sealed class HandshakeIntegrationTests : IDisposable
                 Address = "127.0.0.1",
                 Port = (ushort)port,
                 ServerPublicKey = _serverPublicKey.ToString(),
-                ResumeEnabled = true
+                ResumeEnabled = true,
+                ConnectTimeoutMillis = 30000,
+                ResumeTimeoutMillis = 30000
             });
 
 #pragma warning disable CS0612

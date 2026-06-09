@@ -170,7 +170,10 @@ internal sealed class QueueFormatter<
             return null;
         }
 
-        CollectionGuard.EnsureRead(ref reader, count);
+        if (!CollectionGuard.TryEnsureRead(ref reader, count))
+        {
+            return default;
+        }
 
         System.Collections.Generic.Queue<T> queue = new(count);
 
@@ -199,7 +202,10 @@ internal sealed class QueueFormatter<
             return;
         }
 
-        CollectionGuard.EnsureRead(ref reader, count);
+        if (!CollectionGuard.TryEnsureRead(ref reader, count))
+        {
+            return;
+        }
 
         for (int i = 0; i < count; i++)
         {

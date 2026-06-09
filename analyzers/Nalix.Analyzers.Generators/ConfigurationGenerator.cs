@@ -203,7 +203,7 @@ public class ConfigurationGenerator : IIncrementalGenerator
 
         // ── ValidateDataAnnotations ──
         _ = sb.AppendLine($"{i}/// <summary>");
-        _ = sb.AppendLine($"{i}/// Auto-generated method that validates all properties marked with DataAnnotations.");
+        _ = sb.AppendLine($"{i}/// Auto-generated method that validates all properties marked with validation attributes.");
         _ = sb.AppendLine($"{i}/// </summary>");
         _ = sb.AppendLine($"{i}protected override void ValidateDataAnnotations()");
         _ = sb.AppendLine($"{i}{{");
@@ -212,8 +212,99 @@ public class ConfigurationGenerator : IIncrementalGenerator
             foreach (AttributeData attr in p.GetAttributes())
             {
                 string attrName = attr.AttributeClass?.Name ?? "";
-                if (attrName == "RangeAttribute")
+                string attrNs = attr.AttributeClass?.ContainingNamespace.ToString() ?? "";
+
+                if (attrName == KnownNames.ValueRangeAttributeName && attrNs == KnownNames.ValidationNamespace)
                 {
+                    // [ValueRange(min, max)] — double or long constructor args
+                    bool useInt64 = false;
+                    foreach (KeyValuePair<string, TypedConstant> na in attr.NamedArguments)
+                    {
+                        if (na.Key == "UseInt64" && na.Value.Value is true) { useInt64 = true; break; }
+                    }
+
+                    string minVal, maxVal, minStr, maxStr;
+                    if (useInt64)
+                    {
+                        long lo = 0, hi = 0;
+                        foreach (KeyValuePair<string, TypedConstant> na in attr.NamedArguments)
+                        {
+                            if (na.Key == "MinimumInt64" && na.Value.Value is long lv)
+                            {
+                                lo = lv;
+                            }
+                            else if (na.Key == "MaximumInt64" && na.Value.Value is long hv)
+                            {
+                                hi = hv;
+                            }
+                        }
+                        foreach (TypedConstant ca in attr.ConstructorArguments)
+                        {
+                            if (ca.Value is long lv)
+                            {
+                                if (lo == 0 && lv != 0)
+                                {
+                                    lo = lv;
+                                }
+                                else
+                                {
+                                    hi = lv;
+                                }
+                            }
+                        }
+                        minStr = lo.ToString();
+                        maxStr = hi.ToString();
+                        string loLit = lo switch { int.MaxValue => "global::System.Int32.MaxValue", long.MaxValue => "global::System.Int64.MaxValue", _ => lo.ToString() };
+                        string hiLit = hi switch { int.MaxValue => "global::System.Int32.MaxValue", long.MaxValue => "global::System.Int64.MaxValue", _ => hi.ToString() };
+                        minVal = loLit;
+                        maxVal = hiLit;
+                    }
+                    else
+                    {
+                        minStr = attr.ConstructorArguments[0].Value?.ToString() ?? "0";
+                        maxStr = attr.ConstructorArguments[1].Value?.ToString() ?? "0";
+                        minVal = minStr;
+                        maxVal = maxStr;
+                        if (attr.ConstructorArguments[0].Value is double) { minVal += "d"; maxVal += "d"; }
+                    }
+
+                    _ = sb.AppendLine($"{i}    if (this.{p.Name} < {minVal} || this.{p.Name} > {maxVal})");
+                    _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Exceptions.ValidationException(\"{p.Name} must be between {minStr} and {maxStr}.\");");
+                }
+                else if (attrName == KnownNames.DurationRangeAttributeName && attrNs == KnownNames.ValidationNamespace)
+                {
+                    // [DurationRange("00:00:01", "1.00:00:00")] — string TimeSpan args
+                    string minStr = attr.ConstructorArguments[0].Value?.ToString() ?? "00:00:00";
+                    string maxStr = attr.ConstructorArguments[1].Value?.ToString() ?? "00:00:00";
+
+                    _ = sb.AppendLine($"{i}    if (this.{p.Name} < global::System.TimeSpan.Parse(\"{minStr}\") || this.{p.Name} > global::System.TimeSpan.Parse(\"{maxStr}\"))");
+                    _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Exceptions.ValidationException(\"{p.Name} must be between {minStr} and {maxStr}.\");");
+                }
+                else if (attrName == KnownNames.LengthAttributeName && attrNs == KnownNames.ValidationNamespace)
+                {
+                    // [Length(n)] — minimum length for string / collection
+                    string minLen = attr.ConstructorArguments[0].Value?.ToString() ?? "0";
+
+                    if (p.Type.SpecialType == SpecialType.System_String)
+                    {
+                        _ = sb.AppendLine($"{i}    if (this.{p.Name} is not null && this.{p.Name}.Length < {minLen})");
+                        _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Exceptions.ValidationException(\"{p.Name} length must be at least {minLen}.\");");
+                    }
+                    else if (p.Type is IArrayTypeSymbol)
+                    {
+                        _ = sb.AppendLine($"{i}    if (this.{p.Name} is not null && this.{p.Name}.Length < {minLen})");
+                        _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Exceptions.ValidationException(\"{p.Name} length must be at least {minLen}.\");");
+                    }
+                    else
+                    {
+                        // ICollection<T> / IReadOnlyCollection<T> — try .Count
+                        _ = sb.AppendLine($"{i}    if (this.{p.Name} is not null && this.{p.Name}.Count < {minLen})");
+                        _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Exceptions.ValidationException(\"{p.Name} count must be at least {minLen}.\");");
+                    }
+                }
+                else if (attrName == "RangeAttribute" && attrNs is "System.ComponentModel.DataAnnotations")
+                {
+                    // Legacy DataAnnotations RangeAttribute — kept for backward compatibility
                     string minVal = "";
                     string maxVal = "";
                     string minStr = "";
@@ -250,14 +341,34 @@ public class ConfigurationGenerator : IIncrementalGenerator
                     }
 
                     _ = sb.AppendLine($"{i}    if (this.{p.Name} < {minVal} || this.{p.Name} > {maxVal})");
-                    _ = sb.AppendLine($"{i}        throw new global::System.ComponentModel.DataAnnotations.ValidationException(\"{p.Name} must be between {minStr} and {maxStr}.\");");
+                    _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Exceptions.ValidationException(\"{p.Name} must be between {minStr} and {maxStr}.\");");
                 }
-                else if (attrName == "RequiredAttribute")
+                else if (attrName == "RequiredAttribute" && attrNs is "System.ComponentModel.DataAnnotations")
                 {
+                    // Legacy DataAnnotations RequiredAttribute — kept for backward compatibility
                     if (!p.Type.IsValueType || p.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
                     {
                         _ = sb.AppendLine($"{i}    if (this.{p.Name} == null)");
-                        _ = sb.AppendLine($"{i}        throw new global::System.ComponentModel.DataAnnotations.ValidationException(\"{p.Name} is required.\");");
+                        _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Exceptions.ValidationException(\"{p.Name} is required.\");");
+                    }
+                }
+                else if (attrName == KnownNames.RequiredAttributeName && attrNs == KnownNames.ValidationNamespace)
+                {
+                    // [Required] — Nalix AOT-safe required check
+                    if (!p.Type.IsValueType || p.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+                    {
+                        _ = sb.AppendLine($"{i}    if (this.{p.Name} == null)");
+                        _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Exceptions.ValidationException(\"{p.Name} is required.\");");
+                    }
+                }
+                else if (attrName == KnownNames.AllowedEnumAttributeName && attrNs == KnownNames.ValidationNamespace)
+                {
+                    // [AllowedEnum] — validates that the enum value is defined
+                    if (p.Type.TypeKind == TypeKind.Enum)
+                    {
+                        string enumType = p.Type.ToDisplayString();
+                        _ = sb.AppendLine($"{i}    if (!global::System.Enum.IsDefined(typeof({enumType}), this.{p.Name}))");
+                        _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Exceptions.ValidationException(\"{p.Name} is not a valid {enumType} value.\");");
                     }
                 }
             }

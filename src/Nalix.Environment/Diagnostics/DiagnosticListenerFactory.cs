@@ -44,6 +44,7 @@ internal sealed class BrowserSafeDiagnosticListener : DiagnosticListener
 
     public override bool IsEnabled(string? name, object? arg1, object? arg2 = null) => false;
 
+    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("DiagnosticSource.Write requires unreferenced code analysis for payload property discovery.")]
     public override void Write(string name, object? value)
     {
     }

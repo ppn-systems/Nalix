@@ -35,6 +35,196 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(provider.Collect(), this.Execute);
     }
 
+    // TODO: Recursive nested enum collection registration.
+    //       Currently only top-level enum wrappers are auto-registered (e.g. List<MyEnum>,
+    //       Dictionary<string, MyEnum>). Deeply nested shapes like
+    //       List<Dictionary<string, List<MyEnum>>> are NOT covered because
+    //       RegisterAllFormatters<MyEnum>() only registers single-level wrappers.
+    //       The generator should either:
+    //         (a) recursively register every collection-of-collection variant, or
+    //         (b) emit targeted RegisterCollectionFormatters / RegisterDictionary calls
+    //             for each distinct nested shape found in DTO fields.
+
+    /// <summary>
+    /// Recursively collects all enum types used within a type symbol.
+    /// Handles: direct enum, Nullable&lt;Enum&gt;, arrays, List&lt;T&gt;,
+    /// HashSet&lt;T&gt;, Queue&lt;T&gt;, Stack&lt;T&gt;, Dictionary&lt;K,V&gt;,
+    /// ValueTuple, Memory&lt;T&gt;, ReadOnlyMemory&lt;T&gt;.
+    /// </summary>
+    private static void CollectEnumTypes(ITypeSymbol type, HashSet<ITypeSymbol> enums)
+    {
+        // Direct enum
+        if (type.TypeKind == TypeKind.Enum)
+        {
+            _ = enums.Add(type);
+            return;
+        }
+
+        // Nullable<T>
+        if (type is INamedTypeSymbol namedNullable &&
+            namedNullable.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T &&
+            namedNullable.TypeArguments.Length == 1)
+        {
+            CollectEnumTypes(namedNullable.TypeArguments[0], enums);
+            return;
+        }
+
+        // Arrays: T[]
+        if (type is IArrayTypeSymbol arrayType)
+        {
+            CollectEnumTypes(arrayType.ElementType, enums);
+            return;
+        }
+
+        // Named generic types: List<T>, Dictionary<K,V>, etc.
+        if (type is INamedTypeSymbol named && !named.TypeArguments.IsDefaultOrEmpty)
+        {
+            // Use OriginalDefinition for collection detection (it keeps the generic arity marker),
+            // but use named (with type args) for ValueTuple detection since OriginalDefinition
+            // returns "ValueTuple<,>" without type args.
+            string origDefName = named.OriginalDefinition.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+            // Single type argument generics
+            if (origDefName == "global::System.Collections.Generic.List<T>" ||
+                origDefName == "global::System.Collections.Generic.HashSet<T>" ||
+                origDefName == "global::System.Collections.Generic.Queue<T>" ||
+                origDefName == "global::System.Collections.Generic.Stack<T>" ||
+                origDefName == "global::System.Memory<T>" ||
+                origDefName == "global::System.ReadOnlyMemory<T>")
+            {
+                CollectEnumTypes(named.TypeArguments[0], enums);
+                return;
+            }
+
+            // Dictionary<K,V>
+            if (origDefName == "global::System.Collections.Generic.Dictionary<TKey, TValue>" && named.TypeArguments.Length == 2)
+            {
+                CollectEnumTypes(named.TypeArguments[0], enums);
+                CollectEnumTypes(named.TypeArguments[1], enums);
+                return;
+            }
+
+            // ValueTuple — use IsTupleType for reliable detection
+            if (named.IsTupleType)
+            {
+                foreach (ITypeSymbol arg in named.TypeArguments)
+                {
+                    CollectEnumTypes(arg, enums);
+                }
+                return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Recursively collects fully-qualified type names of ValueTuple types that contain
+    /// enum types and therefore need explicit ValueTupleFormatter registration.
+    /// </summary>
+    private static void CollectValueTupleTypes(ITypeSymbol type, HashSet<INamedTypeSymbol> tupleTypes)
+    {
+        // Nullable<T>
+        if (type is INamedTypeSymbol namedNullable &&
+            namedNullable.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T &&
+            namedNullable.TypeArguments.Length == 1)
+        {
+            CollectValueTupleTypes(namedNullable.TypeArguments[0], tupleTypes);
+            return;
+        }
+
+        // Arrays: T[]
+        if (type is IArrayTypeSymbol arrayType)
+        {
+            CollectValueTupleTypes(arrayType.ElementType, tupleTypes);
+            return;
+        }
+
+        if (type is INamedTypeSymbol named && !named.TypeArguments.IsDefaultOrEmpty)
+        {
+            string origDefName = named.OriginalDefinition.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+            // Single type argument generics — recurse into element type
+            if (origDefName == "global::System.Collections.Generic.List<T>" ||
+                origDefName == "global::System.Collections.Generic.HashSet<T>" ||
+                origDefName == "global::System.Collections.Generic.Queue<T>" ||
+                origDefName == "global::System.Collections.Generic.Stack<T>" ||
+                origDefName == "global::System.Memory<T>" ||
+                origDefName == "global::System.ReadOnlyMemory<T>")
+            {
+                CollectValueTupleTypes(named.TypeArguments[0], tupleTypes);
+                return;
+            }
+
+            // Dictionary<K,V>
+            if (origDefName == "global::System.Collections.Generic.Dictionary<TKey, TValue>" && named.TypeArguments.Length == 2)
+            {
+                CollectValueTupleTypes(named.TypeArguments[0], tupleTypes);
+                CollectValueTupleTypes(named.TypeArguments[1], tupleTypes);
+                return;
+            }
+
+            // ValueTuple — use IsTupleType for reliable detection
+            if (named.IsTupleType)
+            {
+                bool containsEnum = false;
+                foreach (ITypeSymbol arg in named.TypeArguments)
+                {
+                    if (ContainsEnumType(arg))
+                    {
+                        containsEnum = true;
+                    }
+                }
+
+                if (containsEnum)
+                {
+                    _ = tupleTypes.Add(named);
+                }
+
+                // Also recurse into nested tuples
+                foreach (ITypeSymbol arg in named.TypeArguments)
+                {
+                    CollectValueTupleTypes(arg, tupleTypes);
+                }
+                return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns true if the type contains an enum type at any nesting level.
+    /// </summary>
+    private static bool ContainsEnumType(ITypeSymbol type)
+    {
+        if (type.TypeKind == TypeKind.Enum)
+        {
+            return true;
+        }
+
+        if (type is INamedTypeSymbol namedNullable &&
+            namedNullable.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T &&
+            namedNullable.TypeArguments.Length == 1)
+        {
+            return ContainsEnumType(namedNullable.TypeArguments[0]);
+        }
+
+        if (type is IArrayTypeSymbol arrayType)
+        {
+            return ContainsEnumType(arrayType.ElementType);
+        }
+
+        if (type is INamedTypeSymbol named && !named.TypeArguments.IsDefaultOrEmpty)
+        {
+            foreach (ITypeSymbol arg in named.TypeArguments)
+            {
+                if (ContainsEnumType(arg))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private static ITypeSymbol? GetSemanticTarget(GeneratorSyntaxContext context)
     {
         if (context.Node is not TypeDeclarationSyntax typeDef)
@@ -93,7 +283,9 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
             return;
         }
 
-        List<(string FullName, string FormatterName)> registeredFormatters = new(targets.Length);
+        List<(string FullName, string FormatterName, bool IsClass)> registeredFormatters = new(targets.Length);
+        HashSet<ITypeSymbol> enumTypes = new(SymbolEqualityComparer.Default);
+        HashSet<INamedTypeSymbol> tupleTypes = new(SymbolEqualityComparer.Default);
         string generatedNamespace = SourceGenNamespaces.Get(targets.First(static t => t is not null)!);
 
         foreach (ITypeSymbol? type in targets)
@@ -110,23 +302,24 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
             if (isClass && !HasStaticCreateMethod(type))
             {
                 context.ReportDiagnostic(Diagnostic.Create(
-                    new DiagnosticDescriptor(
-                        "NALIX059",
-                        "Missing static Create() method",
-                        "Type '{0}' is marked [GenerateFormatter] but neither it nor any of its base types has a public/internal static Create() method. " +
-                        "This is required for the pooling pattern used by LiteSerializer.Fill.",
-                        $"{KnownNames.SerializationAbstractionsNamespace}.{KnownNames.GenerateFormatterAttributeName}",
-                        DiagnosticSeverity.Error,
-                        true),
+                    GeneratorDiagnosticDescriptors.MissingStaticCreateMethod,
                     type.Locations[0],
                     type.ToDisplayString()));
 
                 continue;
             }
 
-            registeredFormatters.Add((typeName, $"global::{generatedNamespace}.{KnownNames.FormatterName}.{formatterName}"));
+            registeredFormatters.Add((typeName, $"global::{generatedNamespace}.{KnownNames.FormatterName}.{formatterName}", isClass));
 
+            // Collect enum types and ValueTuple wrapper types from all serializable members
             List<ISymbol> members = SerializationMember.Resolve(type);
+            foreach (ISymbol member in members)
+            {
+                ITypeSymbol memberType = GetSymbolType(member);
+                CollectEnumTypes(memberType, enumTypes);
+                CollectValueTupleTypes(memberType, tupleTypes);
+            }
+
             string interfaceName = isClass ? $"IFillableFormatter<{typeName}>" : $"IFormatter<{typeName}>";
 
             StringBuilder sb = new(4096);
@@ -200,7 +393,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
             context.AddSource($"{formatterName}.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
         }
 
-        GenerateBootstrapper(context, registeredFormatters, generatedNamespace);
+        GenerateBootstrapper(context, registeredFormatters, enumTypes, tupleTypes, generatedNamespace);
     }
 
     private static bool ImplementsFixedSizeSerializable(ITypeSymbol type)
@@ -253,6 +446,11 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
             {
                 _ = code.AppendLine($"        writer.WriteEnum(value.{m.Name});");
             }
+            else if (IsNullableValueType(type))
+            {
+                // Nullable<T> where T is a value type — route through FormatterProvider
+                _ = code.AppendLine($"        FormatterProvider.Get<{GetTypeName(type)}>().Serialize(ref writer, value.{m.Name}!);");
+            }
             else if (type.IsUnmanagedType && type.TypeKind == TypeKind.Struct)
             {
                 // Custom unmanaged struct
@@ -285,6 +483,11 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
             if (type.TypeKind == TypeKind.Enum)
             {
                 _ = code.AppendLine($"        {memberAccess} = reader.{GetEnumReadMethod(type)}<{GetTypeName(type)}>();");
+            }
+            else if (IsNullableValueType(type))
+            {
+                // Nullable<T> where T is a value type — route through FormatterProvider
+                _ = code.AppendLine($"        {memberAccess} = FormatterProvider.Get<{GetTypeName(type)}>().Deserialize(ref reader);");
             }
             else if (type.SpecialType != SpecialType.None && type.SpecialType != SpecialType.System_String)
             {
@@ -323,6 +526,22 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
         return code.ToString();
     }
 
+    /// <summary>
+    /// Returns true if <paramref name="type"/> is Nullable&lt;T&gt; where T is a value type.
+    /// Nullable&lt;T&gt; is a struct and satisfies IsUnmanagedType, but WriteUnmanaged/ReadUnmanaged
+    /// reject it because Nullable&lt;T&gt; doesn't satisfy the unmanaged constraint.
+    /// </summary>
+    private static bool IsNullableValueType(ITypeSymbol type)
+    {
+        if (type is INamedTypeSymbol named &&
+            named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T &&
+            named.TypeArguments.Length == 1)
+        {
+            return named.TypeArguments[0].IsValueType;
+        }
+        return false;
+    }
+
     private static string GetEnumReadMethod(ITypeSymbol type)
     {
         SpecialType? underlying = ((INamedTypeSymbol)type).EnumUnderlyingType?.SpecialType;
@@ -358,9 +577,15 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
     private static ITypeSymbol GetSymbolType(ISymbol symbol)
         => symbol is IPropertySymbol p ? p.Type : ((IFieldSymbol)symbol).Type;
 
-    private static void GenerateBootstrapper(SourceProductionContext context, List<(string FullName, string FormatterName)> registered, string generatedNamespace)
+    private static void GenerateBootstrapper(
+        SourceProductionContext context,
+        List<(string FullName, string FormatterName, bool IsClass)> registered,
+        HashSet<ITypeSymbol> enumTypes,
+        HashSet<INamedTypeSymbol> tupleTypes,
+        string generatedNamespace)
     {
-        StringBuilder sb = new((registered.Count * 80) + 256);
+        int totalEntries = registered.Count;
+        StringBuilder sb = new((totalEntries * 120) + (enumTypes.Count * 80) + (tupleTypes.Count * 80) + 512);
         _ = sb.AppendLine("using System.Runtime.CompilerServices;");
         _ = sb.AppendLine();
         _ = sb.AppendLine("#pragma warning disable CA2255");
@@ -369,17 +594,93 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
         _ = sb.AppendLine();
         _ = sb.AppendLine($"namespace {generatedNamespace};");
         _ = sb.AppendLine();
+
+        // ── SerializeFormatterGenerated bootstrapper ──
         _ = sb.AppendLine("internal static class SerializeFormatterGenerated");
         _ = sb.AppendLine("{");
         _ = sb.AppendLine("    [ModuleInitializer]");
         _ = sb.AppendLine("    public static void Initialize()");
         _ = sb.AppendLine("    {");
-        foreach ((_, string formatterName) in registered)
+
+        // ── Step 1: Register enum formatter families BEFORE DTO formatters.
+        // This ensures FormatterProvider.Get<List<MyEnum>>(), Get<MyEnum[]>(),
+        // Get<Dictionary<string, MyEnum>>(), etc. all resolve correctly
+        // when the generated DTO formatter is constructed.
+        if (enumTypes.Count > 0)
         {
-            _ = sb.AppendLine($"        global::{KnownNames.LiteSerializerNamespace}.{KnownNames.LiteSerializerName}.Register(new {formatterName}());");
+            _ = sb.AppendLine("        // ── Auto-register enum formatter families used by generated DTOs ──");
+            foreach (ITypeSymbol enumType in enumTypes.OrderBy(static e => e.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))
+            {
+                string enumFullName = enumType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                _ = sb.AppendLine($"        global::{KnownNames.LiteSerializerNamespace}.{KnownNames.FormatterProviderName}.RegisterAllFormatters<{enumFullName}>();");
+            }
+            _ = sb.AppendLine();
         }
+
+        // ── Step 1b: Register ValueTuple formatters that contain enum types.
+        // These are composite types that RegisterAllFormatters cannot handle.
+        if (tupleTypes.Count > 0)
+        {
+            _ = sb.AppendLine("        // ── Auto-register ValueTuple formatters containing enum types ──");
+            foreach (INamedTypeSymbol tupleType in tupleTypes.OrderBy(static t => t.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))
+            {
+                // Build type arguments for RegisterTuple<T1, T2, ...>() call
+                StringBuilder args = new();
+                for (int i = 0; i < tupleType.TypeArguments.Length; i++)
+                {
+                    if (i > 0)
+                    {
+                        _ = args.Append(", ");
+                    }
+                    _ = args.Append(tupleType.TypeArguments[i].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+                }
+                _ = sb.AppendLine($"        global::{KnownNames.LiteSerializerNamespace}.{KnownNames.FormatterProviderName}.RegisterTuple<{args}>();");
+            }
+            _ = sb.AppendLine();
+        }
+
+        // ── Step 2: Register generated DTO formatters ──
+        foreach ((_, string formatterName, _) in registered)
+        {
+            _ = sb.AppendLine($"        global::{KnownNames.LiteSerializerNamespace}.{KnownNames.FormatterProviderName}.RegisterGenerated(new {formatterName}());");
+        }
+
+        // ── Step 3: Register List<T> and T[] formatters for class types ──
+        foreach ((string fullName, _, bool isClass) in registered)
+        {
+            if (isClass)
+            {
+                _ = sb.AppendLine($"        global::{KnownNames.LiteSerializerNamespace}.{KnownNames.FormatterProviderName}.RegisterCollectionFormatters<{fullName}>();");
+            }
+        }
+
         _ = sb.AppendLine("    }");
         _ = sb.AppendLine("}");
+        _ = sb.AppendLine();
+
+        // ── GeneratedFormatterRegistry for runtime lookup ──
+        _ = sb.AppendLine("internal static partial class GeneratedFormatterRegistry");
+        _ = sb.AppendLine("{");
+        _ = sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
+        _ = sb.AppendLine($"    internal static bool TryGet<T>(out global::{KnownNames.LiteSerializerNamespace}.IFormatter<T>? formatter)");
+        _ = sb.AppendLine("    {");
+
+        foreach ((string fullName, string formatterName, _) in registered)
+        {
+            _ = sb.AppendLine($"        if (typeof(T) == typeof({fullName}))");
+            _ = sb.AppendLine("        {");
+            _ = sb.AppendLine($"            formatter = (global::{KnownNames.LiteSerializerNamespace}.IFormatter<T>)(object)new {formatterName}();");
+            _ = sb.AppendLine("            return true;");
+            _ = sb.AppendLine("        }");
+        }
+
+        _ = sb.AppendLine();
+        _ = sb.AppendLine("        formatter = default;");
+        _ = sb.AppendLine("        return false;");
+        _ = sb.AppendLine("    }");
+        _ = sb.AppendLine("}");
+
         context.AddSource("SerializeFormatterGenerated.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
+
 }

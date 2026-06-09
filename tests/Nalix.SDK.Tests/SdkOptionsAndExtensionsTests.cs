@@ -42,7 +42,7 @@ public sealed class SdkOptionsAndExtensionsTests
             MaxMessageSize = 0
         };
 
-        _ = Assert.Throws<System.ComponentModel.DataAnnotations.ValidationException>(options.Validate);
+        _ = Assert.Throws<Nalix.Abstractions.Exceptions.ValidationException>(options.Validate);
     }
 
     [Fact]

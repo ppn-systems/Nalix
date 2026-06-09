@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -133,9 +132,9 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
 
         _ = tcpBuilder.Bind();
 
-        // Auto-scan handlers from the calling assembly (most common use-case)
-        Assembly callingAssembly = Assembly.GetCallingAssembly();
-        _ = builder.ScanHandlers(callingAssembly);
+        // Note: Assembly scanning has been removed for Native AOT compatibility.
+        // Handlers are discovered via source-generated PacketHandlerRegistry
+        // or registered explicitly via AddHandler<T>().
 
         return builder.Build();
     }

@@ -16,7 +16,7 @@ namespace Nalix.Codec.Pooling;
 /// <typeparam name="TPacket">The packet type.</typeparam>
 [SuppressMessage(
     "Design", "CA1000:Do not declare static members on generic types", Justification = "A generic packet pool is intentionally exposed as a per-packet-type static API.")]
-public static class PacketFactory<TPacket> where TPacket : PacketBase<TPacket>, IPacketStaticOpcode, new()
+public static class PacketFactory<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TPacket> where TPacket : PacketBase<TPacket>, IPacketStaticOpcode, new()
 {
     #region APIs
 

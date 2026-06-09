@@ -103,10 +103,10 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
             return null!;
         }
 
-        if (length < 0 || length > SerializationStaticOptions.Instance.MaxStringLength)
+        if (length < 0 || length > SerializationStaticOptions.Instance.MaxStringLength || !CollectionGuard.TryEnsureRead(ref reader, length, sizeof(int)))
         {
-            throw new SerializationFailureException(
-                $"String array length out of range: {length}. Max allowed is {SerializationStaticOptions.Instance.MaxStringLength}.");
+            SerializationDiagnostics.Poison(ref reader, "Out of bounds read");
+            return null!;
         }
 
         string[] result = new string[length];

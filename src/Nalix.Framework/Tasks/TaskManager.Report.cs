@@ -62,9 +62,9 @@ public sealed partial class TaskManager
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "memory-diagnostics-failed", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "memory-diagnostics-failed", ex));
             }
         }
 
@@ -91,9 +91,9 @@ public sealed partial class TaskManager
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "process-health-diagnostics-failed", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed, new DiagnosticLog("FW.TaskManager:Internal", "process-health-diagnostics-failed", ex));
             }
         }
 

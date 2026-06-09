@@ -103,7 +103,10 @@ internal sealed class EnumListFormatter<
             return null!;
         }
 
-        int totalBytes = CollectionGuard.EnsureCan(ref reader, count, s_elementSize);
+        if (!CollectionGuard.TryEnsureCan(ref reader, count, s_elementSize, out int totalBytes))
+        {
+            return default!;
+        }
 
         System.Collections.Generic.List<T> result = new(count);
         CollectionsMarshal.SetCount(result, count);
@@ -134,7 +137,10 @@ internal sealed class EnumListFormatter<
             return;
         }
 
-        int totalBytes = CollectionGuard.EnsureCan(ref reader, length, s_elementSize);
+        if (!CollectionGuard.TryEnsureCan(ref reader, length, s_elementSize, out int totalBytes))
+        {
+            return;
+        }
 
         value.Clear();
         CollectionsMarshal.SetCount(value, length);

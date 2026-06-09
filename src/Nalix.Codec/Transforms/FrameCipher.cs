@@ -57,6 +57,50 @@ public static class FrameCipher
     }
 
     /// <summary>
+    /// Attempts to decrypt a framed packet without throwing exceptions on authentication failures.
+    /// Returns true and a new leased buffer on success, or false on failure.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static bool TryDecryptFrame(
+        [Borrowed] IBufferLease src,
+        ReadOnlySpan<byte> key, CipherSuiteType expectedAlgorithm,
+        out uint seq,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IBufferLease? dest)
+    {
+        dest = null;
+        seq = 0;
+
+        if (src is null)
+        {
+            return false;
+        }
+
+        if (src.Length < FrameTransformer.Offset + EnvelopeCipher.HeaderSize)
+        {
+            return false;
+        }
+
+        if (!FrameTransformer.TryGetPlaintextLength(src.Span, out int plaintextLength))
+        {
+            return false;
+        }
+
+        IBufferLease localDest = BufferLease.Rent(FrameTransformer.Offset + plaintextLength);
+
+        if (!FrameTransformer.TryDecrypt(src, localDest, key, expectedAlgorithm, out seq))
+        {
+            localDest.Dispose();
+            return false;
+        }
+
+        ref PacketHeader header = ref localDest.Span.AsHeaderRef();
+        header.Flags &= ~PacketFlags.ENCRYPTED;
+
+        dest = localDest;
+        return true;
+    }
+
+    /// <summary>
     /// Encrypts a framed packet and sets the encrypted flag in the resulting buffer.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]

@@ -1,11 +1,13 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
 
 		<Nullable>enable</Nullable>
 		<IsPackable>true</IsPackable>
-		<IsTrimmable>false</IsTrimmable>
+		<IsTrimmable>true</IsTrimmable>
+		<TrimMode>partial</TrimMode>
+		<IsAotCompatible>true</IsAotCompatible>
 		<OutputType>Library</OutputType>
 		<Deterministic>true</Deterministic>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>

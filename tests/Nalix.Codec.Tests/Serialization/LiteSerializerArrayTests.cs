@@ -40,12 +40,13 @@ public sealed class LiteSerializerArrayTests
     [Theory]
     [InlineData(-2)]
     [InlineData(int.MaxValue)]
-    public void Deserialize_ReferenceArray_InvalidLength_ThrowsSerializationFailureException(int length)
+    public void Deserialize_ReferenceArray_InvalidLength_ReturnsNull(int length)
     {
         byte[] buffer = BitConverter.GetBytes(length);
         object[]? output = null;
 
-        _ = Assert.ThrowsAny<SerializationFailureException>(() => LiteSerializer.Deserialize(buffer, ref output));
+        LiteSerializer.Deserialize(buffer, ref output);
+        Assert.Null(output);
     }
 }
 

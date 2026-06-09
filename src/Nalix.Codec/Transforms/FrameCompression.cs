@@ -53,6 +53,44 @@ public static class FrameCompression
     }
 
     /// <summary>
+    /// Attempts to decompress a framed packet without throwing exceptions on failures.
+    /// Returns true and a new leased buffer on success, or false on failure.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static bool TryDecompressFrame([Borrowed] IBufferLease src, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IBufferLease? dest)
+    {
+        dest = null;
+        if (src is null)
+        {
+            return false;
+        }
+
+        if (src.Length <= FrameTransformer.Offset)
+        {
+            return false;
+        }
+
+        if (!FrameTransformer.TryGetDecompressedLength(src.Span[FrameTransformer.Offset..], out int decompressedLength))
+        {
+            return false;
+        }
+
+        IBufferLease localDest = BufferLease.Rent(decompressedLength + FrameTransformer.Offset);
+
+        if (!FrameTransformer.TryDecompress(src, localDest))
+        {
+            localDest.Dispose();
+            return false;
+        }
+
+        ref PacketHeader header = ref localDest.Span.AsHeaderRef();
+        header.Flags &= ~PacketFlags.COMPRESSED;
+
+        dest = localDest;
+        return true;
+    }
+
+    /// <summary>
     /// Compresses a framed packet and sets the compressed flag in the resulting buffer.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]

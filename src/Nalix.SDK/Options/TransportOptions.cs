@@ -1,10 +1,9 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.ComponentModel.DataAnnotations;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Security;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.SDK.Options;
@@ -21,14 +20,14 @@ public sealed partial class TransportOptions : ConfigurationLoader
     /// Gets the port number for the connection.
     /// </summary>
     [IniComment("Server port to connect to (1–65535)")]
-    [Range(1, 65535, ErrorMessage = "Port must be between 1 and 65535.")]
+    [ValueRange(1, 65535)]
     public ushort Port { get; set; } = 57206;
 
     /// <summary>
     /// Gets the server address or hostname.
     /// </summary>
     [IniComment("Server IP address or hostname")]
-    [Required(ErrorMessage = "Address is required.")]
+    [Length(1)]
     public string Address { get; set; } = "127.0.0.1";
 
     // Basic connectivity
@@ -37,7 +36,7 @@ public sealed partial class TransportOptions : ConfigurationLoader
     /// Timeout for connect attempts in milliseconds. A value of 0 means no timeout.
     /// </summary>
     [IniComment("Connect attempt timeout in milliseconds (0 = no timeout)")]
-    [Range(0, int.MaxValue, ErrorMessage = "ConnectTimeoutMillis must be non-negative.")]
+    [ValueRange(0, int.MaxValue)]
     public int ConnectTimeoutMillis { get; set; } = 5000;
 
     /// <summary>
@@ -50,21 +49,21 @@ public sealed partial class TransportOptions : ConfigurationLoader
     /// [Reserved for future use] Maximum number of reconnect attempts. 0 indicates unlimited attempts. Currently not consumed.
     /// </summary>
     [IniComment("[Reserved] Max reconnect attempts (0 = unlimited, currently not consumed)")]
-    [Range(0, int.MaxValue, ErrorMessage = "ReconnectMaxAttempts must be non-negative.")]
+    [ValueRange(0, int.MaxValue)]
     public int ReconnectMaxAttempts { get; set; }
 
     /// <summary>
     /// [Reserved for future use] Base delay (in milliseconds) used for exponential backoff between reconnect attempts. Currently not consumed.
     /// </summary>
     [IniComment("[Reserved] Base delay in milliseconds for exponential backoff between reconnect attempts (currently not consumed)")]
-    [Range(0, 30000, ErrorMessage = "ReconnectBaseDelayMillis must be between 0 and 30000.")]
+    [ValueRange(0, 30000)]
     public int ReconnectBaseDelayMillis { get; set; } = 500;
 
     /// <summary>
     /// [Reserved for future use] Maximum delay (in milliseconds) allowed between reconnect attempts. Currently not consumed.
     /// </summary>
     [IniComment("[Reserved] Maximum delay in milliseconds between reconnect attempts (currently not consumed)")]
-    [Range(0, 30000, ErrorMessage = "ReconnectMaxDelayMillis must be between 0 and 30000.")]
+    [ValueRange(0, 30000)]
     public int ReconnectMaxDelayMillis { get; set; } = 30000;
 
     // Keep-alive / heartbeat (ms). 0 = disabled.
@@ -73,7 +72,7 @@ public sealed partial class TransportOptions : ConfigurationLoader
     /// [Reserved for future use] Interval in milliseconds to send keep-alive (heartbeat) packets. 0 disables heartbeats. Currently not consumed.
     /// </summary>
     [IniComment("[Reserved] Heartbeat interval in milliseconds (0 = disabled, currently not consumed)")]
-    [Range(0, int.MaxValue, ErrorMessage = "KeepAliveIntervalMillis must be non-negative.")]
+    [ValueRange(0, int.MaxValue)]
     public int KeepAliveIntervalMillis { get; set; } = 20_000;
 
     // Socket tuning
@@ -88,7 +87,7 @@ public sealed partial class TransportOptions : ConfigurationLoader
     /// Size (in bytes) of the socket send and receive buffer.
     /// </summary>
     [IniComment("Socket send and receive buffer size in bytes")]
-    [Range(2048, 1048576, ErrorMessage = "BufferSize must be between 2048 and 1048576 bytes.")]
+    [ValueRange(2048, 1048576)]
     public int BufferSize { get; set; } = 65536;
 
     /// <summary>
@@ -114,14 +113,14 @@ public sealed partial class TransportOptions : ConfigurationLoader
     /// SEC-56, SEC-59: Provides backpressure to prevent memory exhaustion under high load.
     /// </summary>
     [IniComment("[Reserved] Capacity of the asynchronous message processing queue (default 1024, currently not consumed)")]
-    [Range(1, 65536, ErrorMessage = "AsyncQueueCapacity must be between 1 and 65536.")]
+    [ValueRange(1, 65536)]
     public int AsyncQueueCapacity { get; set; } = 1024;
 
     /// <summary>
     /// The maximum size (in bytes) allowed for a single UDP datagram (including the 8-byte Token).
     /// </summary>
     [IniComment("Maximum allowed UDP datagram size in bytes (including header). Default 1400.")]
-    [Range(64, 65507, ErrorMessage = "MaxUdpDatagramSize must be between 64 and 65507.")]
+    [ValueRange(64, 65507)]
     public int MaxUdpDatagramSize { get; set; } = 1400;
 
     /// <summary>
@@ -140,7 +139,7 @@ public sealed partial class TransportOptions : ConfigurationLoader
     /// Gets or sets the resume request timeout in milliseconds.
     /// </summary>
     [IniComment("Timeout in milliseconds for session resume requests")]
-    [Range(100, int.MaxValue, ErrorMessage = "ResumeTimeoutMillis must be at least 100.")]
+    [ValueRange(100, int.MaxValue)]
     public int ResumeTimeoutMillis { get; set; } = 3000;
 
     /// <summary>

@@ -188,7 +188,7 @@ public abstract partial class WebSocketListenerBase : IListener
 
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.using:cb", $"stopped port={self._port}"));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.using:cb", $"stopped port={self._port}"));
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
@@ -281,7 +281,7 @@ public abstract partial class WebSocketListenerBase : IListener
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.using:Dispose", "disposed"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.using:Dispose", "disposed"));
         }
     }
 

@@ -62,6 +62,13 @@ public static partial class Bootstrap
             // This ensures that if the server was running with defaults
             ConfigurationManager.Instance.Flush();
 
+            // Dispose InstanceManager to trigger disposal of all registered services
+            // (including ConnectionGuard, which saves the ban database to disk).
+            if (InstanceManager.IsCreated)
+            {
+                InstanceManager.Instance.Dispose();
+            }
+
             if (s_isHighPrecisionTimerEnabled && OperatingSystem.IsWindows())
             {
                 _ = TimeEndPeriod(1);

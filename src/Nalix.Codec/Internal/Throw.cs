@@ -110,6 +110,9 @@ internal static class Throw
     private static readonly CipherException s_transformEncryptButNoSeq =
         new CachedCipherException("Encryption requested but no sequence number is available.");
 
+    private static readonly CipherException s_transformInboundPipelineFailed =
+        new CachedCipherException("Inbound frame pipeline processing failed due to decryption or decompression error.");
+
     #endregion Cached Exceptions (private)
 
     #region Throw Helpers — LZ4
@@ -284,6 +287,11 @@ internal static class Throw
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void EncryptRequestedButNoSeq() => throw s_transformEncryptButNoSeq;
+
+    [DoesNotReturn]
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void InboundPipelineFailed() => throw s_transformInboundPipelineFailed;
 
     #endregion Throw Helpers — Transform
 

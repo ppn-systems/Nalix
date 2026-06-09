@@ -119,23 +119,23 @@ public sealed class LiteSerializerCollectionTests
     }
 
     [Fact]
-    public void Deserialize_List_WhenDeclaredCountExceedsPayload_ThrowsBeforeAllocation()
+    public void Deserialize_List_WhenDeclaredCountExceedsPayload_ReturnsNull()
     {
         byte[] buffer = BitConverter.GetBytes(1_048_576);
         List<string>? output = null;
 
-        _ = Assert.ThrowsAny<Abstractions.Exceptions.SerializationFailureException>(
-            () => LiteSerializer.Deserialize(buffer, ref output));
+        LiteSerializer.Deserialize(buffer, ref output);
+        Assert.Null(output);
     }
 
     [Fact]
-    public void Deserialize_Dictionary_WhenDeclaredCountExceedsPayload_ThrowsBeforeAllocation()
+    public void Deserialize_Dictionary_WhenDeclaredCountExceedsPayload_ReturnsNull()
     {
         byte[] buffer = BitConverter.GetBytes(1_048_576);
         Dictionary<string, int>? output = null;
 
-        _ = Assert.ThrowsAny<Abstractions.Exceptions.SerializationFailureException>(
-            () => LiteSerializer.Deserialize(buffer, ref output));
+        LiteSerializer.Deserialize(buffer, ref output);
+        Assert.Null(output);
     }
 
     [Fact]

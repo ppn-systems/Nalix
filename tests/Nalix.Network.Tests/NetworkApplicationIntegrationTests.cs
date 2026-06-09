@@ -72,8 +72,6 @@ public sealed class NetworkApplicationIntegrationTests
         // Listen on loopback with our test protocol
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
 
-        // Add current assembly for scanning controllers and packets
-        builder.ScanHandlers<NetworkApplicationIntegrationTests>();
         builder.AddHandler<IntegrationTestController>();
 
         using NetworkApplication app = builder.Build();
@@ -140,6 +138,7 @@ public sealed class NetworkApplicationIntegrationTests
 /// <summary>
 /// A simple protocol for integration testing that dispatches packets to the Nalix runtime.
 /// </summary>
+[Nalix.Abstractions.Injection.Injectable]
 public sealed class IntegrationTestProtocol : Protocol
 {
     private readonly IPacketDispatch _dispatch;
@@ -182,6 +181,7 @@ public sealed class IntegrationTestProtocol : Protocol
 }
 
 [PacketController("IntegrationTest")]
+[Nalix.Abstractions.Injection.Injectable]
 public sealed class IntegrationTestController
 {
     public static int ReceivedCount = 0;

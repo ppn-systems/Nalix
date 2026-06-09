@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel.DataAnnotations;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Runtime.Options;
@@ -24,7 +24,7 @@ public sealed partial class SessionStoreOptions : ConfigurationLoader, IValidata
     /// Gets or sets the time-to-live for resumable sessions.
     /// </summary>
     [IniComment("Duration after which an inactive session expires (default 5m)")]
-    [Required(ErrorMessage = "SessionTtl is required.")]
+    [Required]
     public TimeSpan SessionTtl { get; set; } = TimeSpan.FromMinutes(5);
 
     /// <summary>
@@ -32,7 +32,7 @@ public sealed partial class SessionStoreOptions : ConfigurationLoader, IValidata
     /// This helps prevent DDoS by not saving "empty" sessions from handshake-only connections.
     /// </summary>
     [IniComment("Minimum number of attributes required to persist a session (excluding internal flags, default 10)")]
-    [Range(0, int.MaxValue, ErrorMessage = "MinAttributesForPersistence cannot be negative.")]
+    [ValueRange(0, int.MaxValue)]
     public int MinAttributesForPersistence { get; set; } = 10;
 
     /// <summary>

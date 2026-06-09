@@ -92,7 +92,10 @@ internal sealed class ListFormatter<
             return [];
         }
 
-        int totalBytes = CollectionGuard.EnsureCan(ref reader, length, s_elementSize);
+        if (!CollectionGuard.TryEnsureCan(ref reader, length, s_elementSize, out int totalBytes))
+        {
+            return default!;
+        }
 
         System.Collections.Generic.List<T> list = new(length);
         CollectionsMarshal.SetCount(list, length);
@@ -124,7 +127,10 @@ internal sealed class ListFormatter<
             return;
         }
 
-        int totalBytes = CollectionGuard.EnsureCan(ref reader, length, s_elementSize);
+        if (!CollectionGuard.TryEnsureCan(ref reader, length, s_elementSize, out int totalBytes))
+        {
+            return;
+        }
 
         value.Clear();
         CollectionsMarshal.SetCount(value, length);

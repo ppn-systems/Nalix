@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Codec.Options;
@@ -16,21 +17,21 @@ public sealed partial class SerializationOptions : ConfigurationLoader, IValidat
     /// Gets or sets the maximum allowed element count for arrays and collections during deserialization.
     /// </summary>
     [IniComment("Maximum number of elements in an array or collection (default 1M)")]
-    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "MaxArrayLength must be positive.")]
+    [ValueRange(1, int.MaxValue)]
     public int MaxArrayLength { get; set; } = 1_048_576; // 1M default (matches old SerializationStaticOptions.Instance.MaxArrayLength)
 
     /// <summary>
     /// Gets or sets the maximum allowed length, in bytes, for UTF-8 strings during deserialization.
     /// </summary>
     [IniComment("Maximum length (bytes) for a UTF-8 string (default 1M)")]
-    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "MaxStringLength must be positive.")]
+    [ValueRange(1, int.MaxValue)]
     public int MaxStringLength { get; set; } = 1_048_576; // 1M default (matches old SerializationStaticOptions.Instance.MaxStringLength)
 
     /// <summary>
     /// Gets or sets the maximum nested formatter depth during deserialization.
     /// </summary>
     [IniComment("Maximum nested formatter depth during deserialization (default 256)")]
-    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "MaxDeserializationDepth must be positive.")]
+    [ValueRange(1, int.MaxValue)]
     public int MaxDeserializationDepth { get; set; } = 256;
 
     /// <summary>

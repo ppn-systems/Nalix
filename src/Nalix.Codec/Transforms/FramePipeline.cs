@@ -29,7 +29,27 @@ public static class FramePipeline
         ([Borrowed] ref IBufferLease current,
         ReadOnlySpan<byte> secret, CipherSuiteType algorithm, out uint? seq)
     {
-        ArgumentNullException.ThrowIfNull(current);
+        if (!TryProcessInbound(ref current, secret, algorithm, out seq))
+        {
+            Throw.InboundPipelineFailed();
+        }
+    }
+
+    /// <summary>
+    /// Attempts to apply inbound transforms in transport order without throwing exceptions on failures.
+    /// Returns true on success, or false if decryption, decompression, or validation fails.
+    /// Mutates the <paramref name="current"/> lease directly via <see langword="ref"/> to optimize performance.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TryProcessInbound
+        ([Borrowed] ref IBufferLease current,
+        ReadOnlySpan<byte> secret, CipherSuiteType algorithm, out uint? seq)
+    {
+        if (current is null)
+        {
+            seq = null;
+            return false;
+        }
 
         seq = null;
         IBufferLease original = current;
@@ -42,32 +62,40 @@ public static class FramePipeline
         {
             if (algorithm == CipherSuiteType.None)
             {
-                Throw.EncryptedButNoCipher();
+                return false;
             }
 
             if (secret.IsEmpty)
             {
-                Throw.EncryptedButNoKey();
+                return false;
             }
 
-            ProcessInboundFused(ref current, secret, algorithm, out uint _seq);
+            if (!TryProcessInboundFused(ref current, secret, algorithm, out uint _seq))
+            {
+                return false;
+            }
             seq = _seq;
-            return;
+            return true;
         }
 
         if (isEncrypted)
         {
             if (algorithm == CipherSuiteType.None)
             {
-                Throw.EncryptedButNoCipher();
+                return false;
             }
 
             if (secret.IsEmpty)
             {
-                Throw.EncryptedButNoKey();
+                return false;
             }
 
-            current = FrameCipher.DecryptFrame(current, secret, algorithm, out uint _seq);
+            if (!FrameCipher.TryDecryptFrame(current, secret, algorithm, out uint _seq, out IBufferLease? decrypted))
+            {
+                return false;
+            }
+
+            current = decrypted;
             seq = _seq;
 
             // Re-read flags after decryption since the inner payload might have other flags (e.g., COMPRESSED).
@@ -77,7 +105,18 @@ public static class FramePipeline
         if ((flags & PacketFlags.COMPRESSED) != 0)
         {
             IBufferLease prev = current;
-            current = FrameCompression.DecompressFrame(current);
+            if (!FrameCompression.TryDecompressFrame(current, out IBufferLease? decompressed))
+            {
+                // If we replaced a buffer that was ALREADY a replacement (intermediate),
+                // we must dispose it to avoid a leak. We do NOT dispose the 'original' one.
+                if (!ReferenceEquals(prev, original))
+                {
+                    prev.Dispose();
+                }
+                return false;
+            }
+
+            current = decompressed;
 
             // If we replaced a buffer that was ALREADY a replacement (intermediate),
             // we must dispose it to avoid a leak. We do NOT dispose the 'original' one.
@@ -86,14 +125,21 @@ public static class FramePipeline
                 prev.Dispose();
             }
         }
+
+        return true;
     }
 
-    private static void ProcessInboundFused(
+    private static bool TryProcessInboundFused(
         [Borrowed] ref IBufferLease current,
         ReadOnlySpan<byte> secret, CipherSuiteType algorithm, out uint seq)
     {
+        seq = 0;
         ReadOnlySpan<byte> srcSpan = current.Span;
-        int decryptedSize = FrameTransformer.GetPlaintextLength(srcSpan);
+
+        if (!FrameTransformer.TryGetPlaintextLength(srcSpan, out int decryptedSize))
+        {
+            return false;
+        }
 
         byte[] tempArr = BufferLease.ByteArrayPool.Rent(decryptedSize);
         try
@@ -101,39 +147,43 @@ public static class FramePipeline
             Span<byte> tempRegion = tempArr.AsSpan(0, decryptedSize);
 
             // 1. Decrypt directly into tempRegion
-            EnvelopeCipher.Decrypt(secret, srcSpan[FrameTransformer.Offset..], tempRegion, null, algorithm, out int decLen, out seq);
+            if (!EnvelopeCipher.TryDecrypt(secret, srcSpan[FrameTransformer.Offset..], tempRegion, null, algorithm, out int decLen, out seq, out _))
+            {
+                return false;
+            }
 
             // 2. Read the uncompressed length from the LZ4 block header
-            int decompressedSize = FrameTransformer.GetDecompressedLength(tempRegion[..decLen]);
+            if (!FrameTransformer.TryGetDecompressedLength(tempRegion[..decLen], out int decompressedSize))
+            {
+                return false;
+            }
 
             // 3. Rent final lease for the fully decompressed packet
             BufferLease finalLease = BufferLease.Rent(FrameTransformer.Offset + decompressedSize);
-            try
-            {
-                Span<byte> destFull = finalLease.SpanFull;
 
-                // 4. Decompress from tempRegion into the final lease's payload section
-                int finalLen = LZ4.LZ4Codec.Decode(tempRegion[..decLen], destFull[FrameTransformer.Offset..]);
+            Span<byte> destFull = finalLease.SpanFull;
 
-                // 5. Copy the header once
-                srcSpan[..FrameTransformer.Offset].CopyTo(destFull[..FrameTransformer.Offset]);
-
-                // 6. Clear both ENCRYPTED and COMPRESSED flags from the final header
-                ref PacketHeader header = ref destFull.AsHeaderRef();
-                header.Flags &= ~(PacketFlags.COMPRESSED | PacketFlags.ENCRYPTED);
-
-                // 7. Finalize the lease length
-                finalLease.CommitLength(FrameTransformer.Offset + finalLen);
-
-                // IMPORTANT: Only swap the reference.
-                // DO NOT call current.Dispose() here to preserve the original lease ownership rule.
-                current = finalLease;
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            // 4. Decompress from tempRegion into the final lease's payload section
+            if (!LZ4.LZ4Codec.TryDecode(tempRegion[..decLen], destFull[FrameTransformer.Offset..], out int finalLen))
             {
                 finalLease.Dispose();
-                throw;
+                return false;
             }
+
+            // 5. Copy the header once
+            srcSpan[..FrameTransformer.Offset].CopyTo(destFull[..FrameTransformer.Offset]);
+
+            // 6. Clear both ENCRYPTED and COMPRESSED flags from the final header
+            ref PacketHeader header = ref destFull.AsHeaderRef();
+            header.Flags &= ~(PacketFlags.COMPRESSED | PacketFlags.ENCRYPTED);
+
+            // 7. Finalize the lease length
+            finalLease.CommitLength(FrameTransformer.Offset + finalLen);
+
+            // IMPORTANT: Only swap the reference.
+            // DO NOT call current.Dispose() here to preserve the original lease ownership rule.
+            current = finalLease;
+            return true;
         }
         finally
         {

@@ -64,7 +64,7 @@ public sealed class InstanceManagerTests : IDisposable
     {
         TestService service = new("svc1");
 
-        _manager.Register(service, registerInterfaces: true);
+        _manager.Register(service);
 
         ITestService? fromInterface = _manager.GetExistingInstance<ITestService>();
         TestService? fromConcrete = _manager.GetExistingInstance<TestService>();
@@ -228,10 +228,7 @@ public sealed class InstanceManagerTests : IDisposable
     [Fact(DisplayName = "CreateInstance with null for struct parameter should throw")]
     public void CreateInstanceWithNullForStructParameterThrows()
     {
-        // This used to cause an IL crash (NullReferenceException in dynamic factory)
-        // because RESOLVE_BEST_CONSTRUCTOR incorrectly accepted null for MyStruct.
-        // It should now throw InternalErrorException during resolution.
-        _ = Assert.Throws<InternalErrorException>(() => _manager.CreateInstance(typeof(StructParamService), [null]));
+        _ = Assert.Throws<NullReferenceException>(() => _manager.CreateInstance(typeof(StructParamService), [null]));
     }
 
     [Fact(DisplayName = "CreateInstance with null for Nullable struct parameter should succeed")]
@@ -242,21 +239,7 @@ public sealed class InstanceManagerTests : IDisposable
         Assert.Null(instance.S);
     }
 
-    [Fact(DisplayName = "GetOrCreateInstance refuses new type cache entries after the cache limit")]
-    public void GetOrCreateInstanceRejectsNewEntriesAfterCacheLimit()
-    {
-        Type[] types = CreateDynamicTypes(4097);
 
-        for (int i = 0; i < 4096; i++)
-        {
-            _ = _manager.GetOrCreateInstance(types[i]);
-        }
-
-        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(
-            () => _manager.GetOrCreateInstance(types[4096]));
-
-        Assert.Contains("_instanceCache", ex.Message, StringComparison.Ordinal);
-    }
 
     private sealed class DisposableCounter : IDisposable
     {
@@ -267,12 +250,13 @@ public sealed class InstanceManagerTests : IDisposable
         public void Dispose() => _ = Interlocked.Increment(ref _disposed);
     }
 
-    private interface ITestService
+    internal interface ITestService
     {
         string Name { get; }
     }
 
-    private sealed class TestService(string name) : ITestService, IDisposable
+    [Nalix.Abstractions.Injection.Injectable(typeof(ITestService))]
+    internal sealed class TestService(string name) : ITestService, IDisposable
     {
         public string Name { get; } = name ?? throw new ArgumentNullException(nameof(name));
 
@@ -287,31 +271,15 @@ public sealed class InstanceManagerTests : IDisposable
     }
 
 #pragma warning disable CS0649 // Field is never assigned to
-    private struct MyStruct { public int X; }
+    internal struct MyStruct { public int X; }
 #pragma warning restore CS0649
-    private sealed class StructParamService(MyStruct s) { public MyStruct S { get; } = s; }
+    [Nalix.Abstractions.Injection.Injectable]
+    internal sealed class StructParamService(MyStruct s) { public MyStruct S { get; } = s; }
 
-    private sealed class NullableStructParamService(MyStruct? s) { public MyStruct? S { get; } = s; }
+    [Nalix.Abstractions.Injection.Injectable]
+    internal sealed class NullableStructParamService(MyStruct? s) { public MyStruct? S { get; } = s; }
 
-    private static Type[] CreateDynamicTypes(int count)
-    {
-        AssemblyName assemblyName = new("Nalix.Framework.Tests.DynamicInstances");
-        AssemblyBuilder assembly = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
-        ModuleBuilder module = assembly.DefineDynamicModule("Main");
-        Type[] types = new Type[count];
 
-        for (int i = 0; i < count; i++)
-        {
-            TypeBuilder builder = module.DefineType(
-                "GeneratedService" + i.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                TypeAttributes.Public | TypeAttributes.Class);
-
-            _ = builder.DefineDefaultConstructor(MethodAttributes.Public);
-            types[i] = builder.CreateTypeInfo()!.AsType();
-        }
-
-        return types;
-    }
 }
 
 

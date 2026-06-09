@@ -187,7 +187,7 @@ public sealed class PacketDispatchChannel
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Error,
                     new DiagnosticLog("RT.PacketDispatchChannel:Deactivate", "deactivate-error", ex));
             }
@@ -202,7 +202,7 @@ public sealed class PacketDispatchChannel
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Write(
                         DiagnosticsEvents.Internal.Warning,
                         new DiagnosticLog("RT.PacketDispatchChannel:Deactivate", "linked-cts-dispose-failed", ex));
                 }
@@ -216,7 +216,7 @@ public sealed class PacketDispatchChannel
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Write(
                         DiagnosticsEvents.Internal.Warning,
                         new DiagnosticLog("RT.PacketDispatchChannel:Deactivate", "local-cts-dispose-failed", ex));
                 }
@@ -249,7 +249,7 @@ public sealed class PacketDispatchChannel
          */
         lease.Retain();
 
-        if (!_dispatch.PushCore(connection, lease, noBlock: true))
+        if (!_dispatch.PushCore(connection, lease, out bool readyEmitted, noBlock: true))
         {
             // If the channel is full or the connection is inactive, we must
             // release the reference we just took to avoid a memory leak.
@@ -257,8 +257,11 @@ public sealed class PacketDispatchChannel
             return;
         }
 
-        // Signal a worker to wake up and process the newly queued packet.
-        this.RequestWake();
+        if (readyEmitted)
+        {
+            // Signal a worker to wake up and process the newly queued packet.
+            this.RequestWake();
+        }
     }
 
     #endregion Public Methods
@@ -524,7 +527,7 @@ public sealed class PacketDispatchChannel
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Error,
                     new DiagnosticLog("RT.PacketDispatchChannel:DispatchWorkerLoopAsync", $"fatal-loop-error index={index}", ex));
             }

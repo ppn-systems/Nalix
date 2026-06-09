@@ -206,7 +206,45 @@ public static class SymmetricEngine
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> plaintext,
         out int written)
     {
-        EnvelopeFormat.Envelope env = EnvelopeFormat.ParseEnvelope(envelope);
+        if (!TryDecrypt(key, envelope, plaintext, out written, out CipherError error))
+        {
+            ThrowCipherError(error);
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    internal static bool TryDecrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> envelope,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> plaintext,
+        out int written,
+        out CipherError error)
+    {
+        written = 0;
+        if (!EnvelopeFormat.TryParseEnvelope(envelope, out EnvelopeFormat.Envelope env, out error))
+        {
+            return false;
+        }
+
+        if (plaintext.Length < env.Ciphertext.Length)
+        {
+            error = CipherError.DestinationTooSmall;
+            return false;
+        }
+
+        switch (env.AeadType)
+        {
+            case CipherSuiteType.Chacha20:
+            case CipherSuiteType.Salsa20:
+                break;
+            case CipherSuiteType.None:
+            case CipherSuiteType.Salsa20Poly1305:
+            case CipherSuiteType.Chacha20Poly1305:
+            default:
+                error = CipherError.UnsupportedAlgorithm;
+                return false;
+        }
 
         int nonceLen = env.Nonce.Length;
         System.Span<byte> effectiveNonce = stackalloc byte[nonceLen];
@@ -219,6 +257,32 @@ public static class SymmetricEngine
         }
 
         Encrypt(env.AeadType, key, effectiveNonce, 0, env.Ciphertext, plaintext, out written);
+        error = CipherError.Success;
+        return true;
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void ThrowCipherError(CipherError error)
+    {
+        switch (error)
+        {
+            case CipherError.DestinationTooSmall:
+                throw new System.ArgumentException("The destination plaintext buffer is too small for the decrypted payload.");
+            case CipherError.UnsupportedAlgorithm:
+                Throw.UnsupportedAlgorithm();
+                break;
+            case CipherError.Success:
+            case CipherError.InvalidHeader:
+            case CipherError.EnvelopeTooShort:
+            case CipherError.InvalidTagLength:
+            case CipherError.AlgorithmMismatch:
+            case CipherError.InvalidNonceLength:
+            case CipherError.CiphertextTooShort:
+            case CipherError.AuthenticationFailed:
+            default:
+                EnvelopeFormat.ThrowCipherError(error);
+                break;
+        }
     }
 
     #endregion Envelope API

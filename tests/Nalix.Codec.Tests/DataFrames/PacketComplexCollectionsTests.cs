@@ -4,11 +4,24 @@
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
+using Nalix.Codec.Serialization;
 
 namespace Nalix.Codec.Tests.DataFrames;
 
 public sealed partial class PacketComplexCollectionsTests
 {
+    static PacketComplexCollectionsTests()
+    {
+        // Pre-register formatters for types used in extreme/edge-case tests.
+        // These involve deeply nested generics and project-specific enums
+        // that are not covered by the built-in pre-registration.
+        FormatterProvider.RegisterAllFormatters<PacketPriority>();
+        FormatterProvider.RegisterCollectionFormatters<List<string>>();
+        FormatterProvider.RegisterCollectionFormatters<List<List<string>>>();
+        FormatterProvider.RegisterDictionary<string, List<int>>();
+        FormatterProvider.RegisterCollectionFormatters<Dictionary<string, List<int>>>();
+    }
+
     [Fact]
     public void LengthAndSerialization_WithComplexCollections_MatchesSerializedData()
     {
@@ -289,16 +302,16 @@ public sealed partial class PacketComplexCollectionsTests
     }
 
     [Fact]
-    public void Serialization_Extreme_MalformedBuffer_ThrowsGracefully()
+    public void Serialization_Extreme_MalformedBuffer_ReturnsNullGracefully()
     {
         LargeDataPacket packet = new() { Payload = ["valid", "test"] };
         byte[] validBytes = packet.Serialize();
 
         // Corrupt the length of a string in the middle of the payload
-        // This should cause a SerializationFailureException or ArgumentException
+        // This should cause the Zero-Throw pipeline to return null instead of crashing
         byte[] corrupted = [.. validBytes.Take(validBytes.Length - 5)];
 
-        _ = Assert.ThrowsAny<Exception>(() => LargeDataPacket.Deserialize(corrupted));
+        Assert.Null(LargeDataPacket.Deserialize(corrupted));
     }
 
     [GenerateFormatter]

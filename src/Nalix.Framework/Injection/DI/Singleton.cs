@@ -309,26 +309,15 @@ public static class Singleton
                     return null;
                 }
 
-                try
-                {
-                    Lazy<object> lazyInstance = new(() =>
-                    {
-                        object instance = Activator.CreateInstance(implementationType)
-                        ?? throw new InvalidOperationException(
-                            $"Failed to create instance of type {implementationType.Name}");
+                // Resolve the source-generated activator (zero reflection).
+                Func<object> activatorFactory = SingletonActivatorCache.GetRequired(implementationType);
 
-                        return instance;
-                    }, LazyThreadSafetyMode.ExecutionAndPublication);
+                Lazy<object> lazyInstance = new(
+                    activatorFactory, LazyThreadSafetyMode.ExecutionAndPublication);
 
-                    _ = s_services.TryAdd(implementationType, lazyInstance);
-                    _ = s_services.TryAdd(type, lazyInstance);
-                    return (TClass)lazyInstance.Value;
-                }
-                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-                {
-                    throw new InvalidOperationException(
-                        $"Failed to create instance of type {implementationType.Name}", ex);
-                }
+                _ = s_services.TryAdd(implementationType, lazyInstance);
+                _ = s_services.TryAdd(type, lazyInstance);
+                return (TClass)lazyInstance.Value;
             }
             return (TClass)lazyImpl.Value;
         }

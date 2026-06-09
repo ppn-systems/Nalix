@@ -59,6 +59,23 @@ namespace Nalix.Network.Internal.Transport;
 [ExcludeFromCodeCoverage]
 internal sealed partial class SocketConnection(Socket socket, IConnection owner, ITransportEventSink sink) : IDisposable
 {
+    internal enum ReceiveResult
+    {
+        Success,
+        PeerClosed,
+        InvalidPacketSize,
+        SocketAborted,
+        Failed
+    }
+
+    internal enum SendResult
+    {
+        Success,
+        PeerClosed,
+        Aborted,
+        Failed
+    }
+
     #region Const
 
     private const byte HeaderSize = sizeof(ushort);
@@ -71,14 +88,6 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     private static long s_fragmentErrorSuppressed;
     private static long s_receiveVarIntFaultedTicks;
     private static long s_receiveVarIntFaultedSuppressed;
-    private static long s_sendStackallocErrorTicks;
-    private static long s_sendStackallocErrorSuppressed;
-    private static long s_sendPooledErrorTicks;
-    private static long s_sendPooledErrorSuppressed;
-    private static long s_sendErrorTicks;
-    private static long s_sendErrorSuppressed;
-    private static long s_sendVarIntErrorTicks;
-    private static long s_sendVarIntErrorSuppressed;
 
     #endregion Const
 
@@ -210,7 +219,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:BeginReceive", $"saea-receive-loop skip \u2014 already disposed endpoint={_endpointString}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:BeginReceive", $"saea-receive-loop skip \u2014 already disposed endpoint={_endpointString}"));
             }
 #endif
             return;
@@ -222,7 +231,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:BeginReceive", $"saea-receive-loop skip \u2014 already started endpoint={_endpointString}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:BeginReceive", $"saea-receive-loop skip \u2014 already started endpoint={_endpointString}"));
             }
 #endif
             return;
@@ -239,7 +248,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:BeginReceive", $"saea-receive-loop started endpoint={_endpointString} framing={_framing}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:BeginReceive", $"saea-receive-loop started endpoint={_endpointString} framing={_framing}"));
         }
 #endif
 
@@ -355,13 +364,12 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 
                     if (!IS_VALID_PACKET_SIZE(size))
                     {
-#if DEBUG
-                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
+
+                        if (_owner is IConnectionTrafficMetrics trafficMetrics)
                         {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"invalid-size size={size} endpoint={_endpointString}"));
+                            trafficMetrics.IncrementPacketsDropped();
                         }
-#endif
-                        Throw.ProtocolNotSupportedNow();
+                        break;
                     }
 
                     // Check if the full frame (header + payload) is present in the buffer.
@@ -392,7 +400,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
                         int evicted = fragmentAssembler?.EvictExpired() ?? 0;
                         if (evicted > 0)
                         {
-                            Interlocked.Add(ref _openFragmentStreams, -evicted);
+                            _ = Interlocked.Add(ref _openFragmentStreams, -evicted);
 
                             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                             {
@@ -400,7 +408,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
                                 {
                                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                                     {
-                                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.SocketConnection:Internal", $"evicted stale fragment stream(s) evicted-count={evicted} endpoint={_owner.NetworkEndpoint.Address} suppressed-count={suppressed}"));
+                                        DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.SocketConnection:Internal", $"evicted stale fragment stream(s) evicted-count={evicted} endpoint={_owner.NetworkEndpoint.Address} suppressed-count={suppressed}"));
                                     }
                                     ;
                                 }
@@ -466,7 +474,18 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
                  */
                 if (!parsedAtLeastOne || _bufferDataLength < HeaderSize)
                 {
-                    await this.RECEIVE_OPPORTUNISTIC_ASYNC(token).ConfigureAwait(false);
+                    ReceiveResult receiveResult = await this.RECEIVE_OPPORTUNISTIC_ASYNC(token).ConfigureAwait(false);
+                    if (receiveResult != ReceiveResult.Success)
+                    {
+                        if (receiveResult == ReceiveResult.InvalidPacketSize)
+                        {
+                            if (_owner is IConnectionTrafficMetrics trafficMetrics)
+                            {
+                                trafficMetrics.IncrementPacketsDropped();
+                            }
+                        }
+                        break;
+                    }
                 }
             }
         }
@@ -474,14 +493,14 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"saea-receive-loop ended (peer closed/shutdown) endpoint={_owner?.NetworkEndpoint.Address}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"saea-receive-loop ended (peer closed/shutdown) endpoint={_owner?.NetworkEndpoint.Address}"));
             }
         }
         catch (OperationCanceledException)
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"saea-receive-loop cancelled endpoint={_owner?.NetworkEndpoint.Address}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"saea-receive-loop cancelled endpoint={_owner?.NetworkEndpoint.Address}"));
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -510,7 +529,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"receive faulted endpoint={_owner.NetworkEndpoint.Address} suppressed-count={suppressed}", e));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"receive faulted endpoint={_owner.NetworkEndpoint.Address} suppressed-count={suppressed}", e));
                 }
                 ;
             }
@@ -518,57 +537,79 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ValueTask RECEIVE_OPPORTUNISTIC_ASYNC(CancellationToken token)
+    private ValueTask<ReceiveResult> RECEIVE_OPPORTUNISTIC_ASYNC(CancellationToken token)
     {
         if (token.IsCancellationRequested)
         {
-            return ValueTask.FromCanceled(token);
+            return ValueTask.FromResult(ReceiveResult.SocketAborted);
         }
 
         int freeSpace = _buffer!.Length - _bufferDataLength;
         if (freeSpace == 0)
         {
-            // If the buffer is full but we haven't parsed a complete frame, it means a single
-            // frame has exceeded our buffer capacity (MaxChunkSize * 2).
-            // Since the system is configured to never send frames > 1400 bytes, this is a protocol violation.
-            return ValueTask.FromException(Throw.GetMessageSize());
+            return ValueTask.FromResult(ReceiveResult.InvalidPacketSize);
         }
 
-        /*
-         * We perform an opportunistic read:
-         * 1. Check if the SAEA receive completes synchronously (Fast Path).
-         * 2. If not, we await the completion (Slow Path).
-         * This pattern minimizes task allocations when data is already available.
-         */
-        ValueTask<int> vt = _recvCtx.ReceiveAsync(_socket, _buffer, _bufferDataLength, freeSpace);
-
-        if (vt.IsCompletedSuccessfully)
+        try
         {
-            int n = vt.Result;
-            if (n == 0)
+            ValueTask<int> vt = _recvCtx.ReceiveAsync(_socket, _buffer, _bufferDataLength, freeSpace);
+
+            if (vt.IsCompletedSuccessfully)
             {
-                return ValueTask.FromException(Throw.GetConnectionReset());
+                int n = vt.Result;
+                if (n == 0)
+                {
+                    return ValueTask.FromResult(ReceiveResult.PeerClosed);
+                }
+
+                _bufferDataLength += n;
+                _ = Interlocked.Add(ref _bytesReceived, n);
+
+                return ValueTask.FromResult(ReceiveResult.Success);
             }
 
-            _bufferDataLength += n;
-            _ = Interlocked.Add(ref _bytesReceived, n);
-
-            return default;
+            return AWAIT_RECEIVE(this, vt);
+        }
+        catch (SocketException ex) when (ex.SocketErrorCode is
+               SocketError.ConnectionReset or
+               SocketError.ConnectionAborted or
+               SocketError.Shutdown or
+               SocketError.OperationAborted)
+        {
+            return ValueTask.FromResult(ReceiveResult.SocketAborted);
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            return ValueTask.FromResult(ReceiveResult.Failed);
         }
 
-        return AWAIT_RECEIVE(this, vt);
-
-        [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
-        static async ValueTask AWAIT_RECEIVE(SocketConnection self, ValueTask<int> vt)
+        [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
+        static async ValueTask<ReceiveResult> AWAIT_RECEIVE(SocketConnection self, ValueTask<int> vt)
         {
-            int n = await vt.ConfigureAwait(false);
-            if (n == 0)
+            try
             {
-                Throw.ConnectionResetNow();
-            }
+                int n = await vt.ConfigureAwait(false);
+                if (n == 0)
+                {
+                    return ReceiveResult.PeerClosed;
+                }
 
-            self._bufferDataLength += n;
-            _ = Interlocked.Add(ref self._bytesReceived, n);
+                self._bufferDataLength += n;
+                _ = Interlocked.Add(ref self._bytesReceived, n);
+                return ReceiveResult.Success;
+            }
+            catch (SocketException ex) when (ex.SocketErrorCode is
+                   SocketError.ConnectionReset or
+                   SocketError.ConnectionAborted or
+                   SocketError.Shutdown or
+                   SocketError.OperationAborted)
+            {
+                return ReceiveResult.SocketAborted;
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            {
+                return ReceiveResult.Failed;
+            }
         }
     }
 
@@ -605,7 +646,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.SocketConnection:Internal", $"malformed-payload (too small for protocol header) payload-length={payloadLen} endpoint={_endpointString}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.SocketConnection:Internal", $"malformed-payload (too small for protocol header) payload-length={payloadLen} endpoint={_endpointString}"));
             }
 #endif
             lease.Dispose();
@@ -628,7 +669,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.SocketConnection:Internal", $"frame-dropped payload-length={payloadLen} endpoint={_endpointString}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.SocketConnection:Internal", $"frame-dropped payload-length={payloadLen} endpoint={_endpointString}"));
             }
 #endif
             lease.Dispose();
@@ -637,7 +678,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"handoff-to-sink payload-length={payloadLen} endpoint={_endpointString}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"handoff-to-sink payload-length={payloadLen} endpoint={_endpointString}"));
         }
 #endif
     }
@@ -663,7 +704,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"fragment-limit open-streams={openStreams} endpoint={_endpointString}"));
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"fragment-limit open-streams={openStreams} endpoint={_endpointString}"));
                     }
 #endif
                     return;
@@ -673,7 +714,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"recv-frag stream-id={header.StreamId} chunk-index={header.ChunkIndex} total-chunks={header.TotalChunks} is-last={header.IsLast} endpoint={_endpointString}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"recv-frag stream-id={header.StreamId} chunk-index={header.ChunkIndex} total-chunks={header.TotalChunks} is-last={header.IsLast} endpoint={_endpointString}"));
             }
 #endif
 
@@ -701,7 +742,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"assembled stream stream-id={header.StreamId} endpoint={_endpointString}"));
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"assembled stream stream-id={header.StreamId} endpoint={_endpointString}"));
                     }
 #endif
                     Interlocked.Decrement(ref _openFragmentStreams);
@@ -728,7 +769,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"fragment-error endpoint={_owner?.NetworkEndpoint.Address} suppressed-count={suppressed}", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"fragment-error endpoint={_owner?.NetworkEndpoint.Address} suppressed-count={suppressed}", ex));
                 }
                 ;
             }
@@ -771,7 +812,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"socket-shutdown-ignored disposed endpoint={_endpointString}", ex));
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"socket-shutdown-ignored disposed endpoint={_endpointString}", ex));
                     }
 #endif
                 }
@@ -783,7 +824,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
                         System.Net.Sockets.SocketError socketError = ex.SocketErrorCode;
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
                         {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"socket-shutdown-benign endpoint={_endpointString} socket-error={socketError}", ex));
+                            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"socket-shutdown-benign endpoint={_endpointString} socket-error={socketError}", ex));
                         }
                         ;
                     }
@@ -793,7 +834,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
                 {
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.SocketConnection:Internal", $"socket-shutdown-failed endpoint={_endpointString}", ex));
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.SocketConnection:Internal", $"socket-shutdown-failed endpoint={_endpointString}", ex));
                     }
                 }
 
@@ -807,7 +848,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"socket-close-ignored disposed endpoint={_endpointString}", ex));
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"socket-close-ignored disposed endpoint={_endpointString}", ex));
                     }
 #endif
                 }
@@ -815,7 +856,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
                 {
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.SocketConnection:Internal", $"socket-close-failed endpoint={_endpointString}", ex));
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.SocketConnection:Internal", $"socket-close-failed endpoint={_endpointString}", ex));
                     }
                 }
             }
@@ -865,7 +906,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"disposed endpoint={_endpointString}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"disposed endpoint={_endpointString}"));
         }
 #endif
     }
@@ -882,7 +923,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.SocketConnection:Internal", $"receive-loop-faulted-during-dispose endpoint={_endpointString}", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.SocketConnection:Internal", $"receive-loop-faulted-during-dispose endpoint={_endpointString}", ex));
                 }
             }
             return;
@@ -900,7 +941,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.SocketConnection:Internal", $"receive-loop-faulted-after-dispose endpoint={self._endpointString}", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.SocketConnection:Internal", $"receive-loop-faulted-after-dispose endpoint={self._endpointString}", ex));
                 }
             }
         }, this, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);

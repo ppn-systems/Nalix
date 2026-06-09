@@ -6,7 +6,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
@@ -328,37 +327,20 @@ public static partial class Directories
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static bool SET_UNIX_FILE_MODE_COMPAT([DisallowNull] string path, UnixFileMode mode)
     {
-        try
-        {
-            MethodInfo? m = typeof(Directory).GetMethod("SetUnixFileMode",
-                BindingFlags.Public | BindingFlags.Static,
-                null, [typeof(string), typeof(UnixFileMode)], null);
-
-            if (m != null)
-            {
-                _ = m.Invoke(null, [path, mode]);
-                return true;
-            }
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            Debug.WriteLine($"[Directories] SetUnixFileMode reflection path failed for '{path}': {ex}");
-        }
-
-        // 2) Fallback to libc chmod on Unix
+        // Use libc chmod via P/Invoke on Unix platforms.
+        // This is a direct native call — fully AOT-safe, no reflection required.
         try
         {
             if (!OperatingSystem.IsWindows())
             {
                 uint native = TO_NATIVE_CHMOD_MODE(mode);
                 int rc = CHMOD(path, native);
-                // rc == 0 success; else errno in Marshal.GetLastWin32Error()
                 return rc == 0;
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            Debug.WriteLine($"[Directories] chmod fallback failed for '{path}': {ex}");
+            Debug.WriteLine($"[Directories] chmod failed for '{path}': {ex}");
         }
 
         return false;

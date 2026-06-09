@@ -92,7 +92,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.WebSocketConnection:UnknownMethod", $"created remote-endpoint={this.NetworkEndpoint} connection-id={this.ID}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.WebSocketConnection:UnknownMethod", $"created remote-endpoint={this.NetworkEndpoint} connection-id={this.ID}"));
         }
     }
 
@@ -250,7 +250,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.WebSocketConnection:TriggerProcessEvent", $"receive throttle triggered remote-endpoint={this.NetworkEndpoint}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.WebSocketConnection:TriggerProcessEvent", $"receive throttle triggered remote-endpoint={this.NetworkEndpoint}"));
             }
             return;
         }
@@ -322,7 +322,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.WebSocketConnection:Disconnect", $"disconnect request connection-id={this.ID} remote-endpoint={this.NetworkEndpoint} reason={reason}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.WebSocketConnection:Disconnect", $"disconnect request connection-id={this.ID} remote-endpoint={this.NetworkEndpoint} reason={reason}"));
         }
         this.Dispose();
     }
@@ -364,7 +364,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
                 {
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.WebSocketConnection:Dispose", "Close event error", ex));
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.WebSocketConnection:Dispose", "Close event error", ex));
                     }
                 }
                 finally
@@ -420,7 +420,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
     internal ConnectionEventArgs AcquireEventArgs()
     {
-        ConnectionEventArgs? argLocal = _argsPool.Acquire(arg => arg.Initialize(this));
+        ConnectionEventArgs? argLocal = _argsPool.Acquire(this, static (arg, self) => arg.Initialize(self));
         if (argLocal != null)
         {
             return argLocal;
@@ -436,7 +436,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
     PooledConnectEventContext IPooledConnectContextPool.AcquireContext()
     {
-        PooledConnectEventContext? ctxLocal = _contextPool.Acquire(ctx => ctx.LocalOwner = this);
+        PooledConnectEventContext? ctxLocal = _contextPool.Acquire(this, static (ctx, self) => ctx.LocalOwner = self);
         if (ctxLocal != null)
         {
             return ctxLocal;

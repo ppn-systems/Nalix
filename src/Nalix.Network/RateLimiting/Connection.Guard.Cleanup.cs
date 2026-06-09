@@ -224,7 +224,7 @@ public sealed partial class ConnectionGuard
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.ConnectionGuard:Internal", $"cleanup-scanned scanned={scanned} removed={removed} subnet-removed={subnetRemoved} map-count={_map.Count}"));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.ConnectionGuard:Internal", $"cleanup-scanned scanned={scanned} removed={removed} subnet-removed={subnetRemoved} map-count={_map.Count}"));
                 }
             }
 
@@ -234,7 +234,7 @@ public sealed partial class ConnectionGuard
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.ConnectionGuard:Internal", "cleanup-error", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.ConnectionGuard:Internal", "cleanup-error", ex));
             }
         }
     }
@@ -271,7 +271,7 @@ public sealed partial class ConnectionGuard
             _ = Interlocked.Exchange(ref _globalConnections, actualTotal);
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Security.LimitDriftCorrected))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Security.LimitDriftCorrected, new DiagnosticLog("NW.ConnectionGuard:Internal", $"limit-drift-corrected reported={reported} actual={actualTotal}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Security.LimitDriftCorrected, new DiagnosticLog("NW.ConnectionGuard:Internal", $"limit-drift-corrected reported={reported} actual={actualTotal}"));
             }
         }
     }
@@ -341,7 +341,7 @@ public sealed partial class ConnectionGuard
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.ConnectionGuard:Internal", "watcher-init-failed relying-on-polling=true", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.ConnectionGuard:Internal", "watcher-init-failed relying-on-polling=true", ex));
             }
         }
     }
@@ -370,7 +370,7 @@ public sealed partial class ConnectionGuard
                     {
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
                         {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.ConnectionGuard:OnFileChanged", "hot-reload-failed", ex));
+                            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.ConnectionGuard:OnFileChanged", "hot-reload-failed", ex));
                         }
                     }
                     finally
@@ -423,7 +423,7 @@ public sealed partial class ConnectionGuard
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.ConnectionGuard:Internal", "hot-reload-check-failed", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.ConnectionGuard:Internal", "hot-reload-check-failed", ex));
             }
         }
     }

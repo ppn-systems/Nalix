@@ -12,6 +12,7 @@ using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
+using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Time;
@@ -70,6 +71,7 @@ namespace Nalix.Network.Internal.Time;
 /// </code>
 /// </example>
 /// <seealso cref="IActivatable"/>
+[Injectable]
 [SkipLocalsInit]
 [DebuggerNonUserCode]
 internal sealed class TimingWheel : IActivatable
@@ -311,7 +313,7 @@ internal sealed class TimingWheel : IActivatable
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.TimingWheelBucket:Activate", $"activated active-listeners={_activeListeners.ToString(CultureInfo.InvariantCulture)} wheel-size={_wheelSize.ToString(CultureInfo.InvariantCulture)} tick-ms={_tickMs.ToString(CultureInfo.InvariantCulture)} idle-timeout-ms={_idleTimeoutMs.ToString(CultureInfo.InvariantCulture)} use-mask={_useMask.ToString().ToLowerInvariant()}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.TimingWheelBucket:Activate", $"activated active-listeners={_activeListeners.ToString(CultureInfo.InvariantCulture)} wheel-size={_wheelSize.ToString(CultureInfo.InvariantCulture)} tick-ms={_tickMs.ToString(CultureInfo.InvariantCulture)} idle-timeout-ms={_idleTimeoutMs.ToString(CultureInfo.InvariantCulture)} use-mask={_useMask.ToString().ToLowerInvariant()}"));
         }
     }
 
@@ -366,7 +368,7 @@ internal sealed class TimingWheel : IActivatable
                 string exceptionType = ex.GetType().Name;
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", $"cts-cancel-ignored reason-exception-type={exceptionType}", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", $"cts-cancel-ignored reason-exception-type={exceptionType}", ex));
                 }
                 ;
             }
@@ -375,7 +377,7 @@ internal sealed class TimingWheel : IActivatable
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", "cts-cancel-failed", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", "cts-cancel-failed", ex));
             }
         }
 
@@ -390,7 +392,7 @@ internal sealed class TimingWheel : IActivatable
                 string exceptionType = ex.GetType().Name;
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", $"cts-dispose-ignored reason-exception-type={exceptionType}", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", $"cts-dispose-ignored reason-exception-type={exceptionType}", ex));
                 }
                 ;
             }
@@ -399,7 +401,7 @@ internal sealed class TimingWheel : IActivatable
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", "cts-dispose-failed", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", "cts-dispose-failed", ex));
             }
         }
 
@@ -411,7 +413,7 @@ internal sealed class TimingWheel : IActivatable
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", "worker-dispose-failed", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", "worker-dispose-failed", ex));
             }
         }
 
@@ -419,7 +421,7 @@ internal sealed class TimingWheel : IActivatable
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", "deactivated"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", "deactivated"));
         }
     }
 
@@ -675,7 +677,7 @@ internal sealed class TimingWheel : IActivatable
                                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                                 {
                                     string idleMsStr = idleMs.ToString(CultureInfo.InvariantCulture);
-                                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Internal", $"timeout remote={connection.NetworkEndpoint.Address} idle-ms={idleMsStr}"));
+                                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.TimingWheelBucket:Internal", $"timeout remote={connection.NetworkEndpoint.Address} idle-ms={idleMsStr}"));
                                 }
                                 ;
                             }
@@ -690,7 +692,7 @@ internal sealed class TimingWheel : IActivatable
                                 {
                                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                                     {
-                                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.TimingWheelBucket:Internal", $"close-error remote={connection.NetworkEndpoint.Address}", ex));
+                                        DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.TimingWheelBucket:Internal", $"close-error remote={connection.NetworkEndpoint.Address}", ex));
                                     }
                                     ;
                                 }
@@ -735,7 +737,7 @@ internal sealed class TimingWheel : IActivatable
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.TimingWheelBucket:Internal", "loop-error", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.TimingWheelBucket:Internal", "loop-error", ex));
             }
         }
     }

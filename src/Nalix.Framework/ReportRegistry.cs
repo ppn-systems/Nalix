@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Json;
 using Nalix.Abstractions;
@@ -21,7 +22,11 @@ public sealed class ReportRegistry : SingletonBase<ReportRegistry>, IReportable
     /// <summary>
     /// Initializes a new instance of the <see cref="ReportRegistry"/> class.
     /// </summary>
-    private ReportRegistry()
+    /// <remarks>
+    /// Internal visibility is required for the source-generated singleton activator.
+    /// Still not publicly constructible — the class is <see langword="sealed"/>.
+    /// </remarks>
+    internal ReportRegistry()
     {
     }
 
@@ -32,6 +37,11 @@ public sealed class ReportRegistry : SingletonBase<ReportRegistry>, IReportable
     /// <param name="key">The enum key.</param>
     /// <param name="instance">The reportable instance.</param>
     /// <exception cref="ArgumentNullException"><paramref name="key"/> or <paramref name="instance"/> is null.</exception>
+    [UnconditionalSuppressMessage("Trimming", "IL2075",
+        Justification = "GetInterfaces() enumerates IReportable sub-interfaces for multi-key " +
+            "diagnostic registration. All IReportable implementations are preserved because " +
+            "IReportable is used as a generic constraint throughout the codebase and the types " +
+            "are registered via source-generated factories. This path is purely for diagnostics.")]
     public void Register<T>(Enum key, T instance) where T : class, IReportable
     {
         ArgumentNullException.ThrowIfNull(key);
@@ -72,6 +82,10 @@ public sealed class ReportRegistry : SingletonBase<ReportRegistry>, IReportable
     /// <param name="key">The enum key.</param>
     /// <returns>True if the instance was found and removed; otherwise, false.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="key"/> is null.</exception>
+    [UnconditionalSuppressMessage("Trimming", "IL2075",
+        Justification = "GetInterfaces() enumerates IReportable sub-interfaces for multi-key " +
+            "diagnostic unregistration. Same reasoning as Register — IReportable sub-interfaces " +
+            "are preserved through generic constraints and source-generated factories.")]
     public bool Unregister<T>(Enum key) where T : class, IReportable
     {
         ArgumentNullException.ThrowIfNull(key);

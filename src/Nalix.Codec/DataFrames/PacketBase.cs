@@ -12,7 +12,6 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Serialization;
-using Nalix.Environment.Extensions;
 
 namespace Nalix.Codec.DataFrames;
 
@@ -131,36 +130,42 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
     [SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "<Pending>")]
     public static TSelf Deserialize(ReadOnlySpan<byte> buffer)
     {
-        VALIDATE_BUFFER_HEADER(buffer);
+        if (!TRY_VALIDATE_BUFFER_HEADER(buffer))
+        {
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Packet.Malformed))
+            {
+                DiagnosticsEvents.Write(DiagnosticsEvents.Packet.Malformed, typeof(TSelf).FullName);
+            }
+            return null!;
+        }
 
         TSelf packet = Create();
-        int bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
-
-        if (bytesRead == 0)
+        if (!LiteSerializer.TryDeserialize(buffer, ref packet, out int bytesRead))
         {
-            THROW_DESERIALIZE_FAILED(buffer.Length);
+            packet.Dispose();
+
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Packet.Malformed))
+            {
+                DiagnosticsEvents.Write(DiagnosticsEvents.Packet.Malformed, typeof(TSelf).FullName);
+            }
+
+            return null!;
         }
 
         if (bytesRead < buffer.Length)
         {
-            THROW_DESERIALIZE_INCOMPLETE(bytesRead, buffer.Length);
+            packet.Dispose();
+
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Packet.Malformed))
+            {
+                DiagnosticsEvents.Write(DiagnosticsEvents.Packet.Malformed, typeof(TSelf).FullName);
+            }
+
+            return null!;
         }
 
         return packet;
     }
-
-    [DoesNotReturn]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void THROW_DESERIALIZE_FAILED(int length)
-        => throw new InvalidOperationException(
-            $"Deserialize failed: type={typeof(TSelf).Name}, bytesRead=0, length={length}.");
-
-    [DoesNotReturn]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void THROW_DESERIALIZE_INCOMPLETE(int bytesRead, int length)
-        => throw new SerializationFailureException(
-            $"Deserialize incomplete: type={typeof(TSelf).Name}, bytesRead={bytesRead}, expected={length}. " +
-            "Potential payload corruption or trailing unconsumed data.");
 
     /// <inheritdoc/>
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -168,7 +173,7 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
     {
         // Reset all FrameBase header fields to well-known defaults.
         this.SequenceId = 0;
-        this.Flags = PacketFlags.SYSTEM;
+        this.Flags = PacketFlags.NONE;
         this.Priority = PacketPriority.NONE;
 
         // Restore type identity.
@@ -227,51 +232,33 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void THROW_BUFFER_TOO_SMALL(int length, int required)
         => throw new ArgumentException(
-            $"Buffer too small: length={length}, required>={required}, type={typeof(TSelf).FullName}. If you did not manually pass a small buffer, this indicates a Use-After-Free concurrency failure: the packet size was mutated by another thread. This is typically caused by an orphaned I/O task missing a CancellationToken.");
+            $"Buffer too small: length={length}, required>={required}, type={typeof(TSelf).FullName}. " +
+            $"If you did not manually pass a small buffer, this indicates a Use-After-Free concurrency failure: the packet size was mutated by another thread. " +
+            $"This is typically caused by an orphaned I/O task missing a CancellationToken.");
 
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void THROW_BUFFER_TOO_SMALL_INNER(int length, int required, Exception ex)
         => throw new ArgumentException(
-            $"Buffer too small: length={length}, required>={required}, type={typeof(TSelf).FullName}. If you did not manually pass a small buffer, this indicates a Use-After-Free concurrency failure: the packet size was mutated by another thread. This is typically caused by an orphaned I/O task missing a CancellationToken.", ex);
+            $"Buffer too small: length={length}, required>={required}, type={typeof(TSelf).FullName}. " +
+            $"If you did not manually pass a small buffer, this indicates a Use-After-Free concurrency failure: the packet size was mutated by another thread. " +
+            $"This is typically caused by an orphaned I/O task missing a CancellationToken.", ex);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void VALIDATE_BUFFER_HEADER(ReadOnlySpan<byte> buffer)
+    private static bool TRY_VALIDATE_BUFFER_HEADER(ReadOnlySpan<byte> buffer)
     {
         if (buffer.IsEmpty)
         {
-            THROW_EMPTY_BUFFER();
+            return false;
         }
 
         if (buffer.Length < PacketSchema<TSelf>.StaticSize)
         {
-            THROW_INSUFFICIENT_BUFFER(buffer.Length);
+            return false;
         }
 
-        ref readonly PacketHeader header = ref buffer.AsHeaderRef();
-        if (header.OpCode != TSelf.StaticOpCode)
-        {
-            THROW_OPCODE_MISMATCH(header.OpCode);
-        }
+        return true;
     }
-
-    [DoesNotReturn]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void THROW_EMPTY_BUFFER()
-        => throw new ArgumentException($"Cannot deserialize {typeof(TSelf).Name}: buffer is empty.");
-
-    [DoesNotReturn]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void THROW_INSUFFICIENT_BUFFER(int length)
-        => throw new SerializationFailureException(
-            $"Insufficient buffer for {typeof(TSelf).Name}: length={length}, required={PacketSchema<TSelf>.StaticSize}.");
-
-    [DoesNotReturn]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void THROW_OPCODE_MISMATCH(ushort opcode)
-        => throw new SerializationFailureException(
-            $"OpCode mismatch: type={typeof(TSelf).Name}, buffer={opcode}, expected={TSelf.StaticOpCode}. " +
-            "The received packet type does not match the target deserialization type.");
 
     #endregion Private Methods
 }

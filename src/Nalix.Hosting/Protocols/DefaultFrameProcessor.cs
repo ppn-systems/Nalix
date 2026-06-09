@@ -106,6 +106,7 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
         }
 
         uint window;
+        uint? seq = null;
         bool exchanged = false;
         ISequenceCounter counter;
         IBufferLease current = lease;
@@ -133,7 +134,15 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
 
         try
         {
-            FramePipeline.ProcessInbound(ref current, args.Connection.Secret.AsSpan(), args.Connection.Algorithm, out uint? seq);
+            if (!FramePipeline.TryProcessInbound(ref current, args.Connection.Secret.AsSpan(), args.Connection.Algorithm, out seq))
+            {
+                args.Connection.IncrementErrorCount();
+                if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+                {
+                    _logger.LogTrace("[NW.DefaultFrameProcessor:ProcessFrame] Dropped inbound packet due to decryption or decompression failure.");
+                }
+                return;
+            }
 
             if (!counter.IsValid(seq, window: window))
             {
@@ -148,17 +157,12 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
             }
 
             _protocol.ProcessMessage(sender, args);
-
-            if (seq.HasValue)
-            {
-                counter.UpdateTo(seq.Value);
-            }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             args.Connection.IncrementErrorCount();
 
-            if (ex is CipherException or InternalErrorException or SerializationFailureException or LZ4Exception)
+            if (ex is InternalErrorException or SerializationFailureException)
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
                 {
@@ -175,6 +179,11 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
         }
         finally
         {
+            if (seq.HasValue)
+            {
+                counter.UpdateTo(seq.Value);
+            }
+
             if (!exchanged && !ReferenceEquals(current, lease))
             {
                 current.Dispose();

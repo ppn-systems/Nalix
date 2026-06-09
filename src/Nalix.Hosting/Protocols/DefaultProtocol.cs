@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Network.Protocols;
@@ -27,6 +28,7 @@ namespace Nalix.Hosting.Protocols;
 ///     .Build();
 /// </code>
 /// </remarks>
+[Injectable]
 public sealed class DefaultProtocol : Protocol
 {
     private readonly IPacketDispatch _dispatch;

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Runtime.Options;
@@ -17,7 +18,7 @@ public sealed partial class PacketDrainOptions : ConfigurationLoader, IValidatab
     /// When <c>0</c>, the dispatcher chooses <c>Math.Clamp(Environment.ProcessorCount, MinDispatchLoops, MaxDispatchLoops)</c>.
     /// </summary>
     [IniComment("Number of worker loops (0 for auto, default 0)")]
-    [System.ComponentModel.DataAnnotations.Range(0, 1024, ErrorMessage = "Count must be non-negative.")]
+    [ValueRange(0, 1024)]
     public int Count { get; set; } = 0;
 
     /// <summary>
@@ -25,7 +26,7 @@ public sealed partial class PacketDrainOptions : ConfigurationLoader, IValidatab
     /// Default: 5.
     /// </summary>
     [IniComment("Multiplier for packets to drain per wake (default 5)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 10000, ErrorMessage = "MaxDrainPerWakeMultiplier must be positive.")]
+    [ValueRange(1, 10000)]
     public int MaxDrainPerWakeMultiplier { get; set; } = 5;
 
     /// <summary>
@@ -33,7 +34,7 @@ public sealed partial class PacketDrainOptions : ConfigurationLoader, IValidatab
     /// Default: 64.
     /// </summary>
     [IniComment("Minimum packets to drain per wake (default 64)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1000000, ErrorMessage = "MinDrainPerWake must be positive.")]
+    [ValueRange(1, 1000000)]
     public int MinDrainPerWake { get; set; } = 64;
 
     /// <summary>
@@ -41,7 +42,7 @@ public sealed partial class PacketDrainOptions : ConfigurationLoader, IValidatab
     /// Default: 2048.
     /// </summary>
     [IniComment("Maximum packets to drain per wake (default 2048)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1000000, ErrorMessage = "MaxDrainPerWake must be positive.")]
+    [ValueRange(1, 1000000)]
     public int MaxDrainPerWake { get; set; } = 2048;
 
     /// <summary>
@@ -49,7 +50,7 @@ public sealed partial class PacketDrainOptions : ConfigurationLoader, IValidatab
     /// Default: 1.
     /// </summary>
     [IniComment("Minimum number of worker loops (default 1)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1024, ErrorMessage = "MinDispatchLoops must be positive.")]
+    [ValueRange(1, 1024)]
     public int MinDispatchLoops { get; set; } = 1;
 
     /// <summary>
@@ -57,14 +58,14 @@ public sealed partial class PacketDrainOptions : ConfigurationLoader, IValidatab
     /// Default: 64.
     /// </summary>
     [IniComment("Maximum number of worker loops (default 64)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1024, ErrorMessage = "MaxDispatchLoops must be positive.")]
+    [ValueRange(1, 1024)]
     public int MaxDispatchLoops { get; set; } = 64;
 
     /// <summary>
     /// The offset added to the Minecraft Packet ID to map it to a unique Nalix OpCode.
     /// Default is 0x1000 (4096).
     /// </summary>
-    [System.ComponentModel.DataAnnotations.Range(0, ushort.MaxValue, ErrorMessage = "VirtualOpCodeOffset must be a valid ushort.")]
+    [ValueRange(0, ushort.MaxValue)]
     public ushort VirtualOpCodeOffset { get; set; } = 0x1000;
 
     /// <summary>
@@ -76,13 +77,13 @@ public sealed partial class PacketDrainOptions : ConfigurationLoader, IValidatab
 
         if (this.MinDrainPerWake > this.MaxDrainPerWake)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException(
+            throw new Nalix.Abstractions.Exceptions.ValidationException(
                 $"MinDrainPerWake ({this.MinDrainPerWake}) must be <= MaxDrainPerWake ({this.MaxDrainPerWake}).");
         }
 
         if (this.MinDispatchLoops > this.MaxDispatchLoops)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException(
+            throw new Nalix.Abstractions.Exceptions.ValidationException(
                 $"MinDispatchLoops ({this.MinDispatchLoops}) must be <= MaxDispatchLoops ({this.MaxDispatchLoops}).");
         }
     }

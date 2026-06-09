@@ -49,27 +49,47 @@ internal static class EnvelopeFormat
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static Envelope ParseEnvelope(ReadOnlySpan<byte> blob)
     {
+        if (!TryParseEnvelope(blob, out Envelope result, out CipherError error))
+        {
+            ThrowCipherError(error, blob.Length);
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Attempts to parse an envelope into constituent spans without allocations.
+    /// Does not throw on malformed data.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        MethodImplOptions.AggressiveOptimization)]
+    public static bool TryParseEnvelope(ReadOnlySpan<byte> blob, out Envelope result, out CipherError error)
+    {
+        result = default;
+
         if (blob.Length < HeaderSize)
         {
-            throw new CipherException($"Envelope too short: length={blob.Length}, required>={HeaderSize} (header).");
+            error = CipherError.EnvelopeTooShort;
+            return false;
         }
 
         if (!EnvelopeHeader.Decode(blob[..HeaderSize], out EnvelopeHeader header))
         {
-            throw new CipherException($"Invalid envelope header: unable to decode (length={blob.Length}).");
+            error = CipherError.InvalidHeader;
+            return false;
         }
 
         int pos = HeaderSize;
         int nonceLen = header.NONCE_LEN;
         if (nonceLen <= 0)
         {
-            throw new CipherException($"Invalid nonce length: {nonceLen}.");
+            error = CipherError.InvalidNonceLength;
+            return false;
         }
 
         if (blob.Length < HeaderSize + nonceLen)
         {
-            throw new CipherException(
-                $"Envelope too short for nonce: length={blob.Length}, required>={pos + nonceLen}.");
+            error = CipherError.EnvelopeTooShort;
+            return false;
         }
 
         ReadOnlySpan<byte> headerSlice = blob[..HeaderSize];
@@ -83,33 +103,58 @@ internal static class EnvelopeFormat
         {
             if (blob.Length < pos + TagSize)
             {
-                throw new CipherException(
-                    $"Envelope too short for tag: length={blob.Length}, required>={pos + TagSize}.");
+                error = CipherError.EnvelopeTooShort;
+                return false;
             }
 
             int ctLen = blob.Length - pos - TagSize;
             if (ctLen < 0)
             {
-                throw new CipherException($"Invalid ciphertext length: {ctLen}.");
+                error = CipherError.CiphertextTooShort;
+                return false;
             }
 
             ReadOnlySpan<byte> ctSlice = blob.Slice(pos, ctLen);
             ReadOnlySpan<byte> tagSlice = blob.Slice(pos + ctLen, TagSize);
 
-            return new Envelope(
+            result = new Envelope(
                 header.VERSION, header.TYPE, header.FLAGS, header.NONCE_LEN, header.SEQ,
                 headerSlice, nonceSlice, ctSlice, tagSlice, hasTag: true
             );
+            error = CipherError.Success;
+            return true;
         }
         else
         {
             // Symmetric: all remaining is ciphertext; no tag
             ReadOnlySpan<byte> ctSlice = blob[pos..];
-            return new Envelope(
+            result = new Envelope(
                 header.VERSION, header.TYPE, header.FLAGS, header.NONCE_LEN, header.SEQ,
                 headerSlice, nonceSlice, ctSlice, [], hasTag: false
             );
+            error = CipherError.Success;
+            return true;
         }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        MethodImplOptions.NoInlining)]
+    internal static void ThrowCipherError(CipherError error, int length = 0)
+    {
+        throw error switch
+        {
+            CipherError.InvalidNonceLength => new CipherException("Invalid nonce length."),
+            CipherError.CiphertextTooShort => new CipherException("Invalid ciphertext length."),
+            CipherError.EnvelopeTooShort => new CipherException($"Envelope too short or malformed length (length={length})."),
+            CipherError.InvalidHeader => new CipherException($"Invalid envelope header: unable to decode (length={length})."),
+            CipherError.Success or
+            CipherError.InvalidTagLength or
+            CipherError.AlgorithmMismatch or
+            CipherError.AuthenticationFailed or
+            CipherError.UnsupportedAlgorithm or
+            CipherError.DestinationTooSmall or
+            _ => new CipherException($"Failed to parse envelope: {error}"),
+        };
     }
 
     /// <summary>

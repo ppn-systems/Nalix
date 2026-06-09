@@ -21,6 +21,7 @@ using Nalix.Network.Connections;
 
 #pragma warning disable IDE0079
 #pragma warning disable CA2213
+#pragma warning disable CA1031
 
 namespace Nalix.Network.Listeners.Web;
 
@@ -83,7 +84,7 @@ public abstract partial class WebSocketListenerBase
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.WebSocketListenerBase:ProcessConnection", $"new-connection remote-endpoint={connection?.NetworkEndpoint}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.WebSocketListenerBase:ProcessConnection", $"new-connection remote-endpoint={connection?.NetworkEndpoint}"));
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -91,7 +92,7 @@ public abstract partial class WebSocketListenerBase
             this.Metrics.RECORD_ERROR();
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.WebSocketListenerBase:ProcessConnection", $"process-error remote-endpoint={connection?.NetworkEndpoint}", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.WebSocketListenerBase:ProcessConnection", $"process-error remote-endpoint={connection?.NetworkEndpoint}", ex));
             }
             connection?.Dispose();
         }
@@ -129,7 +130,7 @@ public abstract partial class WebSocketListenerBase
                         {
                             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                             {
-                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.WebSocketListenerBase:AcceptConnectionsAsync", $"untrusted-proxy-rejected remote-endpoint={remoteEp}"));
+                                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.WebSocketListenerBase:AcceptConnectionsAsync", $"untrusted-proxy-rejected remote-endpoint={remoteEp}"));
                             }
                             ;
                         }
@@ -154,9 +155,29 @@ public abstract partial class WebSocketListenerBase
                         continue;
                     }
 
-                    // 2. Negotiate the WebSocket handshake.
+                    HttpListenerWebSocketContext wsContext;
+                    try
+                    {
+                        wsContext = await context.AcceptWebSocketAsync(_config.SubProtocol).ConfigureAwait(false);
+                    }
+#pragma warning disable CA1031
+                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+#pragma warning restore CA1031
+                    {
+                        this.Metrics.RECORD_REJECTED();
+                        try
+                        {
+                            context.Response.Close();
+                        }
+#pragma warning disable CA1031
+                        catch
+#pragma warning restore CA1031
+                        {
+                            // Ignore close failures on aborted clients.
+                        }
 
-                    HttpListenerWebSocketContext wsContext = await context.AcceptWebSocketAsync(_config.SubProtocol).ConfigureAwait(false);
+                        continue;
+                    }
 
 #pragma warning disable CA2000
                     WebSocketConnection connection = new(wsContext.WebSocket, _protocol.OpCodeExtractor, realEndpoint);
@@ -185,7 +206,7 @@ public abstract partial class WebSocketListenerBase
                         this.Metrics.RECORD_ERROR();
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                         {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.WebSocketListenerBase:AcceptConnectionsAsync", "Failed to initialize connection", ex));
+                            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.WebSocketListenerBase:AcceptConnectionsAsync", "Failed to initialize connection", ex));
                         }
                         connection.Dispose();
                     }
@@ -296,7 +317,7 @@ public abstract partial class WebSocketListenerBase
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.WebSocketListenerBase:Internal", $"unhandled-error port={_port}", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.WebSocketListenerBase:Internal", $"unhandled-error port={_port}", ex));
             }
         }
         finally
@@ -335,7 +356,7 @@ public abstract partial class WebSocketListenerBase
             string remoteEndpoint = connection?.NetworkEndpoint?.ToString() ?? "<null>";
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.WebSocketListenerBase:Internal", $"error remote remote-endpoint={remoteEndpoint}", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.WebSocketListenerBase:Internal", $"error remote remote-endpoint={remoteEndpoint}", ex));
             }
             ;
         }

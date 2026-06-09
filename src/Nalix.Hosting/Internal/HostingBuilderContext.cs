@@ -29,19 +29,11 @@ internal sealed class HostingBuilderContext
     public List<OptionsConfiguration> Options { get; } = [];
 
     /// <summary>
-    /// Gets the assemblies scanned for packet handlers.
-    /// </summary>
-    public HashSet<Assembly> HandlerAssemblies { get; } = [];
-
-    /// <summary>
     /// Gets the registered packet handler descriptors.
     /// </summary>
     public List<HandlerDescriptor> Handlers { get; } = [];
 
-    /// <summary>
-    /// Gets the packet metadata providers used during routing and dispatch.
-    /// </summary>
-    public List<PacketMetadataProviderDescriptor> MetadataProviders { get; } = [];
+
 
     /// <summary>
     /// Gets the TCP protocol bindings configured for the host.
@@ -100,13 +92,33 @@ internal sealed class HostingBuilderContext
 /// <summary>
 /// Describes an options configuration applied during host building.
 /// </summary>
-/// <param name="OptionsType">
-/// The options type being configured.
-/// </param>
-/// <param name="Apply">
-/// The delegate that applies configuration to the options instance.
-/// </param>
-internal sealed record OptionsConfiguration(Type OptionsType, Action<object> Apply);
+internal sealed class OptionsConfiguration
+{
+    /// <summary>
+    /// Gets the options type being configured. Retained for diagnostics only.
+    /// </summary>
+    public Type OptionsType { get; }
+
+    /// <summary>
+    /// Gets the AOT-safe delegate that loads, configures, and validates the options instance.
+    /// The delegate was captured at generic registration time, so the closed generic type
+    /// is known to the compiler and does not require runtime <c>MakeGenericMethod</c>.
+    /// </summary>
+    public Action Apply { get; }
+
+    /// <summary>
+    /// Initialises a new <see cref="OptionsConfiguration"/> with a pre-captured typed delegate.
+    /// </summary>
+    /// <param name="optionsType">The options type (for diagnostics).</param>
+    /// <param name="apply">
+    /// A delegate that loads, configures, and validates the options instance.
+    /// </param>
+    public OptionsConfiguration(Type optionsType, Action apply)
+    {
+        this.OptionsType = optionsType;
+        this.Apply = apply;
+    }
+}
 
 /// <summary>
 /// Describes an assembly used for packet type discovery.
@@ -161,21 +173,11 @@ internal sealed record PacketNamespaceDescriptor(
 /// A factory delegate used to create handler instances.
 /// </param>
 internal sealed record HandlerDescriptor(
-    Type HandlerType,
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] Type HandlerType,
     Func<object> Factory);
 
-/// <summary>
-/// Describes a packet metadata provider registration.
-/// </summary>
-/// <param name="ProviderType">
-/// The metadata provider type.
-/// </param>
-/// <param name="Factory">
-/// A factory delegate used to create the metadata provider instance.
-/// </param>
-internal sealed record PacketMetadataProviderDescriptor(
-    Type ProviderType,
-    Func<IPacketMetadataProvider> Factory);
+
 
 /// <summary>
 /// Represents a binding between a TCP transport and a protocol implementation.

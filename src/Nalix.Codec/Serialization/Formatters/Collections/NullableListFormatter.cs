@@ -79,7 +79,10 @@ internal sealed class NullableValueListFormatter<
             return [];
         }
 
-        CollectionGuard.EnsureRead(ref reader, length);
+        if (!CollectionGuard.TryEnsureRead(ref reader, length))
+        {
+            return default!;
+        }
 
         System.Collections.Generic.List<T?> list = new(length);
         CollectionsMarshal.SetCount(list, length);
@@ -106,7 +109,10 @@ internal sealed class NullableValueListFormatter<
             return;
         }
 
-        CollectionGuard.EnsureRead(ref reader, length);
+        if (!CollectionGuard.TryEnsureRead(ref reader, length))
+        {
+            return;
+        }
 
         value.Clear();
         CollectionsMarshal.SetCount(value, length);

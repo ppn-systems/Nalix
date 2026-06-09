@@ -7,14 +7,13 @@
 		<LangVersion>latest</LangVersion>
 		<IsRoslynComponent>true</IsRoslynComponent>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<TargetFramework>netstandard2.0</TargetFramework>
 		<EnableNETAnalyzers>false</EnableNETAnalyzers>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 		<PublishAot>false</PublishAot>
 		<PublishTrimmed>false</PublishTrimmed>
 		<IsTrimmable>false</IsTrimmable>
 		<IsAotCompatible>false</IsAotCompatible>
-		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+		<NoWarn>$(NoWarn);RS2008;CS1591</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>

@@ -126,6 +126,11 @@ internal sealed class PooledAcceptContext : IPoolable
         _args?.Completed -= AsyncAcceptCompleted;
         _args = newArgs;
         _args.Completed += AsyncAcceptCompleted;
+
+        if (newArgs is PooledSocketAsyncEventArgs pooled)
+        {
+            pooled.Context = this;
+        }
     }
 
     /// <summary>
@@ -142,6 +147,11 @@ internal sealed class PooledAcceptContext : IPoolable
         ArgumentNullException.ThrowIfNull(newArgs);
         _args?.Completed -= AsyncAcceptCompleted;
         _args = newArgs;
+
+        if (newArgs is PooledSocketAsyncEventArgs pooled)
+        {
+            pooled.Context = this;
+        }
     }
 
     /// <summary>

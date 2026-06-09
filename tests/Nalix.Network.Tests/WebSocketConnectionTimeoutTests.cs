@@ -32,7 +32,8 @@ public class WebSocketConnectionTimeoutTests : IDisposable
     }
     private readonly string _certificatePath = Path.Combine(Path.GetTempPath(), $"nalix-ws-test-{Guid.NewGuid():N}.private");
 
-    private sealed class IntegrationTestProtocol : Protocol
+    [Nalix.Abstractions.Injection.Injectable]
+    internal sealed class IntegrationTestProtocol : Protocol
     {
         private sealed class NoOpFrameProcessor : IFrameProcessor
         {
@@ -171,7 +172,7 @@ public class WebSocketConnectionTimeoutTests : IDisposable
         int oldTimeout = timingOptions.IdleTimeoutMs;
         
         timingOptions.TickDuration = 200; // 200ms ticks (reduced thread-scheduling overhead)
-        timingOptions.IdleTimeoutMs = 1000; // 1000ms idle timeout
+        timingOptions.IdleTimeoutMs = 3000; // 5000ms idle timeout (increased to avoid race conditions during CI registration)
 
         try
         {

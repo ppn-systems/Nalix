@@ -15,4 +15,9 @@
 		<ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
 	</ItemGroup>
 
+	<!-- Source generator for [PacketController] handler registration and [Injectable] activation -->
+	<ItemGroup>
+		<ProjectReference Include="..\..\analyzers\Nalix.Analyzers.Generators\Nalix.Analyzers.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="PublishAot;PublishTrimmed;IsTrimmable;IsAotCompatible;RuntimeIdentifier;RuntimeIdentifiers" />
+	</ItemGroup>
+
 </Project>

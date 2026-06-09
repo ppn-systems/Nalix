@@ -10,14 +10,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Security;
+using Nalix.Environment.Sequencing;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Abstractions;
-using Nalix.Network.Internal.Security;
 
-#if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
-#endif
 
 namespace Nalix.Network.Internal.Transport;
 
@@ -30,7 +28,8 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IDispos
 
     private readonly Connection _outer;
     private readonly SocketConnection _socket;
-    private readonly TransportSequencer _sequencer;
+    private readonly ISequenceCounter _sendSequence;
+    private readonly ISequenceCounter _receiveSequence;
 
     #endregion Fields
 
@@ -42,10 +41,10 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IDispos
     public System.Net.Sockets.Socket Socket => _socket.Socket;
 
     /// <inheritdoc/>
-    public ISequenceCounter SendSequence => _sequencer.SendSequence;
+    public ISequenceCounter SendSequence => _sendSequence;
 
     /// <inheritdoc/>
-    public ISequenceCounter ReceiveSequence => _sequencer.ReceiveSequence;
+    public ISequenceCounter ReceiveSequence => _receiveSequence;
 
     /// <inheritdoc/>
     public long BytesSent => _socket.BytesSent;
@@ -67,7 +66,8 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IDispos
     /// <inheritdoc/>
     public SocketTcpTransport(Socket socket, Connection connection, ITransportEventSink eventSink)
     {
-        _sequencer = new();
+        _sendSequence = new SequenceCounter();
+        _receiveSequence = new SequenceCounter();
         _outer = connection;
         _socket = new SocketConnection(socket, connection, eventSink);
     }
@@ -120,20 +120,44 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IDispos
             throw new ArgumentException("Message must not be empty.", nameof(message));
         }
 
-        _socket.Send(message);
+        SocketConnection.SendResult result = _socket.Send(message);
+        if (result != SocketConnection.SendResult.Success)
+        {
+            throw Throw.GetSendFailed();
+        }
     }
 
     /// <inheritdoc/>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public async ValueTask SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
+    public ValueTask SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
     {
         if (message.IsEmpty)
         {
-            throw new ArgumentException("Message must not be empty.", nameof(message));
+            return ValueTask.FromException(new ArgumentException("Message must not be empty.", nameof(message)));
         }
 
-        await _socket.SendAsync(message, cancellationToken).ConfigureAwait(false);
+        ValueTask<SocketConnection.SendResult> vt = _socket.SendAsync(message, cancellationToken);
+        if (vt.IsCompletedSuccessfully)
+        {
+            SocketConnection.SendResult result = vt.Result;
+            if (result != SocketConnection.SendResult.Success)
+            {
+                return ValueTask.FromException(Throw.GetSendFailed());
+            }
+            return default;
+        }
+
+        return AWAIT_SEND_ASYNC(vt);
+
+        static async ValueTask AWAIT_SEND_ASYNC(ValueTask<SocketConnection.SendResult> vt)
+        {
+            SocketConnection.SendResult result = await vt.ConfigureAwait(false);
+            if (result != SocketConnection.SendResult.Success)
+            {
+                throw Throw.GetSendFailed();
+            }
+        }
     }
 
     /// <inheritdoc/>

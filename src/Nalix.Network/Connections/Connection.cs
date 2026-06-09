@@ -122,7 +122,7 @@ public sealed partial class Connection :
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Connection:UnknownMethod", $"created remote=remote-endpoint={this.NetworkEndpoint} id=connection-id={this.ID}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Connection:UnknownMethod", $"created remote=remote-endpoint={this.NetworkEndpoint} id=connection-id={this.ID}"));
         }
     }
 
@@ -326,7 +326,7 @@ public sealed partial class Connection :
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Connection:Disconnect", $"disconnect request id={this.ID} remote={this.NetworkEndpoint} reason={reason}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Connection:Disconnect", $"disconnect request id={this.ID} remote={this.NetworkEndpoint} reason={reason}"));
         }
 
         this.Dispose();
@@ -389,7 +389,7 @@ public sealed partial class Connection :
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.Connection:Dispose", "close-event-error", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.Connection:Dispose", "close-event-error", ex));
                 }
             }
             finally
@@ -455,6 +455,7 @@ public sealed partial class Connection :
                 if (this.UdpTransport != null)
                 {
                     s_pool.Return(this.UdpTransport);
+                    this.UdpTransport = null;
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "udptransport"); }
@@ -488,7 +489,7 @@ public sealed partial class Connection :
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.Connection:Internal", $"component={component}-dispose-error", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.Connection:Internal", $"component={component}-dispose-error", ex));
             }
         }
     }
@@ -503,7 +504,7 @@ public sealed partial class Connection :
     /// </summary>
     internal ConnectionEventArgs AcquireEventArgs()
     {
-        ConnectionEventArgs? arg_local = _argsPool.Acquire(arg => arg.Initialize(this));
+        ConnectionEventArgs? arg_local = _argsPool.Acquire(this, static (arg, self) => arg.Initialize(self));
         if (arg_local != null)
         {
             return arg_local;
@@ -523,7 +524,7 @@ public sealed partial class Connection :
     /// </summary>
     PooledConnectEventContext IPooledConnectContextPool.AcquireContext()
     {
-        PooledConnectEventContext? arg_local = _contextPool.Acquire(ctx => ctx.LocalOwner = this);
+        PooledConnectEventContext? arg_local = _contextPool.Acquire(this, static (ctx, self) => ctx.LocalOwner = self);
         if (arg_local != null)
         {
             return arg_local;
@@ -651,7 +652,7 @@ public sealed partial class Connection :
                     {
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                         {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.Connection:Internal", "close-handler-error", handlerEx));
+                            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.Connection:Internal", "close-handler-error", handlerEx));
                         }
                     }
                 }
