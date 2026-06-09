@@ -4,7 +4,7 @@ using Nalix.Environment.Options;
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Abstractions.Validation;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Framework.Options;
 using Xunit;
 

@@ -12,9 +12,5 @@ public interface IFixedSizeSerializable
     /// <summary>
     /// Gets the fixed size, in bytes, required to serialize one instance of the type.
     /// </summary>
-#if NET7_0_OR_GREATER
     static abstract int Size { get; }
-#else
-    int Size { get; }
-#endif
 }
