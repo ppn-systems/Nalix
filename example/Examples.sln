@@ -17,7 +17,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Abstractions", "..\sr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UdpLoadTester", "UdpLoadTester\UdpLoadTester.csproj", "{0C69349D-3A8B-45A2-B0F7-5C161AC801E5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Logging", "..\src\Nalix.Logging\Nalix.Logging.csproj", "{756CCB83-8F98-4845-9BF8-3C092663AEB4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Logging", "..\extensions\Nalix.Logging\Nalix.Logging.csproj", "{756CCB83-8F98-4845-9BF8-3C092663AEB4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Analyzers", "..\analyzers\Nalix.Analyzers\Nalix.Analyzers.csproj", "{E05EAE9F-4C7D-4935-9F48-80C804E1084C}"
 EndProject

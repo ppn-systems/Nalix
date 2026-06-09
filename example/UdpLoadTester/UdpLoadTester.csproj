@@ -18,7 +18,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\Nalix.SDK\Nalix.SDK.csproj" />
-		<ProjectReference Include="..\..\src\Nalix.Logging\Nalix.Logging.csproj" />
+		<ProjectReference Include="..\..\extensions\Nalix.Logging\Nalix.Logging.csproj" />
 	</ItemGroup>
 
 </Project>

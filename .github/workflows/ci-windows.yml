@@ -7,12 +7,14 @@ on:
     branches: ["master"]
     paths:
       - "src/**"
+      - "extensions/**"
       - "tests/**"
       - "*.sln"
   pull_request:
     branches: ["master"]
     paths:
       - "src/**"
+      - "extensions/**"
       - "tests/**"
       - "*.sln"
 
