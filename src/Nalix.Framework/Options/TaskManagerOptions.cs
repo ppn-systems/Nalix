@@ -122,38 +122,38 @@ public sealed partial class TaskManagerOptions : ConfigurationLoader, IValidatab
 
         if (this.ThresholdHighCpu < this.ThresholdLowCpu)
         {
-            throw new Nalix.Abstractions.Validation.ValidationException(
+            throw new Nalix.Abstractions.Exceptions.ValidationException(
                 $"{nameof(this.ThresholdHighCpu)} ({this.ThresholdHighCpu}) must be greater than or equal to {nameof(this.ThresholdLowCpu)} ({this.ThresholdLowCpu}).");
         }
 
         if (this.CleanupInterval < TimeSpan.FromSeconds(1))
         {
-            throw new Nalix.Abstractions.Validation.ValidationException("CleanupInterval must be at least 1 second.");
+            throw new Nalix.Abstractions.Exceptions.ValidationException("CleanupInterval must be at least 1 second.");
         }
 
         if (this.BusyWaitThreshold < TimeSpan.Zero)
         {
-            throw new Nalix.Abstractions.Validation.ValidationException("BusyWaitThreshold cannot be negative.");
+            throw new Nalix.Abstractions.Exceptions.ValidationException("BusyWaitThreshold cannot be negative.");
         }
 
         if (this.BackoffBaseInterval < TimeSpan.FromMilliseconds(10))
         {
-            throw new Nalix.Abstractions.Validation.ValidationException("BackoffBaseInterval must be at least 10ms.");
+            throw new Nalix.Abstractions.Exceptions.ValidationException("BackoffBaseInterval must be at least 10ms.");
         }
 
         if (this.CpuWarmupDuration < TimeSpan.Zero)
         {
-            throw new Nalix.Abstractions.Validation.ValidationException("CpuWarmupDuration cannot be negative.");
+            throw new Nalix.Abstractions.Exceptions.ValidationException("CpuWarmupDuration cannot be negative.");
         }
 
         if (this.MaxWorkers <= 0)
         {
-            throw new Nalix.Abstractions.Validation.ValidationException("MaxWorkers must be positive.");
+            throw new Nalix.Abstractions.Exceptions.ValidationException("MaxWorkers must be positive.");
         }
 
         if (this.ObservingInterval <= TimeSpan.Zero)
         {
-            throw new Nalix.Abstractions.Validation.ValidationException("ObservingInterval must be positive.");
+            throw new Nalix.Abstractions.Exceptions.ValidationException("ObservingInterval must be positive.");
         }
     }
 }

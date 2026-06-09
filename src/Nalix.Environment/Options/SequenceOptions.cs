@@ -38,7 +38,7 @@ public sealed partial class SequenceOptions : ConfigurationLoader, IValidatableC
 
         if (this.UdpWindow < this.TcpWindow)
         {
-            throw new Nalix.Abstractions.Validation.ValidationException("UdpWindow should be greater than or equal to TcpWindow.");
+            throw new Nalix.Abstractions.Exceptions.ValidationException("UdpWindow should be greater than or equal to TcpWindow.");
         }
     }
 }

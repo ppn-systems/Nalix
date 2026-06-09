@@ -68,7 +68,7 @@ public sealed partial class PoolingOptions : ConfigurationLoader, IValidatableCo
     {
         if (preallocVal > capacityVal)
         {
-            throw new Nalix.Abstractions.Validation.ValidationException(
+            throw new Nalix.Abstractions.Exceptions.ValidationException(
                 $"{preallocName} ({preallocVal}) cannot exceed {capacityName} ({capacityVal}).");
         }
     }

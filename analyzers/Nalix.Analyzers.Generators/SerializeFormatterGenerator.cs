@@ -56,7 +56,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
         // Direct enum
         if (type.TypeKind == TypeKind.Enum)
         {
-            enums.Add(type);
+            _ = enums.Add(type);
             return;
         }
 
@@ -176,7 +176,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
 
                 if (containsEnum)
                 {
-                    tupleTypes.Add(named);
+                    _ = tupleTypes.Add(named);
                 }
 
                 // Also recurse into nested tuples
@@ -302,14 +302,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
             if (isClass && !HasStaticCreateMethod(type))
             {
                 context.ReportDiagnostic(Diagnostic.Create(
-                    new DiagnosticDescriptor(
-                        "NALIX059",
-                        "Missing static Create() method",
-                        "Type '{0}' is marked [GenerateFormatter] but neither it nor any of its base types has a public/internal static Create() method. " +
-                        "This is required for the pooling pattern used by LiteSerializer.Fill.",
-                        $"{KnownNames.SerializationAbstractionsNamespace}.{KnownNames.GenerateFormatterAttributeName}",
-                        DiagnosticSeverity.Error,
-                        true),
+                    GeneratorDiagnosticDescriptors.MissingStaticCreateMethod,
                     type.Locations[0],
                     type.ToDisplayString()));
 

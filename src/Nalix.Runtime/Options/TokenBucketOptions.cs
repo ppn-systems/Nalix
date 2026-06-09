@@ -126,24 +126,24 @@ public sealed partial class TokenBucketOptions : ConfigurationLoader, IValidatab
 
         if (this.ShardCount <= 0)
         {
-            throw new Nalix.Abstractions.Validation.ValidationException(
+            throw new Nalix.Abstractions.Exceptions.ValidationException(
                 "ShardCount must be positive and power-of-two.");
         }
 
         static bool IsPowerOfTwo(int x) => (x & (x - 1)) == 0;
         if (!IsPowerOfTwo(this.ShardCount))
         {
-            throw new Nalix.Abstractions.Validation.ValidationException("ShardCount must be a power of two (e.g., 16, 32, 64) to ensure correct shard distribution.");
+            throw new Nalix.Abstractions.Exceptions.ValidationException("ShardCount must be a power of two (e.g., 16, 32, 64) to ensure correct shard distribution.");
         }
 
         if (this.CapacityTokens * (long)this.TokenScale > long.MaxValue)
         {
-            throw new Nalix.Abstractions.Validation.ValidationException("CapacityTokens * TokenScale is too large and may overflow Int64. Reduce values.");
+            throw new Nalix.Abstractions.Exceptions.ValidationException("CapacityTokens * TokenScale is too large and may overflow Int64. Reduce values.");
         }
 
         if (this.InitialTokens > this.CapacityTokens)
         {
-            throw new Nalix.Abstractions.Validation.ValidationException(
+            throw new Nalix.Abstractions.Exceptions.ValidationException(
                 $"InitialTokens ({this.InitialTokens}) must be <= CapacityTokens ({this.CapacityTokens}).");
         }
     }

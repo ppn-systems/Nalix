@@ -194,7 +194,7 @@ public sealed partial class BufferOptions : ConfigurationLoader, IValidatableCon
 
         if (this.ExpandThresholdPercent >= this.ShrinkThresholdPercent)
         {
-            throw new global::Nalix.Abstractions.Validation.ValidationException(
+            throw new global::Nalix.Abstractions.Exceptions.ValidationException(
                 "ExpandThresholdPercent must be less than ShrinkThresholdPercent.");
         }
 
@@ -214,31 +214,31 @@ public sealed partial class BufferOptions : ConfigurationLoader, IValidatableCon
                     continue;
                 }
 
-                throw new global::Nalix.Abstractions.Validation.ValidationException(
+                throw new global::Nalix.Abstractions.Exceptions.ValidationException(
                     $"BufferAllocations sizes must be strictly increasing (got {lastSize} then {size}).");
             }
 
             if (totalRatio > 1.01)
             {
-                throw new global::Nalix.Abstractions.Validation.ValidationException(
+                throw new global::Nalix.Abstractions.Exceptions.ValidationException(
                     $"Sum of buffer allocation ratios exceeds 1.0 ({totalRatio}).");
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            throw new global::Nalix.Abstractions.Validation.ValidationException(
+            throw new global::Nalix.Abstractions.Exceptions.ValidationException(
                 $"Invalid BufferAllocations: {ex.Message}");
         }
 
         if (this.MaxMemoryBytes > 0 && this.MaxMemoryPercentage > 0.90)
         {
-            throw new global::Nalix.Abstractions.Validation.ValidationException(
+            throw new global::Nalix.Abstractions.Exceptions.ValidationException(
                 "Cannot specify both MaxMemoryBytes and MaxMemoryPercentage > 0.90.");
         }
 
         if (this.AdaptiveGrowthFactor * this.MinimumIncrease > this.MaxBufferIncreaseLimit)
         {
-            throw new global::Nalix.Abstractions.Validation.ValidationException(
+            throw new global::Nalix.Abstractions.Exceptions.ValidationException(
                 "AdaptiveGrowthFactor * MinimumIncrease must be <= MaxBufferIncreaseLimit.");
         }
     }

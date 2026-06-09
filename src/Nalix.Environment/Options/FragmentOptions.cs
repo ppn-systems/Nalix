@@ -73,21 +73,21 @@ public sealed partial class FragmentOptions : ConfigurationLoader, IValidatableC
 
         if (this.MaxPayloadSize < this.MaxChunkSize)
         {
-            throw new Nalix.Abstractions.Validation.ValidationException(
+            throw new Nalix.Abstractions.Exceptions.ValidationException(
                 $"MaxPayloadSize={this.MaxPayloadSize} must be >= MaxChunkSize={this.MaxChunkSize}.");
         }
 
         long maxChunkCount = ((long)this.MaxPayloadSize + this.MaxChunkSize - 1) / this.MaxChunkSize;
         if (maxChunkCount > ushort.MaxValue)
         {
-            throw new Nalix.Abstractions.Validation.ValidationException(
+            throw new Nalix.Abstractions.Exceptions.ValidationException(
                 $"MaxChunkSize={this.MaxChunkSize} can produce {maxChunkCount} chunks for MaxPayloadSize={this.MaxPayloadSize}, which exceeds the {ushort.MaxValue}-chunk wire header limit.");
         }
 
         int maxChunkFrameSize = PacketConstants.HeaderSize + FragmentHeader.WireSize + this.MaxChunkSize;
         if (maxChunkFrameSize > ushort.MaxValue)
         {
-            throw new Nalix.Abstractions.Validation.ValidationException(
+            throw new Nalix.Abstractions.Exceptions.ValidationException(
                 $"MaxChunkSize={this.MaxChunkSize} produces a fragment frame of {maxChunkFrameSize} bytes, which exceeds the {ushort.MaxValue}-byte wire header limit.");
         }
     }

@@ -47,7 +47,7 @@ public sealed partial class MemoryOptions : ConfigurationLoader, IValidatableCon
 
         if (this.BufferLeaseSharedPoolSize <= 0 || (this.BufferLeaseSharedPoolSize & (this.BufferLeaseSharedPoolSize - 1)) != 0)
         {
-            throw new Nalix.Abstractions.Validation.ValidationException($"BufferLeaseSharedPoolSize must be a positive power of 2.");
+            throw new Nalix.Abstractions.Exceptions.ValidationException($"BufferLeaseSharedPoolSize must be a positive power of 2.");
         }
     }
 }

@@ -22,31 +22,11 @@ namespace Nalix.Analyzers.Generators;
 [Generator]
 public sealed class InstanceGenerator : IIncrementalGenerator
 {
-    #region Diagnostics
+    #region Diagnostics (centralized in GeneratorDiagnosticDescriptors)
 
-    private static readonly DiagnosticDescriptor s_noAccessibleCtorRule = new(
-        id: "NALIX060",
-        title: "No accessible constructor found",
-        messageFormat: "Class '{0}' marked with [Injectable] must have at least one public or internal constructor",
-        category: "Nalix.Framework.Injection",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    private static readonly DiagnosticDescriptor s_ambiguousCtorRule = new(
-        id: "NALIX061",
-        title: "Ambiguous constructors in injectable class",
-        messageFormat: "Class '{0}' marked with [Injectable] has ambiguous constructors with the same parameter count that are not disjoint",
-        category: "Nalix.Framework.Injection",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    private static readonly DiagnosticDescriptor s_singletonNoCtorRule = new(
-        id: "NALIX062",
-        title: "SingletonBase subclass missing accessible parameterless constructor",
-        messageFormat: "SingletonBase subclass '{0}' must have a public or internal parameterless constructor for source-generated activation",
-        category: "Nalix.Framework.Injection",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+    // NALIX063 — NoAccessibleConstructor
+    // NALIX064 — AmbiguousConstructor
+    // NALIX065 — SingletonMissingParameterlessConstructor
 
     #endregion Diagnostics
 
@@ -256,7 +236,7 @@ public sealed class InstanceGenerator : IIncrementalGenerator
         if (ctors.Count == 0)
         {
             context.ReportDiagnostic(Diagnostic.Create(
-                s_noAccessibleCtorRule,
+                GeneratorDiagnosticDescriptors.NoAccessibleConstructor,
                 symbol.Locations.FirstOrDefault() ?? Location.None,
                 symbol.Name));
             return;
@@ -288,7 +268,7 @@ public sealed class InstanceGenerator : IIncrementalGenerator
                         if (!isDisjoint)
                         {
                             context.ReportDiagnostic(Diagnostic.Create(
-                                s_ambiguousCtorRule,
+                                GeneratorDiagnosticDescriptors.AmbiguousConstructor,
                                 symbol.Locations.FirstOrDefault() ?? Location.None,
                                 symbol.Name));
                             hasAmbiguity = true;
@@ -416,7 +396,7 @@ public sealed class InstanceGenerator : IIncrementalGenerator
         if (parameterlessCtor is null)
         {
             context.ReportDiagnostic(Diagnostic.Create(
-                s_singletonNoCtorRule,
+                GeneratorDiagnosticDescriptors.SingletonMissingParameterlessConstructor,
                 symbol.Locations.FirstOrDefault() ?? Location.None,
                 symbol.Name));
             return;

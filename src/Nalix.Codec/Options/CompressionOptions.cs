@@ -59,7 +59,7 @@ public sealed partial class CompressionOptions : ConfigurationLoader, IValidatab
 
         if (this.MinSizeToCompress > this.MaxDecompressedSize)
         {
-            throw new Nalix.Abstractions.Validation.ValidationException(
+            throw new Nalix.Abstractions.Exceptions.ValidationException(
                 $"MinSizeToCompress ({this.MinSizeToCompress}) must be <= MaxDecompressedSize ({this.MaxDecompressedSize}).");
         }
     }

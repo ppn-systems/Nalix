@@ -186,12 +186,12 @@ public sealed class SingletonTests : IDisposable
         protected override void DisposeManaged() => DisposeManagedCount++;
     }
 
-    #pragma warning disable NALIX062 // Intentionally missing parameterless ctor for error-path testing
+    #pragma warning disable NALIX065 // Intentionally missing parameterless ctor for error-path testing
     internal sealed class NoDefaultCtorSingleton : SingletonBase<NoDefaultCtorSingleton>
     {
         internal NoDefaultCtorSingleton(int _) { }
     }
-    #pragma warning restore NALIX062
+    #pragma warning restore NALIX065
 }
 
 

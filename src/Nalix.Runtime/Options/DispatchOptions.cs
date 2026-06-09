@@ -86,19 +86,19 @@ public sealed partial class DispatchOptions : ConfigurationLoader, IValidatableC
 
         if (this.MinBucketCount > this.MaxBucketCount)
         {
-            throw new Nalix.Abstractions.Validation.ValidationException(
+            throw new Nalix.Abstractions.Exceptions.ValidationException(
                 $"{nameof(this.MinBucketCount)} ({this.MinBucketCount}) cannot be greater than {nameof(this.MaxBucketCount)} ({this.MaxBucketCount}).");
         }
 
         if (string.IsNullOrWhiteSpace(this.PriorityWeights))
         {
-            throw new Nalix.Abstractions.Validation.ValidationException("PriorityWeights must not be empty.");
+            throw new Nalix.Abstractions.Exceptions.ValidationException("PriorityWeights must not be empty.");
         }
 
         string[] parts = this.PriorityWeights.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (parts.Length != 5)
         {
-            throw new Nalix.Abstractions.Validation.ValidationException(
+            throw new Nalix.Abstractions.Exceptions.ValidationException(
                 $"PriorityWeights must contain exactly 5 comma-separated values [NONE, LOW, MEDIUM, HIGH, URGENT], got {parts.Length}.");
         }
 
@@ -106,14 +106,14 @@ public sealed partial class DispatchOptions : ConfigurationLoader, IValidatableC
         {
             if (!int.TryParse(part, out int w) || w <= 0)
             {
-                throw new Nalix.Abstractions.Validation.ValidationException(
+                throw new Nalix.Abstractions.Exceptions.ValidationException(
                     $"PriorityWeights contains invalid value '{part}'. All weights must be positive integers.");
             }
         }
 
         if (this.BlockTimeout < TimeSpan.Zero)
         {
-            throw new Nalix.Abstractions.Validation.ValidationException("BlockTimeout cannot be negative.");
+            throw new Nalix.Abstractions.Exceptions.ValidationException("BlockTimeout cannot be negative.");
         }
     }
 }

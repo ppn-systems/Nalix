@@ -77,13 +77,13 @@ public sealed partial class PacketDrainOptions : ConfigurationLoader, IValidatab
 
         if (this.MinDrainPerWake > this.MaxDrainPerWake)
         {
-            throw new Nalix.Abstractions.Validation.ValidationException(
+            throw new Nalix.Abstractions.Exceptions.ValidationException(
                 $"MinDrainPerWake ({this.MinDrainPerWake}) must be <= MaxDrainPerWake ({this.MaxDrainPerWake}).");
         }
 
         if (this.MinDispatchLoops > this.MaxDispatchLoops)
         {
-            throw new Nalix.Abstractions.Validation.ValidationException(
+            throw new Nalix.Abstractions.Exceptions.ValidationException(
                 $"MinDispatchLoops ({this.MinDispatchLoops}) must be <= MaxDispatchLoops ({this.MaxDispatchLoops}).");
         }
     }
