@@ -203,7 +203,7 @@ public class ConfigurationGenerator : IIncrementalGenerator
 
         // ── ValidateDataAnnotations ──
         _ = sb.AppendLine($"{i}/// <summary>");
-        _ = sb.AppendLine($"{i}/// Auto-generated method that validates all properties marked with DataAnnotations.");
+        _ = sb.AppendLine($"{i}/// Auto-generated method that validates all properties marked with validation attributes.");
         _ = sb.AppendLine($"{i}/// </summary>");
         _ = sb.AppendLine($"{i}protected override void ValidateDataAnnotations()");
         _ = sb.AppendLine($"{i}{{");
@@ -212,8 +212,55 @@ public class ConfigurationGenerator : IIncrementalGenerator
             foreach (AttributeData attr in p.GetAttributes())
             {
                 string attrName = attr.AttributeClass?.Name ?? "";
-                if (attrName == "RangeAttribute")
+                string attrNs = attr.AttributeClass?.ContainingNamespace.ToString() ?? "";
+
+                if (attrName == KnownNames.ValueRangeAttributeName && attrNs == KnownNames.ValidationNamespace)
                 {
+                    // [ValueRange(min, max)] — double constructor args
+                    string minStr = attr.ConstructorArguments[0].Value?.ToString() ?? "0";
+                    string maxStr = attr.ConstructorArguments[1].Value?.ToString() ?? "0";
+                    string minVal = minStr;
+                    string maxVal = maxStr;
+
+                    if (attr.ConstructorArguments[0].Value is double) { minVal += "d"; maxVal += "d"; }
+
+                    _ = sb.AppendLine($"{i}    if (this.{p.Name} < {minVal} || this.{p.Name} > {maxVal})");
+                    _ = sb.AppendLine($"{i}        throw new global::System.InvalidOperationException(\"{p.Name} must be between {minStr} and {maxStr}.\");");
+                }
+                else if (attrName == KnownNames.DurationRangeAttributeName && attrNs == KnownNames.ValidationNamespace)
+                {
+                    // [DurationRange("00:00:01", "1.00:00:00")] — string TimeSpan args
+                    string minStr = attr.ConstructorArguments[0].Value?.ToString() ?? "00:00:00";
+                    string maxStr = attr.ConstructorArguments[1].Value?.ToString() ?? "00:00:00";
+
+                    _ = sb.AppendLine($"{i}    if (this.{p.Name} < global::System.TimeSpan.Parse(\"{minStr}\") || this.{p.Name} > global::System.TimeSpan.Parse(\"{maxStr}\"))");
+                    _ = sb.AppendLine($"{i}        throw new global::System.InvalidOperationException(\"{p.Name} must be between {minStr} and {maxStr}.\");");
+                }
+                else if (attrName == KnownNames.LengthAttributeName && attrNs == KnownNames.ValidationNamespace)
+                {
+                    // [Length(n)] — minimum length for string / collection
+                    string minLen = attr.ConstructorArguments[0].Value?.ToString() ?? "0";
+
+                    if (p.Type.SpecialType == SpecialType.System_String)
+                    {
+                        _ = sb.AppendLine($"{i}    if (this.{p.Name} is not null && this.{p.Name}.Length < {minLen})");
+                        _ = sb.AppendLine($"{i}        throw new global::System.InvalidOperationException(\"{p.Name} length must be at least {minLen}.\");");
+                    }
+                    else if (p.Type is IArrayTypeSymbol)
+                    {
+                        _ = sb.AppendLine($"{i}    if (this.{p.Name} is not null && this.{p.Name}.Length < {minLen})");
+                        _ = sb.AppendLine($"{i}        throw new global::System.InvalidOperationException(\"{p.Name} length must be at least {minLen}.\");");
+                    }
+                    else
+                    {
+                        // ICollection<T> / IReadOnlyCollection<T> — try .Count
+                        _ = sb.AppendLine($"{i}    if (this.{p.Name} is not null && this.{p.Name}.Count < {minLen})");
+                        _ = sb.AppendLine($"{i}        throw new global::System.InvalidOperationException(\"{p.Name} count must be at least {minLen}.\");");
+                    }
+                }
+                else if (attrName == "RangeAttribute")
+                {
+                    // Legacy DataAnnotations RangeAttribute — kept for backward compatibility
                     string minVal = "";
                     string maxVal = "";
                     string minStr = "";
