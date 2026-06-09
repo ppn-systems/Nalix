@@ -46,6 +46,8 @@ internal static partial class TypeMetadata
         };
     }
 
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2070",
+        Justification = "Inspects value-type fields for unmanaged-ness. Value-type field metadata is always preserved for layout.")]
     private static bool IsReferenceOrContainsReferencesFallback(
         Type type,
         System.Collections.Generic.HashSet<Type> visited)

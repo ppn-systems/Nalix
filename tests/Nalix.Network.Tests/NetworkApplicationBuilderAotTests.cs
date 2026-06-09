@@ -3,12 +3,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json;
 using FluentAssertions;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Hosting;
 using Nalix.Hosting.Internal;
-using Nalix.Hosting.Protocols;
+using Nalix.Network.Protocols;
 using Nalix.Runtime.Dispatching;
 using Xunit;
 
@@ -16,34 +18,6 @@ namespace Nalix.Network.Tests;
 
 public sealed class NetworkApplicationBuilderAotTests
 {
-    #region ScanHandlers is a no-op
-
-    [Fact]
-    public void ScanHandlers_Assembly_ReturnsBuilder_DoesNotThrow()
-    {
-        NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
-
-#pragma warning disable CS0618
-        INetworkApplicationBuilder result = builder.ScanHandlers(typeof(NetworkApplicationBuilderAotTests).Assembly);
-#pragma warning restore CS0618
-
-        result.Should().BeSameAs(builder);
-    }
-
-    [Fact]
-    public void ScanHandlers_Generic_ReturnsBuilder_DoesNotThrow()
-    {
-        NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
-
-#pragma warning disable CS0618
-        INetworkApplicationBuilder result = builder.ScanHandlers<NetworkApplicationBuilderAotTests>();
-#pragma warning restore CS0618
-
-        result.Should().BeSameAs(builder);
-    }
-
-    #endregion
-
     #region AddHandler registrations
 
     [Fact]
@@ -91,23 +65,6 @@ public sealed class NetworkApplicationBuilderAotTests
         HostingBuilderContext state = GetState(builder);
         state.Handlers.Should().HaveCount(2);
         state.Handlers.Should().AllSatisfy(h => h.HandlerType.Should().Be(typeof(TestAotController)));
-    }
-
-    #endregion
-
-    #region ScanHandlers does NOT add handlers (no-op)
-
-    [Fact]
-    public void ScanHandlers_DoesNotPopulateHandlers()
-    {
-        NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
-
-#pragma warning disable CS0618
-        builder.ScanHandlers<NetworkApplicationBuilderAotTests>();
-#pragma warning restore CS0618
-
-        HostingBuilderContext state = GetState(builder);
-        state.Handlers.Should().BeEmpty("ScanHandlers is a no-op and does not register handlers");
     }
 
     #endregion
@@ -192,7 +149,7 @@ public sealed class NetworkApplicationBuilderAotTests
     }
 
     [Nalix.Abstractions.Injection.Injectable]
-    private sealed class TestProtocolWithDispatch : Protocol
+    internal sealed class TestProtocolWithDispatch : Protocol
     {
         public IPacketDispatch? ReceivedDispatch { get; }
         public override IFrameProcessor FrameProcessor => null!;
@@ -207,7 +164,7 @@ public sealed class NetworkApplicationBuilderAotTests
     }
 
     [Nalix.Abstractions.Injection.Injectable]
-    private sealed class TestProtocolNoDispatch : Protocol
+    internal sealed class TestProtocolNoDispatch : Protocol
     {
         public bool WasParameterlessCtorCalled { get; }
         public override IFrameProcessor FrameProcessor => null!;
@@ -223,11 +180,16 @@ public sealed class NetworkApplicationBuilderAotTests
 
     private sealed class StubPacketDispatch : IPacketDispatch
     {
-        public bool HandlePacket(Nalix.Framework.Memory.Buffers.IBufferLease lease, IConnection connection) => true;
+        public void HandlePacket(IBufferLease lease, IConnection connection) { }
+        public void Activate(CancellationToken cancellationToken = default) { }
+        public void Deactivate(CancellationToken cancellationToken = default) { }
+        public void Dispose() { }
+        public string GenerateReport() => string.Empty;
+        public void WriteReportData(Utf8JsonWriter writer) { }
     }
 
     [PacketController("AotTest")]
-    private sealed class TestAotController { }
+    internal sealed class TestAotController { }
 
     #endregion
 }

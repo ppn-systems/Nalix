@@ -189,7 +189,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Information,
                 new DiagnosticLog(
                     "RT.PacketDispatchOptions:Internal",
@@ -228,7 +228,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Information,
                 new DiagnosticLog(
                     "RT.PacketDispatchOptions:Internal",
@@ -270,7 +270,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Debug,
                     new DiagnosticLog(
                         "RT.PacketDispatchOptions:Internal",
@@ -360,7 +360,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Debug,
                 new DiagnosticLog(
                     "RT.PacketDispatchOptions:WithErrorHandling",
@@ -373,7 +373,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Debug,
                 new DiagnosticLog(
                     "RT.PacketDispatchOptions:WithMiddleware",
@@ -391,7 +391,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
             string loops = loopCount.HasValue ? loopCount.Value.ToString(CultureInfo.InvariantCulture) : "auto";
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Debug,
                 new DiagnosticLog(
                     "RT.PacketDispatchOptions:WithDispatchLoopCount",

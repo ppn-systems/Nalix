@@ -132,7 +132,7 @@ public abstract partial class TcpListenerBase
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning,
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning,
                     new DiagnosticLog("NW.TcpListenerBase:Internal", $"process-channel-unavailable remote-endpoint={connection?.NetworkEndpoint.ToString() ?? "<null>"}"));
             }
 
@@ -145,7 +145,7 @@ public abstract partial class TcpListenerBase
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace,
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
                     new DiagnosticLog("NW.TcpListenerBase:Internal", $"queued remote-endpoint={connection?.NetworkEndpoint.ToString() ?? "<null>"}"));
             }
 
@@ -162,7 +162,7 @@ public abstract partial class TcpListenerBase
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning,
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning,
                 new DiagnosticLog("NW.TcpListenerBase:Internal", $"channel-full remote-endpoint={connection?.NetworkEndpoint.ToString() ?? "<null>"}"));
         }
 
@@ -178,7 +178,7 @@ public abstract partial class TcpListenerBase
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace,
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
                 new DiagnosticLog("NW.TcpListenerBase:Internal", $"worker-started port={_port}"));
         }
 
@@ -224,7 +224,7 @@ public abstract partial class TcpListenerBase
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted,
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.LoopFaulted,
                     new DiagnosticLog("NW.TcpListenerBase:Internal", $"unhandled-error port={_port}", ex));
             }
         }
@@ -243,7 +243,7 @@ public abstract partial class TcpListenerBase
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace,
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
                     new DiagnosticLog("NW.TcpListenerBase:Internal", $"worker-exited port={_port}"));
             }
         }
@@ -272,7 +272,7 @@ public abstract partial class TcpListenerBase
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted,
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.LoopFaulted,
                     new DiagnosticLog("NW.TcpListenerBase:Internal", $"error remote-endpoint={connection.NetworkEndpoint.ToString() ?? "<null>"}", ex));
             }
 

@@ -154,7 +154,7 @@ public sealed class DatagramGuard : IDisposable
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.IpComparer:GetHashCode", "cleanup-loop-faulted", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.IpComparer:GetHashCode", "cleanup-loop-faulted", ex));
                 }
             }
         }, this, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
@@ -307,14 +307,14 @@ public sealed class DatagramGuard : IDisposable
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Security.CleanupError))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Security.CleanupError, new DiagnosticLog("NW.IpComparer:CleanupLoopAsync", "", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Security.CleanupError, new DiagnosticLog("NW.IpComparer:CleanupLoopAsync", "", ex));
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.IpComparer:CleanupLoopAsync", "Unexpected error in CleanupLoopAsync", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.IpComparer:CleanupLoopAsync", "Unexpected error in CleanupLoopAsync", ex));
                 }
             }
         }
@@ -363,7 +363,7 @@ public sealed class DatagramGuard : IDisposable
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.IpComparer:EvictStaleWindows", $"Evicted idle windows removed={removed} ipv4-count={Volatile.Read(ref _ipv4Count)} ipv6-count={Volatile.Read(ref _ipv6Count)}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.IpComparer:EvictStaleWindows", $"Evicted idle windows removed={removed} ipv4-count={Volatile.Read(ref _ipv4Count)} ipv6-count={Volatile.Read(ref _ipv6Count)}"));
             }
         }
     }
@@ -390,7 +390,7 @@ public sealed class DatagramGuard : IDisposable
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.IpComparer:Dispose", "cleanup-task-completed-with-error during dispose", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.IpComparer:Dispose", "cleanup-task-completed-with-error during dispose", ex));
                 }
             }
         }

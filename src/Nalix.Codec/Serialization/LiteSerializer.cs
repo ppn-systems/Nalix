@@ -949,6 +949,9 @@ public static class LiteSerializer
         buffer.Length >= 4 && Unsafe.ReadUnaligned<int>(ref MemoryMarshal.GetReference(buffer)) == 0;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050",
+        Justification = "Array.CreateInstance fallback is only reached for uncommon array element types. " +
+            "All standard unmanaged element types are handled by the type switch above with GC.AllocateUninitializedArray<T>.")]
     private static Array CreateArray<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(int length)
         => typeof(T) switch

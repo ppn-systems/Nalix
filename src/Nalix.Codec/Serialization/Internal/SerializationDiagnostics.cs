@@ -22,7 +22,7 @@ internal static class SerializationDiagnostics
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Serialization.Poisoned))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Serialization.Poisoned, new
+            DiagnosticsEvents.Write(DiagnosticsEvents.Serialization.Poisoned, new
             {
                 Reason = reason,
                 Member = memberName,

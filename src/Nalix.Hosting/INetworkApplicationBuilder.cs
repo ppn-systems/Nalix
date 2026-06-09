@@ -120,7 +120,7 @@ public interface INetworkApplicationBuilder
     /// <typeparam name="THandler">The packet controller type to register.</typeparam>
     /// <param name="factory">The factory used to create controller instances.</param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddHandler<THandler>(Func<THandler> factory) where THandler : class;
+    INetworkApplicationBuilder AddHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] THandler>(Func<THandler> factory) where THandler : class;
 
     /// <summary>
     /// Adds a packet controller type directly (primarily for static classes).

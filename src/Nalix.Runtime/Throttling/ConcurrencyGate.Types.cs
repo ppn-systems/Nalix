@@ -240,7 +240,7 @@ public sealed partial class ConcurrencyGate
                 {
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                     {
-                        DiagnosticsEvents.Source.Write(
+                        DiagnosticsEvents.Write(
                             DiagnosticsEvents.Internal.Warning,
                             new DiagnosticLog(
                                 "RT.ConcurrencyGate:Entry",
@@ -261,7 +261,7 @@ public sealed partial class ConcurrencyGate
                 {
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                     {
-                        DiagnosticsEvents.Source.Write(
+                        DiagnosticsEvents.Write(
                             DiagnosticsEvents.Internal.Error,
                             new DiagnosticLog(
                                 "RT.ConcurrencyGate:Entry",
@@ -277,7 +277,7 @@ public sealed partial class ConcurrencyGate
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Error,
                     new DiagnosticLog(
                         "RT.ConcurrencyGate:Entry",
@@ -290,7 +290,7 @@ public sealed partial class ConcurrencyGate
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Error,
                     new DiagnosticLog(
                         "RT.ConcurrencyGate:Entry",
@@ -303,7 +303,7 @@ public sealed partial class ConcurrencyGate
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Error,
                     new DiagnosticLog(
                         "RT.ConcurrencyGate:Entry",
@@ -367,7 +367,7 @@ public sealed partial class ConcurrencyGate
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                 {
-                    DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Write(
                         DiagnosticsEvents.Internal.Error,
                         new DiagnosticLog(
                             "RT.ConcurrencyGate:Lease",

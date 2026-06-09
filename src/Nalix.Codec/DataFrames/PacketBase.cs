@@ -134,7 +134,7 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Packet.Malformed))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Packet.Malformed, typeof(TSelf).FullName);
+                DiagnosticsEvents.Write(DiagnosticsEvents.Packet.Malformed, typeof(TSelf).FullName);
             }
             return null!;
         }
@@ -146,7 +146,7 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Packet.Malformed))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Packet.Malformed, typeof(TSelf).FullName);
+                DiagnosticsEvents.Write(DiagnosticsEvents.Packet.Malformed, typeof(TSelf).FullName);
             }
 
             return null!;
@@ -158,7 +158,7 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Packet.Malformed))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Packet.Malformed, typeof(TSelf).FullName);
+                DiagnosticsEvents.Write(DiagnosticsEvents.Packet.Malformed, typeof(TSelf).FullName);
             }
 
             return null!;

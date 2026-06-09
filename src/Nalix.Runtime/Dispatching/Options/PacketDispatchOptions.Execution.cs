@@ -41,7 +41,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
                 string actualName = actualType?.Name ?? "null";
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Debug,
                     new DiagnosticLog(
                         "RT.PacketDispatchOptions:ExecuteHandlerAsync",
@@ -68,7 +68,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Warning,
                     new DiagnosticLog(
                         "RT.PacketDispatchOptions:ExecuteHandlerAsync",
@@ -215,7 +215,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Debug,
                     new DiagnosticLog(
                         "RT.PacketDispatchOptions:HandleDispatchExceptionAsync",
@@ -227,7 +227,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Error,
                     new DiagnosticLog(
                         "RT.PacketDispatchOptions:HandleDispatchExceptionAsync",
@@ -293,7 +293,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Debug,
                     new DiagnosticLog(
                         "RT.PacketDispatchOptions:TrySendControlAsync",

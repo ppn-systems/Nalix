@@ -179,7 +179,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Warning,
                     new DiagnosticLog(
                         "RT.PolicyRateLimiter:Evaluate",
@@ -239,7 +239,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Information,
                 new DiagnosticLog(
                     "RT.PolicyRateLimiter:Dispose",
@@ -302,7 +302,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Warning,
                     new DiagnosticLog(
                         "RT.PolicyRateLimiter:Evaluate",

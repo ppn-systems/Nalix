@@ -74,7 +74,7 @@ public abstract partial class Protocol : IProtocol
 
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Protocol:PostProcessMessage", $"disconnect id=args-connection-i-d={args.Connection.ID}"));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Protocol:PostProcessMessage", $"disconnect id=args-connection-i-d={args.Connection.ID}"));
                 }
             }
         }
@@ -91,7 +91,7 @@ public abstract partial class Protocol : IProtocol
 
         if (args.Connection != null)
         {
-            if (Internal.Security.ThrottledEventGate.TryAcquire(ref s_postFailTicks, ref s_postFailSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed)) { if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error)) { DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.Protocol:HandlePostProcessError", $"post-fail id={args.Connection.ID} suppressed={suppressed}", ex)); } }
+            if (Internal.Security.ThrottledEventGate.TryAcquire(ref s_postFailTicks, ref s_postFailSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed)) { if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error)) { DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.Protocol:HandlePostProcessError", $"post-fail id={args.Connection.ID} suppressed={suppressed}", ex)); } }
 
             // Give the derived protocol a chance to observe the failure before the socket closes.
             this.OnConnectionError(args.Connection, ex);
@@ -115,7 +115,7 @@ public abstract partial class Protocol : IProtocol
             string state = isEnabled ? "enabled" : "disabled";
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.Protocol:SetConnectionAcceptance", $"accepting=state={state}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.Protocol:SetConnectionAcceptance", $"accepting=state={state}"));
             }
             ;
         }

@@ -38,7 +38,7 @@ public abstract partial class UdpListenerBase
             try { _socket.DualMode = true; }
             catch (Exception ex) when (ex is SocketException or NotSupportedException or ObjectDisposedException or InvalidOperationException)
             {
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug)) { DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.UdpListenerBase:Initialize", $"dualmode-not-applied port={_port} exception-type={ex.GetType().Name}", ex)); }
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug)) { DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.UdpListenerBase:Initialize", $"dualmode-not-applied port={_port} exception-type={ex.GetType().Name}", ex)); }
             }
         }
 
@@ -51,7 +51,7 @@ public abstract partial class UdpListenerBase
         // ReceiveFromAsync can populate it without an address-family mismatch.
         _anyEndPoint = new IPEndPoint(bindAddress, 0);
 
-        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug)) { DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.UdpListenerBase:Initialize", $"init-ok port={_port} af={af} options-reuse-address={_options.ReuseAddress} options-buffer-size={_options.BufferSize}")); }
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug)) { DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.UdpListenerBase:Initialize", $"init-ok port={_port} af={af} options-reuse-address={_options.ReuseAddress} options-buffer-size={_options.BufferSize}")); }
     }
 
     /// <summary>
@@ -118,7 +118,7 @@ public abstract partial class UdpListenerBase
             }
             catch (SocketException ex)
             {
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error)) { DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.UdpListenerBase:ConfigureSocket", "Failed to set SIO_UDP_CONNRESET.", ex)); }
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error)) { DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.UdpListenerBase:ConfigureSocket", "Failed to set SIO_UDP_CONNRESET.", ex)); }
             }
         }
     }

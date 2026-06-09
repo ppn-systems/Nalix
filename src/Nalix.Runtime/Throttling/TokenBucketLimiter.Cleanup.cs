@@ -45,7 +45,7 @@ public sealed partial class TokenBucketLimiter
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Write(
                         DiagnosticsEvents.Internal.Debug,
                         new DiagnosticLog(
                             "RT.TokenBucketLimiter:Internal",
@@ -57,7 +57,7 @@ public sealed partial class TokenBucketLimiter
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Warning,
                     new DiagnosticLog(
                         "RT.TokenBucketLimiter:Internal",
@@ -68,7 +68,7 @@ public sealed partial class TokenBucketLimiter
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Error,
                     new DiagnosticLog(
                         "RT.TokenBucketLimiter:Internal",
@@ -196,7 +196,7 @@ public sealed partial class TokenBucketLimiter
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Warning,
                     new DiagnosticLog(
                         "RT.TokenBucketLimiter:Internal",

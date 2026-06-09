@@ -83,7 +83,7 @@ internal static class DiagnosticThrottleExtensions
             ? $"{message} (+{suppressed} suppressed)"
             : message;
 
-        DiagnosticsEvents.Source.Write(eventName, new DiagnosticLog(tag, final));
+        DiagnosticsEvents.Write(eventName, new DiagnosticLog(tag, final));
     }
 
     /// <summary>
@@ -115,7 +115,7 @@ internal static class DiagnosticThrottleExtensions
             ? $"{message} (+{suppressed} suppressed)"
             : message;
 
-        DiagnosticsEvents.Source.Write(eventName, new DiagnosticLog(tag, final, exception));
+        DiagnosticsEvents.Write(eventName, new DiagnosticLog(tag, final, exception));
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

@@ -336,7 +336,7 @@ public sealed class PassthroughConnection :
                             {
                                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                                 {
-                                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.PassthroughConnection:Dispose", "close-handler-error", ex));
+                                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.PassthroughConnection:Dispose", "close-handler-error", ex));
                                 }
                                 ;
                             }
@@ -353,7 +353,7 @@ public sealed class PassthroughConnection :
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.PassthroughConnection:Dispose", "close-event-error", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.PassthroughConnection:Dispose", "close-event-error", ex));
             }
         }
 

@@ -220,7 +220,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Warning,
                     new DiagnosticLog(
                         "RT.TokenBucketLimiter:Internal",
@@ -260,7 +260,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Debug,
                 new DiagnosticLog(
                     "RT.TokenBucketLimiter:Internal",
@@ -276,7 +276,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Warning,
                     new DiagnosticLog(
                         "RT.TokenBucketLimiter:Internal",
@@ -302,7 +302,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Debug,
                 new DiagnosticLog(
                     "RT.TokenBucketLimiter:Internal",
@@ -937,7 +937,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Debug,
                 new DiagnosticLog(
                     "RT.TokenBucketLimiter:Dispose",
@@ -968,7 +968,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Trace,
                 new DiagnosticLog(
                     "RT.TokenBucketLimiter:Internal",
@@ -981,7 +981,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Trace,
                 new DiagnosticLog(
                     "RT.TokenBucketLimiter:Internal",

@@ -100,7 +100,7 @@ public sealed class PacketSender : IPacketSender
 #if DEBUG
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Debug,
                 new DiagnosticLog(
                     "RT.PacketSender:SendCoreAsync",

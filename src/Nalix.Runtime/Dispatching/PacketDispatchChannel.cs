@@ -187,7 +187,7 @@ public sealed class PacketDispatchChannel
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Error,
                     new DiagnosticLog("RT.PacketDispatchChannel:Deactivate", "deactivate-error", ex));
             }
@@ -202,7 +202,7 @@ public sealed class PacketDispatchChannel
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Write(
                         DiagnosticsEvents.Internal.Warning,
                         new DiagnosticLog("RT.PacketDispatchChannel:Deactivate", "linked-cts-dispose-failed", ex));
                 }
@@ -216,7 +216,7 @@ public sealed class PacketDispatchChannel
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Write(
                         DiagnosticsEvents.Internal.Warning,
                         new DiagnosticLog("RT.PacketDispatchChannel:Deactivate", "local-cts-dispose-failed", ex));
                 }
@@ -527,7 +527,7 @@ public sealed class PacketDispatchChannel
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Error,
                     new DiagnosticLog("RT.PacketDispatchChannel:DispatchWorkerLoopAsync", $"fatal-loop-error index={index}", ex));
             }

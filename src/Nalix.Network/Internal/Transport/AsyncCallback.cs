@@ -202,7 +202,7 @@ internal static class AsyncCallback
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.AsyncCallback:Invoke", "callback-null skipping"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.AsyncCallback:Invoke", "callback-null skipping"));
             }
             return false;
         }
@@ -481,7 +481,7 @@ internal static class AsyncCallback
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.AsyncCallback:Internal", $"message event={eventName} suppressed-count={suppressed} endpoint={GET_ENDPOINT_SAFE(args)}"));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.AsyncCallback:Internal", $"message event={eventName} suppressed-count={suppressed} endpoint={GET_ENDPOINT_SAFE(args)}"));
                 }
                 ;
             }
@@ -497,7 +497,7 @@ internal static class AsyncCallback
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.AsyncCallback:Internal", $"message event={eventName} suppressed-count={suppressed} endpoint={GET_ENDPOINT_SAFE(args)}", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.AsyncCallback:Internal", $"message event={eventName} suppressed-count={suppressed} endpoint={GET_ENDPOINT_SAFE(args)}", ex));
                 }
                 ;
             }

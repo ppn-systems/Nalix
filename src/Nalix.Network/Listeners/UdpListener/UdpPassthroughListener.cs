@@ -193,7 +193,7 @@ public sealed class UdpPassthroughListener : UdpListenerBase
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpPassthroughListener:OnConnectionClosed", $"rate-limit-drop ip-end-point={ipEndPoint}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpPassthroughListener:OnConnectionClosed", $"rate-limit-drop ip-end-point={ipEndPoint}"));
             }
 
             lease.Dispose();

@@ -51,7 +51,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
             string needLevel = context.Attributes.Permission?.Level.ToString() ?? "N/A (no attribute)";
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Trace,
                 new DiagnosticLog(
                     "RT.PermissionMiddleware:InvokeAsync",

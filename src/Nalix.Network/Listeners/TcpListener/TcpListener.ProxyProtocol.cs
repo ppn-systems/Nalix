@@ -201,7 +201,7 @@ public abstract partial class TcpListenerBase
 
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace,
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
                         new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", $"invalid-proxy-header-drop state-socket-remote-end-point={state.Socket?.RemoteEndPoint}"));
                 }
 
@@ -243,7 +243,7 @@ public abstract partial class TcpListenerBase
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace,
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
                     new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", $"proxy-rate-limit-drop effective-ip={effectiveIp}"));
             }
 
@@ -263,7 +263,7 @@ public abstract partial class TcpListenerBase
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace,
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
                     new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", "socket-disposed-during-init"));
             }
         }
@@ -275,7 +275,7 @@ public abstract partial class TcpListenerBase
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace,
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
                     new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", $"socket-error-during-init socket-error={ex.SocketErrorCode}", ex));
             }
         }
@@ -283,7 +283,7 @@ public abstract partial class TcpListenerBase
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted,
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.LoopFaulted,
                     new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", "init-error", ex));
             }
         }

@@ -317,7 +317,7 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.WebSocketTransport:Internal", $"receive-loop-faulted-{phase} phase={phase}", ex));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.WebSocketTransport:Internal", $"receive-loop-faulted-{phase} phase={phase}", ex));
         }
     }
 

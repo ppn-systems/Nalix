@@ -23,7 +23,7 @@ public sealed partial class InstanceManager
     {
         if (DiagnosticsEvents.Source.IsEnabled(eventName))
         {
-            DiagnosticsEvents.Source.Write(eventName, new DiagnosticLog(tag, message, exception));
+            DiagnosticsEvents.Write(eventName, new DiagnosticLog(tag, message, exception));
         }
     }
 
@@ -246,7 +246,7 @@ public sealed partial class InstanceManager
     /// <exception cref="ObjectDisposedException"/>
     /// <exception cref="InternalErrorException">No suitable constructor found.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public T CreateInstanceWithInjection<T>() where T : class
+    public T CreateInstanceWithInjection<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] T>() where T : class
         => Unsafe.As<T>(this.CreateInstanceWithInjection(typeof(T)));
 
     /// <summary>

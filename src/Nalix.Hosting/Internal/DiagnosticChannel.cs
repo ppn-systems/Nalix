@@ -292,6 +292,8 @@ internal sealed class DiagnosticChannel :
         public readonly System.Reflection.PropertyInfo? ExceptionProperty;
         public readonly System.Reflection.PropertyInfo[] OtherProperties;
 
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2070",
+            Justification = "Diagnostic payload property scanning is observational only; trimming does not affect runtime behavior.")]
         public ObjectAccessor(Type type)
         {
             System.Reflection.PropertyInfo[] props = type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);

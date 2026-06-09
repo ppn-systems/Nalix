@@ -203,7 +203,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddHandler<THandler>(Func<THandler> factory) where THandler : class
+    public INetworkApplicationBuilder AddHandler<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] THandler>(Func<THandler> factory) where THandler : class
     {
         ArgumentNullException.ThrowIfNull(factory);
 
@@ -432,7 +433,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         Type protocolType = typeof(TProtocol);
 
         ConstructorInfo? dispatchConstructor = protocolType
-            .GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            .GetConstructors(BindingFlags.Instance | BindingFlags.Public)
             .FirstOrDefault(static constructor =>
             {
                 ParameterInfo[] parameters = constructor.GetParameters();
@@ -447,6 +448,9 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         return (IProtocol)InstanceManager.Instance.CreateInstance(protocolType);
     }
 
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2072",
+        Justification = "HandlerDescriptor.HandlerType carries DynamicallyAccessedMembers(PublicMethods) on its record parameter. " +
+            "The trimmer cannot always propagate DAM through record property getters.")]
     internal static IPacketDispatch CreatePacketDispatch(HostingBuilderContext state)
     {
         ArgumentNullException.ThrowIfNull(state);
@@ -460,6 +464,9 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
             foreach (HandlerDescriptor registration in ResolveHandlerRegistrations(state))
             {
+                // IL2072: HandlerDescriptor.HandlerType carries DAM(PublicMethods) on its record
+                // parameter, but the trimmer cannot always propagate the annotation through
+                // record property getters. The annotation is correct and the type is preserved.
                 ServiceRegistrar.RegisterHandler(dispatchOptions, registration.HandlerType, registration.Factory);
             }
         }

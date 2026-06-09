@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -110,7 +111,7 @@ public static class FormatterProvider
         if (s_listener?.IsEnabled(DiagnosticsEvents.Serialization.Initialization) == true)
         {
             string elapsed = s_sw.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture);
-            s_listener.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Serialization.Initialization,
                 new DiagnosticLog(
                     "CD.FormatterProvider:Internal",
@@ -124,7 +125,11 @@ public static class FormatterProvider
     /// call because the type argument is a compile-time constant at each call site.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void RegisterAllUnmanaged<T>() where T : unmanaged
+    private static void RegisterAllUnmanaged<
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicConstructors |
+            DynamicallyAccessedMemberTypes.PublicProperties |
+            DynamicallyAccessedMemberTypes.NonPublicProperties)] T>() where T : unmanaged
     {
         Register(new UnmanagedFormatter<T>());
         Register(new ArrayFormatter<T>());
@@ -219,7 +224,11 @@ public static class FormatterProvider
     /// and array formatting without runtime reflection.
     /// </summary>
     /// <typeparam name="T">An unmanaged type (primitive, enum, or blittable struct).</typeparam>
-    public static void RegisterAllFormatters<T>() where T : unmanaged
+    public static void RegisterAllFormatters<
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicConstructors |
+            DynamicallyAccessedMemberTypes.PublicProperties |
+            DynamicallyAccessedMemberTypes.NonPublicProperties)] T>() where T : unmanaged
         => RegisterAllUnmanaged<T>();
 
     /// <summary>
@@ -227,7 +236,11 @@ public static class FormatterProvider
     /// Called by source-generated bootstrapper code for <c>[GenerateFormatter]</c> class types.
     /// </summary>
     /// <typeparam name="T">A reference type (class) with a registered formatter.</typeparam>
-    public static void RegisterCollectionFormatters<T>() where T : class
+    public static void RegisterCollectionFormatters<
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicConstructors |
+            DynamicallyAccessedMemberTypes.PublicProperties |
+            DynamicallyAccessedMemberTypes.NonPublicProperties)] T>() where T : class
     {
         Register(new ReferenceListFormatter<T>());
         Register(new ReferenceArrayFormatter<T>());
@@ -237,7 +250,15 @@ public static class FormatterProvider
     /// Pre-registers a <see cref="Dictionary{TKey, TValue}"/> formatter.
     /// Use this for dictionary types with non-standard key/value combinations.
     /// </summary>
-    public static void RegisterDictionary<TKey, TValue>() where TKey : notnull => Register(new DictionaryFormatter<TKey, TValue>());
+    public static void RegisterDictionary<
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicConstructors |
+            DynamicallyAccessedMemberTypes.PublicProperties |
+            DynamicallyAccessedMemberTypes.NonPublicProperties)] TKey,
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicConstructors |
+            DynamicallyAccessedMemberTypes.PublicProperties |
+            DynamicallyAccessedMemberTypes.NonPublicProperties)] TValue>() where TKey : notnull => Register(new DictionaryFormatter<TKey, TValue>());
 
     // TODO: Audit whether RegisterTuple is a workaround or an architectural requirement.
     //       RegisterTuple exists because ValueTupleFormatter is internal and generated code
@@ -253,25 +274,43 @@ public static class FormatterProvider
     /// Pre-registers a <see cref="ValueTuple{T1, T2}"/> formatter.
     /// Called by source-generated bootstrapper code for tuples containing enum types.
     /// </summary>
-    public static void RegisterTuple<T1, T2>() => Register(new ValueTupleFormatter<T1, T2>());
+    public static void RegisterTuple<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>()
+        => Register(new ValueTupleFormatter<T1, T2>());
 
     /// <summary>
     /// Pre-registers a <see cref="ValueTuple{T1, T2, T3}"/> formatter.
     /// Called by source-generated bootstrapper code for tuples containing enum types.
     /// </summary>
-    public static void RegisterTuple<T1, T2, T3>() => Register(new ValueTupleFormatter<T1, T2, T3>());
+    public static void RegisterTuple<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>()
+        => Register(new ValueTupleFormatter<T1, T2, T3>());
 
     /// <summary>
     /// Pre-registers a <see cref="ValueTuple{T1, T2, T3, T4}"/> formatter.
     /// Called by source-generated bootstrapper code for tuples containing enum types.
     /// </summary>
-    public static void RegisterTuple<T1, T2, T3, T4>() => Register(new ValueTupleFormatter<T1, T2, T3, T4>());
+    public static void RegisterTuple<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>()
+        => Register(new ValueTupleFormatter<T1, T2, T3, T4>());
 
     /// <summary>
     /// Pre-registers a <see cref="ValueTuple{T1, T2, T3, T4, T5}"/> formatter.
     /// Called by source-generated bootstrapper code for tuples containing enum types.
     /// </summary>
-    public static void RegisterTuple<T1, T2, T3, T4, T5>() => Register(new ValueTupleFormatter<T1, T2, T3, T4, T5>());
+    public static void RegisterTuple<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5>()
+        => Register(new ValueTupleFormatter<T1, T2, T3, T4, T5>());
 
     #endregion Public Registration Helpers
 
@@ -323,7 +362,11 @@ public static class FormatterProvider
     /// </summary>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void RegisterComplex<T>(IFormatter<T> formatter)
+    public static void RegisterComplex<
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicConstructors |
+            DynamicallyAccessedMemberTypes.PublicProperties |
+            DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(IFormatter<T> formatter)
     {
         ArgumentNullException.ThrowIfNull(formatter);
 
@@ -354,7 +397,11 @@ public static class FormatterProvider
     /// </summary>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IFormatter<T> Get<T>()
+    public static IFormatter<T> Get<
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicConstructors |
+            DynamicallyAccessedMemberTypes.PublicProperties |
+            DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         // ── Fast path: already cached ─────────────────────────────────────
         IFormatter<T>? cached = FormatterCache<T>.Instance;
@@ -427,7 +474,11 @@ public static class FormatterProvider
     #region Private Methods
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static IFormatter<T> CacheOrGetExisting<T>(IFormatter<T> created)
+    private static IFormatter<T> CacheOrGetExisting<
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicConstructors |
+            DynamicallyAccessedMemberTypes.PublicProperties |
+            DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(IFormatter<T> created)
     {
         IFormatter<T>? existing = Interlocked.CompareExchange(
             ref FormatterCache<T>.Instance, created, null);
