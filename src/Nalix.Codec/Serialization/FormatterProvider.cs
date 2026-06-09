@@ -136,6 +136,11 @@ public static class FormatterProvider
         Register(new HashSetFormatter<T>());
         Register(new MemoryFormatter<T>());
         Register(new ReadOnlyMemoryFormatter<T>());
+
+        // Dictionary formatters with common key types
+        Register(new DictionaryFormatter<string, T>());
+        Register(new DictionaryFormatter<int, T>());
+        Register(new DictionaryFormatter<long, T>());
     }
 
     /// <summary>
@@ -233,6 +238,40 @@ public static class FormatterProvider
     /// Use this for dictionary types with non-standard key/value combinations.
     /// </summary>
     public static void RegisterDictionary<TKey, TValue>() where TKey : notnull => Register(new DictionaryFormatter<TKey, TValue>());
+
+    // TODO: Audit whether RegisterTuple is a workaround or an architectural requirement.
+    //       RegisterTuple exists because ValueTupleFormatter is internal and generated code
+    //       in consumer assemblies cannot instantiate it directly. If ValueTupleFormatter
+    //       were made public (or if the generator emitted a different registration strategy),
+    //       these overloads could be removed. Evaluate whether:
+    //         (a) making ValueTupleFormatter public + having the generator call Register directly
+    //             is cleaner, or
+    //         (b) RegisterTuple should stay as a stable public API surface for hand-written
+    //             tuple registration by application code (not just generated bootstrappers).
+
+    /// <summary>
+    /// Pre-registers a <see cref="ValueTuple{T1, T2}"/> formatter.
+    /// Called by source-generated bootstrapper code for tuples containing enum types.
+    /// </summary>
+    public static void RegisterTuple<T1, T2>() => Register(new ValueTupleFormatter<T1, T2>());
+
+    /// <summary>
+    /// Pre-registers a <see cref="ValueTuple{T1, T2, T3}"/> formatter.
+    /// Called by source-generated bootstrapper code for tuples containing enum types.
+    /// </summary>
+    public static void RegisterTuple<T1, T2, T3>() => Register(new ValueTupleFormatter<T1, T2, T3>());
+
+    /// <summary>
+    /// Pre-registers a <see cref="ValueTuple{T1, T2, T3, T4}"/> formatter.
+    /// Called by source-generated bootstrapper code for tuples containing enum types.
+    /// </summary>
+    public static void RegisterTuple<T1, T2, T3, T4>() => Register(new ValueTupleFormatter<T1, T2, T3, T4>());
+
+    /// <summary>
+    /// Pre-registers a <see cref="ValueTuple{T1, T2, T3, T4, T5}"/> formatter.
+    /// Called by source-generated bootstrapper code for tuples containing enum types.
+    /// </summary>
+    public static void RegisterTuple<T1, T2, T3, T4, T5>() => Register(new ValueTupleFormatter<T1, T2, T3, T4, T5>());
 
     #endregion Public Registration Helpers
 
