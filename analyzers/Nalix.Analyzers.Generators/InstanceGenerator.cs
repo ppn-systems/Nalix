@@ -1,13 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-#pragma warning disable RS2008
-#pragma warning disable RS1032
-#pragma warning disable IDE0005
-#pragma warning disable IDE0008
-#pragma warning disable IDE0011
-#pragma warning disable IDE0090
-#pragma warning disable IDE0305
+
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -177,23 +171,21 @@ public sealed class InstanceGenerator : IIncrementalGenerator
         // ── Deduplicate [Injectable] targets ───────────────────────────────
         HashSet<string> seenInjectable = new();
 
-        List<INamedTypeSymbol> distinctInjectables = injectableTargets
+        List<INamedTypeSymbol> distinctInjectables = [.. injectableTargets
             .Where(static p => p is not null)
             .Select(static p => p!)
             .Where(p => seenInjectable.Add(p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))
-            .OrderBy(static p => p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
-            .ToList();
+            .OrderBy(static p => p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))];
 
         // ── Deduplicate SingletonBase<T> targets (exclude those already in injectable set) ──
         HashSet<string> seenSingleton = new();
 
-        List<INamedTypeSymbol> distinctSingletons = singletonTargets
+        List<INamedTypeSymbol> distinctSingletons = [.. singletonTargets
             .Where(static p => p is not null)
             .Select(static p => p!)
             .Where(p => seenSingleton.Add(p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))
             .Where(p => !seenInjectable.Contains(p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))
-            .OrderBy(static p => p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
-            .ToList();
+            .OrderBy(static p => p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))];
 
         if (distinctInjectables.Count == 0 && distinctSingletons.Count == 0)
         {
@@ -259,9 +251,7 @@ public sealed class InstanceGenerator : IIncrementalGenerator
         string classFullName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
         // Filter accessible constructors (public or internal)
-        List<IMethodSymbol> ctors = symbol.InstanceConstructors
-            .Where(static c => c.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal)
-            .ToList();
+        List<IMethodSymbol> ctors = [.. symbol.InstanceConstructors.Where(static c => c.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal)];
 
         if (ctors.Count == 0)
         {
@@ -277,7 +267,7 @@ public sealed class InstanceGenerator : IIncrementalGenerator
         IEnumerable<IGrouping<int, IMethodSymbol>> ctorsByArity = ctors.GroupBy(static c => c.Parameters.Length);
         foreach (IGrouping<int, IMethodSymbol> group in ctorsByArity)
         {
-            List<IMethodSymbol> groupCtors = group.ToList();
+            List<IMethodSymbol> groupCtors = [.. group];
             if (groupCtors.Count > 1)
             {
                 for (int i = 0; i < groupCtors.Count; i++)
@@ -386,7 +376,11 @@ public sealed class InstanceGenerator : IIncrementalGenerator
                 StringBuilder ctorArgs = new();
                 for (int p = 0; p < allConfigCtor.Parameters.Length; p++)
                 {
-                    if (p > 0) _ = ctorArgs.Append(", ");
+                    if (p > 0)
+                    {
+                        _ = ctorArgs.Append(", ");
+                    }
+
                     string paramTypeName = allConfigCtor.Parameters[p].Type
                         .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                     _ = ctorArgs.Append($"global::{KnownNames.ConfigurationManagerMetadataName}.Instance.Get<{paramTypeName}>()");
@@ -459,7 +453,7 @@ public sealed class InstanceGenerator : IIncrementalGenerator
         // and the first if(true) would make the rest unreachable).
         IMethodSymbol? parameterlessCtor = ctors.FirstOrDefault(c => c.Parameters.Length == 0);
         List<IMethodSymbol> remainingCtors = parameterlessCtor is not null
-            ? ctors.Where(c => c != parameterlessCtor).ToList()
+            ? [.. ctors.Where(c => !SymbolEqualityComparer.Default.Equals(c, parameterlessCtor))]
             : ctors;
 
         // Group the remaining constructors by the number of NON-config parameters.
@@ -476,7 +470,7 @@ public sealed class InstanceGenerator : IIncrementalGenerator
         {
             int nonConfigArity = group.Key;
             _ = lambda.Append($"                    case {nonConfigArity}:\n");
-            List<IMethodSymbol> groupCtors = group.ToList();
+            List<IMethodSymbol> groupCtors = [.. group];
 
             if (groupCtors.Count == 1)
             {
@@ -499,14 +493,21 @@ public sealed class InstanceGenerator : IIncrementalGenerator
                         {
                             continue; // config params always resolve — skip in type check
                         }
-                        if (!firstCheck) _ = lambda.Append(" && ");
+                        if (!firstCheck)
+                        {
+                            _ = lambda.Append(" && ");
+                        }
                         // Re-map args index for the check too
                         (string reindexedCheck, _, _) = GET_PARAM_CHECK_AND_CAST(ctor.Parameters[p], argsIdx);
                         _ = lambda.Append(reindexedCheck);
                         firstCheck = false;
                         argsIdx++;
                     }
-                    if (firstCheck) _ = lambda.Append("true"); // all config — no runtime check
+                    if (firstCheck)
+                    {
+                        _ = lambda.Append("true"); // all config — no runtime check
+                    }
+
                     _ = lambda.Append(")\n");
                     _ = lambda.Append("                        {\n");
                     _ = lambda.Append("                            ");
@@ -549,7 +550,11 @@ public sealed class InstanceGenerator : IIncrementalGenerator
         int argsIdx = 0;
         for (int p = 0; p < infos.Count; p++)
         {
-            if (p > 0) _ = lambda.Append(", ");
+            if (p > 0)
+            {
+                _ = lambda.Append(", ");
+            }
+
             (_, string cast, bool isConfig) = infos[p];
             if (isConfig)
             {

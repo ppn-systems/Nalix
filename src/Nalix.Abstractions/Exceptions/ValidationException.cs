@@ -3,13 +3,13 @@
 
 using System;
 
-namespace Nalix.Abstractions.Validation;
+namespace Nalix.Abstractions.Exceptions;
 
 /// <summary>
 /// The exception that is thrown when a configuration or data validation check fails.
 /// AOT-safe replacement for <c>System.ComponentModel.DataAnnotations.ValidationException</c>.
 /// </summary>
-public class ValidationException : Exception
+public class ValidationException : BaseException
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ValidationException"/> class.

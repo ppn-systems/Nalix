@@ -218,7 +218,7 @@ public class ConfigurationGenerator : IIncrementalGenerator
                 {
                     // [ValueRange(min, max)] — double or long constructor args
                     bool useInt64 = false;
-                    foreach (var na in attr.NamedArguments)
+                    foreach (KeyValuePair<string, TypedConstant> na in attr.NamedArguments)
                     {
                         if (na.Key == "UseInt64" && na.Value.Value is true) { useInt64 = true; break; }
                     }
@@ -227,14 +227,30 @@ public class ConfigurationGenerator : IIncrementalGenerator
                     if (useInt64)
                     {
                         long lo = 0, hi = 0;
-                        foreach (var na in attr.NamedArguments)
+                        foreach (KeyValuePair<string, TypedConstant> na in attr.NamedArguments)
                         {
-                            if (na.Key == "MinimumInt64" && na.Value.Value is long lv) lo = lv;
-                            else if (na.Key == "MaximumInt64" && na.Value.Value is long hv) hi = hv;
+                            if (na.Key == "MinimumInt64" && na.Value.Value is long lv)
+                            {
+                                lo = lv;
+                            }
+                            else if (na.Key == "MaximumInt64" && na.Value.Value is long hv)
+                            {
+                                hi = hv;
+                            }
                         }
-                        foreach (var ca in attr.ConstructorArguments)
+                        foreach (TypedConstant ca in attr.ConstructorArguments)
                         {
-                            if (ca.Value is long lv) { if (lo == 0 && lv != 0) lo = lv; else hi = lv; }
+                            if (ca.Value is long lv)
+                            {
+                                if (lo == 0 && lv != 0)
+                                {
+                                    lo = lv;
+                                }
+                                else
+                                {
+                                    hi = lv;
+                                }
+                            }
                         }
                         minStr = lo.ToString();
                         maxStr = hi.ToString();
@@ -253,7 +269,7 @@ public class ConfigurationGenerator : IIncrementalGenerator
                     }
 
                     _ = sb.AppendLine($"{i}    if (this.{p.Name} < {minVal} || this.{p.Name} > {maxVal})");
-                    _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Validation.ValidationException(\"{p.Name} must be between {minStr} and {maxStr}.\");");
+                    _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Exceptions.ValidationException(\"{p.Name} must be between {minStr} and {maxStr}.\");");
                 }
                 else if (attrName == KnownNames.DurationRangeAttributeName && attrNs == KnownNames.ValidationNamespace)
                 {
@@ -262,7 +278,7 @@ public class ConfigurationGenerator : IIncrementalGenerator
                     string maxStr = attr.ConstructorArguments[1].Value?.ToString() ?? "00:00:00";
 
                     _ = sb.AppendLine($"{i}    if (this.{p.Name} < global::System.TimeSpan.Parse(\"{minStr}\") || this.{p.Name} > global::System.TimeSpan.Parse(\"{maxStr}\"))");
-                    _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Validation.ValidationException(\"{p.Name} must be between {minStr} and {maxStr}.\");");
+                    _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Exceptions.ValidationException(\"{p.Name} must be between {minStr} and {maxStr}.\");");
                 }
                 else if (attrName == KnownNames.LengthAttributeName && attrNs == KnownNames.ValidationNamespace)
                 {
@@ -272,18 +288,18 @@ public class ConfigurationGenerator : IIncrementalGenerator
                     if (p.Type.SpecialType == SpecialType.System_String)
                     {
                         _ = sb.AppendLine($"{i}    if (this.{p.Name} is not null && this.{p.Name}.Length < {minLen})");
-                        _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Validation.ValidationException(\"{p.Name} length must be at least {minLen}.\");");
+                        _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Exceptions.ValidationException(\"{p.Name} length must be at least {minLen}.\");");
                     }
                     else if (p.Type is IArrayTypeSymbol)
                     {
                         _ = sb.AppendLine($"{i}    if (this.{p.Name} is not null && this.{p.Name}.Length < {minLen})");
-                        _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Validation.ValidationException(\"{p.Name} length must be at least {minLen}.\");");
+                        _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Exceptions.ValidationException(\"{p.Name} length must be at least {minLen}.\");");
                     }
                     else
                     {
                         // ICollection<T> / IReadOnlyCollection<T> — try .Count
                         _ = sb.AppendLine($"{i}    if (this.{p.Name} is not null && this.{p.Name}.Count < {minLen})");
-                        _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Validation.ValidationException(\"{p.Name} count must be at least {minLen}.\");");
+                        _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Exceptions.ValidationException(\"{p.Name} count must be at least {minLen}.\");");
                     }
                 }
                 else if (attrName == "RangeAttribute" && attrNs is "System.ComponentModel.DataAnnotations")
@@ -325,7 +341,7 @@ public class ConfigurationGenerator : IIncrementalGenerator
                     }
 
                     _ = sb.AppendLine($"{i}    if (this.{p.Name} < {minVal} || this.{p.Name} > {maxVal})");
-                    _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Validation.ValidationException(\"{p.Name} must be between {minStr} and {maxStr}.\");");
+                    _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Exceptions.ValidationException(\"{p.Name} must be between {minStr} and {maxStr}.\");");
                 }
                 else if (attrName == "RequiredAttribute" && attrNs is "System.ComponentModel.DataAnnotations")
                 {
@@ -333,7 +349,7 @@ public class ConfigurationGenerator : IIncrementalGenerator
                     if (!p.Type.IsValueType || p.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
                     {
                         _ = sb.AppendLine($"{i}    if (this.{p.Name} == null)");
-                        _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Validation.ValidationException(\"{p.Name} is required.\");");
+                        _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Exceptions.ValidationException(\"{p.Name} is required.\");");
                     }
                 }
                 else if (attrName == KnownNames.RequiredAttributeName && attrNs == KnownNames.ValidationNamespace)
@@ -342,7 +358,7 @@ public class ConfigurationGenerator : IIncrementalGenerator
                     if (!p.Type.IsValueType || p.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
                     {
                         _ = sb.AppendLine($"{i}    if (this.{p.Name} == null)");
-                        _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Validation.ValidationException(\"{p.Name} is required.\");");
+                        _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Exceptions.ValidationException(\"{p.Name} is required.\");");
                     }
                 }
                 else if (attrName == KnownNames.AllowedEnumAttributeName && attrNs == KnownNames.ValidationNamespace)
@@ -352,7 +368,7 @@ public class ConfigurationGenerator : IIncrementalGenerator
                     {
                         string enumType = p.Type.ToDisplayString();
                         _ = sb.AppendLine($"{i}    if (!global::System.Enum.IsDefined(typeof({enumType}), this.{p.Name}))");
-                        _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Validation.ValidationException(\"{p.Name} is not a valid {enumType} value.\");");
+                        _ = sb.AppendLine($"{i}        throw new global::Nalix.Abstractions.Exceptions.ValidationException(\"{p.Name} is not a valid {enumType} value.\");");
                     }
                 }
             }

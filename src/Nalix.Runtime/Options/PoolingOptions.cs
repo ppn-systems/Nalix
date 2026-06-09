@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 using Nalix.Runtime.Dispatching;

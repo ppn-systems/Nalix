@@ -148,7 +148,7 @@ public sealed partial class PoolingOptions : ConfigurationLoader, IValidatableCo
     #region Validation
 
     /// <summary>
-    /// Validates all options. Throws <see cref="Nalix.Abstractions.Validation.ValidationException"/>
+    /// Validates all options. Throws <see cref="Abstractions.Exceptions.ValidationException"/>
     /// if any value is out of range or a preallocate value exceeds its capacity.
     /// </summary>
     public void Validate()

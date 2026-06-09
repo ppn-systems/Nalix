@@ -58,7 +58,7 @@ public sealed partial class ConnectionGuardOptions : ConfigurationLoader, IValid
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
-    /// <exception cref="Nalix.Abstractions.Validation.ValidationException">
+    /// <exception cref="Abstractions.Exceptions.ValidationException">
     /// Thrown when one or more validation attributes fail.
     /// </exception>
     public void Validate()

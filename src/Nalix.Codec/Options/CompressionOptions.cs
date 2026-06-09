@@ -50,7 +50,7 @@ public sealed partial class CompressionOptions : ConfigurationLoader, IValidatab
     /// This relies on data annotation validation so callers can reuse the same
     /// validation path as the rest of the configuration system.
     /// </remarks>
-    /// <exception cref="Nalix.Abstractions.Validation.ValidationException">
+    /// <exception cref="Abstractions.Exceptions.ValidationException">
     /// Thrown when one or more validation attributes fail.
     /// </exception>
     public void Validate()

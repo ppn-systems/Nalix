@@ -3,8 +3,8 @@
 
 using System;
 using Nalix.Abstractions;
-using Nalix.Abstractions.Validation;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 using Nalix.Environment.Fragments;
 
@@ -66,7 +66,7 @@ public sealed partial class FragmentOptions : ConfigurationLoader, IValidatableC
     /// <summary>
     /// Validates the chunking configuration to ensure it meets the necessary constraints for proper operation.
     /// </summary>
-    /// <exception cref="Nalix.Abstractions.Validation.ValidationException">Thrown when any fragmentation limit is invalid.</exception>
+    /// <exception cref="Abstractions.Exceptions.ValidationException">Thrown when any fragmentation limit is invalid.</exception>
     public void Validate()
     {
         this.ValidateDataAnnotations();
