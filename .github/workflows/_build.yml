@@ -97,26 +97,28 @@ jobs:
         shell: bash
         timeout-minutes: 20
         run: |
-          max_retries=3
+          max_retries=1
           attempt=1
           while true; do
             # Clean results directory to avoid mixing failed and successful runs
             rm -rf "$TEST_RESULTS_DIR"/* 2>/dev/null || true
-            
+
             echo "Running tests (Attempt $attempt/$max_retries)..."
             if dotnet test "${{ inputs.test }}" --configuration Release --no-build --no-restore \
               --logger "trx" --results-directory "$TEST_RESULTS_DIR" \
-              --collect:"XPlat Code Coverage" -m; then
+              --collect:"XPlat Code Coverage" \
+              --blame-hang --blame-crash --blame-hang-timeout 300000 \
+              -m; then
               echo "Tests passed!"
               break
             fi
-            
+
             exit_code=$?
             if [ $attempt -ge $max_retries ]; then
               echo "Tests failed after $max_retries attempts."
               exit $exit_code
             fi
-            
+
             echo "Test run failed (exit code $exit_code). Retrying in 10 seconds..."
             attempt=$((attempt+1))
             sleep 10

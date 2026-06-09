@@ -184,10 +184,20 @@ public sealed partial class MemoryTests
     [Fact]
     public void TestBufferLeaseRent()
     {
+        // Rent through the manager directly instead of mutating the process-wide
+        // ByteArrayPool delegates.  The original code called
+        // BufferLease.ByteArrayPool.Configure(manager) which left a disposed
+        // delegate target in the global static field after this method returned.
         using var manager = new BufferPoolManager();
-        BufferLease.ByteArrayPool.Configure(manager);
-        byte[] arr = BufferLease.ByteArrayPool.Rent(2114);
-        Assert.True(arr.Length >= 2114, $"Expected >= 2114, got {arr.Length}");
+        byte[] arr = manager.Rent(2114);
+        try
+        {
+            Assert.True(arr.Length >= 2114, $"Expected >= 2114, got {arr.Length}");
+        }
+        finally
+        {
+            manager.Return(arr);
+        }
     }
 
 
