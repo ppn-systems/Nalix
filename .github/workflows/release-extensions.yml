@@ -1,8 +1,7 @@
 name: Release Extensions
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -11,15 +10,40 @@ jobs:
   build-and-upload:
     name: Build & Upload Extensions
     runs-on: ubuntu-latest
-    
+
     steps:
+      - name: Resolve latest draft release tag
+        id: release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="$(gh release list --limit 20 --json tagName,isDraft,createdAt \
+            --jq 'sort_by(.createdAt) | reverse | .[] | select(.isDraft == true) | .tagName' \
+            | head -n 1)"
+
+          if [ -z "$tag" ]; then
+            echo "No draft release found."
+            exit 1
+          fi
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Using draft release tag: $tag"
+
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs.tag }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+
+      - name: Install zip
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zip
 
       - name: Build Observability Contracts
         run: dotnet build extensions/Nalix.Observability.Contracts/Nalix.Observability.Contracts.csproj --configuration Release -o ./output/observability_contracts
@@ -44,9 +68,8 @@ jobs:
           mkdir -p release_assets/observability
           cp output/observability_contracts/Nalix.Observability.Contracts.* release_assets/observability/ 2>/dev/null || true
           cp output/observability/Nalix.Observability.* release_assets/observability/ 2>/dev/null || true
-          
+
           cd release_assets/observability
-          sudo apt-get update && sudo apt-get install -y zip
           zip -r ../Nalix.Observability.zip ./*
 
       - name: Prepare Traversal Zip
@@ -54,7 +77,7 @@ jobs:
           mkdir -p release_assets/traversal
           cp output/traversal_contracts/Nalix.Traversal.Contracts.* release_assets/traversal/ 2>/dev/null || true
           cp output/traversal/Nalix.Traversal.* release_assets/traversal/ 2>/dev/null || true
-          
+
           cd release_assets/traversal
           zip -r ../Nalix.Traversal.zip ./*
 
@@ -63,14 +86,14 @@ jobs:
           mkdir -p release_assets/tunneling
           cp output/tunneling_contracts/Nalix.Tunneling.Contracts.* release_assets/tunneling/ 2>/dev/null || true
           cp output/tunneling/Nalix.Tunneling.* release_assets/tunneling/ 2>/dev/null || true
-          
+
           cd release_assets/tunneling
           zip -r ../Nalix.Tunneling.zip ./*
 
-      - name: Upload to Release
+      - name: Upload to Draft Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
+          tag_name: ${{ steps.release.outputs.tag }}
           files: |
             release_assets/Nalix.Observability.zip
             release_assets/Nalix.Traversal.zip

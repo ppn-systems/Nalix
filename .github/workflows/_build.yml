@@ -22,8 +22,9 @@ on:
         type: string
       test:
         description: "Path(s) to test .csproj or .sln files, one per line"
-        required: true
+        required: false
         type: string
+        default: ""
       deploy:
         description: "Set true to publish and upload build output"
         required: false
@@ -31,32 +32,8 @@ on:
         default: false
 
 jobs:
-  check-label:
-    name: "Check: Documentation label"
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    outputs:
-      is_document: ${{ steps.label_check.outputs.is_document }}
-    steps:
-      - name: Detect 'documentation' label on PR
-        id: label_check
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const { data: labels } = await github.rest.issues.listLabelsOnIssue({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-            const isDoc = labels.some(l => l.name === 'documentation');
-            core.setOutput('is_document', isDoc ? 'true' : 'false');
-
   build:
     name: "Build & Test (${{ inputs.os }})"
-    needs: check-label
-    if: |
-      always() &&
-      (needs.check-label.outputs.is_document != 'true')
     runs-on: ${{ inputs.os }}
 
     concurrency:
@@ -95,22 +72,28 @@ jobs:
             echo "SIGNING_KEY is not set. Skipping signing key creation."
           fi
 
-      - name: Restore all projects
+      - name: Restore main project
         shell: bash
-        run: |
-          dotnet restore "${{ inputs.project }}"
-          dotnet restore "${{ inputs.test }}"
+        run: dotnet restore "${{ inputs.project }}"
 
-      - name: Build all projects
+      - name: Restore test projects
+        if: ${{ inputs.test != '' }}
+        shell: bash
+        run: dotnet restore "${{ inputs.test }}"
+
+      - name: Build source projects
         shell: bash
         timeout-minutes: 15
-        run: |
-          # Build source solution first
-          dotnet build "${{ inputs.project }}" -c Release --no-restore -m
-          # Build test solution (will only build test projects as src is already built)
-          dotnet build "${{ inputs.test }}" -c Release --no-restore -m
+        run: dotnet build "${{ inputs.project }}" -c Release --no-restore -m
+
+      - name: Build test projects
+        if: ${{ inputs.test != '' }}
+        shell: bash
+        timeout-minutes: 15
+        run: dotnet build "${{ inputs.test }}" -c Release --no-restore -m
 
       - name: Run all tests
+        if: ${{ inputs.test != '' }}
         shell: bash
         timeout-minutes: 20
         run: |
@@ -141,7 +124,7 @@ jobs:
 
       - name: Detect coverage reports
         id: coverage_files
-        if: always()
+        if: ${{ inputs.test != '' }}
         shell: bash
         run: |
           if [ -d "$TEST_RESULTS_DIR" ] && find "$TEST_RESULTS_DIR" -name 'coverage.cobertura.xml' -print -quit | grep -q .; then
@@ -173,7 +156,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Upload test results
-        if: always()
+        if: ${{ inputs.test != '' }}
         uses: actions/upload-artifact@v7
         with:
           name: test-results-${{ runner.os }}
