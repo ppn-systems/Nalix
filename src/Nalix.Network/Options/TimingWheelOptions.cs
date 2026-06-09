@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Network.Options;
@@ -18,7 +19,7 @@ public sealed partial class TimingWheelOptions : ConfigurationLoader, IValidatab
     /// Higher values reduce collisions but use a bit more memory.
     /// </summary>
     [IniComment("Number of timing wheel buckets — higher values reduce slot collisions (minimum 1)")]
-    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+    [ValueRange(1, int.MaxValue)]
     public int BucketCount { get; set; } = 512;
 
     /// <summary>
@@ -26,14 +27,14 @@ public sealed partial class TimingWheelOptions : ConfigurationLoader, IValidatab
     /// Lower values mean more frequent checks but slightly higher CPU usage.
     /// </summary>
     [IniComment("Tick interval in milliseconds — lower = more precise but higher CPU usage (minimum 1)")]
-    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+    [ValueRange(1, int.MaxValue)]
     public int TickDuration { get; set; } = 1000;
 
     /// <summary>
     /// Gets or sets the idle timeout for TCP connections in milliseconds.
     /// </summary>
     [IniComment("TCP connection idle timeout in milliseconds before auto-close (default 60000 = 60s)")]
-    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue)]
+    [ValueRange(1, int.MaxValue)]
     public int IdleTimeoutMs { get; set; } = 60_000;
 
     /// <summary>
@@ -41,7 +42,7 @@ public sealed partial class TimingWheelOptions : ConfigurationLoader, IValidatab
     /// gracefully during shutdown before forceful termination.
     /// </summary>
     [IniComment("Maximum time in milliseconds to wait for the timing wheel to drain gracefully during shutdown (default: 5000)")]
-    [System.ComponentModel.DataAnnotations.Range(0, 60000, ErrorMessage = "WheelDrainTimeoutMs must be between 0 and 60000 ms.")]
+    [ValueRange(0, 60000)]
     public int WheelDrainTimeoutMs { get; set; } = 5000;
 
     /// <summary>

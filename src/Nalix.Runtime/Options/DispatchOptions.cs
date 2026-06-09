@@ -4,6 +4,7 @@
 using System;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Security;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Runtime.Options;
@@ -26,14 +27,14 @@ public sealed partial class DispatchOptions : ConfigurationLoader, IValidatableC
     /// Values above 1,048,576 are rejected to avoid oversized per-priority ring allocations.
     /// </remarks>
     [IniComment("Max items in a single connection queue (0 = unlimited, default 4096, max 1048576)")]
-    [System.ComponentModel.DataAnnotations.Range(0, 1_048_576, ErrorMessage = "MaxPerConnectionQueue must be 0 (unlimited) or between 1 and 1,048,576.")]
+    [ValueRange(0, 1_048_576)]
     public int MaxPerConnectionQueue { get; set; } = 4096;
 
     /// <summary>
     /// Drop strategy when the per-connection queue is full.
     /// </summary>
     [IniComment("Strategy when the queue is full (e.g. DropNewest, DropOldest, Block)")]
-    [System.ComponentModel.DataAnnotations.EnumDataType(typeof(DropPolicy), ErrorMessage = "Invalid drop policy.")]
+    [AllowedEnum]
     public DropPolicy DropPolicy { get; set; } = DropPolicy.DropNewest;
 
     /// <summary>
@@ -54,21 +55,21 @@ public sealed partial class DispatchOptions : ConfigurationLoader, IValidatableC
     /// Multiplier for the internal bucket count based on processor count.
     /// </summary>
     [IniComment("Multiplier for internal bucket count based on CPU count (default 64)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1024)]
+    [ValueRange(1, 1024)]
     public int BucketCountMultiplier { get; set; } = 64;
 
     /// <summary>
     /// Minimum number of internal buckets for the dispatch channel.
     /// </summary>
     [IniComment("Minimum internal bucket count (power of 2 recommended, default 256)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 65536)]
+    [ValueRange(1, 65536)]
     public int MinBucketCount { get; set; } = 256;
 
     /// <summary>
     /// Maximum number of internal buckets for the dispatch channel.
     /// </summary>
     [IniComment("Maximum internal bucket count (power of 2 recommended, default 16384)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1048576)]
+    [ValueRange(1, 1048576)]
     public int MaxBucketCount { get; set; } = 16384;
 
     #endregion Properties
@@ -76,7 +77,7 @@ public sealed partial class DispatchOptions : ConfigurationLoader, IValidatableC
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
-    /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
+    /// <exception cref="Nalix.Abstractions.Validation.ValidationException">
     /// Thrown when one or more validation attributes fail.
     /// </exception>
     public void Validate()
@@ -85,19 +86,19 @@ public sealed partial class DispatchOptions : ConfigurationLoader, IValidatableC
 
         if (this.MinBucketCount > this.MaxBucketCount)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException(
+            throw new Nalix.Abstractions.Validation.ValidationException(
                 $"{nameof(this.MinBucketCount)} ({this.MinBucketCount}) cannot be greater than {nameof(this.MaxBucketCount)} ({this.MaxBucketCount}).");
         }
 
         if (string.IsNullOrWhiteSpace(this.PriorityWeights))
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("PriorityWeights must not be empty.");
+            throw new Nalix.Abstractions.Validation.ValidationException("PriorityWeights must not be empty.");
         }
 
         string[] parts = this.PriorityWeights.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (parts.Length != 5)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException(
+            throw new Nalix.Abstractions.Validation.ValidationException(
                 $"PriorityWeights must contain exactly 5 comma-separated values [NONE, LOW, MEDIUM, HIGH, URGENT], got {parts.Length}.");
         }
 
@@ -105,14 +106,14 @@ public sealed partial class DispatchOptions : ConfigurationLoader, IValidatableC
         {
             if (!int.TryParse(part, out int w) || w <= 0)
             {
-                throw new System.ComponentModel.DataAnnotations.ValidationException(
+                throw new Nalix.Abstractions.Validation.ValidationException(
                     $"PriorityWeights contains invalid value '{part}'. All weights must be positive integers.");
             }
         }
 
         if (this.BlockTimeout < TimeSpan.Zero)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("BlockTimeout cannot be negative.");
+            throw new Nalix.Abstractions.Validation.ValidationException("BlockTimeout cannot be negative.");
         }
     }
 }

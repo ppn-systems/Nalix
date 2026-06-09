@@ -3,6 +3,7 @@
 
 using System;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Framework.Options;
@@ -54,14 +55,14 @@ public sealed partial class TaskManagerOptions : ConfigurationLoader, IValidatab
     /// High CPU utilization threshold to reduce concurrency. Default is 80%.
     /// </summary>
     [IniComment("CPU usage % above which concurrency is reduced (0–100)")]
-    [System.ComponentModel.DataAnnotations.Range(0.0, 100.0, ErrorMessage = "ThresholdHighCpu must be between 0 and 100.")]
+    [ValueRange(0.0, 100.0)]
     public double ThresholdHighCpu { get; set; } = 80.0;
 
     /// <summary>
     /// Low CPU utilization threshold to increase concurrency. Default is 40%.
     /// </summary>
     [IniComment("CPU usage % below which concurrency is increased (0–100)")]
-    [System.ComponentModel.DataAnnotations.Range(0.0, 100.0, ErrorMessage = "ThresholdLowCpu must be between 0 and 100.")]
+    [ValueRange(0.0, 100.0)]
     public double ThresholdLowCpu { get; set; } = 40.0;
 
     /// <summary>
@@ -80,7 +81,7 @@ public sealed partial class TaskManagerOptions : ConfigurationLoader, IValidatab
     /// Number of consecutive samples above/below threshold required to adjust concurrency.
     /// </summary>
     [IniComment("Consecutive samples required before adjusting concurrency (hysteresis)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 64)]
+    [ValueRange(1, 64)]
     public int AdjustmentStreakRequired { get; set; } = 3;
 
     /// <summary>
@@ -93,7 +94,7 @@ public sealed partial class TaskManagerOptions : ConfigurationLoader, IValidatab
     /// Maximum exponent for recurring task failure backoff (default 5 = 2^5 = 32x).
     /// </summary>
     [IniComment("Maximum power for exponential backoff (e.g. 5 = 2^5 = 32x)")]
-    [System.ComponentModel.DataAnnotations.Range(0, 16)]
+    [ValueRange(0, 16)]
     public int BackoffMaxPower { get; set; } = 5;
 
     /// <summary>
@@ -121,38 +122,38 @@ public sealed partial class TaskManagerOptions : ConfigurationLoader, IValidatab
 
         if (this.ThresholdHighCpu < this.ThresholdLowCpu)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException(
+            throw new Nalix.Abstractions.Validation.ValidationException(
                 $"{nameof(this.ThresholdHighCpu)} ({this.ThresholdHighCpu}) must be greater than or equal to {nameof(this.ThresholdLowCpu)} ({this.ThresholdLowCpu}).");
         }
 
         if (this.CleanupInterval < TimeSpan.FromSeconds(1))
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("CleanupInterval must be at least 1 second.");
+            throw new Nalix.Abstractions.Validation.ValidationException("CleanupInterval must be at least 1 second.");
         }
 
         if (this.BusyWaitThreshold < TimeSpan.Zero)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("BusyWaitThreshold cannot be negative.");
+            throw new Nalix.Abstractions.Validation.ValidationException("BusyWaitThreshold cannot be negative.");
         }
 
         if (this.BackoffBaseInterval < TimeSpan.FromMilliseconds(10))
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("BackoffBaseInterval must be at least 10ms.");
+            throw new Nalix.Abstractions.Validation.ValidationException("BackoffBaseInterval must be at least 10ms.");
         }
 
         if (this.CpuWarmupDuration < TimeSpan.Zero)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("CpuWarmupDuration cannot be negative.");
+            throw new Nalix.Abstractions.Validation.ValidationException("CpuWarmupDuration cannot be negative.");
         }
 
         if (this.MaxWorkers <= 0)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxWorkers must be positive.");
+            throw new Nalix.Abstractions.Validation.ValidationException("MaxWorkers must be positive.");
         }
 
         if (this.ObservingInterval <= TimeSpan.Zero)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("ObservingInterval must be positive.");
+            throw new Nalix.Abstractions.Validation.ValidationException("ObservingInterval must be positive.");
         }
     }
 }

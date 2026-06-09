@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Network.Options;
@@ -16,7 +17,7 @@ public sealed partial class NetworkWebSocketOptions : ConfigurationLoader, IVali
     /// Gets or sets the port number for the WebSocket connection.
     /// </summary>
     [IniComment("WebSocket port to listen on (1–65535, default 57207)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 65535, ErrorMessage = "Port must be between 1 and 65535.")]
+    [ValueRange(1, 65535)]
     public ushort Port { get; set; } = 57207;
 
     /// <summary>
@@ -48,7 +49,7 @@ public sealed partial class NetworkWebSocketOptions : ConfigurationLoader, IVali
     /// gracefully during shutdown before forceful termination.
     /// </summary>
     [IniComment("Maximum time in milliseconds to wait for the process channel to drain gracefully during shutdown (default: 5000)")]
-    [System.ComponentModel.DataAnnotations.Range(0, 60000, ErrorMessage = "ProcessChannelDrainTimeout must be between 0 and 60000 ms.")]
+    [ValueRange(0, 60000)]
     public int ProcessChannelDrainTimeout { get; set; } = 5000;
 
     /// <summary>
@@ -56,27 +57,27 @@ public sealed partial class NetworkWebSocketOptions : ConfigurationLoader, IVali
     /// thread is busy.
     /// </summary>
     [IniComment("Maximum accepted connections that may queue in the channel while the consumer thread is busy (default 256)")]
-    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "ProcessChannelCapacity must be at least 1.")]
+    [ValueRange(1, int.MaxValue)]
     public int ProcessChannelCapacity { get; set; } = 256;
 
     /// <summary>
     /// Maximum inbound WebSocket message size in bytes.
     /// </summary>
     [IniComment("Maximum inbound WebSocket message size in bytes (default 1048576)")]
-    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "MaxMessageSize must be positive.")]
+    [ValueRange(1, int.MaxValue)]
     public int MaxMessageSize { get; set; } = 1_048_576;
 
     /// <summary>
     /// Number of concurrent accept workers to spawn for handling new WebSocket connections.
     /// </summary>
     [IniComment("Number of concurrent accept workers (default 1)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1024, ErrorMessage = "MaxParallel must be between 1 and 1024.")]
+    [ValueRange(1, 1024)]
     public int MaxParallel { get; set; } = 1;
 
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
-    /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
+    /// <exception cref="Nalix.Abstractions.Validation.ValidationException">
     /// Thrown when one or more validation attributes fail.
     /// </exception>
     public void Validate() => this.ValidateDataAnnotations();

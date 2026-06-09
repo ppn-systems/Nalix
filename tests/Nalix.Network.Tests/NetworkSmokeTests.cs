@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+using Nalix.Abstractions.Validation;
 using Nalix.Abstractions.Networking;
 using Nalix.Network.Options;
 using Nalix.Runtime.Options;
@@ -40,7 +40,7 @@ public sealed class NetworkSmokeTests
             MaxPacketPerSecond = value
         };
 
-        _ = Assert.Throws<System.ComponentModel.DataAnnotations.ValidationException>(() => options.Validate());
+        _ = Assert.Throws<Nalix.Abstractions.Validation.ValidationException>(() => options.Validate());
     }
 
     [Fact]

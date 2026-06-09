@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel.DataAnnotations;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Environment.Configuration.Binding;
 using Nalix.Environment.Fragments;
@@ -22,7 +22,7 @@ public sealed partial class FragmentOptions : ConfigurationLoader, IValidatableC
     /// Default: 16 MB.
     /// </summary>
     [IniComment("Max allowed payload size in bytes before sending (default 16MB)")]
-    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "MaxPayloadSize must be positive.")]
+    [ValueRange(1, int.MaxValue)]
     public int MaxPayloadSize { get; set; } = 16 * 1024 * 1024;
 
     /// <summary>
@@ -31,7 +31,7 @@ public sealed partial class FragmentOptions : ConfigurationLoader, IValidatableC
     /// Default: 32KB (fits a single Ethernet MTU after TCP/IP overhead).
     /// </summary>
     [IniComment("Max chunk size in bytes (default 32KB)")]
-    [System.ComponentModel.DataAnnotations.Range(4096, 65000, ErrorMessage = "MaxChunkSize must be in range [4096, 65000].")]
+    [ValueRange(4096, 65000)]
     public int MaxChunkSize { get; set; } = 32_000;
 
     /// <summary>
@@ -40,7 +40,7 @@ public sealed partial class FragmentOptions : ConfigurationLoader, IValidatableC
     /// Default: 16 MB.
     /// </summary>
     [IniComment("Max reassembly buffer per stream (default 16MB)")]
-    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "MaxReassemblyBytes must be positive.")]
+    [ValueRange(1, int.MaxValue)]
     public int MaxReassemblyBytes { get; set; } = 16 * 1024 * 1024;
 
     /// <summary>
@@ -48,7 +48,7 @@ public sealed partial class FragmentOptions : ConfigurationLoader, IValidatableC
     /// Default: 30,000 ms.
     /// </summary>
     [IniComment("Incomplete stream reassembly timeout in milliseconds (default 30,000)")]
-    [System.ComponentModel.DataAnnotations.Range(100, 3600000, ErrorMessage = "ReassemblyTimeoutMs must be at least 100 ms and at most 1 hour (3600000 ms).")]
+    [ValueRange(100, 3600000)]
     public long ReassemblyTimeoutMs { get; set; } = 30_000;
 
     /// <summary>
@@ -60,34 +60,34 @@ public sealed partial class FragmentOptions : ConfigurationLoader, IValidatableC
     /// Default: 4096.
     /// </summary>
     [IniComment("Base size of the elastic receive buffer in bytes (default 4096)")]
-    [System.ComponentModel.DataAnnotations.Range(1024, int.MaxValue, ErrorMessage = "MinReceiveBufferSize must be at least 1024 bytes to avoid network MTU thrashing (recommended 4096).")]
+    [ValueRange(1024, int.MaxValue)]
     public int MinReceiveBufferSize { get; set; } = 4096;
 
     /// <summary>
     /// Validates the chunking configuration to ensure it meets the necessary constraints for proper operation.
     /// </summary>
-    /// <exception cref="ValidationException">Thrown when any fragmentation limit is invalid.</exception>
+    /// <exception cref="Nalix.Abstractions.Validation.ValidationException">Thrown when any fragmentation limit is invalid.</exception>
     public void Validate()
     {
         this.ValidateDataAnnotations();
 
         if (this.MaxPayloadSize < this.MaxChunkSize)
         {
-            throw new ValidationException(
+            throw new Nalix.Abstractions.Validation.ValidationException(
                 $"MaxPayloadSize={this.MaxPayloadSize} must be >= MaxChunkSize={this.MaxChunkSize}.");
         }
 
         long maxChunkCount = ((long)this.MaxPayloadSize + this.MaxChunkSize - 1) / this.MaxChunkSize;
         if (maxChunkCount > ushort.MaxValue)
         {
-            throw new ValidationException(
+            throw new Nalix.Abstractions.Validation.ValidationException(
                 $"MaxChunkSize={this.MaxChunkSize} can produce {maxChunkCount} chunks for MaxPayloadSize={this.MaxPayloadSize}, which exceeds the {ushort.MaxValue}-chunk wire header limit.");
         }
 
         int maxChunkFrameSize = PacketConstants.HeaderSize + FragmentHeader.WireSize + this.MaxChunkSize;
         if (maxChunkFrameSize > ushort.MaxValue)
         {
-            throw new ValidationException(
+            throw new Nalix.Abstractions.Validation.ValidationException(
                 $"MaxChunkSize={this.MaxChunkSize} produces a fragment frame of {maxChunkFrameSize} bytes, which exceeds the {ushort.MaxValue}-byte wire header limit.");
         }
     }

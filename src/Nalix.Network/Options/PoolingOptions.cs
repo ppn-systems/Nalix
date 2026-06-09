@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Time;
@@ -38,16 +39,14 @@ public sealed partial class PoolingOptions : ConfigurationLoader, IValidatableCo
     /// </para>
     /// </summary>
     [IniComment("Max pooled AcceptContext instances — set to accept-worker count + buffer (default 4096)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
-        ErrorMessage = "AcceptContext.Capacity must be between 1 and 1,000,000.")]
+    [ValueRange(1, 1_000_000)]
     public int AcceptContextCapacity { get; set; } = 8192;
 
     /// <summary>
     /// Number of <see cref="PooledAcceptContext"/> instances to create at startup.
     /// </summary>
     [IniComment("AcceptContext instances to warm up at startup (default 32 = typical worker count)")]
-    [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
-        ErrorMessage = "AcceptContext.Preallocate must be between 0 and 1,000,000.")]
+    [ValueRange(0, 1_000_000)]
     public int AcceptContextPreallocate { get; set; } = 32;
 
     #endregion Accept Context — one per in-flight AcceptAsync operation
@@ -62,16 +61,14 @@ public sealed partial class PoolingOptions : ConfigurationLoader, IValidatableCo
     /// </para>
     /// </summary>
     [IniComment("Max pooled SocketAsyncEventArgs — accept workers + peak connections (default 4096)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
-        ErrorMessage = "SocketArgs.Capacity must be between 1 and 1,000,000.")]
+    [ValueRange(1, 1_000_000)]
     public int SocketArgsCapacity { get; set; } = 8192;
 
     /// <summary>
     /// Number of <see cref="PooledSocketAsyncEventArgs"/> instances to create at startup.
     /// </summary>
     [IniComment("SocketAsyncEventArgs instances to warm up at startup (default 32)")]
-    [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
-        ErrorMessage = "SocketArgs.Preallocate must be between 0 and 1,000,000.")]
+    [ValueRange(0, 1_000_000)]
     public int SocketArgsPreallocate { get; set; } = 32;
 
     #endregion Socket Async Event Args — shared by Accept and Receive paths
@@ -86,16 +83,14 @@ public sealed partial class PoolingOptions : ConfigurationLoader, IValidatableCo
     /// </para>
     /// </summary>
     [IniComment("Max pooled ReceiveContext instances — set to peak concurrent connections (default 8192)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
-        ErrorMessage = "ReceiveContext.Capacity must be between 1 and 1,000,000.")]
+    [ValueRange(1, 1_000_000)]
     public int ReceiveContextCapacity { get; set; } = 8192;
 
     /// <summary>
     /// Number of <see cref="PooledSocketReceiveContext"/> instances to create at startup.
     /// </summary>
     [IniComment("ReceiveContext instances to warm up at startup (default 32)")]
-    [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
-        ErrorMessage = "ReceiveContext.Preallocate must be between 0 and 1,000,000.")]
+    [ValueRange(0, 1_000_000)]
     public int ReceiveContextPreallocate { get; set; } = 32;
 
     #endregion Receive Context — one per active TCP connection
@@ -116,16 +111,14 @@ public sealed partial class PoolingOptions : ConfigurationLoader, IValidatableCo
     /// </para>
     /// </summary>
     [IniComment("Max pooled TimeoutTask instances — set to peak concurrent connections, higher under DDoS (default 8192 )")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
-        ErrorMessage = "TimeoutTask.Capacity must be between 1 and 1,000,000.")]
+    [ValueRange(1, 1_000_000)]
     public int TimeoutTaskCapacity { get; set; } = 8192;
 
     /// <summary>
     /// TimeoutTask instances to warm up at startup (default 64).
     /// </summary>
     [IniComment("TimeoutTask instances to warm up at startup (default 64)")]
-    [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
-        ErrorMessage = "TimeoutTask.Preallocate must be between 0 and 1,000,000.")]
+    [ValueRange(0, 1_000_000)]
     public int TimeoutTaskPreallocate { get; set; } = 64;
 
     #endregion Timeout Task — one per active connection registered with TimingWheel
@@ -140,16 +133,14 @@ public sealed partial class PoolingOptions : ConfigurationLoader, IValidatableCo
     /// </para>
     /// </summary>
     [IniComment("Max pooled ConnectEventContext instances — set to peak queued connection callbacks (default 8192)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
-        ErrorMessage = "ConnectEventContext.Capacity must be between 1 and 1,000,000.")]
+    [ValueRange(1, 1_000_000)]
     public int ConnectEventContextCapacity { get; set; } = 8192;
 
     /// <summary>
     /// Number of <see cref="PooledConnectEventContext"/> instances to create at startup.
     /// </summary>
     [IniComment("ConnectEventContext instances to warm up at startup (default 32)")]
-    [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
-        ErrorMessage = "ConnectEventContext.Preallocate must be between 0 and 1,000,000.")]
+    [ValueRange(0, 1_000_000)]
     public int ConnectEventContextPreallocate { get; set; } = 32;
 
     #endregion Connect Event Context — one per queued connection callback
@@ -157,7 +148,7 @@ public sealed partial class PoolingOptions : ConfigurationLoader, IValidatableCo
     #region Validation
 
     /// <summary>
-    /// Validates all options. Throws <see cref="System.ComponentModel.DataAnnotations.ValidationException"/>
+    /// Validates all options. Throws <see cref="Nalix.Abstractions.Validation.ValidationException"/>
     /// if any value is out of range or a preallocate value exceeds its capacity.
     /// </summary>
     public void Validate()

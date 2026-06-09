@@ -1,7 +1,7 @@
 using Nalix.Environment.Memory;
 
 using System;
-using System.ComponentModel.DataAnnotations;
+using Nalix.Abstractions.Validation;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;

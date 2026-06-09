@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Codec.Options;
@@ -28,7 +29,7 @@ public sealed partial class CompressionOptions : ConfigurationLoader, IValidatab
     /// to benefit from compression.
     /// </remarks>
     [IniComment("Minimum data size (bytes) to trigger compression (e.g. 1024 = 512B)")]
-    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "MinSizeToCompress must be greater than 0.")]
+    [ValueRange(1, int.MaxValue)]
     public int MinSizeToCompress { get; set; } = 512; // 512B default
 
     /// <summary>
@@ -39,7 +40,7 @@ public sealed partial class CompressionOptions : ConfigurationLoader, IValidatab
     /// If a packet declares an original size larger than this limit, it will be rejected.
     /// </remarks>
     [IniComment("Maximum allowed size (bytes) for a decompressed packet payload (default 32MB)")]
-    [System.ComponentModel.DataAnnotations.Range(1024, 256 * 1024 * 1024, ErrorMessage = "MaxDecompressedSize must be at least 1024 bytes and not exceed 256 MB to prevent zip-bomb attacks.")]
+    [ValueRange(1024, 256 * 1024 * 1024)]
     public int MaxDecompressedSize { get; set; } = 32 * 1024 * 1024; // 32MB default
 
     /// <summary>
@@ -49,7 +50,7 @@ public sealed partial class CompressionOptions : ConfigurationLoader, IValidatab
     /// This relies on data annotation validation so callers can reuse the same
     /// validation path as the rest of the configuration system.
     /// </remarks>
-    /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
+    /// <exception cref="Nalix.Abstractions.Validation.ValidationException">
     /// Thrown when one or more validation attributes fail.
     /// </exception>
     public void Validate()
@@ -58,7 +59,7 @@ public sealed partial class CompressionOptions : ConfigurationLoader, IValidatab
 
         if (this.MinSizeToCompress > this.MaxDecompressedSize)
         {
-            throw new System.ComponentModel.DataAnnotations.ValidationException(
+            throw new Nalix.Abstractions.Validation.ValidationException(
                 $"MinSizeToCompress ({this.MinSizeToCompress}) must be <= MaxDecompressedSize ({this.MaxDecompressedSize}).");
         }
     }

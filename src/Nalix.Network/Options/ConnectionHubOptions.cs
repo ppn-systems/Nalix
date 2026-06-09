@@ -3,6 +3,7 @@
 
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Network.Options;
@@ -19,21 +20,21 @@ public sealed partial class ConnectionHubOptions : ConfigurationLoader, IValidat
     /// Gets or sets the degree of parallelism for disconnect operations.
     /// </summary>
     [IniComment("Parallel tasks for bulk disconnect (-1 = ThreadPool default, must not be 0)")]
-    [System.ComponentModel.DataAnnotations.Range(-1, int.MaxValue, ErrorMessage = "ParallelDisconnectDegree must be -1 (default) or positive.")]
+    [ValueRange(-1, int.MaxValue)]
     public int ParallelDisconnectDegree { get; set; } = -1;
 
     /// <summary>
     /// Gets or sets the batch size for broadcast operations.
     /// </summary>
     [IniComment("Connections processed per broadcast batch (0 = no batching)")]
-    [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue, ErrorMessage = "BroadcastBatchSize cannot be negative.")]
+    [ValueRange(0, int.MaxValue)]
     public int BroadcastBatchSize { get; set; }
 
     /// <summary>
     /// Gets or sets the number of shards used for connection dictionaries.
     /// </summary>
     [IniComment("Shard count for connection storage (uses connection ID hash, minimum 1)")]
-    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "ShardCount must be at least 1.")]
+    [ValueRange(1, int.MaxValue)]
     public int ShardCount { get; set; } = System.Math.Max(1, System.Environment.ProcessorCount);
 
     // Dispose behavior

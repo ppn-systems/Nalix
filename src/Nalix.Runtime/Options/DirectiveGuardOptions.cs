@@ -1,8 +1,8 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System.ComponentModel.DataAnnotations;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Runtime.Options;
@@ -18,7 +18,7 @@ public sealed partial class DirectiveGuardOptions : ConfigurationLoader, IValida
     /// Set to 0 to disable suppression.
     /// </summary>
     [IniComment("Minimum cooldown in milliseconds for repeated inbound directives (0 = disabled, default 1000)")]
-    [Range(0, 60000, ErrorMessage = "DefaultCooldownMs must be between 0 and 60000.")]
+    [ValueRange(0, 60000)]
     public int DefaultCooldownMs { get; set; } = 1_000;
 
     /// <summary>

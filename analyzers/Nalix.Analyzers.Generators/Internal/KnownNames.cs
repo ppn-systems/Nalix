@@ -75,5 +75,7 @@ internal class KnownNames
     public const string ValueRangeAttributeName = "ValueRangeAttribute";
     public const string LengthAttributeName = "LengthAttribute";
     public const string DurationRangeAttributeName = "DurationRangeAttribute";
+    public const string RequiredAttributeName = "RequiredAttribute";
+    public const string AllowedEnumAttributeName = "AllowedEnumAttribute";
 
 }

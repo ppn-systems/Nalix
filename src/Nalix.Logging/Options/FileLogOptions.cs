@@ -9,6 +9,7 @@ using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 using Nalix.Environment.IO;
 using Nalix.Logging.Exceptions;
@@ -35,21 +36,21 @@ public sealed partial class FileLogOptions : ConfigurationLoader, IValidatableCo
     /// Gets or sets the maximum allowed size of a log file in bytes.
     /// </summary>
     [IniComment("Max log file size in bytes before rotation (min 1024, max 1GB)")]
-    [System.ComponentModel.DataAnnotations.Range(1024, 1024 * 1024 * 1024, ErrorMessage = "MaxFileSizeBytes must be between 1KB and 1GB.")]
+    [ValueRange(1024, 1024 * 1024 * 1024)]
     public int MaxFileSizeBytes { get; set; } = DefaultMaxFileSize;
 
     /// <summary>
     /// Gets or sets the maximum number of queued log entries before blocking or dropping.
     /// </summary>
     [IniComment("Maximum log entries in the write queue (minimum 1)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1000000, ErrorMessage = "MaxQueueSize must be between 1 and 1,000,000.")]
+    [ValueRange(1, 1000000)]
     public int MaxQueueSize { get; set; } = DefaultMaxQueueSize;
 
     /// <summary>
     /// Gets or sets the base log file name.
     /// </summary>
     [IniComment("Log file name template (date and index are appended automatically)")]
-    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "LogFileName is required.")]
+    [Length(1)]
     public string LogFileName
     {
         get;

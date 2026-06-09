@@ -1,8 +1,8 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System.ComponentModel.DataAnnotations;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 using Nalix.Runtime.Dispatching;
 
@@ -34,14 +34,14 @@ public sealed partial class PoolingOptions : ConfigurationLoader, IValidatableCo
     /// Maximum number of <see cref="PacketContext{T}"/> instances retained in the pool.
     /// </summary>
     [IniComment("Max pooled IPacketContext instances (default 8192)")]
-    [Range(1, 1_000_000, ErrorMessage = "IPacketContext.Capacity must be between 1 and 1,000,000.")]
+    [ValueRange(1, 1_000_000)]
     public int PacketContextCapacity { get; set; } = 8192;
 
     /// <summary>
     /// Number of <see cref="PacketContext{T}"/> instances to create at startup.
     /// </summary>
     [IniComment("IPacketContext instances to warm up at startup (default 64)")]
-    [Range(0, 1_000_000, ErrorMessage = "IPacketContext.Preallocate must be between 0 and 1,000,000.")]
+    [ValueRange(0, 1_000_000)]
     public int PacketContextPreallocate { get; set; } = 64;
 
     #endregion Packet Context — reusable packet processing contexts
@@ -67,7 +67,7 @@ public sealed partial class PoolingOptions : ConfigurationLoader, IValidatableCo
     {
         if (preallocVal > capacityVal)
         {
-            throw new ValidationException(
+            throw new Nalix.Abstractions.Validation.ValidationException(
                 $"{preallocName} ({preallocVal}) cannot exceed {capacityName} ({capacityVal}).");
         }
     }

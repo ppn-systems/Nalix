@@ -26,6 +26,11 @@ public abstract class SingletonBase<T> : IDisposable where T : class
     /// <summary>
     /// Lazy with full publication safety.
     /// </summary>
+    [UnconditionalSuppressMessage("Trimming", "IL2091",
+        Justification = "SingletonBase<T> does not construct T through reflection. T is " +
+            "resolved through SingletonActivatorCache, which is populated by source-generated " +
+            "ModuleInitializer factories. Missing factories fail fast. Native AOT publish and " +
+            "runtime smoke tests validated this path.")]
     private static readonly Lazy<T> s_instance =
         new(valueFactory: CREATE_INSTANCE_INTERNAL, LazyThreadSafetyMode.ExecutionAndPublication);
 

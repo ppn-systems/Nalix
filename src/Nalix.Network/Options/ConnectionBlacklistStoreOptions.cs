@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Network.Options;
@@ -30,7 +31,7 @@ public sealed partial class ConnectionBlacklistStoreOptions : ConfigurationLoade
     /// Gets or sets the maximum number of blacklisted IPs to load from disk.
     /// </summary>
     [IniComment("Maximum number of blacklisted IPs to load from disk (10-1,000,000, default 100,000)")]
-    [System.ComponentModel.DataAnnotations.Range(10, 1_000_000, ErrorMessage = "MaxBlacklistedIps must be between 10 and 1,000,000.")]
+    [ValueRange(10, 1_000_000)]
     public int MaxBlacklistedIps { get; set; } = 100_000;
 
     /// <summary>

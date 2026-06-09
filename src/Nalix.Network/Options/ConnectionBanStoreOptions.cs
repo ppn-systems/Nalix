@@ -3,6 +3,7 @@
 
 using System;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Network.Options;
@@ -25,7 +26,7 @@ public sealed partial class ConnectionBanStoreOptions : ConfigurationLoader, IVa
     /// Default is 5 minutes.
     /// </summary>
     [IniComment("Auto-save interval for flushing banned IPs to disk (00:01:00-01:00:00)")]
-    [System.ComponentModel.DataAnnotations.Range(typeof(TimeSpan), "00:01:00", "01:00:00", ErrorMessage = "AutoSaveInterval must be between 1 minute and 1 hour.")]
+    [DurationRange("00:01:00", "01:00:00")]
     public TimeSpan AutoSaveInterval { get; set; } = TimeSpan.FromMinutes(5);
 
     /// <summary>
@@ -40,7 +41,7 @@ public sealed partial class ConnectionBanStoreOptions : ConfigurationLoader, IVa
     /// Default is 7 days.
     /// </summary>
     [IniComment("Time window over which the progressive ban count decays (01:00:00-30.00:00:00)")]
-    [System.ComponentModel.DataAnnotations.Range(typeof(TimeSpan), "01:00:00", "30.00:00:00", ErrorMessage = "BanCountDecayWindow must be between 1 hour and 30 days.")]
+    [DurationRange("01:00:00", "30.00:00:00")]
     public TimeSpan BanCountDecayWindow { get; set; } = TimeSpan.FromDays(7);
 
     /// <summary>
@@ -48,7 +49,7 @@ public sealed partial class ConnectionBanStoreOptions : ConfigurationLoader, IVa
     /// Prevents excessive memory allocation if the file is corrupted.
     /// </summary>
     [IniComment("Maximum number of banned IPs to load from disk (10-1,000,000)")]
-    [System.ComponentModel.DataAnnotations.Range(10, 1_000_000, ErrorMessage = "MaxPersistedBans must be between 10 and 1,000,000.")]
+    [ValueRange(10, 1_000_000)]
     public int MaxPersistedBans { get; set; } = 100_000;
 
     /// <summary>

@@ -1,8 +1,8 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System.ComponentModel.DataAnnotations;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 using Nalix.Environment.Memory;
 
@@ -22,14 +22,14 @@ public sealed partial class MemoryOptions : ConfigurationLoader, IValidatableCon
     /// by requesting extremely large buffer expansions.
     /// </remarks>
     [IniComment("Maximum capacity (bytes) for a single DataWriter buffer (default 128MB)")]
-    [System.ComponentModel.DataAnnotations.Range(1024, int.MaxValue, ErrorMessage = "MaxWriterCapacity must be at least 1024 bytes.")]
+    [ValueRange(1024, int.MaxValue)]
     public int MaxWriterCapacity { get; set; } = 128 * 1024 * 1024;
 
     /// <summary>
     /// Gets or sets the maximum number of slots in the thread-local lease cache.
     /// </summary>
     [IniComment("Max slots for BufferLease thread-local cache (default 8)")]
-    [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue, ErrorMessage = "BufferLeaseThreadLocalCacheMaxSlots cannot be negative.")]
+    [ValueRange(0, int.MaxValue)]
     public int BufferLeaseThreadLocalCacheMaxSlots { get; set; } = 8;
 
     /// <summary>
@@ -47,7 +47,7 @@ public sealed partial class MemoryOptions : ConfigurationLoader, IValidatableCon
 
         if (this.BufferLeaseSharedPoolSize <= 0 || (this.BufferLeaseSharedPoolSize & (this.BufferLeaseSharedPoolSize - 1)) != 0)
         {
-            throw new ValidationException($"BufferLeaseSharedPoolSize must be a positive power of 2.");
+            throw new Nalix.Abstractions.Validation.ValidationException($"BufferLeaseSharedPoolSize must be a positive power of 2.");
         }
     }
 }

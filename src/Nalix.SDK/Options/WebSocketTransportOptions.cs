@@ -1,8 +1,8 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System.ComponentModel.DataAnnotations;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.SDK.Options;
@@ -35,7 +35,7 @@ public sealed partial class WebSocketTransportOptions : ConfigurationLoader, IVa
     /// Gets or sets the maximum inbound WebSocket message size in bytes.
     /// </summary>
     [IniComment("Maximum inbound WebSocket message size in bytes")]
-    [Range(1, int.MaxValue, ErrorMessage = "MaxMessageSize must be positive.")]
+    [ValueRange(1, int.MaxValue)]
     public int MaxMessageSize { get; set; } = 1_048_576;
 
     /// <summary>
