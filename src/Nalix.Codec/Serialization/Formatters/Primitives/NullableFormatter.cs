@@ -24,7 +24,9 @@ internal sealed class NullableFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T?> where T : struct
 {
-    private static readonly IFormatter<T> s_valueFormatter = FormatterProvider.Get<T>();
+    private static IFormatter<T>? s_valueFormatter;
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static IFormatter<T> GetValueFormatter() => s_valueFormatter ??= FormatterProvider.Get<T>();
 
     #region Constants
 
@@ -64,7 +66,7 @@ internal sealed class NullableFormatter<
 
         if (value.HasValue)
         {
-            s_valueFormatter.Serialize(ref writer, value.Value);
+            GetValueFormatter().Serialize(ref writer, value.Value);
         }
     }
 
@@ -97,7 +99,7 @@ internal sealed class NullableFormatter<
         else
         {
             // Delegate the actual value decoding to the registered formatter for T.
-            return s_valueFormatter.Deserialize(ref reader);
+            return GetValueFormatter().Deserialize(ref reader);
         }
     }
 }

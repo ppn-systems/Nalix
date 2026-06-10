@@ -20,22 +20,23 @@ internal sealed class ValueTupleFormatter<
     private static string DebuggerDisplay =>
         $"ValueTupleFormatter<{typeof(T1).Name}, {typeof(T2).Name}>";
 
-    private readonly IFormatter<T1> _f1 = FormatterProvider.Get<T1>();
-    private readonly IFormatter<T2> _f2 = FormatterProvider.Get<T2>();
+    private IFormatter<T1>? _f1;
+    private IFormatter<T2>? _f2;
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private IFormatter<T1> F1() => _f1 ??= FormatterProvider.Get<T1>();
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private IFormatter<T2> F2() => _f2 ??= FormatterProvider.Get<T2>();
 
     /// <summary>
     /// Serializes a <see cref="System.ValueTuple{T1, T2}"/> into the specified <see cref="DataWriter"/>.
     /// </summary>
-    /// <remarks>
-    /// The tuple is written in declaration order so the receiver can reconstruct it
-    /// without any extra shape metadata.
-    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, in (T1, T2) value)
     {
-        _f1.Serialize(ref writer, value.Item1);
-        _f2.Serialize(ref writer, value.Item2);
+        F1().Serialize(ref writer, value.Item1);
+        F2().Serialize(ref writer, value.Item2);
     }
 
     /// <summary>
@@ -43,7 +44,7 @@ internal sealed class ValueTupleFormatter<
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public (T1, T2) Deserialize(ref DataReader reader) => (_f1.Deserialize(ref reader), _f2.Deserialize(ref reader));
+    public (T1, T2) Deserialize(ref DataReader reader) => (F1().Deserialize(ref reader), F2().Deserialize(ref reader));
 }
 
 // =========================================================================
@@ -64,24 +65,27 @@ internal sealed class ValueTupleFormatter<
     private static string DebuggerDisplay =>
         $"ValueTupleFormatter<{typeof(T1).Name}, {typeof(T2).Name}, {typeof(T3).Name}>";
 
-    private readonly IFormatter<T1> _f1 = FormatterProvider.Get<T1>();
-    private readonly IFormatter<T2> _f2 = FormatterProvider.Get<T2>();
-    private readonly IFormatter<T3> _f3 = FormatterProvider.Get<T3>();
+    private IFormatter<T1>? _f1;
+    private IFormatter<T2>? _f2;
+    private IFormatter<T3>? _f3;
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private IFormatter<T1> F1() => _f1 ??= FormatterProvider.Get<T1>();
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private IFormatter<T2> F2() => _f2 ??= FormatterProvider.Get<T2>();
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private IFormatter<T3> F3() => _f3 ??= FormatterProvider.Get<T3>();
 
     /// <summary>
     /// Serializes a <see cref="System.ValueTuple{T1, T2, T3}"/> into the specified <see cref="DataWriter"/>.
     /// </summary>
-    /// <remarks>
-    /// The tuple is written in declaration order so the receiver can reconstruct it
-    /// without any extra shape metadata.
-    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, in (T1, T2, T3) value)
     {
-        _f1.Serialize(ref writer, value.Item1);
-        _f2.Serialize(ref writer, value.Item2);
-        _f3.Serialize(ref writer, value.Item3);
+        F1().Serialize(ref writer, value.Item1);
+        F2().Serialize(ref writer, value.Item2);
+        F3().Serialize(ref writer, value.Item3);
     }
 
     /// <summary>
@@ -90,7 +94,7 @@ internal sealed class ValueTupleFormatter<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public (T1, T2, T3) Deserialize(ref DataReader reader)
-        => (_f1.Deserialize(ref reader), _f2.Deserialize(ref reader), _f3.Deserialize(ref reader));
+        => (F1().Deserialize(ref reader), F2().Deserialize(ref reader), F3().Deserialize(ref reader));
 }
 
 // =========================================================================
@@ -112,26 +116,31 @@ internal sealed class ValueTupleFormatter<
     private static string DebuggerDisplay =>
         $"ValueTupleFormatter<{typeof(T1).Name}, {typeof(T2).Name}, {typeof(T3).Name}, {typeof(T4).Name}>";
 
-    private readonly IFormatter<T1> _f1 = FormatterProvider.Get<T1>();
-    private readonly IFormatter<T2> _f2 = FormatterProvider.Get<T2>();
-    private readonly IFormatter<T3> _f3 = FormatterProvider.Get<T3>();
-    private readonly IFormatter<T4> _f4 = FormatterProvider.Get<T4>();
+    private IFormatter<T1>? _f1;
+    private IFormatter<T2>? _f2;
+    private IFormatter<T3>? _f3;
+    private IFormatter<T4>? _f4;
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private IFormatter<T1> F1() => _f1 ??= FormatterProvider.Get<T1>();
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private IFormatter<T2> F2() => _f2 ??= FormatterProvider.Get<T2>();
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private IFormatter<T3> F3() => _f3 ??= FormatterProvider.Get<T3>();
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private IFormatter<T4> F4() => _f4 ??= FormatterProvider.Get<T4>();
 
     /// <summary>
     /// Serializes a <see cref="System.ValueTuple{T1, T2, T3, T4}"/> into the specified <see cref="DataWriter"/>.
     /// </summary>
-    /// <remarks>
-    /// The tuple is written in declaration order so the receiver can reconstruct it
-    /// without any extra shape metadata.
-    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, in (T1, T2, T3, T4) value)
     {
-        _f1.Serialize(ref writer, value.Item1);
-        _f2.Serialize(ref writer, value.Item2);
-        _f3.Serialize(ref writer, value.Item3);
-        _f4.Serialize(ref writer, value.Item4);
+        F1().Serialize(ref writer, value.Item1);
+        F2().Serialize(ref writer, value.Item2);
+        F3().Serialize(ref writer, value.Item3);
+        F4().Serialize(ref writer, value.Item4);
     }
 
     /// <summary>
@@ -140,7 +149,7 @@ internal sealed class ValueTupleFormatter<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public (T1, T2, T3, T4) Deserialize(ref DataReader reader)
-        => (_f1.Deserialize(ref reader), _f2.Deserialize(ref reader), _f3.Deserialize(ref reader), _f4.Deserialize(ref reader));
+        => (F1().Deserialize(ref reader), F2().Deserialize(ref reader), F3().Deserialize(ref reader), F4().Deserialize(ref reader));
 }
 
 // =========================================================================
@@ -173,25 +182,36 @@ internal sealed class ValueTupleFormatter<
     private static string DebuggerDisplay =>
         $"ValueTupleFormatter<{typeof(T1).Name}, {typeof(T2).Name}, {typeof(T3).Name}, {typeof(T4).Name}, {typeof(T5).Name}>";
 
-    private readonly IFormatter<T1> _f1 = FormatterProvider.Get<T1>();
-    private readonly IFormatter<T2> _f2 = FormatterProvider.Get<T2>();
-    private readonly IFormatter<T3> _f3 = FormatterProvider.Get<T3>();
-    private readonly IFormatter<T4> _f4 = FormatterProvider.Get<T4>();
-    private readonly IFormatter<T5> _f5 = FormatterProvider.Get<T5>();
+    private IFormatter<T1>? _f1;
+    private IFormatter<T2>? _f2;
+    private IFormatter<T3>? _f3;
+    private IFormatter<T4>? _f4;
+    private IFormatter<T5>? _f5;
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private IFormatter<T1> F1() => _f1 ??= FormatterProvider.Get<T1>();
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private IFormatter<T2> F2() => _f2 ??= FormatterProvider.Get<T2>();
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private IFormatter<T3> F3() => _f3 ??= FormatterProvider.Get<T3>();
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private IFormatter<T4> F4() => _f4 ??= FormatterProvider.Get<T4>();
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private IFormatter<T5> F5() => _f5 ??= FormatterProvider.Get<T5>();
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, in (T1, T2, T3, T4, T5) value)
     {
-        _f1.Serialize(ref writer, value.Item1);
-        _f2.Serialize(ref writer, value.Item2);
-        _f3.Serialize(ref writer, value.Item3);
-        _f4.Serialize(ref writer, value.Item4);
-        _f5.Serialize(ref writer, value.Item5);
+        F1().Serialize(ref writer, value.Item1);
+        F2().Serialize(ref writer, value.Item2);
+        F3().Serialize(ref writer, value.Item3);
+        F4().Serialize(ref writer, value.Item4);
+        F5().Serialize(ref writer, value.Item5);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public (T1, T2, T3, T4, T5) Deserialize(ref DataReader reader)
-        => (_f1.Deserialize(ref reader), _f2.Deserialize(ref reader), _f3.Deserialize(ref reader), _f4.Deserialize(ref reader), _f5.Deserialize(ref reader));
+        => (F1().Deserialize(ref reader), F2().Deserialize(ref reader), F3().Deserialize(ref reader), F4().Deserialize(ref reader), F5().Deserialize(ref reader));
 }

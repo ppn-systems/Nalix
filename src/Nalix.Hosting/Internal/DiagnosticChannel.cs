@@ -123,6 +123,9 @@ internal sealed class DiagnosticChannel :
         [Codec.DiagnosticsEvents.Serialization.Failure] = LogLevel.Error,
         [Codec.DiagnosticsEvents.Serialization.Initialization] = LogLevel.Debug,
 
+        [Codec.DiagnosticsEvents.Packet.Malformed] = LogLevel.Trace,
+        [Codec.DiagnosticsEvents.Serialization.Poisoned] = LogLevel.Trace,
+
         // Environment.Random Failure
         [Environment.DiagnosticsEvents.Random.Failure] = LogLevel.Warning,
 

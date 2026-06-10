@@ -22,7 +22,9 @@ internal sealed class NullableArrayFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T?[]> where T : struct
 {
-    private static readonly IFormatter<T?> s_elementFormatter = FormatterProvider.Get<T?>();
+    private static IFormatter<T?>? s_elementFormatter;
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static IFormatter<T?> GetElementFormatter() => s_elementFormatter ??= FormatterProvider.Get<T?>();
     private static string DebuggerDisplay => $"NullableArrayFormatter<{typeof(T).FullName}>";
 
     /// <summary>
@@ -50,7 +52,7 @@ internal sealed class NullableArrayFormatter<
         System.ReadOnlySpan<T?> span = value;
         for (int i = 0; i < span.Length; i++)
         {
-            s_elementFormatter.Serialize(ref writer, span[i]);
+            GetElementFormatter().Serialize(ref writer, span[i]);
         }
     }
 
@@ -84,7 +86,7 @@ internal sealed class NullableArrayFormatter<
 
         for (int i = 0; i < length; i++)
         {
-            array[i] = s_elementFormatter.Deserialize(ref reader);
+            array[i] = GetElementFormatter().Deserialize(ref reader);
         }
 
         return array;

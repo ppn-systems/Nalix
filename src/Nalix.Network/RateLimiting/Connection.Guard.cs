@@ -315,7 +315,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
     /// <summary>
     /// Zero-allocation overload that accepts a <see cref="SocketEndpoint"/> directly.
-    /// Avoids constructing <see cref="IPEndPoint"/> on the reject path.
+    /// Fully zero-alloc on the reject path: no IPAddress, no IPEndPoint, no string.
     /// Used by the PROXY v2 parser which returns SocketEndpoint from raw bytes.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -332,18 +332,8 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         _ = Interlocked.Increment(ref _totalConnectionAttempts);
         DateTime now = Clock.NowUtc();
 
-        // Construct IPAddress once for blacklist + trusted-proxy + subnet checks.
-        // This is unavoidable because NetworkAccessList stores IPAddress objects.
-        // On the reject-by-rate-limit path, the IPEndPoint allocation is avoided.
-        IPAddress address = endpoint.ToIPAddress();
-
-        if (address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any))
-        {
-            _ = Interlocked.Increment(ref _totalRejections);
-            return false;
-        }
-
-        if (_accessList.IsBlacklisted(address))
+        // Zero-alloc blacklist check: uses HashSet<SocketEndpoint> + raw-byte CIDR matching.
+        if (_accessList.IsBlacklisted(endpoint))
         {
             _ = Interlocked.Increment(ref _totalRejections);
             return false;
@@ -372,11 +362,13 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
             this.UPDATE_EWMA(now.Ticks);
         }
 
-        ConnectionAllowResult result = this.TRY_ACQUIRE_CONNECTION_SLOT(endpoint, now, address);
+        // Zero-alloc connection slot: trusted-proxy check uses SocketEndpoint directly.
+        ConnectionAllowResult result = this.TRY_ACQUIRE_CONNECTION_SLOT(endpoint, now);
 
         if (result.Allowed)
         {
-            SubnetAllowResult subnetResult = this.TRY_ACQUIRE_SUBNET_SLOT(address, now.Ticks);
+            // Zero-alloc subnet slot: extract subnet key from raw bytes via TryGetSubnetKey.
+            SubnetAllowResult subnetResult = this.TRY_ACQUIRE_SUBNET_SLOT(endpoint, now.Ticks);
             if (!subnetResult.Allowed)
             {
                 _ = this.TRY_RELEASE_CONNECTION_SLOT(endpoint, now);
@@ -610,6 +602,220 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static SocketEndpoint CONVERT_TO_NETWORK_ENDPOINT(IPEndPoint endPoint) => SocketEndpoint.FromIpAddress(endPoint.Address);
+
+    // ── Zero-alloc SocketEndpoint overload of TRY_ACQUIRE_CONNECTION_SLOT ────
+    // Same logic as the IPAddress overload, but uses SocketEndpoint-based
+    // trusted-proxy check to avoid the ToIPAddress() allocation entirely.
+
+    private ConnectionAllowResult TRY_ACQUIRE_CONNECTION_SLOT(SocketEndpoint key, DateTime now)
+    {
+        // Zero-alloc trusted proxy check via raw-byte CIDR matching.
+        bool isTrustedProxy = _accessList.IsTrustedProxy(key);
+
+        int maxConnections = this.GET_EFFECTIVE_MAX_PER_ENDPOINT(isTrustedProxy);
+        int maxAttempts = isTrustedProxy ? _proxyConfig.MaxAttemptsPerTrustedProxyWindow : _config.MaxConnectionsPerWindow;
+        long nowTicks = now.Ticks;
+
+        while (true)
+        {
+            if (!_map.TryGetValue(key, out ConnectionLimitEntry? entry) || entry is null)
+            {
+                if (_maxTrackedEndpoints > 0 && _map.Count >= _maxTrackedEndpoints)
+                {
+                    _ = this.TRY_RANDOM_SAMPLE_EVICT();
+                }
+
+                entry = _map.GetOrAdd(key, static _ => new ConnectionLimitEntry());
+            }
+
+            _ = Interlocked.Exchange(ref entry.LastSeenAtTicks, nowTicks);
+
+            long bannedUntil = Interlocked.Read(ref entry.BannedUntilTicks);
+
+            bool trimLockTaken = false;
+            try
+            {
+                entry.SpinLock.Enter(ref trimLockTaken);
+                this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, nowTicks);
+
+                long decayWindowTicks = _banCountDecayWindowTicks;
+                if (entry.BanCount > 0 && entry.LastBanTimeTicks > 0)
+                {
+                    long elapsed = nowTicks - entry.LastBanTimeTicks;
+                    if (elapsed > decayWindowTicks)
+                    {
+                        int decayTiers = (int)(elapsed / decayWindowTicks);
+                        entry.BanCount = Math.Max(0, entry.BanCount - decayTiers);
+                        if (entry.BanCount == 0)
+                        {
+                            entry.LastBanTimeTicks = 0;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                if (trimLockTaken)
+                {
+                    entry.SpinLock.Exit();
+                }
+            }
+
+            if (!isTrustedProxy && bannedUntil > nowTicks)
+            {
+                int currentConns;
+                bool lockTaken = false;
+                try
+                {
+                    entry.SpinLock.Enter(ref lockTaken);
+
+                    entry.RecentConnectionTimestamps.Enqueue(nowTicks);
+                    this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, nowTicks);
+
+                    long lastAccept = entry.LastAcceptTimeTicks;
+                    long gap = (nowTicks - lastAccept) / TimeSpan.TicksPerMillisecond;
+                    bool isBurst = lastAccept > 0
+                        && gap < _config.MinConnectionIntervalMs
+                        && entry.RecentConnectionTimestamps.Count >= _config.BurstThreshold;
+
+                    int effectiveMaxAttempts = isBurst
+                        ? Math.Max(1, maxAttempts / _config.BurstPenaltyDivisor)
+                        : maxAttempts;
+
+                    if (entry.RecentConnectionTimestamps.Count > effectiveMaxAttempts)
+                    {
+                        if (nowTicks - entry.LastBanTimeTicks > _windowTicks)
+                        {
+                            entry.BanCount++;
+                            entry.LastBanTimeTicks = nowTicks;
+
+                            TimeSpan banDuration = this.CALCULATE_PROGRESSIVE_BAN_DURATION(entry.BanCount);
+                            long newBanUntilTicks = nowTicks + banDuration.Ticks;
+                            _ = Interlocked.Exchange(ref entry.BannedUntilTicks, newBanUntilTicks);
+                            bannedUntil = newBanUntilTicks;
+                            _banRepository.MarkDirty();
+                        }
+                    }
+
+                    currentConns = entry.Info.CurrentConnections;
+                }
+                finally
+                {
+                    if (lockTaken)
+                    {
+                        entry.SpinLock.Exit();
+                    }
+                }
+
+                if (ThrottledEventGate.TryAcquire(
+                        ref entry.LastRejectLogTicks,
+                        ref entry.SuppressedRejectCount,
+                        nowTicks, _logSuppressWindowTicks,
+                        out long suppressed))
+                {
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Security.Banned))
+                    {
+                        DiagnosticsEvents.Write(
+                            DiagnosticsEvents.Security.Banned,
+                            new DiagnosticLog(
+                                "NW.ConnectionGuard:Internal",
+                                $" address={FormatEndpointForLog(key)} banned-until={new DateTime(bannedUntil, DateTimeKind.Utc)} suppressed-count={suppressed}"));
+                    }
+                }
+
+                return new ConnectionAllowResult { Allowed = false, CurrentConnections = currentConns };
+            }
+
+            ConnectionAllowResult result;
+
+            bool spinLockTaken = false;
+            try
+            {
+                entry.SpinLock.Enter(ref spinLockTaken);
+
+                if (entry.IsRemoved)
+                {
+                    continue;
+                }
+
+                entry.RecentConnectionTimestamps.Enqueue(nowTicks);
+
+                long lastAccept = entry.LastAcceptTimeTicks;
+                long gap = (nowTicks - lastAccept) / TimeSpan.TicksPerMillisecond;
+                bool isBurst = lastAccept > 0
+                    && gap < _config.MinConnectionIntervalMs
+                    && entry.RecentConnectionTimestamps.Count >= _config.BurstThreshold;
+
+                int effectiveMaxAttempts = isBurst
+                    ? Math.Max(1, maxAttempts / _config.BurstPenaltyDivisor)
+                    : maxAttempts;
+
+                if (entry.RecentConnectionTimestamps.Count > effectiveMaxAttempts)
+                {
+                    if (!isTrustedProxy)
+                    {
+                        entry.BanCount++;
+                        entry.LastBanTimeTicks = nowTicks;
+
+                        TimeSpan banDuration = this.CALCULATE_PROGRESSIVE_BAN_DURATION(entry.BanCount);
+                        long banUntilTicks = nowTicks + banDuration.Ticks;
+                        _ = Interlocked.Exchange(ref entry.BannedUntilTicks, banUntilTicks);
+                        _banRepository.MarkDirty();
+
+                        if (ThrottledEventGate.TryAcquire(
+                                ref entry.LastDDoSLogTicks,
+                                ref entry.SuppressedDDoSCount,
+                                nowTicks, _logSuppressWindowTicks,
+                                out long suppressed))
+                        {
+                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Security.DdosDetected))
+                            {
+                                DiagnosticsEvents.Write(DiagnosticsEvents.Security.DdosDetected, new DiagnosticLog("NW.ConnectionGuard:Internal", $" address={FormatEndpointForLog(key)} ban-count={entry.BanCount} banned-until={new DateTime(banUntilTicks, DateTimeKind.Utc)} suppressed-count={suppressed}"));
+                            }
+                        }
+                    }
+
+                    result = new ConnectionAllowResult
+                    {
+                        Allowed = false,
+                        CurrentConnections = entry.Info.CurrentConnections
+                    };
+                }
+                else if (entry.Info.CurrentConnections >= maxConnections)
+                {
+                    result = new ConnectionAllowResult
+                    {
+                        Allowed = false,
+                        CurrentConnections = entry.Info.CurrentConnections
+                    };
+                }
+                else
+                {
+                    int newTotalToday = CALCULATE_TOTAL_CONNECTIONS_TODAY(entry.Info, now, _config.DailyResetTimeOffset);
+
+                    entry.Info = entry.Info with
+                    {
+                        CurrentConnections = entry.Info.CurrentConnections + 1,
+                        TotalConnectionsToday = newTotalToday,
+                        LastConnectionTime = now
+                    };
+
+                    entry.LastAcceptTimeTicks = nowTicks;
+
+                    result = new ConnectionAllowResult { Allowed = true, CurrentConnections = entry.Info.CurrentConnections };
+                }
+            }
+            finally
+            {
+                if (spinLockTaken)
+                {
+                    entry.SpinLock.Exit();
+                }
+            }
+
+            return result;
+        }
+    }
 
     // ── Redis-style Random Sampling Eviction (O(1)) ──────────────────────────
     //

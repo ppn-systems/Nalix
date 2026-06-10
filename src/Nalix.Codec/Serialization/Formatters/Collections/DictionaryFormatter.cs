@@ -57,8 +57,14 @@ internal sealed class DictionaryFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] TValue> : IFillableFormatter<System.Collections.Generic.Dictionary<TKey, TValue>?> where TKey : notnull
 {
-    private static readonly IFormatter<TKey> s_keyFormatter = FormatterProvider.Get<TKey>();
-    private static readonly IFormatter<TValue> s_valueFormatter = FormatterProvider.Get<TValue>();
+    private static IFormatter<TKey>? s_keyFormatter;
+    private static IFormatter<TValue>? s_valueFormatter;
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static IFormatter<TKey> GetKeyFormatter() => s_keyFormatter ??= FormatterProvider.Get<TKey>();
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static IFormatter<TValue> GetValueFormatter() => s_valueFormatter ??= FormatterProvider.Get<TValue>();
     /// <summary>
     /// Gets the debugger display string for this formatter.
     /// </summary>
@@ -136,10 +142,12 @@ internal sealed class DictionaryFormatter<
             return;
         }
 
+        IFormatter<TKey> kf = GetKeyFormatter();
+        IFormatter<TValue> vf = GetValueFormatter();
         foreach (System.Collections.Generic.KeyValuePair<TKey, TValue> kvp in value)
         {
-            s_keyFormatter.Serialize(ref writer, kvp.Key);
-            s_valueFormatter.Serialize(ref writer, kvp.Value);
+            kf.Serialize(ref writer, kvp.Key);
+            vf.Serialize(ref writer, kvp.Value);
         }
     }
 
@@ -189,10 +197,12 @@ internal sealed class DictionaryFormatter<
 
         System.Collections.Generic.Dictionary<TKey, TValue> dict = new(count);
 
+        IFormatter<TKey> kf = GetKeyFormatter();
+        IFormatter<TValue> vf = GetValueFormatter();
         for (int i = 0; i < count; i++)
         {
-            TKey key = s_keyFormatter.Deserialize(ref reader);
-            dict[key] = s_valueFormatter.Deserialize(ref reader);
+            TKey key = kf.Deserialize(ref reader);
+            dict[key] = vf.Deserialize(ref reader);
         }
 
         return dict;
@@ -221,10 +231,12 @@ internal sealed class DictionaryFormatter<
             return;
         }
 
+        IFormatter<TKey> kf = GetKeyFormatter();
+        IFormatter<TValue> vf = GetValueFormatter();
         for (int i = 0; i < count; i++)
         {
-            TKey key = s_keyFormatter.Deserialize(ref reader);
-            TValue val = s_valueFormatter.Deserialize(ref reader);
+            TKey key = kf.Deserialize(ref reader);
+            TValue val = vf.Deserialize(ref reader);
             value[key] = val;
         }
     }

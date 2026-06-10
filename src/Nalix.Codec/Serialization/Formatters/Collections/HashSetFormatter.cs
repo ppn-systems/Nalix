@@ -52,7 +52,9 @@ internal sealed class HashSetFormatter<
     : IFillableFormatter<System.Collections.Generic.HashSet<T>?>
     where T : notnull
 {
-    private static readonly IFormatter<T> s_elementFormatter = FormatterProvider.Get<T>();
+    private static IFormatter<T>? s_elementFormatter;
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static IFormatter<T> GetElementFormatter() => s_elementFormatter ??= FormatterProvider.Get<T>();
     private static string DebuggerDisplay => $"HashSetFormatter<{typeof(T).Name}>";
 
     /// <summary>
@@ -124,7 +126,7 @@ internal sealed class HashSetFormatter<
 
         foreach (T element in value)
         {
-            s_elementFormatter.Serialize(ref writer, element);
+            GetElementFormatter().Serialize(ref writer, element);
         }
     }
 
@@ -177,7 +179,7 @@ internal sealed class HashSetFormatter<
 
         for (int i = 0; i < count; i++)
         {
-            _ = set.Add(s_elementFormatter.Deserialize(ref reader));
+            _ = set.Add(GetElementFormatter().Deserialize(ref reader));
         }
 
         return set;
@@ -208,7 +210,7 @@ internal sealed class HashSetFormatter<
 
         for (int i = 0; i < count; i++)
         {
-            _ = value.Add(s_elementFormatter.Deserialize(ref reader));
+            _ = value.Add(GetElementFormatter().Deserialize(ref reader));
         }
     }
 }

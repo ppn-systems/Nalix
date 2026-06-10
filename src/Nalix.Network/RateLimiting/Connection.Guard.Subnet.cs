@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Nalix.Network.Internal.Transport;
 
 namespace Nalix.Network.RateLimiting;
 
@@ -61,6 +62,74 @@ public sealed partial class ConnectionGuard
             {
                 long key = EXTRACT_IPV6_SUBNET_KEY(address);
                 entry = _subnetMapV6.GetOrAdd(key, static _ => new SubnetLimitEntry());
+            }
+
+            _ = Interlocked.Exchange(ref entry.LastSeenAtTicks, nowTicks);
+
+            SubnetAllowResult result;
+            bool spinLockTaken = false;
+            try
+            {
+                entry.SpinLock.Enter(ref spinLockTaken);
+
+                if (entry.IsRemoved)
+                {
+                    continue;
+                }
+
+                this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, nowTicks);
+
+                if (entry.RecentConnectionTimestamps.Count >= maxAttempts)
+                {
+                    result = new SubnetAllowResult { Allowed = false };
+                }
+                else if (entry.CurrentConnections >= maxConnections)
+                {
+                    result = new SubnetAllowResult { Allowed = false };
+                }
+                else
+                {
+                    entry.CurrentConnections++;
+                    entry.RecentConnectionTimestamps.Enqueue(nowTicks);
+                    result = new SubnetAllowResult { Allowed = true };
+                }
+            }
+            finally
+            {
+                if (spinLockTaken)
+                {
+                    entry.SpinLock.Exit();
+                }
+            }
+
+            return result;
+        }
+    }
+
+    /// <summary>
+    /// Zero-alloc overload: extracts subnet key from SocketEndpoint raw bytes
+    /// via TryGetSubnetKey instead of going through IPAddress.
+    /// </summary>
+    private SubnetAllowResult TRY_ACQUIRE_SUBNET_SLOT(SocketEndpoint endpoint, long nowTicks)
+    {
+        if (!endpoint.TryGetSubnetKey(out uint ipv4Key, out long ipv6Key, out bool isV6))
+        {
+            return new SubnetAllowResult { Allowed = true }; // Empty endpoint — skip
+        }
+
+        int maxConnections = _config.MaxConnectionsPerSubnet;
+        int maxAttempts = _config.MaxSubnetConnectionsPerWindow;
+
+        while (true)
+        {
+            SubnetLimitEntry entry;
+            if (!isV6)
+            {
+                entry = _subnetMapV4.GetOrAdd(ipv4Key, static _ => new SubnetLimitEntry());
+            }
+            else
+            {
+                entry = _subnetMapV6.GetOrAdd(ipv6Key, static _ => new SubnetLimitEntry());
             }
 
             _ = Interlocked.Exchange(ref entry.LastSeenAtTicks, nowTicks);

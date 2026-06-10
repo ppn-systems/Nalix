@@ -51,7 +51,9 @@ internal sealed class QueueFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
     : IFillableFormatter<System.Collections.Generic.Queue<T>?>
 {
-    private static readonly IFormatter<T> s_elementFormatter = FormatterProvider.Get<T>();
+    private static IFormatter<T>? s_elementFormatter;
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static IFormatter<T> GetElementFormatter() => s_elementFormatter ??= FormatterProvider.Get<T>();
     /// <summary>
     /// Gets the debugger display string for this formatter.
     /// </summary>
@@ -127,7 +129,7 @@ internal sealed class QueueFormatter<
         // -> Dequeue() sau deserialize sẽ trả về đúng phần tử đầu tiên
         foreach (T element in value)
         {
-            s_elementFormatter.Serialize(ref writer, element);
+            GetElementFormatter().Serialize(ref writer, element);
         }
     }
 
@@ -179,7 +181,7 @@ internal sealed class QueueFormatter<
 
         for (int i = 0; i < count; i++)
         {
-            queue.Enqueue(s_elementFormatter.Deserialize(ref reader));
+            queue.Enqueue(GetElementFormatter().Deserialize(ref reader));
         }
 
         return queue;
@@ -209,7 +211,7 @@ internal sealed class QueueFormatter<
 
         for (int i = 0; i < count; i++)
         {
-            value.Enqueue(s_elementFormatter.Deserialize(ref reader));
+            value.Enqueue(GetElementFormatter().Deserialize(ref reader));
         }
     }
 }
