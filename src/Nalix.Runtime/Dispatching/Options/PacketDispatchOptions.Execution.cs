@@ -33,6 +33,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             Type? actualType = context.Packet?.GetType();
             IPacket? packet = context.Packet;
+
             if (packet is null)
             {
                 return;

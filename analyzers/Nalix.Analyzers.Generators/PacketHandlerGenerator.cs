@@ -198,13 +198,17 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
             string instanceCast = method.IsStatic ? "" : $"(({classFullName})instance!).";
             string typeCall = method.IsStatic ? $"{classFullName}." : instanceCast;
             string contextCast;
+            bool needsBridgeCleanup = false;
             if (isGenericContext && packetType != null)
             {
                 string pType = packetType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                 _ = sb.AppendLine($"                var concretePacket = ({pType})(object)context.Packet;");
                 _ = sb.AppendLine($"                var concreteContext = global::Nalix.Runtime.Dispatching.PacketContextBridge.Create<{pType}, TPacket>(");
                 _ = sb.AppendLine($"                    (global::Nalix.Runtime.Dispatching.PacketContext<TPacket>)context, concretePacket);");
+                _ = sb.AppendLine($"                try");
+                _ = sb.AppendLine($"                {{");
                 contextCast = "concreteContext";
+                needsBridgeCleanup = true;
             }
             else
             {
@@ -213,24 +217,33 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
 
             if (returnTypeStr == "void")
             {
-                _ = sb.AppendLine($"                {typeCall}{method.Name}({contextCast});");
-                _ = sb.AppendLine($"                return null;");
+                _ = sb.AppendLine($"                    {typeCall}{method.Name}({contextCast});");
+                _ = sb.AppendLine($"                    return null;");
             }
             else if (method.ReturnType.Name is "ValueTask" or "Task" && method.ReturnType is INamedTypeSymbol namedRet && !namedRet.IsGenericType)
             {
-                _ = sb.AppendLine($"                await {typeCall}{method.Name}({contextCast});");
-                _ = sb.AppendLine($"                return null;");
+                _ = sb.AppendLine($"                    await {typeCall}{method.Name}({contextCast});");
+                _ = sb.AppendLine($"                    return null;");
             }
             else
             {
                 if (method.ReturnType.Name is "ValueTask" or "Task")
                 {
-                    _ = sb.AppendLine($"                return await {typeCall}{method.Name}({contextCast});");
+                    _ = sb.AppendLine($"                    return await {typeCall}{method.Name}({contextCast});");
                 }
                 else
                 {
-                    _ = sb.AppendLine($"                return {typeCall}{method.Name}({contextCast});");
+                    _ = sb.AppendLine($"                    return {typeCall}{method.Name}({contextCast});");
                 }
+            }
+
+            if (needsBridgeCleanup)
+            {
+                _ = sb.AppendLine($"                }}");
+                _ = sb.AppendLine($"                finally");
+                _ = sb.AppendLine($"                {{");
+                _ = sb.AppendLine($"                    global::Nalix.Runtime.Dispatching.PacketContextBridge.Return(concreteContext);");
+                _ = sb.AppendLine($"                }}");
             }
 
             _ = sb.AppendLine($"            }});");

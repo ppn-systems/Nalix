@@ -72,11 +72,14 @@ public sealed class PacketSender : IPacketSender
     public ValueTask SendAsync(IPacket packet, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(packet);
-        bool needEncrypt = _attributes.Encryption?.IsEncrypted ?? false;
 
+        IConnection connection = this.GET_CONNECTION_OR_THROW();
+        IConnection.ITransport transport = GetTransport(connection, _attributes, _isReliable);
+
+        bool needEncrypt = _attributes.Encryption?.IsEncrypted ?? false;
         CancellationToken safeToken = ct == default ? _token : ct;
 
-        return SEND_CORE_ASYNC(this.GET_CONNECTION_OR_THROW(), GetTransport(this.GET_CONNECTION_OR_THROW(), _attributes, _isReliable), packet, needEncrypt, safeToken);
+        return SEND_CORE_ASYNC(connection, transport, packet, needEncrypt, safeToken);
     }
 
     /// <inheritdoc/>
@@ -84,9 +87,12 @@ public sealed class PacketSender : IPacketSender
     {
         ArgumentNullException.ThrowIfNull(packet);
 
+        IConnection connection = this.GET_CONNECTION_OR_THROW();
+        IConnection.ITransport transport = GetTransport(connection, _attributes, _isReliable);
+
         CancellationToken safeToken = ct == default ? _token : ct;
 
-        return SEND_CORE_ASYNC(this.GET_CONNECTION_OR_THROW(), GetTransport(this.GET_CONNECTION_OR_THROW(), _attributes, _isReliable), packet, forceEncrypt, safeToken);
+        return SEND_CORE_ASYNC(connection, transport, packet, forceEncrypt, safeToken);
     }
 
     #endregion APIs

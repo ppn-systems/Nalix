@@ -38,8 +38,22 @@ public static class PacketContextBridge
             baseContext.Connection,
             baseContext.Attributes,
             baseContext.IsReliable,
+            ownsPacket: false,
             baseContext.CancellationToken);
 
         return bridgeContext;
+    }
+
+    /// <summary>
+    /// Returns a bridge context to the object pool without disposing the borrowed packet.
+    /// The original base context retains packet ownership and is responsible for its disposal.
+    /// </summary>
+    /// <typeparam name="TConcrete">The concrete packet type.</typeparam>
+    /// <param name="bridgeContext">The bridge context to return.</param>
+    public static void Return<TConcrete>(PacketContext<TConcrete> bridgeContext)
+        where TConcrete : IPacket, new()
+    {
+        System.ArgumentNullException.ThrowIfNull(bridgeContext);
+        bridgeContext.Dispose();
     }
 }
