@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Security;
 using Nalix.Environment.Sequencing;
@@ -21,12 +22,12 @@ namespace Nalix.Network.Internal.Transport;
 [SkipLocalsInit]
 [DebuggerNonUserCode]
 [EditorBrowsable(EditorBrowsableState.Never)]
-internal sealed class SocketTcpTransport : IConnection.ISocketTransport
+internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IPoolable, IDisposable
 {
     #region Fields
 
-    private readonly Connection _outer;
-    private readonly SocketConnection _socket;
+    private Connection? _outer;
+    private SocketConnection? _socket;
     private readonly SequenceCounter _sendSequence = new();
     private readonly SequenceCounter _receiveSequence = new();
 
@@ -34,10 +35,8 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport
 
     #region Constructor
 
-    public SocketTcpTransport(Connection outer, SocketConnection socket)
+    public SocketTcpTransport()
     {
-        _outer = outer ?? throw new ArgumentNullException(nameof(outer));
-        _socket = socket ?? throw new ArgumentNullException(nameof(socket));
     }
 
     #endregion Constructor
@@ -46,11 +45,11 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport
 
     public TransportFraming Framing { get; private set; } = TransportFraming.None;
 
-    public Socket Socket => _socket.Socket;
+    public Socket Socket => _socket?.Socket ?? throw new ObjectDisposedException(nameof(SocketTcpTransport));
 
-    public Task? ReceiveLoopTask => _socket.ReceiveLoopTask;
+    public Task? ReceiveLoopTask => _socket?.ReceiveLoopTask;
 
-    public byte[]? StolenData => _socket.StolenData;
+    public byte[]? StolenData => _socket?.StolenData;
 
     public ISequenceCounter SendSequence => _sendSequence;
 
@@ -60,14 +59,25 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport
 
     #region Methods
 
+    public void Initialize(Connection outer, SocketConnection socket)
+    {
+        _outer = outer ?? throw new ArgumentNullException(nameof(outer));
+        _socket = socket ?? throw new ArgumentNullException(nameof(socket));
+    }
+
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Socket Unwrap() => _socket.Unwrap();
+    public Socket Unwrap()
+    {
+        ObjectDisposedException.ThrowIf(_socket is null, typeof(SocketTcpTransport));
+        return _socket.Unwrap();
+    }
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void BeginReceive(CancellationToken cancellationToken = default)
     {
+        ObjectDisposedException.ThrowIf(_outer is null || _socket is null, typeof(SocketTcpTransport));
         ObjectDisposedException.ThrowIf(_outer.IsDisposed, nameof(Connection));
         _socket.BeginReceive(cancellationToken);
     }
@@ -77,6 +87,7 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport
     public void UseFraming(TransportFraming framing)
     {
         this.Framing = framing;
+        ObjectDisposedException.ThrowIf(_socket is null, typeof(SocketTcpTransport));
         _socket.SetFraming(framing);
     }
 
@@ -88,6 +99,8 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport
         {
             throw new ArgumentException("Message must not be empty.", nameof(message));
         }
+
+        ObjectDisposedException.ThrowIf(_socket is null, typeof(SocketTcpTransport));
 
         SocketConnection.SendResult result = _socket.Send(message);
         if (result != SocketConnection.SendResult.Success)
@@ -103,6 +116,11 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport
         if (message.IsEmpty)
         {
             return ValueTask.FromException(new ArgumentException("Message must not be empty.", nameof(message)));
+        }
+
+        if (_socket is null)
+        {
+            return ValueTask.FromException(new ObjectDisposedException(nameof(SocketTcpTransport)));
         }
 
         ValueTask<SocketConnection.SendResult> vt = _socket.SendAsync(message, cancellationToken);
@@ -141,4 +159,21 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport
     public uint CurrentReceiveSequence => _receiveSequence.Current();
 
     #endregion Methods
+
+    #region Pooling
+
+    /// <inheritdoc/>
+    public void ResetForPool()
+    {
+        _outer = null;
+        _socket = null;
+        _sendSequence.Reset(0);
+        _receiveSequence.Reset(0);
+        this.Framing = TransportFraming.None;
+    }
+
+    /// <inheritdoc/>
+    public void Dispose() => this.ResetForPool();
+
+    #endregion Pooling
 }

@@ -21,10 +21,12 @@ using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Internal.Pooling;
+using Nalix.Network.Internal.Protocol;
 using Nalix.Network.Internal.Security;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Internal.Transport;
 using Nalix.Network.Options;
+using static Nalix.Network.Internal.Time.TimingWheel;
 
 namespace Nalix.Network.Connections;
 
@@ -43,14 +45,14 @@ public sealed partial class Connection :
 {
     #region Fields
 
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-    private static readonly ConnectionGuardOptions s_options = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
-    private static readonly DatagramGuardOptions s_datagramOptions = ConfigurationManager.Instance.Get<DatagramGuardOptions>();
-    private static readonly NetworkCallbackOptions s_callbackOptions = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
+    private static readonly ObjectPoolManager s_pool;
+    private static readonly ConnectionGuardOptions s_options;
+    private static readonly DatagramGuardOptions s_datagramOptions;
+    private static readonly NetworkCallbackOptions s_callbackOptions;
 
     private readonly Lock _lock;
     private readonly SocketConnection _socket;
-    private readonly SocketTcpTransport _tcpTransport;
+    private SocketTcpTransport? _tcpTransport;
 
     private long _bytesSent;
     private long _bytesReceived;
@@ -81,6 +83,51 @@ public sealed partial class Connection :
     #endregion Fields
 
     #region Constructor
+
+    static Connection()
+    {
+        // Ensure the static constructor is called before any instance is created
+        // to initialize static fields and read configuration.
+
+        s_options = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
+        s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+        s_datagramOptions = ConfigurationManager.Instance.Get<DatagramGuardOptions>();
+        s_callbackOptions = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
+
+        // Pre-configure pool capacities based on expected usage patterns to minimize resizing during runtime.
+        _ = s_pool.SetMaxCapacity<TimeoutTask>(s_options.MaxConnections);
+        _ = s_pool.SetMaxCapacity<SocketTcpTransport>(s_options.MaxConnections);
+        _ = s_pool.SetMaxCapacity<SocketUdpTransport>(s_options.MaxConnections);
+        _ = s_pool.SetMaxCapacity<PooledSocketReceiveContext>(s_options.MaxConnections);
+
+        int capacity = (s_options.MaxConnections * 2) + s_callbackOptions.MaxPendingNormalCallbacks + s_callbackOptions.MaxPendingPostCallbacks;
+
+        // Event args and contexts are used per-packet, so we provision extra capacity to handle spikes without immediate contention.
+        _ = s_pool.SetMaxCapacity<ConnectionEventArgs>(capacity);
+        _ = s_pool.SetMaxCapacity<PooledConnectEventContext>(capacity);
+
+        NetworkSocketOptions socketOptions = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
+
+        // Configure object pools for accept contexts and socket async event args based on the provided options.
+        _ = s_pool.SetMaxCapacity<PooledAcceptContext>(socketOptions.MaxParallel + 4);
+        _ = s_pool.Prealloc<PooledAcceptContext>(socketOptions.MaxParallel);
+
+        // Preallocate objects in the pools to improve performance and reduce latency during runtime.
+        _ = s_pool.SetMaxCapacity<PooledSocketAsyncEventArgs>(socketOptions.MaxParallel + s_options.MaxConnections);
+        _ = s_pool.Prealloc<PooledSocketAsyncEventArgs>(socketOptions.MaxParallel * 4);
+
+        _ = s_pool.SetMaxCapacity<ProxyHeaderContext>(socketOptions.MaxParallel + 4);
+        _ = s_pool.Prealloc<ProxyHeaderContext>(socketOptions.MaxParallel);
+
+        _ = s_pool.Prealloc<SocketTcpTransport>(128);
+        _ = s_pool.Prealloc<SocketUdpTransport>(64);
+        _ = s_pool.Prealloc<PooledSocketReceiveContext>(128);
+
+        _ = s_pool.Prealloc<ConnectionEventArgs>(256);
+        _ = s_pool.Prealloc<PooledConnectEventContext>(256);
+
+        _ = s_pool.Prealloc<TimeoutTask>(128);
+    }
 
     /// <summary>Initializes a new instance of the <see cref="Connection"/> class.</summary>
     /// <param name="socket">The connected socket used for the connection.</param>
@@ -117,7 +164,8 @@ public sealed partial class Connection :
 
         // Initialize the socket connection.
         _socket = new SocketConnection(socket, this);
-        _tcpTransport = new SocketTcpTransport(this, _socket);
+        _tcpTransport = s_pool.Get<SocketTcpTransport>();
+        _tcpTransport.Initialize(this, _socket);
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
@@ -142,7 +190,7 @@ public sealed partial class Connection :
     public ulong ID { get; }
 
     /// <inheritdoc/>
-    public IConnection.ITransport TCP => _tcpTransport;
+    public IConnection.ITransport TCP => _tcpTransport ?? throw new ObjectDisposedException(nameof(Connection));
 
     /// <inheritdoc/>
     public IConnection.ITransport? UDP
@@ -265,9 +313,9 @@ public sealed partial class Connection :
     }
 #endif
 
-    internal void InjectPreReadBytes(ReadOnlySpan<byte> preReadData) => _socket.InjectPreReadBytes(preReadData);
-
     internal void SetUdpTransport(SocketUdpTransport transport) => this.UdpTransport = transport;
+
+    internal void InjectPreReadBytes(ReadOnlySpan<byte> preReadData) => _socket.InjectPreReadBytes(preReadData);
 
     #endregion Internal
 
@@ -459,6 +507,17 @@ public sealed partial class Connection :
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "udptransport"); }
+
+            try
+            {
+                if (_tcpTransport != null)
+                {
+                    _tcpTransport.Dispose();
+                    s_pool.Return(_tcpTransport);
+                    _tcpTransport = null;
+                }
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "tcptransport"); }
 
             try
             {

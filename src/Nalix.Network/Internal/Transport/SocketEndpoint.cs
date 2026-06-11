@@ -102,15 +102,15 @@ internal readonly struct SocketEndpoint : INetworkEndpoint, IEquatable<SocketEnd
 
         if (written == 4)
         {
-            uint v4 = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(buf[..4]);
+            uint v4 = BinaryPrimitives.ReadUInt32BigEndian(buf[..4]);
             hi = 0UL;
             lo = v4;
             isV6 = false;
         }
         else
         {
-            hi = System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(buf[..8]);
-            lo = System.Buffers.Binary.BinaryPrimitives.ReadUInt64BigEndian(buf.Slice(8, 8));
+            hi = BinaryPrimitives.ReadUInt64BigEndian(buf[..8]);
+            lo = BinaryPrimitives.ReadUInt64BigEndian(buf.Slice(8, 8));
             isV6 = true;
         }
     }
