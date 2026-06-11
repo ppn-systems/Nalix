@@ -31,7 +31,7 @@ namespace Nalix.Network.Internal.Pooling;
 /// <typeparam name="T">
 /// The pooled object type. Must implement <see cref="IPoolable"/> and provide a parameterless constructor.
 /// </typeparam>
-internal sealed class LocalPool<T> where T : class, IPoolable, new()
+internal struct LocalPool<T> where T : class, IPoolable, new()
 {
     /// <summary>
     /// The fixed number of slots in the local pool.
@@ -67,10 +67,23 @@ internal sealed class LocalPool<T> where T : class, IPoolable, new()
     private int _destroyed;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="LocalPool{T}"/> class.
+    /// Flag for CAS initialization lock:
+    /// 0 = uninitialized, 1 = initializing, 2 = initialized.
+    /// </summary>
+    private int _initLock;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LocalPool{T}"/> struct.
     /// </summary>
     /// <param name="globalPool">The global pool manager used for fallback operations.</param>
-    public LocalPool(ObjectPoolManager globalPool) => _globalPool = globalPool;
+    public LocalPool(ObjectPoolManager globalPool)
+    {
+        _globalPool = globalPool;
+        _items = null;
+        _mask = 0;
+        _destroyed = 0;
+        _initLock = 0;
+    }
 
     /// <summary>
     /// Attempts to acquire an object from the local pool.
@@ -329,60 +342,104 @@ internal sealed class LocalPool<T> where T : class, IPoolable, new()
     /// A delegate used to initialize each pooled object during creation.
     /// </param>
     /// <remarks>
-    /// Uses double-checked locking to avoid unnecessary synchronization.
+    /// Uses lock-free double-checked initialization with CAS spin.
     /// Objects are preallocated from the global pool and initialized once.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void EnsureInitialized(System.Action<T> initialize)
     {
-        if (_items != null || Volatile.Read(ref _destroyed) != 0)
+        if (Volatile.Read(ref _initLock) == 2 || Volatile.Read(ref _destroyed) != 0)
         {
             return;
         }
 
-        lock (this)
+        if (Interlocked.CompareExchange(ref _initLock, 1, 0) != 0)
         {
-            if (_items != null || Volatile.Read(ref _destroyed) != 0)
+            SpinWait spin = default;
+            while (Volatile.Read(ref _initLock) == 1)
             {
-                return;
+                spin.SpinOnce();
             }
+            return;
+        }
 
-            T[] arr = ArrayPool<T>.Shared.Rent(Size);
-
+        T[]? arr = null;
+        try
+        {
+            arr = ArrayPool<T>.Shared.Rent(Size);
             for (int i = 0; i < Size; i++)
             {
                 arr[i] = _globalPool.Get<T>();
                 initialize(arr[i]);
             }
-
             _items = arr;
+            Volatile.Write(ref _initLock, 2);
+        }
+        catch
+        {
+            if (arr != null)
+            {
+                for (int i = 0; i < Size; i++)
+                {
+                    if (arr[i] != null)
+                    {
+                        arr[i].ResetForPool();
+                        _globalPool.Return(arr[i]);
+                    }
+                }
+                ArrayPool<T>.Shared.Return(arr, clearArray: true);
+            }
+            Volatile.Write(ref _initLock, 0);
+            throw;
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void EnsureInitialized<TState>(TState state, System.Action<T, TState> initialize)
     {
-        if (_items != null || Volatile.Read(ref _destroyed) != 0)
+        if (Volatile.Read(ref _initLock) == 2 || Volatile.Read(ref _destroyed) != 0)
         {
             return;
         }
 
-        lock (this)
+        if (Interlocked.CompareExchange(ref _initLock, 1, 0) != 0)
         {
-            if (_items != null || Volatile.Read(ref _destroyed) != 0)
+            SpinWait spin = default;
+            while (Volatile.Read(ref _initLock) == 1)
             {
-                return;
+                spin.SpinOnce();
             }
+            return;
+        }
 
-            T[] arr = ArrayPool<T>.Shared.Rent(Size);
-
+        T[]? arr = null;
+        try
+        {
+            arr = ArrayPool<T>.Shared.Rent(Size);
             for (int i = 0; i < Size; i++)
             {
                 arr[i] = _globalPool.Get<T>();
                 initialize(arr[i], state);
             }
-
             _items = arr;
+            Volatile.Write(ref _initLock, 2);
+        }
+        catch
+        {
+            if (arr != null)
+            {
+                for (int i = 0; i < Size; i++)
+                {
+                    if (arr[i] != null)
+                    {
+                        arr[i].ResetForPool();
+                        _globalPool.Return(arr[i]);
+                    }
+                }
+                ArrayPool<T>.Shared.Return(arr, clearArray: true);
+            }
+            Volatile.Write(ref _initLock, 0);
+            throw;
         }
     }
 }

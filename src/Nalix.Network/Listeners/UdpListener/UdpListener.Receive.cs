@@ -535,38 +535,38 @@ public abstract partial class UdpListenerBase
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void LOG_ENDPOINT_MISMATCH_DROP(INetworkEndpoint? expected, EndPoint remoteEndPoint, Nalix.Abstractions.Identity.ISnowflake connectionId)
+    private void LOG_ENDPOINT_MISMATCH_DROP(INetworkEndpoint? expected, EndPoint remoteEndPoint, ulong connectionId)
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"endpoint-mismatch-drop expected={expected} remote-end-point={remoteEndPoint} connection-id={connectionId}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"endpoint-mismatch-drop expected={expected} remote-end-point={remoteEndPoint} connection-id={connectionId:X16}"));
         }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void LOG_REPLAY_WINDOW_DROP(ushort sequenceId, Nalix.Abstractions.Identity.ISnowflake connectionId)
+    private void LOG_REPLAY_WINDOW_DROP(ushort sequenceId, ulong connectionId)
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"replay-window-drop sequence-id={sequenceId} connection-id={connectionId}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"replay-window-drop sequence-id={sequenceId} connection-id={connectionId:X16}"));
         }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void LOG_UNAUTH_DROP(EndPoint remoteEndPoint, Nalix.Abstractions.Identity.ISnowflake connectionId)
+    private void LOG_UNAUTH_DROP(EndPoint remoteEndPoint, ulong connectionId)
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"unauth-drop remote-end-point={remoteEndPoint} connection-id={connectionId}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"unauth-drop remote-end-point={remoteEndPoint} connection-id={connectionId:X16}"));
         }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void LOG_ACCEPTED(Nalix.Abstractions.Identity.ISnowflake connectionId, EndPoint remoteEndPoint, int payloadSize)
+    private void LOG_ACCEPTED(ulong connectionId, EndPoint remoteEndPoint, int payloadSize)
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"accepted connection-id={connectionId} remote-end-point={remoteEndPoint} incoming-lease-length={payloadSize}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"accepted connection-id={connectionId:X16} remote-end-point={remoteEndPoint} incoming-lease-length={payloadSize}"));
         }
     }
 
