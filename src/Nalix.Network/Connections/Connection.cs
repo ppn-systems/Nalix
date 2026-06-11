@@ -75,9 +75,10 @@ public sealed partial class Connection :
         _ = s_pool.SetMaxCapacity<ConnectionBacking>(s_options.MaxConnections);
         _ = s_pool.SetMaxCapacity<SocketTcpTransport>(s_options.MaxConnections);
         _ = s_pool.SetMaxCapacity<SocketUdpTransport>(s_options.MaxConnections);
+        _ = s_pool.SetMaxCapacity<ProxyHeaderContext>(s_options.MaxConnections);
         _ = s_pool.SetMaxCapacity<PooledSocketReceiveContext>(s_options.MaxConnections);
 
-        int capacity = (s_options.MaxConnections * 2) + s_callbackOptions.MaxPendingNormalCallbacks + s_callbackOptions.MaxPendingPostCallbacks;
+        int capacity = (s_options.MaxConnections * 2) + 1024;
 
         // Event args and contexts are used per-packet, so we provision extra capacity to handle spikes without immediate contention.
         _ = s_pool.SetMaxCapacity<ConnectionEventArgs>(capacity);
@@ -93,12 +94,10 @@ public sealed partial class Connection :
         _ = s_pool.SetMaxCapacity<PooledSocketAsyncEventArgs>(socketOptions.MaxParallel + s_options.MaxConnections);
         _ = s_pool.Prealloc<PooledSocketAsyncEventArgs>(socketOptions.MaxParallel * 4);
 
-        _ = s_pool.SetMaxCapacity<ProxyHeaderContext>(socketOptions.MaxParallel + 4);
-        _ = s_pool.Prealloc<ProxyHeaderContext>(socketOptions.MaxParallel);
-
         _ = s_pool.Prealloc<SocketTcpTransport>(128);
         _ = s_pool.Prealloc<SocketUdpTransport>(64);
         _ = s_pool.Prealloc<PooledSocketReceiveContext>(128);
+        _ = s_pool.Prealloc<ProxyHeaderContext>(128);
 
         _ = s_pool.Prealloc<ConnectionEventArgs>(256);
         _ = s_pool.Prealloc<PooledConnectEventContext>(256);
