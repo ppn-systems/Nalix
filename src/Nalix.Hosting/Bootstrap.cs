@@ -116,12 +116,11 @@ public static partial class Bootstrap
         _ = ConfigurationManager.Instance.Get<ConnectionBlacklistStoreOptions>();
         _ = ConfigurationManager.Instance.Get<TrustedProxyOptions>();
         _ = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
-        _ = ConfigurationManager.Instance.Get<Network.Options.PoolingOptions>();
 
         // Runtime-level options
         _ = ConfigurationManager.Instance.Get<DispatchOptions>();
-        _ = ConfigurationManager.Instance.Get<Runtime.Options.PoolingOptions>();
-        _ = ConfigurationManager.Instance.Get<Runtime.Options.SessionStoreOptions>();
+        _ = ConfigurationManager.Instance.Get<PoolingOptions>();
+        _ = ConfigurationManager.Instance.Get<SessionStoreOptions>();
 
         // Security and concurrency options
         //_ = ConfigurationManager.Instance.Get<ConcurrencyOptions>();
