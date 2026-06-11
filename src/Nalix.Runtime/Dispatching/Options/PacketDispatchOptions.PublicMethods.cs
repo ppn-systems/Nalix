@@ -314,10 +314,11 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             // Use the UNRELIABLE flag as the source of truth for transport logic.
             context.Initialize(
-                packet,
-                connection,
-                descriptor.Metadata,
-                (packet.Header.Flags & PacketFlags.UNRELIABLE) == 0, token);
+                packet: packet,
+                connection: connection,
+                descriptor: descriptor.Metadata,
+                reliable: (packet.Header.Flags & PacketFlags.UNRELIABLE) == 0,
+                ownsPacket: true, token: token);
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {

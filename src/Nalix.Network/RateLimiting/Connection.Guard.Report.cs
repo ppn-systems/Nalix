@@ -66,6 +66,8 @@ public sealed partial class ConnectionGuard
 
             writer.WriteNumber("SubnetTrackedV4", _subnetMapV4.Count);
             writer.WriteNumber("SubnetTrackedV6", _subnetMapV6.Count);
+            writer.WriteNumber("GlobalConnections", Volatile.Read(ref _globalConnections));
+            writer.WriteNumber("MaxGlobalConnections", _maxGlobalConnections);
             writer.WriteNumber("EWMARate", _ewmaConnectionRate);
             writer.WriteBoolean("AdaptiveActive", _config.EnableAdaptiveMode && Volatile.Read(ref _globalConnections) > _maxGlobalConnections * _config.AdaptiveLoadThreshold);
 
@@ -174,6 +176,7 @@ public sealed partial class ConnectionGuard
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"TotalCleaned       : {metrics.TotalCleaned:N0}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"EWMARate           : {_ewmaConnectionRate:F2} req/s");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Subnets Tracked    : v4={_subnetMapV4.Count}, v6={_subnetMapV6.Count}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Global Connections : {Volatile.Read(ref _globalConnections)} / {_maxGlobalConnections}");
 
         bool adaptiveActive = _config.EnableAdaptiveMode && Volatile.Read(ref _globalConnections) > _maxGlobalConnections * _config.AdaptiveLoadThreshold;
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Adaptive Limits    : {(adaptiveActive ? "ACTIVE (Throttled)" : "Normal")}");

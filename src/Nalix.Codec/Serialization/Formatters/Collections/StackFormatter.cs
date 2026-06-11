@@ -51,7 +51,9 @@ internal sealed class StackFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
     : IFillableFormatter<System.Collections.Generic.Stack<T>?>
 {
-    private static readonly IFormatter<T> s_elementFormatter = FormatterProvider.Get<T>();
+    private static IFormatter<T>? s_elementFormatter;
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static IFormatter<T> GetElementFormatter() => s_elementFormatter ??= FormatterProvider.Get<T>();
     private static string DebuggerDisplay => $"StackFormatter<{typeof(T).Name}>";
 
     /// <summary>
@@ -124,7 +126,7 @@ internal sealed class StackFormatter<
         // -> Push() khi deserialize theo thứ tự ngược lại sẽ phục hồi đúng stack
         foreach (T element in value)
         {
-            s_elementFormatter.Serialize(ref writer, element);
+            GetElementFormatter().Serialize(ref writer, element);
         }
     }
 
@@ -182,7 +184,7 @@ internal sealed class StackFormatter<
         T[] buffer = new T[count];
         for (int i = 0; i < count; i++)
         {
-            buffer[i] = s_elementFormatter.Deserialize(ref reader);
+            buffer[i] = GetElementFormatter().Deserialize(ref reader);
         }
 
         // Push từ bottom -> top để khôi phục đúng thứ tự LIFO ban đầu
@@ -220,7 +222,7 @@ internal sealed class StackFormatter<
         T[] buffer = new T[count];
         for (int i = 0; i < count; i++)
         {
-            buffer[i] = s_elementFormatter.Deserialize(ref reader);
+            buffer[i] = GetElementFormatter().Deserialize(ref reader);
         }
 
         for (int i = count - 1; i >= 0; i--)

@@ -26,7 +26,7 @@ internal class Startup
 
     public static ILogger CreateBootstrapLogger() => new NLogixBuilder()
         .AddTarget(new BatchConsoleLogTarget(t => t.EnableColors = false))
-        .SetMinimumLevel(LogLevel.Information)
+        .SetMinimumLevel(LogLevel.Warning)
         .Build();
 
     public static NetworkApplication Configure(ILogger logger)
@@ -308,7 +308,7 @@ internal class Startup
             {
                 // Enable only if your TCP proxy actually sends PROXY protocol V1/V2.
                 // For direct TCP benchmark, keep this false.
-                o.Enabled = false;
+                o.Enabled = true;
                 o.RequireTrustedProxy = false;
                 o.HeaderTimeoutMs = 1000;
             })

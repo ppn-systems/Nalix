@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Linq;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -363,8 +362,9 @@ public sealed partial class Connection :
                         try
                         {
                             Delegate[] handlers = _onCloseEvent.GetInvocationList();
-                            foreach (EventHandler<IConnectEventArgs> handler in handlers.Cast<EventHandler<IConnectEventArgs>>())
+                            for (int i = 0; i < handlers.Length; i++)
                             {
+                                EventHandler<IConnectEventArgs> handler = (EventHandler<IConnectEventArgs>)handlers[i];
                                 try
                                 {
                                     handler(this, args);
@@ -642,8 +642,9 @@ public sealed partial class Connection :
             if (self._onCloseEvent != null)
             {
                 Delegate[] handlers = self._onCloseEvent.GetInvocationList();
-                foreach (EventHandler<IConnectEventArgs> handler in handlers.Cast<EventHandler<IConnectEventArgs>>())
+                for (int i = 0; i < handlers.Length; i++)
                 {
+                    EventHandler<IConnectEventArgs> handler = (EventHandler<IConnectEventArgs>)handlers[i];
                     try
                     {
                         handler(self, e);

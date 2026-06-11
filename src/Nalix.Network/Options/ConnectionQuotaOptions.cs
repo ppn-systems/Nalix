@@ -22,6 +22,16 @@ public sealed partial class ConnectionQuotaOptions : ConfigurationLoader, IValid
     public int MaxConnectionsPerIpAddress { get; set; } = 10;
 
     /// <summary>
+    /// Gets or sets the hard cap on tracked endpoint entries in the ConnectionGuard map.
+    /// When the map reaches this limit, new unique IPs are rejected until stale entries
+    /// are evicted via random-sampling (O(1) Redis-style eviction).
+    /// Set to -1 for unlimited (no cap). Default: 50,000.
+    /// </summary>
+    [IniComment("Hard cap on tracked endpoint entries. -1 = unlimited. Uses O(1) random-sampling eviction when full (default 50000)")]
+    [ValueRange(-1, 10_000_000)]
+    public int MaxTrackedEndpoints { get; set; } = 50_000;
+
+    /// <summary>
     /// Gets or sets the maximum number of connection attempts allowed within the configured rate window.
     /// </summary>
     [IniComment("Max connection attempts from one IP within the rate window (1–10,000,000)")]

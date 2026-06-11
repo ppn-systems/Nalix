@@ -28,7 +28,9 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
 {
     private static string DebuggerDisplay => "StringFormatter<SYSTEM.String[]>";
 
-    private static readonly IFormatter<string> s_stringFormatterInstance = FormatterProvider.Get<string>();
+    private static IFormatter<string>? s_stringFormatterInstance;
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static IFormatter<string> GetStringFormatter() => s_stringFormatterInstance ??= FormatterProvider.Get<string>();
 
     /// <summary>
     /// Serializes a string array into the provided writer.
@@ -71,7 +73,7 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
         {
             // Delegate element encoding to the string formatter so one place owns the
             // null/empty/UTF-8 details.
-            s_stringFormatterInstance.Serialize(ref writer, value[i]);
+            GetStringFormatter().Serialize(ref writer, value[i]);
         }
     }
 
@@ -114,7 +116,7 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
         for (int i = 0; i < length; i++)
         {
             // Each element is decoded using the same rules as standalone strings.
-            result[i] = s_stringFormatterInstance.Deserialize(ref reader);
+            result[i] = GetStringFormatter().Deserialize(ref reader);
         }
 
         return result;

@@ -136,10 +136,10 @@ public static class SystemControlHandlers
             return;
         }
 
-        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
             DiagnosticsEvents.Write(
-                DiagnosticsEvents.Internal.Error,
+                DiagnosticsEvents.Internal.Information,
                 new DiagnosticLog(
                     "RT.SystemControlHandlers:HandleAsync",
                     $"error ep={connection.NetworkEndpoint} reason={packet.Reason}"));

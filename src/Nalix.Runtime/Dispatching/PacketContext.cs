@@ -32,6 +32,7 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
     #region Fields
 
     private int _state;
+    private bool _ownsPacket;
     private bool _isInitialized;
 
     #endregion Fields
@@ -149,6 +150,7 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
     /// <param name="connection">The connection associated with the packet.</param>
     /// <param name="descriptor">The metadata describing the packet.</param>
     /// <param name="reliable">Whether the packet was received over a reliable transport.</param>
+    /// <param name="ownsPacket">Indicates whether the context owns the packet and is responsible for its disposal.</param>
     /// <param name="token">The cancellation token for the context.</param>
     /// <remarks>
     /// This method marks the pooled instance as in use before populating the
@@ -156,7 +158,7 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
     /// </remarks>
     /// <exception cref="InternalErrorException"></exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void Initialize(TPacket packet, IConnection connection, PacketMetadata descriptor, bool reliable, CancellationToken token = default)
+    internal void Initialize(TPacket packet, IConnection connection, PacketMetadata descriptor, bool reliable, bool ownsPacket = true, CancellationToken token = default)
     {
         _ = Interlocked.Exchange(ref _state, (int)PacketContextState.InUse);
 
@@ -172,6 +174,7 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
         this.Sender.Initialize(this);
 
         _isInitialized = true;
+        _ownsPacket = ownsPacket;
     }
 
     #endregion Methods
@@ -209,7 +212,7 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
     {
         if (_isInitialized)
         {
-            if (this.Packet is IDisposable disposablePacket)
+            if (_ownsPacket && this.Packet is IDisposable disposablePacket)
             {
                 disposablePacket.Dispose();
             }

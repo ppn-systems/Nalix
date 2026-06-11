@@ -72,7 +72,7 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader, IValidat
     /// </summary>
     [IniComment("Maximum simultaneous parallel listeners/acceptors (1–1024, default 5)")]
     [ValueRange(1, 1024)]
-    public int MaxParallel { get; set; } = 5;
+    public int MaxParallel { get; set; } = 4;
 
     /// <summary>
     /// Gets or sets the maximum number of parallel connections.
