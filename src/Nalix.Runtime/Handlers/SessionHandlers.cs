@@ -17,7 +17,6 @@ using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Codec.Security.Hashing;
 using Nalix.Environment.Time;
-using Nalix.Framework.Identifiers;
 using Nalix.Runtime.Extensions;
 
 namespace Nalix.Runtime.Handlers;
@@ -156,7 +155,7 @@ public static partial class SessionHandlers
         ulong newToken = connection.ID;
 
         Span<byte> responseMessageBytes = stackalloc byte[16];
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(responseMessageBytes, newToken);
+        BinaryPrimitives.WriteUInt64LittleEndian(responseMessageBytes, newToken);
         BinaryPrimitives.WriteInt64LittleEndian(responseMessageBytes[8..], Clock.UnixSecondsNow() / 30);
         Span<byte> responseProofBytes = stackalloc byte[32];
         HmacKeccak256.Compute(session.Snapshot.Secret.AsSpan(), responseMessageBytes, responseProofBytes);
