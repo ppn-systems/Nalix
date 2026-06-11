@@ -86,6 +86,7 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
     private long _totalTrimmedObjects;
 
     private readonly int _defaultMaxPoolSize;
+    private readonly int _threadCacheDepth;
     private readonly IRecurringHandle? _trimJob;
 
     private const int MinimumHealthSample = 32;
@@ -172,6 +173,7 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
         _config.Validate();
         _lastHealthCheckUtc = DateTime.UtcNow.Ticks;
         _defaultMaxPoolSize = config.DefaultMaxPoolSize;
+        _threadCacheDepth = config.ThreadCacheDepth;
 
         if (_config.EnableObjectTrimming)
         {
@@ -446,7 +448,7 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
             return pool.SetMaxCapacity<T>(maxCapacity);
         }
 
-        pool = new ObjectPool(maxCapacity);
+        pool = new ObjectPool(maxCapacity, _threadCacheDepth);
         _poolDict[type] = pool;
 
         // Update peak pool count (use Interlocked to avoid races)
@@ -739,7 +741,7 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private ObjectPool CREATE_POOL_SLOW<T>(Type type) where T : IPoolable
     {
-        ObjectPool pool = new(_defaultMaxPoolSize);
+        ObjectPool pool = new(_defaultMaxPoolSize, _threadCacheDepth);
         if (_poolDict.TryAdd(type, pool))
         {
             // Update peak pool count on new pool creation.

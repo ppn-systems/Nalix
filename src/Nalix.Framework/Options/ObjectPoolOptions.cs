@@ -127,6 +127,21 @@ public sealed partial class ObjectPoolOptions : ConfigurationLoader, IValidatabl
     public int DefaultPreallocate { get; set; } = 0;
 
     /// <summary>
+    /// Maximum number of objects held in per-thread cache slots, per pooled type.
+    /// Set to <c>0</c> (default) to disable thread-local caching entirely.
+    /// <para>
+    /// WARNING: Do not enable in highly asynchronous environments (async/await) using
+    /// the ThreadPool. Thread-local caches keep objects on the thread that returned them,
+    /// so a continuation that resumes on a different thread will miss the cache.
+    /// This leads to objects being stranded on idle threads and inaccurate
+    /// <c>AvailableCount</c> reporting.
+    /// </para>
+    /// </summary>
+    [IniComment("Max thread-local slots per type per thread. Keep at 0 (disabled) for async/await workloads to prevent object stranding.")]
+    [ValueRange(0, 4)]
+    public int ThreadCacheDepth { get; set; } = 0;
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <exception cref="Abstractions.Exceptions.ValidationException">

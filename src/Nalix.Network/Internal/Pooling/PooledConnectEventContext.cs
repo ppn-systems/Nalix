@@ -86,7 +86,7 @@ internal sealed class PooledConnectEventContext : IPoolable
         Sender = null;
         Callback = null;
         ReleasePendingPacketOnCompletion = false;
-        LocalOwner = null;
+        this.LocalOwner = null;
     }
 
     /// <inheritdoc/>
