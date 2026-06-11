@@ -35,8 +35,8 @@ internal sealed class ValueTupleFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, in (T1, T2) value)
     {
-        F1().Serialize(ref writer, value.Item1);
-        F2().Serialize(ref writer, value.Item2);
+        this.F1().Serialize(ref writer, value.Item1);
+        this.F2().Serialize(ref writer, value.Item2);
     }
 
     /// <summary>
@@ -44,7 +44,7 @@ internal sealed class ValueTupleFormatter<
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public (T1, T2) Deserialize(ref DataReader reader) => (F1().Deserialize(ref reader), F2().Deserialize(ref reader));
+    public (T1, T2) Deserialize(ref DataReader reader) => (this.F1().Deserialize(ref reader), this.F2().Deserialize(ref reader));
 }
 
 // =========================================================================
@@ -83,9 +83,9 @@ internal sealed class ValueTupleFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, in (T1, T2, T3) value)
     {
-        F1().Serialize(ref writer, value.Item1);
-        F2().Serialize(ref writer, value.Item2);
-        F3().Serialize(ref writer, value.Item3);
+        this.F1().Serialize(ref writer, value.Item1);
+        this.F2().Serialize(ref writer, value.Item2);
+        this.F3().Serialize(ref writer, value.Item3);
     }
 
     /// <summary>
@@ -94,7 +94,7 @@ internal sealed class ValueTupleFormatter<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public (T1, T2, T3) Deserialize(ref DataReader reader)
-        => (F1().Deserialize(ref reader), F2().Deserialize(ref reader), F3().Deserialize(ref reader));
+        => (this.F1().Deserialize(ref reader), this.F2().Deserialize(ref reader), this.F3().Deserialize(ref reader));
 }
 
 // =========================================================================
@@ -137,10 +137,10 @@ internal sealed class ValueTupleFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, in (T1, T2, T3, T4) value)
     {
-        F1().Serialize(ref writer, value.Item1);
-        F2().Serialize(ref writer, value.Item2);
-        F3().Serialize(ref writer, value.Item3);
-        F4().Serialize(ref writer, value.Item4);
+        this.F1().Serialize(ref writer, value.Item1);
+        this.F2().Serialize(ref writer, value.Item2);
+        this.F3().Serialize(ref writer, value.Item3);
+        this.F4().Serialize(ref writer, value.Item4);
     }
 
     /// <summary>
@@ -149,7 +149,7 @@ internal sealed class ValueTupleFormatter<
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public (T1, T2, T3, T4) Deserialize(ref DataReader reader)
-        => (F1().Deserialize(ref reader), F2().Deserialize(ref reader), F3().Deserialize(ref reader), F4().Deserialize(ref reader));
+        => (this.F1().Deserialize(ref reader), this.F2().Deserialize(ref reader), this.F3().Deserialize(ref reader), this.F4().Deserialize(ref reader));
 }
 
 // =========================================================================
@@ -203,15 +203,15 @@ internal sealed class ValueTupleFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void Serialize(ref DataWriter writer, in (T1, T2, T3, T4, T5) value)
     {
-        F1().Serialize(ref writer, value.Item1);
-        F2().Serialize(ref writer, value.Item2);
-        F3().Serialize(ref writer, value.Item3);
-        F4().Serialize(ref writer, value.Item4);
-        F5().Serialize(ref writer, value.Item5);
+        this.F1().Serialize(ref writer, value.Item1);
+        this.F2().Serialize(ref writer, value.Item2);
+        this.F3().Serialize(ref writer, value.Item3);
+        this.F4().Serialize(ref writer, value.Item4);
+        this.F5().Serialize(ref writer, value.Item5);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public (T1, T2, T3, T4, T5) Deserialize(ref DataReader reader)
-        => (F1().Deserialize(ref reader), F2().Deserialize(ref reader), F3().Deserialize(ref reader), F4().Deserialize(ref reader), F5().Deserialize(ref reader));
+        => (this.F1().Deserialize(ref reader), this.F2().Deserialize(ref reader), this.F3().Deserialize(ref reader), this.F4().Deserialize(ref reader), this.F5().Deserialize(ref reader));
 }
