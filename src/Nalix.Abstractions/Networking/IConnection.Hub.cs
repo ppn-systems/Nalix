@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using Nalix.Abstractions.Identity;
 
 namespace Nalix.Abstractions.Networking;
 
@@ -30,13 +29,6 @@ public interface IConnectionHub : IReportable, IDisposable
     /// <param name="id">The identifier of the connection to retrieve.</param>
     /// <returns>The connection associated with the identifier, or <c>null</c> if not found.</returns>
     IConnection? GetConnection(ulong id);
-
-    /// <summary>
-    /// Retrieves a client connection by its unique identifier.
-    /// </summary>
-    /// <param name="id">The unique identifier of the connection to retrieve.</param>
-    /// <returns>The <see cref="IConnection"/> if found; otherwise, <c>null</c>.</returns>
-    IConnection? GetConnection(ISnowflake id);
 
     /// <summary>
     /// Retrieves a client connection by its unique identifier.
