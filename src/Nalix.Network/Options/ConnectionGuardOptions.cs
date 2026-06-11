@@ -16,9 +16,9 @@ public sealed partial class ConnectionGuardOptions : ConfigurationLoader, IValid
     /// <summary>
     /// Gets or sets the maximum number of concurrent connections allowed globally.
     /// </summary>
-    [IniComment("Maximum concurrent connections across all IPs (-1 = unlimited, default -1)")]
-    [ValueRange(-1, int.MaxValue)]
-    public int MaxConnections { get; set; } = -1;
+    [IniComment("Maximum concurrent connections across all IPs (default 2000)")]
+    [ValueRange(1, int.MaxValue)]
+    public int MaxConnections { get; set; } = 2_000;
 
     /// <summary>
     /// Gets or sets the ban duration for IPs that exceed the connection rate limit.
@@ -61,33 +61,5 @@ public sealed partial class ConnectionGuardOptions : ConfigurationLoader, IValid
     /// <exception cref="Abstractions.Exceptions.ValidationException">
     /// Thrown when one or more validation attributes fail.
     /// </exception>
-    public void Validate()
-    {
-        this.ValidateDataAnnotations();
-
-        if (this.MaxConnections < -1 || this.MaxConnections == 0)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxConnections), "MaxConnections must be -1 (unlimited) or positive.");
-        }
-
-        if (this.BanDuration < System.TimeSpan.FromSeconds(1) || this.BanDuration > System.TimeSpan.FromDays(1))
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.BanDuration), "BanDuration must be at least 1 second and at most 1 day.");
-        }
-
-        if (this.DDoSLogSuppressWindow < System.TimeSpan.FromSeconds(1) || this.DDoSLogSuppressWindow > System.TimeSpan.FromHours(1))
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.DDoSLogSuppressWindow), "DDoSLogSuppressWindow must be between 1 second and 1 hour.");
-        }
-
-        if (this.MaxErrorThreshold < 1)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxErrorThreshold), "MaxErrorThreshold must be at least 1.");
-        }
-
-        if (this.MaxPacketPerSecond < 1 || this.MaxPacketPerSecond > 10_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxPacketPerSecond), "MaxPacketPerSecond must be between 1 and 10,000,000.");
-        }
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

@@ -243,15 +243,6 @@ internal sealed class TimingWheel : IActivatable
 
         _options.Validate();
 
-        PoolingOptions options = ConfigurationManager.Instance.Get<PoolingOptions>();
-        options.Validate();
-
-        _ = _poolManager.SetMaxCapacity<TimeoutTask>(options.TimeoutTaskCapacity);
-
-        // Preallocate objects in the pools so the wheel does not pay allocation
-        // cost on the first few timeout registrations.
-        _ = _poolManager.Prealloc<TimeoutTask>(options.TimeoutTaskPreallocate);
-
         _wheelSize = _options.BucketCount;
         _tickMs = _options.TickDuration;
         _idleTimeoutMs = _options.IdleTimeoutMs;
