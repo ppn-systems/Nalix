@@ -551,7 +551,7 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
             info["LastAccessType"] = metrics.LastAccessType ?? "None";
             info["Outstanding"] = metrics.Outstanding;
             info["PeakOutstanding"] = metrics.PeakOutstanding;
-            info["Status"] = GET_POOL_STATUS(metrics);
+            info["Status"] = this.GET_POOL_STATUS(type, metrics);
 
             if (_config.EnableDiagnostics)
             {
@@ -652,7 +652,16 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
                 continue;
             }
 
-            if (windowMissRate > FailureThreshold)
+            long totalCreated = Interlocked.Read(ref metrics.TotalCreated);
+            int maxCapacity = 0;
+            if (_poolDict.TryGetValue(kvp.Key, out ObjectPool? pool))
+            {
+                maxCapacity = pool.GetMaxCapacity(kvp.Key);
+            }
+
+            bool isWarmingUp = maxCapacity > 0 && totalCreated <= maxCapacity;
+
+            if (windowMissRate > FailureThreshold && !isWarmingUp)
             {
                 int consecutiveFailures = Interlocked.Increment(ref metrics.ConsecutiveFailures);
                 unhealthyCount++;
@@ -769,15 +778,34 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
     #region Private Methods
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string GET_POOL_STATUS(PoolMetrics metrics)
+    private string GET_POOL_STATUS(Type type, PoolMetrics metrics)
     {
         if (Volatile.Read(ref metrics.ConsecutiveFailures) >= 2)
         {
             return "Unhealthy";
         }
+        else if (Volatile.Read(ref metrics.ConsecutiveFailures) == 1)
+        {
+            return "Fail (1)";
+        }
 
         long gets = Interlocked.Read(ref metrics.TotalGets);
         long misses = Interlocked.Read(ref metrics.CacheMisses);
+
+        long totalCreated = Interlocked.Read(ref metrics.TotalCreated);
+        int maxCapacity = 0;
+        if (_poolDict.TryGetValue(type, out ObjectPool? pool))
+        {
+            maxCapacity = pool.GetMaxCapacity(type);
+        }
+
+        bool isWarmingUp = maxCapacity > 0 && totalCreated <= maxCapacity;
+
+        if (isWarmingUp && misses > 0)
+        {
+            return "Warming";
+        }
+
         return gets > 0 && gets < MinimumHealthSample && misses > 0 ? "Warming" : "OK";
     }
 

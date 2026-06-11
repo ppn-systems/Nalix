@@ -553,6 +553,8 @@ public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth 
 
     internal int AvailableCountByType(Type type) => _typePools.TryGetValue(type, out TypePool? typePool) ? typePool.AvailableCount : 0;
 
+    internal int GetMaxCapacity(Type type) => _typePools.TryGetValue(type, out TypePool? typePool) ? typePool.MaxCapacity : _defaultMaxItemsPerType;
+
     internal Dictionary<string, object> GetTypeInfoByType(Type type)
     {
         return _typePools.TryGetValue(type, out TypePool? typePool)
