@@ -111,8 +111,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
                         continue;
                     }
 
-                    ConnectionState state = node.State;
-                    if (!state.IsActive)
+                    ConnectionState? state = node.State;
+                    if (state is null || !state.IsActive)
                     {
                         continue;
                     }
@@ -120,7 +120,11 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
                     int pending = state.TotalCount;
                     if (pending > 0)
                     {
-                        result[node.Connection] = pending;
+                        IConnection? conn = node.Connection;
+                        if (conn is not null)
+                        {
+                            result[conn] = pending;
+                        }
                     }
                 }
             }
@@ -349,8 +353,12 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
             Node? node = Interlocked.Exchange(ref _stateBuckets[i], null);
             while (node is not null)
             {
-                _ = node.State.TryDeactivate();
-                _ = node.State.DrainAndDisposeAll();
+                ConnectionState? state = node.State;
+                if (state is not null)
+                {
+                    _ = state.TryDeactivate();
+                    _ = state.DrainAndDisposeAll();
+                }
                 node = node.Next;
             }
         }
@@ -605,14 +613,20 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
                     continue;
                 }
 
+                ConnectionState? existingState = node.State;
+                if (existingState is null)
+                {
+                    continue;
+                }
+
                 if (Volatile.Read(ref node.Removed) != 0 &&
                     Interlocked.CompareExchange(ref node.Removed, 0, 1) == 1)
                 {
-                    node.State.Reactivate();
+                    existingState.Reactivate();
                     _ = Interlocked.Increment(ref _activeConnections);
                 }
 
-                return node.State;
+                return existingState;
             }
 
             ConnectionState createdState = new(connection, _boundedPerPriorityMode, _boundedPerPriorityCapacity);
@@ -634,7 +648,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
 
         for (Node? node = Volatile.Read(ref _stateBuckets[index]); node is not null; node = node.Next)
         {
-            if (ReferenceEquals(node.Connection, connection))
+            IConnection? nodeConnection = node.Connection;
+            if (nodeConnection is not null && ReferenceEquals(nodeConnection, connection))
             {
                 found = node;
                 return true;
@@ -668,8 +683,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
             return;
         }
 
-        ConnectionState state = node.State;
-        if (!state.TryDeactivate())
+        ConnectionState? state = node.State;
+        if (state is null || !state.TryDeactivate())
         {
             return;
         }
@@ -686,6 +701,12 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
         {
             DecrementNonNegative(ref _packetCount.Value, drained);
         }
+
+        // Break the tombstone node's strong references to the closed connection graph.
+        // The node may remain in the bucket chain as a small tombstone, but it must not
+        // retain ConnectionState, Connection, SocketConnection, SocketTcpTransport, or Socket.
+        node.State = null;
+        node.Connection = null;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -848,8 +869,13 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
         public int Removed;
 
         public readonly Node? Next = next;
-        public readonly ConnectionState State = state;
-        public readonly IConnection Connection = connection;
+
+        // Mutable so RemoveConnection can null them to break the tombstone's
+        // retention of the closed connection graph (Connection -> SocketTcpTransport
+        // -> SocketConnection -> Socket). Without this, every removed node
+        // permanently roots the entire connection object graph.
+        public ConnectionState? State = state;
+        public IConnection? Connection = connection;
     }
 
     private sealed class UnboundedQueue
