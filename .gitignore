@@ -63,3 +63,6 @@ build_errors*.txt
 /LoadTesterBin
 *.trx
 .claude/settings.local.json
+*.exe
+/tools/AllocAnalyzer
+/tools/runtime-observation-smoke
