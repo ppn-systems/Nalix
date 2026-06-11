@@ -355,6 +355,185 @@ public sealed class PacketContextBridgeLeakTests
 
     #endregion
 
+    #region Response Packet Disposal - Sync
+
+    [Fact]
+    public async Task ResponsePacket_SyncHandler_DisposedAfterSend()
+    {
+        using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
+        using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
+
+        PacketDispatchOptions<IPacket> options = new();
+        _ = options.WithHandler<SyncResponseController>();
+
+        options.TryResolveHandler(0x3000, out var descriptor).Should().BeTrue();
+
+        s_pool.GetTypeInfo<Control>(); // ensure pool is initialized
+
+        for (int i = 0; i < 200; i++)
+        {
+            Control packet = CreateControlPacket(0x3000);
+            await options.ExecuteResolvedHandlerAsync(descriptor, packet, connection);
+        }
+
+        await Task.Delay(200);
+
+        var info = s_pool.GetTypeInfo<Control>();
+        long outstanding = (long)info["Outstanding"];
+
+        // Response packets created by the handler must be returned to the pool.
+        // Allow small tolerance for pool warmup but assert no monotonic growth.
+        outstanding.Should().BeLessThanOrEqualTo(2,
+            "handler-returned Control response packets must be disposed after send");
+    }
+
+    [PacketController]
+    [Nalix.Abstractions.Injection.Injectable]
+    internal sealed class SyncResponseController
+    {
+        [PacketOpcode(0x3000)]
+        public static Control Handle(IPacketContext<Control> context)
+        {
+            Control response = new();
+            response.Initialize(ControlType.PONG, sequenceId: context.Packet.Header.SequenceId);
+            return response;
+        }
+    }
+
+    #endregion
+
+    #region Response Packet Disposal - Async ValueTask<T>
+
+    [Fact]
+    public async Task ResponsePacket_AsyncValueTaskHandler_DisposedAfterSend()
+    {
+        using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
+        using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
+
+        PacketDispatchOptions<IPacket> options = new();
+        _ = options.WithHandler<AsyncValueTaskResponseController>();
+
+        options.TryResolveHandler(0x3001, out var descriptor).Should().BeTrue();
+
+        for (int i = 0; i < 200; i++)
+        {
+            Control packet = CreateControlPacket(0x3001);
+            await options.ExecuteResolvedHandlerAsync(descriptor, packet, connection);
+        }
+
+        await Task.Delay(200);
+
+        var info = s_pool.GetTypeInfo<Control>();
+        long outstanding = (long)info["Outstanding"];
+
+        outstanding.Should().BeLessThanOrEqualTo(2,
+            "async handler-returned Control response packets must be disposed after send");
+    }
+
+    [PacketController]
+    [Nalix.Abstractions.Injection.Injectable]
+    internal sealed class AsyncValueTaskResponseController
+    {
+        [PacketOpcode(0x3001)]
+        public static async ValueTask<Control> Handle(IPacketContext<Control> context)
+        {
+            await Task.Yield();
+            Control response = new();
+            response.Initialize(ControlType.PONG, sequenceId: context.Packet.Header.SequenceId);
+            return response;
+        }
+    }
+
+    #endregion
+
+    #region Same Packet Return (no double-dispose)
+
+    [Fact]
+    public async Task ResponsePacket_HandlerReturnsRequestPacket_NoDoubleDispose()
+    {
+        using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
+        using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
+
+        PacketDispatchOptions<IPacket> options = new();
+        _ = options.WithHandler<SamePacketReturnController>();
+
+        options.TryResolveHandler(0x3002, out var descriptor).Should().BeTrue();
+
+        // Dispatch many times — if double-dispose occurred, the packet pool
+        // would log negative-outstanding errors or throw.
+        for (int i = 0; i < 200; i++)
+        {
+            Control packet = CreateControlPacket(0x3002);
+            await options.ExecuteResolvedHandlerAsync(descriptor, packet, connection);
+        }
+
+        await Task.Delay(200);
+
+        // If we get here without exceptions, the atomic _isRented guard
+        // prevented double-return. Verify pool is healthy.
+        var info = s_pool.GetTypeInfo<Control>();
+        string status = (string)info["Status"];
+        status.Should().NotBe("Unhealthy",
+            "returning the same request packet must not corrupt the pool");
+    }
+
+    [PacketController]
+    [Nalix.Abstractions.Injection.Injectable]
+    internal sealed class SamePacketReturnController
+    {
+        [PacketOpcode(0x3002)]
+        public static Control Handle(IPacketContext<Control> context)
+        {
+            // Return the request packet itself as the response.
+            // Dispatcher must detect ReferenceEquals and skip dispose,
+            // letting the base PacketContext handle cleanup.
+            return context.Packet;
+        }
+    }
+
+    #endregion
+
+    #region Response Packet + Exception (handler throws after partial work)
+
+    [Fact]
+    public async Task ResponsePacket_HandlerThrows_RequestContextStillCleanedUp()
+    {
+        using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
+        using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
+
+        PacketDispatchOptions<IPacket> options = new();
+        _ = options.WithHandler<ThrowingResponseController>();
+
+        options.TryResolveHandler(0x3003, out var descriptor).Should().BeTrue();
+
+        for (int i = 0; i < 100; i++)
+        {
+            Control packet = CreateControlPacket(0x3003);
+            await options.ExecuteResolvedHandlerAsync(descriptor, packet, connection);
+        }
+
+        await Task.Delay(200);
+
+        // Bridge context and request context must still be cleaned up on exception.
+        var ctxInfo = s_pool.GetTypeInfo<PacketContext<Control>>();
+        long ctxOutstanding = (long)ctxInfo["Outstanding"];
+        ctxOutstanding.Should().BeLessThanOrEqualTo(1,
+            "PacketContext<Control> must be returned even when handler throws");
+    }
+
+    [PacketController]
+    [Nalix.Abstractions.Injection.Injectable]
+    internal sealed class ThrowingResponseController
+    {
+        [PacketOpcode(0x3003)]
+        public static Control Handle(IPacketContext<Control> context)
+        {
+            throw new InvalidOperationException("Handler fails before returning response");
+        }
+    }
+
+    #endregion
+
     #region ConnectedSocketScope
 
     private sealed class ConnectedSocketScope : IDisposable

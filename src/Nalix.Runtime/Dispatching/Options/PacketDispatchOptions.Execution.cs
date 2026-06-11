@@ -106,6 +106,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         async ValueTask InvokeHandlerAsync(CancellationToken ct = default)
         {
+            IPacket? responsePacket = null;
             try
             {
                 ct.ThrowIfCancellationRequested();
@@ -133,6 +134,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 {
                     if (result is IPacket packetResult)
                     {
+                        responsePacket = packetResult;
                         await AwaitReturnAsync(context.Sender.SendAsync(packetResult, ct), ct).ConfigureAwait(false);
                     }
                     else if (result is ReadOnlyMemory<byte> rom)
@@ -156,6 +158,22 @@ public sealed partial class PacketDispatchOptions<TPacket>
             {
                 await this.HandleDispatchExceptionAsync(descriptor, context, ex)
                           .ConfigureAwait(false);
+            }
+            finally
+            {
+                // Return handler-returned response packets to their pool.
+                // PacketSender.SendAsync only serializes; it does not own or dispose the packet.
+                // Skip disposal when the handler returned the same request-packet instance,
+                // because the base PacketContext already owns that lifecycle.
+                // PacketBase.Dispose is idempotent (atomic _isRented guard), so this is safe
+                // even if the packet was already disposed by another path.
+                if (responsePacket is not null && !ReferenceEquals(responsePacket, context.Packet))
+                {
+                    if (responsePacket is IDisposable disposableResponse)
+                    {
+                        disposableResponse.Dispose();
+                    }
+                }
             }
         }
 
@@ -342,9 +360,6 @@ public sealed partial class PacketDispatchOptions<TPacket>
         or SocketError.ConnectionReset
         or SocketError.NotConnected
         or SocketError.Shutdown;
-
-
-
 
     /// <summary>
     /// Maps an exception to the protocol-level response that should be sent back to the peer.
