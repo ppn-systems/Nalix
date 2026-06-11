@@ -20,8 +20,6 @@ using Nalix.Hosting;
 using Nalix.Network.Options;
 using Nalix.Framework.Options;
 
-[assembly: CollectionBehavior(DisableTestParallelization = true)]
-
 namespace Nalix.Integration.Tests;
 
 public class WebSocketTransportTests : IDisposable
