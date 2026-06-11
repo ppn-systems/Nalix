@@ -23,8 +23,8 @@ public sealed class SocketConnectionFragmentationTests
     private static readonly IOpCodeExtractor s_testOpCodeExtractor = new TestOpCodeExtractor();
 
     private static readonly FieldInfo s_socketConnectionField =
-        typeof(SocketTcpTransport).GetField("_socket", BindingFlags.Instance | BindingFlags.NonPublic)
-        ?? throw new InvalidOperationException("SocketTcpTransport._socket field was not found.");
+        typeof(Connection).GetField("_socket", BindingFlags.Instance | BindingFlags.NonPublic)
+        ?? throw new InvalidOperationException("Connection._socket field was not found.");
 
     private static readonly FieldInfo s_fragmentAssemblerField =
         typeof(Nalix.Network.Internal.Transport.SocketConnection).GetField("_fragmentAssembler", BindingFlags.Instance | BindingFlags.NonPublic)
@@ -32,7 +32,7 @@ public sealed class SocketConnectionFragmentationTests
 
     private static object? GetFragmentAssembler(Connection connection)
     {
-        object? socketConnection = s_socketConnectionField.GetValue(connection.TCP);
+        object? socketConnection = s_socketConnectionField.GetValue(connection);
         return socketConnection is null ? null : s_fragmentAssemblerField.GetValue(socketConnection);
     }
 

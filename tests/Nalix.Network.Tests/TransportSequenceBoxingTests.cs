@@ -33,7 +33,7 @@ public sealed class TransportSequenceBoxingTests : IDisposable
     public void TcpTransport_SequenceCounter_ReturnsSameReferenceAndPersistsState()
     {
         // Arrange
-        SocketTcpTransport transport = _connection.TcpTransport;
+        IConnection.ITransport transport = _connection.TCP;
 
         // Act & Assert
         // 1. Same reference check (verifies boxing is eliminated)

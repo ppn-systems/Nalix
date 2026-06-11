@@ -562,7 +562,7 @@ public sealed class DispatchChannelTests
     {
         public bool IsDisposed => false;
         public bool IsUdpCreated => false;
-        public ISnowflake ID => null!;
+        public ulong ID => 0;
         public long UpTime => 0;
         public long LastPingTime => 0;
         public bool ExcludeFromIdleTimeout { get; set; }
