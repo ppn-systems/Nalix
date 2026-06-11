@@ -94,7 +94,7 @@ public sealed class PassthroughConnection :
 
         this.ExcludeFromIdleTimeout = true;
         this.PacketClassifier = packetClassifier;
-        this.ID = Snowflake.NewId(SnowflakeType.Session);
+        this.ID = Snowflake.NewId(SnowflakeType.Session).ToUInt64();
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(remoteEndPoint as IPEndPoint);
     }
 
@@ -176,7 +176,7 @@ public sealed class PassthroughConnection :
     public bool ExcludeFromIdleTimeout { get; set; }
 
     /// <inheritdoc />
-    public ISnowflake ID { get; }
+    public ulong ID { get; }
 
     /// <inheritdoc />
     public long UpTime => Clock.UnixMillisecondsNow() - _createdAtMs;

@@ -15,6 +15,7 @@ using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Environment.Configuration;
+using Nalix.Environment.Memory;
 using Nalix.Environment.Time;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
@@ -45,10 +46,11 @@ public sealed partial class Connection :
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
     private static readonly ConnectionGuardOptions s_options = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
     private static readonly DatagramGuardOptions s_datagramOptions = ConfigurationManager.Instance.Get<DatagramGuardOptions>();
-
+    private static readonly NetworkCallbackOptions s_callbackOptions = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
 
     private readonly Lock _lock;
-    private readonly SocketEventBridge _bridge;
+    private readonly SocketConnection _socket;
+    private readonly SocketTcpTransport _tcpTransport;
 
     private long _bytesSent;
     private long _bytesReceived;
@@ -58,6 +60,7 @@ public sealed partial class Connection :
     private int _disposeState; // 0=Active, 1=Closing(Event running), 2=Disposed
     private int _closeSignaled;
     private int _isDispatchingClose; // 0=no, 1=yes
+    private int _pendingProcessCallbacks;
 
     private SlidingWindow? _udpReplayWindow;
     private IObjectMap<string, object>? _attributes;
@@ -71,9 +74,9 @@ public sealed partial class Connection :
 
     // Per-connection local pool for packet arguments to avoid global pool contention.
     // Size 8 matches the default MaxPerConnectionPendingPackets.
-    internal readonly LocalPool<ConnectionEventArgs> _argsPool;
+    internal LocalPool<ConnectionEventArgs> _argsPool;
 
-    internal readonly LocalPool<PooledConnectEventContext> _contextPool;
+    internal LocalPool<PooledConnectEventContext> _contextPool;
 
     #endregion Fields
 
@@ -103,25 +106,22 @@ public sealed partial class Connection :
         _argsPool = new LocalPool<ConnectionEventArgs>(s_pool);
         _contextPool = new LocalPool<PooledConnectEventContext>(s_pool);
 
-        // Create the event bridge that converts transport-level frame events
-        // into the connection-level callback pipeline.
-        _bridge = new SocketEventBridge(OnProcessEventBridge, OnPostProcessEventBridge, this.OnCloseEventBridge);
-
         this.Secret = Bytes32.Zero;
         this.PacketClassifier = packetClassifier;
         // Snapshot the remote endpoint up front so the connection can be logged
         // and tracked even before protocol-level events begin.
-        this.ID = Snowflake.NewId(SnowflakeType.Session);
+        this.ID = Snowflake.NewId(SnowflakeType.Session).ToUInt64();
 
         // Use realEndPoint (from PROXY header) instead of socket.RemoteEndPoint (LB IP).
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(realEndPoint);
 
-        // Initialize the TCP transport with the socket and event bridge.
-        this.TcpTransport = new SocketTcpTransport(socket, this, _bridge);
+        // Initialize the socket connection.
+        _socket = new SocketConnection(socket, this);
+        _tcpTransport = new SocketTcpTransport(this, _socket);
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Connection:UnknownMethod", $"created remote=remote-endpoint={this.NetworkEndpoint} id=connection-id={this.ID}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Connection:UnknownMethod", $"created remote=remote-endpoint={this.NetworkEndpoint} id=connection-id={this.ID:X16}"));
         }
     }
 
@@ -139,10 +139,10 @@ public sealed partial class Connection :
     public bool ExcludeFromIdleTimeout { get; set; } = true;
 
     /// <inheritdoc />
-    public ISnowflake ID { get; }
+    public ulong ID { get; }
 
     /// <inheritdoc/>
-    public IConnection.ITransport TCP => this.TcpTransport;
+    public IConnection.ITransport TCP => _tcpTransport;
 
     /// <inheritdoc/>
     public IConnection.ITransport? UDP
@@ -175,12 +175,12 @@ public sealed partial class Connection :
     public long UpTime { get => (long)Clock.UnixTime().TotalMilliseconds - field; } = (long)Clock.UnixTime().TotalMilliseconds;
 
     /// <inheritdoc />
-    public long LastPingTime => this.TcpTransport.LastPingTime;
+    public long LastPingTime => _socket.LastPingTime;
 
     /// <summary>
     /// Returns the number of packets currently pending in the async callback pipeline.
     /// </summary>
-    public int PendingPackets => _bridge.PendingPackets;
+    public int PendingPackets => Volatile.Read(ref _pendingProcessCallbacks);
 
     /// <inheritdoc />
     public PermissionLevel Level { get; set; } = PermissionLevel.NONE;
@@ -211,7 +211,7 @@ public sealed partial class Connection :
     /// and the <see cref="SocketUdpTransport.BytesSent"/> (UDP) if available.
     /// It represents raw wire data, including protocol headers.
     /// </remarks>
-    public long BytesSent => this.TcpTransport.BytesSent + (this.UdpTransport?.BytesSent ?? 0) + Volatile.Read(ref _bytesSent);
+    public long BytesSent => _socket.BytesSent + (this.UdpTransport?.BytesSent ?? 0) + Volatile.Read(ref _bytesSent);
 
     /// <summary>
     /// Gets the total number of bytes received over the life of the connection.
@@ -221,7 +221,7 @@ public sealed partial class Connection :
     /// and the <see cref="SocketUdpTransport.BytesReceived"/> (UDP) if available.
     /// It represents raw wire data before any frame processing or decompression.
     /// </remarks>
-    public long BytesReceived => this.TcpTransport.BytesReceived + (this.UdpTransport?.BytesReceived ?? 0) + Volatile.Read(ref _bytesReceived);
+    public long BytesReceived => _socket.BytesReceived + (this.UdpTransport?.BytesReceived ?? 0) + Volatile.Read(ref _bytesReceived);
 
     /// <inheritdoc />
     public long PacketsDropped => Volatile.Read(ref _packetsDropped);
@@ -232,8 +232,6 @@ public sealed partial class Connection :
     #endregion Properties
 
     #region Internal
-
-    internal SocketTcpTransport TcpTransport { get; }
 
     internal SocketUdpTransport? UdpTransport { get; private set; }
 
@@ -254,7 +252,7 @@ public sealed partial class Connection :
             return;
         }
 
-        _bridge.IncrementPendingCallbacks();
+        _ = Interlocked.Increment(ref _pendingProcessCallbacks);
         args.Initialize(lease, this);
 
         if (!Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, CallbackLane.Process, releasePendingPacketOnCompletion: true))
@@ -266,6 +264,8 @@ public sealed partial class Connection :
         }
     }
 #endif
+
+    internal void InjectPreReadBytes(ReadOnlySpan<byte> preReadData) => _socket.InjectPreReadBytes(preReadData);
 
     internal void SetUdpTransport(SocketUdpTransport transport) => this.UdpTransport = transport;
 
@@ -447,7 +447,7 @@ public sealed partial class Connection :
                 ((TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask = null;
             }
 
-            try { this.TcpTransport.Dispose(); }
+            try { _socket.Dispose(); }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "socket"); }
 
             try
@@ -537,11 +537,64 @@ public sealed partial class Connection :
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void IPooledConnectContextPool.ReleasePendingPacket() => _bridge.ReleasePendingPacket();
+    void IPooledConnectContextPool.ReleasePendingPacket() => Interlocked.Decrement(ref _pendingProcessCallbacks);
 
     void IPooledConnectContextPool.ReturnContext(PooledConnectEventContext context) => _contextPool.Return(context);
 
     #endregion Internal Pooling
+
+    #region SocketConnection Callbacks
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    internal bool OnFrameReceived(BufferLease lease, bool isReliable)
+    {
+        _ = isReliable;
+        int pending = Interlocked.Increment(ref _pendingProcessCallbacks);
+        if (pending > s_callbackOptions.MaxPerConnectionPendingPackets)
+        {
+            _ = Interlocked.Decrement(ref _pendingProcessCallbacks);
+            return false;
+        }
+
+        ConnectionEventArgs args = this.AcquireEventArgs();
+        args.Initialize(lease, this);
+
+        if (!Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, CallbackLane.Process, releasePendingPacketOnCompletion: true))
+        {
+            _ = Interlocked.Decrement(ref _pendingProcessCallbacks);
+            _ = args.ExchangeLease(null);
+            args.Dispose();
+            return false;
+        }
+
+        return true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void OnFrameSent()
+    {
+        ConnectionEventArgs args = this.AcquireEventArgs();
+        args.Initialize(this);
+
+        if (!Internal.Transport.AsyncCallback.Invoke(OnPostProcessEventBridge, this, args, CallbackLane.Post))
+        {
+            args.Dispose();
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void OnTransportClosed()
+    {
+        ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
+        args.Initialize(this);
+
+        if (!Internal.Transport.AsyncCallback.InvokeHighPriority(this.OnCloseEventBridge, this, args))
+        {
+            args.Dispose();
+        }
+    }
+
+    #endregion SocketConnection Callbacks
 
     #region Event Bridges
 
@@ -676,6 +729,3 @@ public sealed partial class Connection :
 
     #endregion Event Bridges
 }
-
-
-
