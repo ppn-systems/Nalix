@@ -55,7 +55,7 @@ public sealed class SessionFactory : ISessionFactory
 
         SessionSnapshot snapshot = new()
         {
-            SessionToken = connection.ID.ToUInt64(),
+            SessionToken = connection.ID,
             CreatedAtUnixMilliseconds = now,
             ExpiresAtUnixMilliseconds = now + (long)_options.SessionTtl.TotalMilliseconds,
             Secret = connection.Secret,
@@ -64,6 +64,6 @@ public sealed class SessionFactory : ISessionFactory
             Attributes = attributes
         };
 
-        return new SessionEntry(snapshot, connection.ID.ToUInt64());
+        return new SessionEntry(snapshot, connection.ID);
     }
 }

@@ -153,11 +153,10 @@ public static partial class SessionHandlers
 
         await s_sessionService.SaveSessionAsync(connection).ConfigureAwait(false);
 
-        ulong newToken = connection.ID.ToUInt64();
-        Snowflake newTokenSnowflake = Snowflake.NewId(newToken);
+        ulong newToken = connection.ID;
 
         Span<byte> responseMessageBytes = stackalloc byte[16];
-        _ = newTokenSnowflake.TryWriteBytes(responseMessageBytes);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(responseMessageBytes, newToken);
         BinaryPrimitives.WriteInt64LittleEndian(responseMessageBytes[8..], Clock.UnixSecondsNow() / 30);
         Span<byte> responseProofBytes = stackalloc byte[32];
         HmacKeccak256.Compute(session.Snapshot.Secret.AsSpan(), responseMessageBytes, responseProofBytes);
@@ -166,7 +165,7 @@ public static partial class SessionHandlers
         SessionResume ack = lease.Value;
         ack.Initialize(
             stage: SessionResumeStage.RESPONSE,
-            sessionToken: newTokenSnowflake.ToUInt64(),
+            sessionToken: newToken,
             reason: ProtocolReason.NONE,
             proof: new Bytes32(responseProofBytes),
             flags: packet.Flags);

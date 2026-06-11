@@ -704,7 +704,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
 
         // Break the tombstone node's strong references to the closed connection graph.
         // The node may remain in the bucket chain as a small tombstone, but it must not
-        // retain ConnectionState, Connection, SocketConnection, SocketTcpTransport, or Socket.
+        // retain ConnectionState, Connection, SocketConnection, or Socket.
         node.State = null;
         node.Connection = null;
     }
@@ -871,8 +871,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
         public readonly Node? Next = next;
 
         // Mutable so RemoveConnection can null them to break the tombstone's
-        // retention of the closed connection graph (Connection -> SocketTcpTransport
-        // -> SocketConnection -> Socket). Without this, every removed node
+        // retention of the closed connection graph (Connection -> SocketConnection
+        // -> Socket). Without this, every removed node
         // permanently roots the entire connection object graph.
         public ConnectionState? State = state;
         public IConnection? Connection = connection;

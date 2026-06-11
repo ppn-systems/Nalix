@@ -177,7 +177,7 @@ public static partial class HandshakeHandlers
         using PacketScope<SessionEstablished> lease = PacketFactory<SessionEstablished>.Acquire();
         SessionEstablished reply = lease.Value;
 
-        reply.Initialize(expectedFinish, connection.ID.ToUInt64());
+        reply.Initialize(expectedFinish, connection.ID);
         reply.SequenceId = packet.SequenceId;
         reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
 
