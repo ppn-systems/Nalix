@@ -26,5 +26,14 @@ internal static class TestAssemblySetup
 MaxConnectionsPerIpAddress = 10000
 MaxConnectionsPerWindow = 10000000
 ");
+
+        // Write server.ini with valid ConnectionGuard defaults so Bootstrap.Initialize()
+        // does not fail when it switches from default.ini to server.ini.
+        // The real server.ini at %ProgramData%\Nalix\config\server.ini has MaxConnections = -1
+        // which violates the [ValueRange(1, int.MaxValue)] validation.
+        string serverIniPath = Path.Combine(configDir, "server.ini");
+        File.WriteAllText(serverIniPath, @"[ConnectionGuard]
+MaxConnections = 2000
+");
     }
 }
