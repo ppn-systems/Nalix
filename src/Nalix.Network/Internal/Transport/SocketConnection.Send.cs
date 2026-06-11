@@ -114,7 +114,7 @@ internal sealed partial class SocketConnection
                 return result;
             }
 
-            _sink.OnFrameSent(_owner);
+            _connectionOwner?.OnFrameSent();
             return SendResult.Success;
         }
 
@@ -649,7 +649,7 @@ internal sealed partial class SocketConnection
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void INVOKE_POST_CALLBACK() => _sink.OnFrameSent(_owner);
+    private void INVOKE_POST_CALLBACK() => _connectionOwner?.OnFrameSent();
 
     #endregion
 }

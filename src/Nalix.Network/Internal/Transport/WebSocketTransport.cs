@@ -68,6 +68,18 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
     /// <inheritdoc/>
     public ISequenceCounter ReceiveSequence => _receiveSequence;
 
+    /// <inheritdoc/>
+    public uint NextSendSequence() => _sendSequence.Next();
+
+    /// <inheritdoc/>
+    public uint NextReceiveSequence() => _receiveSequence.Next();
+
+    /// <inheritdoc/>
+    public uint CurrentSendSequence => _sendSequence.Current();
+
+    /// <inheritdoc/>
+    public uint CurrentReceiveSequence => _receiveSequence.Current();
+
     #endregion Properties
 
     #region APIs

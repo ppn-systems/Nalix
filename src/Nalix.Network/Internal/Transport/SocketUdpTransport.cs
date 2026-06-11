@@ -56,6 +56,18 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     /// <inheritdoc/>
     public ISequenceCounter ReceiveSequence => _receiveSequence;
 
+    /// <inheritdoc/>
+    public uint NextSendSequence() => _sendSequence.Next();
+
+    /// <inheritdoc/>
+    public uint NextReceiveSequence() => _receiveSequence.Next();
+
+    /// <inheritdoc/>
+    public uint CurrentSendSequence => _sendSequence.Current();
+
+    /// <inheritdoc/>
+    public uint CurrentReceiveSequence => _receiveSequence.Current();
+
     /// <summary>
     /// Gets the total number of bytes sent by this UDP transport instance.
     /// </summary>

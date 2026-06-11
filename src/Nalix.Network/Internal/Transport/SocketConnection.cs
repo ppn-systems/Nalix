@@ -21,7 +21,7 @@ using Nalix.Environment.Options;
 using Nalix.Environment.Time;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Network.Internal.Abstractions;
+using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Options;
 
@@ -52,14 +52,15 @@ namespace Nalix.Network.Internal.Transport;
 /// </summary>
 /// <param name="socket">The accepted, connected socket.</param>
 /// <param name="owner"></param>
-/// <param name="sink"></param>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
 [DebuggerDisplay("{ToString()}")]
 [ExcludeFromCodeCoverage]
-internal sealed partial class SocketConnection(Socket socket, IConnection owner, ITransportEventSink sink) : IDisposable
+internal sealed partial class SocketConnection(Socket socket, IConnection owner) : IDisposable
 {
-    internal enum ReceiveResult
+    #region Nested Types
+
+    internal enum ReceiveResult : byte
     {
         Success,
         PeerClosed,
@@ -68,13 +69,15 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
         Failed
     }
 
-    internal enum SendResult
+    internal enum SendResult : byte
     {
         Success,
         PeerClosed,
         Aborted,
         Failed
     }
+
+    #endregion Nested Types
 
     #region Const
 
@@ -101,7 +104,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     /// </summary>
     internal Socket Socket => _socket;
     private readonly IConnection _owner = owner ?? throw new ArgumentNullException(nameof(owner));
-    private readonly ITransportEventSink _sink = sink ?? throw new ArgumentNullException(nameof(sink));
+    private readonly Connection? _connectionOwner = owner as Connection;
 
     /// <summary>
     /// PooledReceiveContext wraps a PooledSocketAsyncEventArgs from ObjectPoolManager.
@@ -192,12 +195,6 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     /// due to Unwrap() or cancellation.
     /// </summary>
     public byte[]? StolenData { get; private set; }
-
-    /// <summary>
-    /// Returns the event sink (bridge) wired to this transport.
-    /// Used by <see cref="Network.Connections.Connection"/> to delegate throttle queries.
-    /// </summary>
-    internal ITransportEventSink? EventSink => _sink;
 
     #endregion Properties
 
@@ -306,7 +303,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override string ToString()
-        => $"FramedSocketConnection (Client={_endpointString}, Disposed={Volatile.Read(ref _disposed) != 0}, LastPing={this.LastPingTime}ms, PendingPackets={(_sink as SocketEventBridge)?.PendingPackets ?? 0}, OpenFragmentStreams={Volatile.Read(ref _openFragmentStreams)}.";
+        => $"FramedSocketConnection (Client={_endpointString}, Disposed={Volatile.Read(ref _disposed) != 0}, LastPing={this.LastPingTime}ms, PendingPackets={_connectionOwner?.PendingPackets ?? 0}, OpenFragmentStreams={Volatile.Read(ref _openFragmentStreams)}.";
 
     #endregion Dispose Pattern
 
@@ -658,9 +655,8 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
         // wheel sees activity even if the sink drops the frame.
         this.LastPingTime = Clock.UnixMillisecondsNow();
 
-        // Delegate throttle check, event-args creation, and async dispatch
-        // to the event sink (SocketEventBridge).
-        if (!_sink.OnFrameReceived(_owner, lease, isReliable: true))
+        bool handled = _connectionOwner?.OnFrameReceived(lease, isReliable: true) ?? true;
+        if (!handled)
         {
             if (_owner is IConnectionTrafficMetrics trafficMetrics)
             {
@@ -728,7 +724,8 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 
                 this.LastPingTime = Clock.UnixMillisecondsNow();
 
-                if (!_sink.OnFrameReceived(_owner, assembledLease, isReliable: true))
+                bool handled = _connectionOwner?.OnFrameReceived(assembledLease, isReliable: true) ?? true;
+                if (!handled)
                 {
                     if (_owner is IConnectionTrafficMetrics trafficMetrics)
                     {
@@ -1004,7 +1001,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
             return;
         }
 
-        _sink.OnTransportClosed(_owner);
+        _connectionOwner?.OnTransportClosed();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
