@@ -172,7 +172,7 @@ internal sealed partial class SocketConnection
 
         this.LastPingTime = Clock.UnixMillisecondsNow();
 
-        bool handled = _connectionOwner?.OnFrameReceived(lease, isReliable: true) ?? true;
+        bool handled = _connectionOwner?.OnFrameReceived(lease) ?? true;
         if (!handled)
         {
             if (_owner is IConnectionTrafficMetrics trafficMetrics)
