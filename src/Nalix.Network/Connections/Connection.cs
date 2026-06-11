@@ -20,6 +20,7 @@ using Nalix.Environment.Time;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Network.Internal.Connections;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Protocol;
 using Nalix.Network.Internal.Security;
@@ -70,6 +71,8 @@ public sealed partial class Connection :
 
         // Pre-configure pool capacities based on expected usage patterns to minimize resizing during runtime.
         _ = s_pool.SetMaxCapacity<TimeoutTask>(s_options.MaxConnections);
+        _ = s_pool.SetMaxCapacity<SocketConnection>(s_options.MaxConnections);
+        _ = s_pool.SetMaxCapacity<ConnectionBacking>(s_options.MaxConnections);
         _ = s_pool.SetMaxCapacity<SocketTcpTransport>(s_options.MaxConnections);
         _ = s_pool.SetMaxCapacity<SocketUdpTransport>(s_options.MaxConnections);
         _ = s_pool.SetMaxCapacity<PooledSocketReceiveContext>(s_options.MaxConnections);
@@ -101,6 +104,9 @@ public sealed partial class Connection :
         _ = s_pool.Prealloc<PooledConnectEventContext>(256);
 
         _ = s_pool.Prealloc<TimeoutTask>(128);
+
+        _ = s_pool.Prealloc<SocketConnection>(128);
+        _ = s_pool.Prealloc<ConnectionBacking>(128);
     }
 
     /// <summary>Initializes a new instance of the <see cref="Connection"/> class.</summary>
@@ -124,6 +130,7 @@ public sealed partial class Connection :
         _disposed = false;
 
         _backing = s_pool.Get<ConnectionBacking>();
+        _backing.Initialize();
 
         this.Secret = Bytes32.Zero;
         this.PacketClassifier = packetClassifier;
@@ -669,6 +676,7 @@ public sealed partial class Connection :
         PooledConnectEventContext? arg_local = backing?.ContextPool.Acquire(this, static (ctx, self) => ctx.LocalOwner = self);
         if (arg_local != null)
         {
+            arg_local.LocalOwner = this;
             return arg_local;
         }
 
@@ -691,6 +699,7 @@ public sealed partial class Connection :
     void IPooledConnectContextPool.ReturnContext(PooledConnectEventContext context)
     {
         ConnectionBacking? backing = Volatile.Read(ref _backing);
+
         if (backing != null)
         {
             backing.ContextPool.Return(context);

@@ -96,6 +96,12 @@ internal sealed partial class SocketConnection : IDisposable, IPoolable
         _bufferDataLength = 0;
         this.StolenData = null;
         this.LastPingTime = 0;
+
+        if (_buffer != null)
+        {
+            BufferLease.ByteArrayPool.Return(_buffer);
+            _buffer = null;
+        }
     }
 
     #endregion Constructor and Pooling

@@ -439,6 +439,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
         PooledConnectEventContext? ctxLocal = _contextPool.Acquire(this, static (ctx, self) => ctx.LocalOwner = self);
         if (ctxLocal != null)
         {
+            ctxLocal.LocalOwner = this;
             return ctxLocal;
         }
 

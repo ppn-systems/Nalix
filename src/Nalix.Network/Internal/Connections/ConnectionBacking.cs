@@ -50,6 +50,10 @@ internal sealed class ConnectionBacking : IPoolable
 
     public ConnectionBacking()
     {
+    }
+
+    public void Initialize()
+    {
         ArgsPool = new LocalPool<ConnectionEventArgs>(s_pool);
         ContextPool = new LocalPool<PooledConnectEventContext>(s_pool);
     }
@@ -78,5 +82,8 @@ internal sealed class ConnectionBacking : IPoolable
         OnCloseEvent = null;
         OnProcessEvent = null;
         OnPostProcessEvent = null;
+
+        ArgsPool.Destroy();
+        ContextPool.Destroy();
     }
 }
