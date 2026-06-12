@@ -104,7 +104,6 @@ public sealed class ObjectPoolDiagnosticsTests
     {
         ObjectPoolOptions config = new() { EnableDiagnostics = true, EnableObjectTrimming = false };
         using ObjectPoolManager manager = new(config);
-        // Override warming-up threshold so 32 gets exceed pool capacity
         SetDefaultMaxPoolSize(manager, 16);
         using DiagnosticCollector collector = new(DiagnosticsEvents.Memory.PoolFailure,
             payload => DiagnosticCollector.GetProperty<string>(payload, "Type") == "HealthCheckPoolable");
