@@ -21,6 +21,7 @@ public sealed class CipherExtensionsTests : IDisposable
 {
     public CipherExtensionsTests()
     {
+        TestAssemblySetup.EnsureHighLimits();
         if (!PacketRegistry.IsBuilt)
         PacketRegistry.Build();
         TestUtils.SetupCertificate();
