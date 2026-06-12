@@ -21,7 +21,7 @@ namespace Nalix.Network.Internal.Pooling;
 /// <para>
 /// <b>Design characteristics:</b>
 /// <list type="bullet">
-/// <item><description>Fixed-size pool (8 slots) using a bitmask for tracking usage.</description></item>
+/// <item><description>Fixed-size pool (2 slots) using a bitmask for tracking usage.</description></item>
 /// <item><description>Lock-free acquisition using <see cref="Interlocked"/> operations.</description></item>
 /// <item><description>Safe fallback to global pool when local pool is unavailable or destroyed.</description></item>
 /// <item><description>No object-level awareness of pool ownership (pool is externally managed).</description></item>
@@ -223,6 +223,7 @@ internal struct LocalPool<T> where T : class, IPoolable, new()
     /// transparently use the global pool.
     /// </para>
     /// </remarks>
+    [MethodImpl(MethodImplOptions.InternalCall)]
     public void Destroy()
     {
         long oldMask;

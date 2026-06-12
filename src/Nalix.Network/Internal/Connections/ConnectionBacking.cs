@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
@@ -52,6 +53,7 @@ internal sealed class ConnectionBacking : IPoolable
     {
     }
 
+    [MethodImpl(MethodImplOptions.InternalCall)]
     public void Initialize()
     {
         ArgsPool = new LocalPool<ConnectionEventArgs>(s_pool);

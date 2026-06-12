@@ -81,6 +81,7 @@ internal sealed class PooledAcceptContext : IPoolable
     /// <exception cref="InvalidOperationException"></exception>
     public SocketAsyncEventArgs Args
     {
+        [MethodImpl(MethodImplOptions.InternalCall)]
         get
         {
             if (_args is null)
@@ -96,6 +97,7 @@ internal sealed class PooledAcceptContext : IPoolable
     /// Ensures that this context has a bound SAEA, acquiring one from the pool if necessary.
     /// </summary>
     /// <exception cref="InvalidOperationException"></exception>
+    [MethodImpl(MethodImplOptions.InternalCall)]
     public void EnsureArgsBound()
     {
         if (_args == null)
@@ -119,7 +121,7 @@ internal sealed class PooledAcceptContext : IPoolable
     /// <param name="newArgs"></param>
     /// <exception cref="ArgumentNullException"></exception>
     [MemberNotNull(nameof(_args))]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.InternalCall)]
     public void BindArgs(SocketAsyncEventArgs newArgs)
     {
         ArgumentNullException.ThrowIfNull(newArgs);
@@ -141,7 +143,7 @@ internal sealed class PooledAcceptContext : IPoolable
     /// <param name="newArgs"></param>
     /// <exception cref="ArgumentNullException"></exception>
     [MemberNotNull(nameof(_args))]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.InternalCall)]
     public void BindArgsForSync(SocketAsyncEventArgs newArgs)
     {
         ArgumentNullException.ThrowIfNull(newArgs);
@@ -247,7 +249,7 @@ internal sealed class PooledAcceptContext : IPoolable
     /// This prevents stale completion handlers, sockets, or user tokens from
     /// leaking into the next accept operation.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.InternalCall)]
     public void ResetForPool()
     {
         _isAsyncPending = false;

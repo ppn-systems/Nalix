@@ -147,11 +147,11 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader, IValidat
 
     /// <summary>
     /// Gets or sets the maximum size (in bytes) allowed for a single UDP datagram.
-    /// Default 1400 avoids IP fragmentation.
+    /// Default 1440 avoids IP fragmentation.
     /// </summary>
-    [IniComment("Maximum allowed UDP datagram size in bytes to avoid fragmentation (default 1400)")]
+    [IniComment("Maximum allowed UDP datagram size in bytes to avoid fragmentation (default 1440)")]
     [ValueRange(64, 65507)]
-    public int MaxUdpDatagramSize { get; set; } = 1400;
+    public int MaxUdpDatagramSize { get; set; } = 1440;
 
     #endregion Properties
 
