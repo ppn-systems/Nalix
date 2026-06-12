@@ -121,9 +121,9 @@ public abstract partial class TcpListenerBase
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.RUNNING);
 
-            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
             {
-                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Information,
                     new DiagnosticLog("NW.TcpListenerBase:Activate", $"start protocol={_protocol} port={_port}"));
             }
 
@@ -321,9 +321,9 @@ public abstract partial class TcpListenerBase
                                         .Deactivate(CancellationToken.None);
             }
 
-            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
             {
-                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Information,
                     new DiagnosticLog("NW.TcpListenerBase:Deactivate", $"stop protocol={_protocol} port={_port}"));
             }
         }

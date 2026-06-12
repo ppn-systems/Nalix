@@ -26,19 +26,36 @@ public abstract partial class UdpListenerBase
     protected virtual void Initialize()
     {
         // Determine address family from configuration.
-        AddressFamily af = _options.EnableIPv6 ? AddressFamily.InterNetworkV6 : AddressFamily.InterNetwork;
         IPAddress bindAddress = _options.EnableIPv6 ? IPAddress.IPv6Any : IPAddress.Any;
+        AddressFamily af = _options.EnableIPv6 ? AddressFamily.InterNetworkV6 : AddressFamily.InterNetwork;
 
         _socket = new Socket(af, SocketType.Dgram, ProtocolType.Udp);
 
+        bool actualDualMode = false;
+        bool requestedDualMode = af == AddressFamily.InterNetworkV6 && _options.DualMode;
+
         // IPv6 dual-mode allows the socket to accept both IPv4 and IPv6 datagrams
         // on a single binding when the OS supports it.
-        if (af == AddressFamily.InterNetworkV6 && _options.DualMode)
+        if (requestedDualMode)
         {
-            try { _socket.DualMode = true; }
+            try
+            {
+                _socket.DualMode = true;
+                actualDualMode = _socket.DualMode;
+            }
             catch (Exception ex) when (ex is SocketException or NotSupportedException or ObjectDisposedException or InvalidOperationException)
             {
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug)) { DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.UdpListenerBase:Initialize", $"dualmode-not-applied port={_port} exception-type={ex.GetType().Name}", ex)); }
+                actualDualMode = false;
+
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
+                {
+                    DiagnosticsEvents.Write(
+                        DiagnosticsEvents.Internal.Warning,
+                        new DiagnosticLog(
+                            "NW.UdpListenerBase:Initialize",
+                            $"dualmode-not-applied port={_port} exception-type={ex.GetType().Name}",
+                            ex));
+                }
             }
         }
 
@@ -51,7 +68,30 @@ public abstract partial class UdpListenerBase
         // ReceiveFromAsync can populate it without an address-family mismatch.
         _anyEndPoint = new IPEndPoint(bindAddress, 0);
 
-        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug)) { DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.UdpListenerBase:Initialize", $"init-ok port={_port} af={af} options-reuse-address={_options.ReuseAddress} options-buffer-size={_options.BufferSize}")); }
+#pragma warning disable IDE0072 // Add missing cases
+        string mode = af switch
+        {
+            AddressFamily.InterNetwork => "ipv4-only",
+            AddressFamily.InterNetworkV6 when actualDualMode => "dual-stack",
+            AddressFamily.InterNetworkV6 => "ipv6-only",
+            _ => "unknown"
+        };
+#pragma warning restore IDE0072 // Add missing cases
+
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
+        {
+            DiagnosticsEvents.Write(
+                DiagnosticsEvents.Internal.Information,
+                new DiagnosticLog(
+                    "NW.UdpListenerBase:Initialize",
+                    $"init-ok mode={mode} port={_port} " +
+                    $"af={af} " +
+                    $"dual-requested={requestedDualMode} " +
+                    $"dual-actual={actualDualMode} " +
+                    $"local-endpoint={_socket.LocalEndPoint} " +
+                    $"options-reuse-address={_options.ReuseAddress} " +
+                    $"options-buffer-size={_options.BufferSize}"));
+        }
     }
 
     /// <summary>
@@ -86,10 +126,10 @@ public abstract partial class UdpListenerBase
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
         }
 
-        // 1. CHUNG: T?t phân m?nh gói tin (IP Fragmentation). 
-        // Các UDP Protocol th?i gian th?c (Enterprise) luôn gi? size < MTU (1400 bytes).
-        // N?u gói tin vô tình tru?t qua ngu?ng này, thà b? Drop nguyên c?c còn hon d? HÐH 
-        // c?t nh? ra, làm tang d? tr? (latency spikes) do ch? gom n?i ghép (Reassembly).
+        // 1. GENERAL: Disabling packet fragmentation (IP Fragmentation).
+        // Real-time Enterprise UDP Protocols always keep size < MTU (1400 bytes).
+        // If a packet accidentally passes this threshold, it's better to drop the entire packet than to let the OS...
+        // Fragmenting it into smaller packets increases latency spikes due to reassembly.
         try
         {
             socket.DontFragment = true;
@@ -103,11 +143,11 @@ public abstract partial class UdpListenerBase
             // Socket lifetime race: ignore to preserve existing non-fatal behavior.
         }
 
-        // 2. WINDOWS: S?a l?i WSAECONNRESET kinh di?n c?a UDP trên Windows.
-        // Bình thu?ng n?u Server g?i tr? 1 gói UDP cho IP Client, nhung Client dã t?t m?ng (ngu?n không t?i), 
-        // Windows s? nh?n du?c ICMP Port Unreachable. Ngay l?p t?c nó ném 1 l?i SocketException(ConnectionReset)
-        // vào th?ng hàm ReceiveFromAsync G?N NH?T. Làm s?p ho?c gián do?n lu?ng nh?n c?a bao ngu?i khác!
-        // SIO_UDP_CONNRESET = -1744830452 vô hi?u hóa co ch? báo l?i v? v?n này.
+        // 2. WINDOWS: Fixing the classic WSAECONNRESET error of UDP on Windows.
+        // Normally, if the server sends a UDP packet to the client's IP address, but the client is offline (power off),
+        // Windows will receive an ICMP Port Unreachable error. Immediately, it throws a SocketException(ConnectionReset) error.
+        // into the NEAREST ReceiveFromAsync function. This disrupts or interrupts the reception of many other users!
+        // SIO_UDP_CONNRESET = -1744830452 disables the error reporting mechanism for this issue.
         if (OperatingSystem.IsWindows())
         {
             try

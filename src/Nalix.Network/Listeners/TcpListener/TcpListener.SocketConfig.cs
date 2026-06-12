@@ -129,18 +129,24 @@ public abstract partial class TcpListenerBase
 
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug,
-                        new DiagnosticLog("NW.TcpListenerBase:Initialize", $"config-bind ep-v6-any={epV6Any}"));
+                    DiagnosticsEvents.Write(
+                        DiagnosticsEvents.Internal.Debug,
+                        new DiagnosticLog("NW.TcpListenerBase:Initialize",
+                            $"config-bind mode={(sock.DualMode ? "dual-stack" : "ipv6-only")} " +
+                            $"address-family={sock.AddressFamily} dual-mode={sock.DualMode} ep-v6-any={epV6Any}"));
                 }
 
                 sock.Bind(epV6Any);
                 sock.Listen(_config.Backlog);
 
                 _listener = sock;
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
+
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
                 {
-                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug,
-                        new DiagnosticLog("NW.TcpListenerBase:Initialize", $"config-listen local-endpoint={_listener.LocalEndPoint}"));
+                    DiagnosticsEvents.Write(
+                        DiagnosticsEvents.Internal.Information,
+                        new DiagnosticLog("NW.TcpListenerBase:Initialize",
+                            $"config-listen mode={(sock.DualMode ? "dual-stack" : "ipv6-only")} local-endpoint={_listener.LocalEndPoint}"));
                 }
 
                 return;
@@ -200,8 +206,9 @@ public abstract partial class TcpListenerBase
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug,
-                new DiagnosticLog("NW.TcpListenerBase:Initialize", $"config-bind ep-v4-any={epV4Any}"));
+            DiagnosticsEvents.Write(
+                DiagnosticsEvents.Internal.Debug,
+                new DiagnosticLog("NW.TcpListenerBase:Initialize", $"config-bind mode=ipv4-only ep-v4-any={epV4Any}"));
         }
 
         _listener.Bind(epV4Any);

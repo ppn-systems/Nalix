@@ -121,7 +121,7 @@ internal sealed class PooledAcceptContext : IPoolable
     /// <param name="newArgs"></param>
     /// <exception cref="ArgumentNullException"></exception>
     [MemberNotNull(nameof(_args))]
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.InternalCall)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void BindArgs(SocketAsyncEventArgs newArgs)
     {
         ArgumentNullException.ThrowIfNull(newArgs);
@@ -143,7 +143,7 @@ internal sealed class PooledAcceptContext : IPoolable
     /// <param name="newArgs"></param>
     /// <exception cref="ArgumentNullException"></exception>
     [MemberNotNull(nameof(_args))]
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.InternalCall)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void BindArgsForSync(SocketAsyncEventArgs newArgs)
     {
         ArgumentNullException.ThrowIfNull(newArgs);
@@ -249,7 +249,7 @@ internal sealed class PooledAcceptContext : IPoolable
     /// This prevents stale completion handlers, sockets, or user tokens from
     /// leaking into the next accept operation.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.InternalCall)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ResetForPool()
     {
         _isAsyncPending = false;

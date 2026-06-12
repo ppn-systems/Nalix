@@ -98,11 +98,7 @@ public abstract partial class UdpListenerBase : IListener
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
             {
                 string protocolType = this.Protocol.GetType().Name;
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
-                {
-                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.UdpListenerBase:Activate", $"listening port=port={_port} protocol=protocol-type={protocolType}"));
-                }
-                ;
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.UdpListenerBase:Activate", $"listening port=port={_port} protocol=protocol-type={protocolType}"));
             }
 
             // Dispatch parallel SAEA receive workers via TaskManager
@@ -179,13 +175,11 @@ public abstract partial class UdpListenerBase : IListener
         }
 
         // Try RUNNING ? STOPPING; if that fails, try STARTING ? STOPPING.
-        int prev = Interlocked.CompareExchange(ref _state,
-            (int)ListenerState.STOPPING, (int)ListenerState.RUNNING);
+        int prev = Interlocked.CompareExchange(ref _state, (int)ListenerState.STOPPING, (int)ListenerState.RUNNING);
 
         if (prev != (int)ListenerState.RUNNING)
         {
-            prev = Interlocked.CompareExchange(ref _state,
-                (int)ListenerState.STOPPING, (int)ListenerState.STARTING);
+            prev = Interlocked.CompareExchange(ref _state, (int)ListenerState.STOPPING, (int)ListenerState.STARTING);
 
             if (prev != (int)ListenerState.STARTING)
             {
