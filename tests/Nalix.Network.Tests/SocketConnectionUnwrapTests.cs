@@ -21,7 +21,9 @@ public class SocketConnectionUnwrapTests
         var endpointMock = new Mock<INetworkEndpoint>();
         ownerMock.Setup(m => m.NetworkEndpoint).Returns(endpointMock.Object);
 
-        return new SocketConnection(originalSocket, ownerMock.Object);
+        var connection = new SocketConnection();
+        connection.Initialize(originalSocket, ownerMock.Object);
+        return connection;
     }
 
     [Fact]

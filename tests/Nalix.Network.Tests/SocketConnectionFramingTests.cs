@@ -20,7 +20,9 @@ public class SocketConnectionFramingTests
         var endpointMock = new Mock<INetworkEndpoint>();
         ownerMock.Setup(m => m.NetworkEndpoint).Returns(endpointMock.Object);
 
-        return new SocketConnection(socket, ownerMock.Object);
+        var connection = new SocketConnection();
+        connection.Initialize(socket, ownerMock.Object);
+        return connection;
     }
 
     [Fact]

@@ -22,9 +22,13 @@ public sealed class SocketConnectionFragmentationTests
 {
     private static readonly IOpCodeExtractor s_testOpCodeExtractor = new TestOpCodeExtractor();
 
-    private static readonly FieldInfo s_socketConnectionField =
-        typeof(Connection).GetField("_socket", BindingFlags.Instance | BindingFlags.NonPublic)
-        ?? throw new InvalidOperationException("Connection._socket field was not found.");
+    private static readonly FieldInfo s_backingField =
+        typeof(Connection).GetField("_backing", BindingFlags.Instance | BindingFlags.NonPublic)
+        ?? throw new InvalidOperationException("Connection._backing field was not found.");
+
+    private static readonly FieldInfo s_backingSocketField =
+        typeof(Nalix.Network.Internal.Connections.ConnectionBacking).GetField("Socket", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+        ?? throw new InvalidOperationException("ConnectionBacking.Socket field was not found.");
 
     private static readonly FieldInfo s_fragmentAssemblerField =
         typeof(Nalix.Network.Internal.Transport.SocketConnection).GetField("_fragmentAssembler", BindingFlags.Instance | BindingFlags.NonPublic)
@@ -32,7 +36,9 @@ public sealed class SocketConnectionFragmentationTests
 
     private static object? GetFragmentAssembler(Connection connection)
     {
-        object? socketConnection = s_socketConnectionField.GetValue(connection);
+        object? backing = s_backingField.GetValue(connection);
+        if (backing == null) return null;
+        object? socketConnection = s_backingSocketField.GetValue(backing);
         return socketConnection is null ? null : s_fragmentAssemblerField.GetValue(socketConnection);
     }
 

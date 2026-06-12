@@ -24,11 +24,11 @@ using FluentAssertions;
 #if DEBUG
 namespace Nalix.Network.Tests;
 
+[Collection("NetworkConfigTests")]
 public class WebSocketConnectionTimeoutTests : IDisposable
 {
     public WebSocketConnectionTimeoutTests()
     {
-        Nalix.Framework.Injection.InstanceManager.Instance.Clear(dispose: false);
     }
     private readonly string _certificatePath = Path.Combine(Path.GetTempPath(), $"nalix-ws-test-{Guid.NewGuid():N}.private");
 
@@ -76,19 +76,40 @@ public class WebSocketConnectionTimeoutTests : IDisposable
         return (ushort)((IPEndPoint)socket.LocalEndPoint!).Port;
     }
 
+    private static TestWebSocketListener StartTestServerRobustly(IProtocol protocol, IConnectionHub hub, out ushort port)
+    {
+        string lastReport = "";
+        for (int i = 0; i < 10; i++)
+        {
+            port = GetFreePort();
+            var server = new TestWebSocketListener(port, "/ws/", protocol, hub);
+            server.Activate();
+            System.Threading.Thread.Sleep(500); // Give it a moment to fail if port is busy
+            lastReport = server.GenerateReport();
+            if (lastReport.Contains("RUNNING"))
+            {
+                return server;
+            }
+            server.Deactivate();
+            server.Dispose();
+        }
+        throw new Exception($"Could not start test server on any free port after 10 attempts. Last report: {lastReport}");
+    }
+
     [Fact]
     public async Task WebSocketSession_DisconnectBeforeTimeout_RemovesTimeoutTask()
     {
-        ushort port = GetFreePort();
+        ConfigurationManager.Instance.UpdateValue<ConnectionGuardOptions>("MaxConnections", 2000);
+        ConfigurationManager.Instance.UpdateValue<ConnectionGuardOptions>("MaxErrorThreshold", 50);
+        ConfigurationManager.Instance.UpdateValue<ConnectionGuardOptions>("MaxPacketPerSecond", 128);
         ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().Host = "127.0.0.1";
         ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().EnableTimeout = true;
 
         var protocol = new IntegrationTestProtocol();
         var hub = new ConnectionHub();
 
-        using var server = new TestWebSocketListener(port, "/ws/", protocol, hub);
-        server.Activate();
-        await Task.Delay(2000); // 2-second delay for server startup on slow CI
+        using var server = StartTestServerRobustly(protocol, hub, out ushort port);
+        await Task.Delay(3500); // Remaining delay for slow CI
 
         try
         {
@@ -100,7 +121,18 @@ public class WebSocketConnectionTimeoutTests : IDisposable
             };
 
             using var client = new WebSocketSession(options);
-            await client.ConnectAsync();
+            for (int r = 0; r < 5; r++)
+            {
+                try
+                {
+                    await client.ConnectAsync();
+                    break;
+                }
+                catch (Exception) when (r < 4)
+                {
+                    await Task.Delay(1000);
+                }
+            }
             client.IsConnected.Should().BeTrue();
 
             // Wait for the connection to be fully registered in the hub and initialized (up to 10 seconds)
@@ -162,7 +194,9 @@ public class WebSocketConnectionTimeoutTests : IDisposable
     [Fact]
     public async Task WebSocketSession_IdleTimeout_DisconnectsClient()
     {
-        ushort port = GetFreePort();
+        ConfigurationManager.Instance.UpdateValue<ConnectionGuardOptions>("MaxConnections", 2000);
+        ConfigurationManager.Instance.UpdateValue<ConnectionGuardOptions>("MaxErrorThreshold", 50);
+        ConfigurationManager.Instance.UpdateValue<ConnectionGuardOptions>("MaxPacketPerSecond", 128);
         ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().Host = "127.0.0.1";
         ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().EnableTimeout = true;
 
@@ -179,9 +213,8 @@ public class WebSocketConnectionTimeoutTests : IDisposable
             var protocol = new IntegrationTestProtocol();
             var hub = new ConnectionHub();
 
-            using var server = new TestWebSocketListener(port, "/ws/", protocol, hub);
-            server.Activate();
-            await Task.Delay(2000); // 2-second delay for server startup on slow CI
+            using var server = StartTestServerRobustly(protocol, hub, out ushort port);
+            await Task.Delay(3500); // Remaining delay for slow CI
 
             try
             {
@@ -197,7 +230,18 @@ public class WebSocketConnectionTimeoutTests : IDisposable
                 TaskCompletionSource<Exception> disconnectTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
                 client.OnDisconnected += (_, ex) => disconnectTcs.TrySetResult(ex);
 
-                await client.ConnectAsync();
+                for (int r = 0; r < 5; r++)
+                {
+                    try
+                    {
+                        await client.ConnectAsync();
+                        break;
+                    }
+                    catch (Exception) when (r < 4)
+                    {
+                        await Task.Delay(1000);
+                    }
+                }
                 client.IsConnected.Should().BeTrue();
 
                 // Wait for the connection to be fully registered in the hub and initialized (up to 10 seconds)

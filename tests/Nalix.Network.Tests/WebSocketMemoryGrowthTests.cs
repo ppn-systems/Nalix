@@ -22,6 +22,7 @@ using Nalix.Network.Options;
 
 namespace Nalix.Network.Tests;
 
+[Collection("NetworkConfigTests")]
 public class WebSocketMemoryGrowthTests : IDisposable
 {
     private readonly DefaultBufferPoolManager _defaultManager = new();
