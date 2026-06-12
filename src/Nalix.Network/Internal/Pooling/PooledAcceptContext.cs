@@ -81,7 +81,6 @@ internal sealed class PooledAcceptContext : IPoolable
     /// <exception cref="InvalidOperationException"></exception>
     public SocketAsyncEventArgs Args
     {
-        [MethodImpl(MethodImplOptions.InternalCall)]
         get
         {
             if (_args is null)
@@ -97,7 +96,6 @@ internal sealed class PooledAcceptContext : IPoolable
     /// Ensures that this context has a bound SAEA, acquiring one from the pool if necessary.
     /// </summary>
     /// <exception cref="InvalidOperationException"></exception>
-    [MethodImpl(MethodImplOptions.InternalCall)]
     public void EnsureArgsBound()
     {
         if (_args == null)

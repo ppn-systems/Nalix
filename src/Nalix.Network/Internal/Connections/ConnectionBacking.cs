@@ -53,7 +53,7 @@ internal sealed class ConnectionBacking : IPoolable
     {
     }
 
-    [MethodImpl(MethodImplOptions.InternalCall)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Initialize()
     {
         ArgsPool = new LocalPool<ConnectionEventArgs>(s_pool);

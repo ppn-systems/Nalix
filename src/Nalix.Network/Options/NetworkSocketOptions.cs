@@ -59,7 +59,7 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader, IValidat
     /// Indicates whether to use IPv6 instead of IPv4.
     /// </summary>
     [IniComment("Listen on IPv6 instead of IPv4")]
-    public bool EnableIPv6 { get; set; } = false;
+    public bool EnableDualStack { get; set; } = true;
 
     /// <summary>
     /// Gets or sets whether Nagle's algorithm is disabled (low-latency mode).
@@ -70,9 +70,9 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader, IValidat
     /// <summary>
     /// Gets or sets the maximum number of parallel connections.
     /// </summary>
-    [IniComment("Maximum simultaneous parallel listeners/acceptors (1–1024, default 5)")]
+    [IniComment("Maximum simultaneous parallel listeners/acceptors (1–1024, default 2)")]
     [ValueRange(1, 1024)]
-    public int MaxParallel { get; set; } = 4;
+    public int MaxParallel { get; set; } = 2;
 
     /// <summary>
     /// Gets or sets the maximum number of parallel connections.

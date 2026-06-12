@@ -92,6 +92,8 @@ internal sealed partial class SocketConnection : IDisposable, IPoolable
         _receiveStarted = 0;
         _cancelSignaled = 0;
         _socketDetached = 0;
+        _framingLocked = 0;
+        _framing = TransportFraming.None;
 
         _bufferDataLength = 0;
         this.StolenData = null;

@@ -223,7 +223,7 @@ internal struct LocalPool<T> where T : class, IPoolable, new()
     /// transparently use the global pool.
     /// </para>
     /// </remarks>
-    [MethodImpl(MethodImplOptions.InternalCall)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Destroy()
     {
         long oldMask;
