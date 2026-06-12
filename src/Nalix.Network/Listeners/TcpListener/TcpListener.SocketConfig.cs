@@ -109,7 +109,7 @@ public abstract partial class TcpListenerBase
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void Initialize()
     {
-        if (_config.EnableIPv6)
+        if (_config.EnableDualStack)
         {
             // Try creating an IPv6 socket with DualMode first.
             // DualMode = true -> 1 socket that receives both IPv6 and IPv4-mapped (::ffff:x.x.x.x).

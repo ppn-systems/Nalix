@@ -26,8 +26,8 @@ public abstract partial class UdpListenerBase
     protected virtual void Initialize()
     {
         // Determine address family from configuration.
-        IPAddress bindAddress = _options.EnableIPv6 ? IPAddress.IPv6Any : IPAddress.Any;
-        AddressFamily af = _options.EnableIPv6 ? AddressFamily.InterNetworkV6 : AddressFamily.InterNetwork;
+        IPAddress bindAddress = _options.EnableDualStack ? IPAddress.IPv6Any : IPAddress.Any;
+        AddressFamily af = _options.EnableDualStack ? AddressFamily.InterNetworkV6 : AddressFamily.InterNetwork;
 
         _socket = new Socket(af, SocketType.Dgram, ProtocolType.Udp);
 
