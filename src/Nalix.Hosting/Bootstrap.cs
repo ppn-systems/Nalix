@@ -17,6 +17,7 @@ using Nalix.Codec.Options;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.IO;
 using Nalix.Environment.Options;
+using Nalix.Environment.Random;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
@@ -89,6 +90,8 @@ public static partial class Bootstrap
         "CA2255:The 'ModuleInitializer' attribute should not be used in libraries", Justification = "Architectural requirement to auto-configure server defaults")]
     internal static void Initialize()
     {
+        _ = nameof(Csprng);
+
         // Server typically uses server.ini to avoid conflicts with client.ini in dual-deployment scenarios
         ConfigurationManager.Instance.SetConfigFilePath(Path.Combine(Directories.ConfigurationDirectory, "server.ini"));
 
