@@ -60,15 +60,66 @@ EnvelopeCipher.Encrypt(
     out int written);
 ```
 
+## Decryption APIs
+
+`EnvelopeCipher` exposes two decryption overloads for each cipher mode (AEAD and symmetric):
+
+### Throwing API
+
+```csharp
+public static void Decrypt(
+    ReadOnlySpan<byte> key,
+    ReadOnlySpan<byte> envelope,
+    Span<byte> plaintext,
+    ReadOnlySpan<byte> aad,
+    CipherSuiteType expectedAlgorithm,
+    out int written, out uint seq)
+```
+
+Throws `CipherException` on parse failure, algorithm mismatch, or authentication failure.
+Throws `ArgumentException` if the destination plaintext buffer is too small.
+
+`Decrypt` delegates internally to `TryDecrypt` and translates `CipherError` into exceptions.
+
+### Non-throwing API
+
+```csharp
+public static bool TryDecrypt(
+    ReadOnlySpan<byte> key,
+    ReadOnlySpan<byte> envelope,
+    Span<byte> plaintext,
+    ReadOnlySpan<byte> aad,
+    CipherSuiteType expectedAlgorithm,
+    out int written, out uint seq)
+```
+
+Returns `false` on any failure. Does not throw on authentication or formatting failures.
+
+### CipherError values
+
+The internal `CipherError` enum distinguishes the following failure modes:
+
+| Value | Meaning |
+| --- | --- |
+| `EnvelopeTooShort` | The envelope buffer is too short to contain a valid header. |
+| `InvalidHeader` | The envelope header magic or version is invalid. |
+| `InvalidNonceLength` | The declared nonce length does not match the expected size for the cipher suite. |
+| `CiphertextTooShort` | The ciphertext portion is shorter than the declared tag or minimum size. |
+| `InvalidTagLength` | The authentication tag length is invalid for the cipher suite. |
+| `AlgorithmMismatch` | The algorithm declared in the envelope does not match `expectedAlgorithm`. |
+| `AuthenticationFailed` | AEAD tag verification failed. |
+| `UnsupportedAlgorithm` | The cipher suite is not recognized. |
+| `DestinationTooSmall` | The plaintext output buffer is too small for the decrypted payload. |
+
 ## Current runtime behavior
 
 - `GetNonceLength(...)` and `GetTagLength(...)` expose suite-dependent sizing
 - `GetNonceLength(...)` and `GetTagLength(...)` throw `CipherException` for unsupported cipher suites
 - AEAD suites route into `AeadEngine`
 - non-AEAD suites route into `SymmetricEngine`
-- decryption throws `CipherException` on parse or authentication failure
 - AEAD encryption generates a fresh random nonce internally per call
 - AEAD decryption treats envelope header mutations such as sequence-number changes as authentication failures
+- Envelope parsing uses `EnvelopeFormat.TryParseEnvelope()` internally; the throwing `ParseEnvelope()` is also available but `TryParseEnvelope` is the primary path
 
 ## Related APIs
 

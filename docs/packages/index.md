@@ -18,7 +18,6 @@ Nalix is composed of focused packages that can be used together or independently
 | :fontawesome-solid-network-wired: [**Nalix.Network**](./nalix-network.md) | TCP/UDP listeners, connections, protocol bridge, and session store | `TcpListenerBase`, `UdpListenerBase`, `Protocol`, `ConnectionHub`, `SocketConnection` |
 | :fontawesome-solid-microchip: [**Nalix.Hosting**](./nalix-hosting.md) | Fluent server bootstrap, packet discovery, and application lifecycle | `NetworkApplication`, `INetworkApplicationBuilder`, `Bootstrap` |
 | :fontawesome-solid-mobile-screen: [**Nalix.SDK**](./nalix-sdk.md) | Client transport sessions, request/response correlation, and session flows | `TransportSession`, `TcpSession`, `UdpSession`, `TransportOptions`, `RequestOptions` |
-| :fontawesome-solid-list-ul: [**Nalix.Logging**](./nalix-logging.md) | Structured logging with batched async sinks | `NLogix`, `NLogixOptions`, `INLogixTarget` |
 
 ## Dependency Graph
 
@@ -50,9 +49,6 @@ flowchart TD
 
     Environment --> Abstractions
 
-    Logging --> Framework
-    Logging --> Abstractions
-
     Analyzers_Fix["Nalix.Analyzers.CodeFixes"] --> Analyzers["Nalix.Analyzers"]
 ```
 
@@ -60,8 +56,8 @@ flowchart TD
 
 | Scenario | Packages |
 | :--- | :--- |
-| **Hosted server** (recommended) | `Nalix.Hosting`, `Nalix.Logging` |
-| **Manual server** | `Nalix.Network`, `Nalix.Runtime`, `Nalix.Framework`, `Nalix.Logging` |
+| **Hosted server** (recommended) | `Nalix.Hosting` |
+| **Manual server** | `Nalix.Network`, `Nalix.Runtime`, `Nalix.Framework` |
 | **Client only** | `Nalix.SDK` |
 | **Shared contracts** | `Nalix.Abstractions`, `Nalix.Codec` |
 
@@ -75,5 +71,4 @@ flowchart TD
 - [Nalix.Network](./nalix-network.md)
 - [Nalix.Hosting](./nalix-hosting.md)
 - [Nalix.SDK](./nalix-sdk.md)
-- [Nalix.Logging](./nalix-logging.md)
 

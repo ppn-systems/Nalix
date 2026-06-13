@@ -190,7 +190,6 @@ nav:
       - Nalix.Environment: packages/nalix-environment.md
       - Nalix.Codec: packages/nalix-codec.md
       - Nalix.Framework: packages/nalix-framework.md
-      - Nalix.Logging: packages/nalix-logging.md
       - Nalix.Network: packages/nalix-network.md
       - Nalix.Runtime: packages/nalix-runtime.md
       - Nalix.Hosting: packages/nalix-hosting.md
@@ -264,10 +263,6 @@ nav:
           - Object Pooling: api/framework/memory/object-pooling.md
           - Object Map: api/framework/memory/object-map.md
           - Typed Object Pools: api/framework/memory/typed-object-pools.md
-      - Logging:
-        - Overview: api/logging/index.md
-        - Extensions: api/logging/extensions.md
-        - Targets: api/logging/targets.md
       - Cryptography:
         - Overview: api/security/cryptography.md
         - Hashing and MAC: api/security/hashing-and-mac.md
@@ -336,7 +331,6 @@ nav:
           - Transport Session: api/sdk/transport-session.md
           - Protocol String Extensions: api/sdk/protocol-string-extensions.md
       - Options:
-        - Logging: api/options/logging/logging-options.md
         - Runtime:
           - Packet Dispatch Options: api/options/runtime/packet-dispatch-options.md
           - Dispatch Options: api/options/runtime/dispatch-options.md

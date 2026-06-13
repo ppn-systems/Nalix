@@ -68,7 +68,7 @@ When using WebSocket transport instead of raw TCP/UDP, the protocol processing i
 1. **Frame Capture**: `WebSocketListenerBase` listens for upgraded WebSocket connections and starts receiving payload messages.
 2. **Process Frame**: The listener triggers the `ProcessFrame(sender, args)` method when a WebSocket message is received.
 3. **Decryption and Decompression**: The active subclass (e.g., `WebSocketServerListener`) executes `FramePipeline.ProcessInbound(...)` on the incoming frame's `IBufferLease` using the derived connection `Secret` and `Algorithm`.
-4. **Sequence Verification**: The sequence number parsed from the frame is verified against `connection.TCP.ReceiveSequence` using the configured TCP sequence window size.
+4. **Sequence Verification**: The sequence number parsed from the frame is verified against the connection's receive sequence counter using the configured TCP sequence window size. The transport exposes sequence state via `ITransportSequencer` (accessible through `connection.TCP`).
 5. **Protocol Hand-off**: If sequence verification succeeds, the decrypted/decompressed lease is exchanged in the event args and forwarded to `Protocol.ProcessMessage(sender, args)`.
 
 ## Implementation Contract

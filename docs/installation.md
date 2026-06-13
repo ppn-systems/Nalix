@@ -20,7 +20,6 @@ The hosted server model provides a fluent builder and managed lifecycle. This is
 
 ```bash
 dotnet add package Nalix.Hosting
-dotnet add package Nalix.Logging
 ```
 
 `Nalix.Hosting` transitively references `Nalix.Network`, `Nalix.Runtime`, `Nalix.Framework`, `Nalix.Codec`, `Nalix.Environment`, and `Nalix.Abstractions`.
@@ -34,7 +33,6 @@ dotnet add package Nalix.Network
 dotnet add package Nalix.Runtime
 dotnet add package Nalix.Framework
 dotnet add package Nalix.Abstractions
-dotnet add package Nalix.Logging
 ```
 
 ### Client
@@ -58,8 +56,8 @@ dotnet add package Nalix.Codec
 
 | Scenario | Packages |
 |---|---|
-| Hosted server | `Nalix.Hosting`, `Nalix.Logging` |
-| Manual server | `Nalix.Network`, `Nalix.Runtime`, `Nalix.Framework`, `Nalix.Abstractions`, `Nalix.Logging` |
+| Hosted server | `Nalix.Hosting` |
+| Manual server | `Nalix.Network`, `Nalix.Runtime`, `Nalix.Framework`, `Nalix.Abstractions` |
 | Client | `Nalix.SDK` |
 | Shared contracts | `Nalix.Abstractions`, `Nalix.Codec` |
 | Full stack | Server set + Client set, sharing one contracts assembly |
@@ -121,7 +119,6 @@ flowchart TD
         direction TB
         Network["Nalix.Network"]
         Runtime["Nalix.Runtime"]
-        Logging["Nalix.Logging"]
     end
 
     subgraph Core ["Core Layer"]
@@ -146,7 +143,6 @@ flowchart TD
     Network --> Framework
     Runtime --> Codec
     Runtime --> Framework
-    Logging --> Framework
 
     Codec --> Env
     Framework --> Env

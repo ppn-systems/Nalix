@@ -14,8 +14,6 @@ This page provides a robust, production-ready starting point for any Nalix serve
 For 99% of applications, the **Hosting Builder** is the standard way to bootstrap. It handles dependency injection, service orchestration, and lifecycle management automatically.
 
 ```csharp
-using Microsoft.Extensions.Logging;
-using Nalix.Logging.Extensions;
 using Nalix.Hosting;
 using Nalix.Network.Options;
 using Nalix.Environment.Configuration;
@@ -25,7 +23,7 @@ var socketOpts = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
 
 // 2. Build the application
 using var app = NetworkApplication.CreateBuilder()
-    .ConfigureLogging(NLogixFx.Logger)
+    .ConfigureLogging(logger) // pass your ILogger instance
     .Configure<NetworkSocketOptions>(opt => 
     {
         opt.Port = socketOpts.Port;
