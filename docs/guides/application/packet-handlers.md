@@ -66,7 +66,7 @@ public sealed class ChatHandlers
 
 ## 2. Supported Method Signatures
 
-The Nalix dispatcher is extremely flexible and supports multiple method signatures. The [Source Generator](../../concepts/fundamentals/packet-system.md#7-packet-registration) automatically detects your signature and compiles an optimized invoker.
+The Nalix dispatcher is extremely flexible and supports multiple method signatures. The `PacketHandlerGenerator` source generator automatically detects your signature and compiles an optimized invoker at build time.
 
 | Style | Signature | Use Case |
 | :--- | :--- | :--- |
@@ -141,11 +141,11 @@ using Nalix.Abstractions.Networking.Packets;
 
 var app = NetworkApplication.CreateBuilder()
     // 1. Register Handlers
-    .ScanHandlers<MyGameMarker>() // Scans entire assembly
-    .AddHandler<ChatHandlers>()  // Explicit registration
-    
+    .AddHandler<GameHandlers>()   // Explicit registration
+    .AddHandler<ChatHandlers>()   // Another explicit registration
+
     // 2. Register Middleware
-    .ConfigureDispatchOptions(options => 
+    .ConfigureDispatchOptions(options =>
     {
         options.WithMiddleware(new EncryptionMiddleware());
         options.WithMiddleware(new AuditMiddleware(logger));
@@ -184,17 +184,15 @@ sequenceDiagram
     participant D as Dispatcher
     participant M as Middleware
     participant H as Handler
-    participant R as Return Handler
 
     D->>M: Apply Policies (Rate Limit, Auth, etc.)
-    M->>H: Invoke Handler Method
+    M->>H: Invoke Handler Method (source-generated invoker)
     H->>H: Execute Logic
     alt Simple Return
-        H-->>R: Return TPacket
-        R-->>D: Automated Send
+        H-->>D: Return TPacket (auto-sent by invoker)
     else Context Manual Send
         H->>D: context.Sender.SendAsync()
-        H-->>R: Return void / Task
+        H-->>D: Return void / Task
     end
 ```
 

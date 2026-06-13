@@ -112,7 +112,7 @@ using var app = NetworkApplication.CreateBuilder()
         opt.Backlog = 1024;
     })
     // 2. Add Handlers (resolved via InstanceManager)
-    .ScanHandlers<DataHandlers>()
+    .AddHandler<DataHandlers>()
     // 3. Configure Dispatch Middleware
     .ConfigureDispatchOptions(dispatch => {
         dispatch.WithMiddleware(new ConcurrencyMiddleware())

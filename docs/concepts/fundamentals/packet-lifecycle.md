@@ -59,8 +59,7 @@ Before packet middleware runs, the runtime resolves the metadata attached to the
 
 That metadata usually comes from:
 
-- packet attributes on the handler method
-- custom `IPacketMetadataProvider` implementations
+- packet attributes on the handler method, collected at compile time by `PacketHandlerGenerator`
 
 Examples:
 

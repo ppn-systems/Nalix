@@ -44,7 +44,7 @@ The runtime service registry used across the Nalix stack. A service-locator patt
 
 ## Metadata Provider
 
-A component that adds extra metadata to handler methods during `PacketMetadata` construction. Implement `IPacketMetadataProvider` when handler attributes alone are not sufficient and you need conventions or custom policy tags.
+Handler metadata (`PacketMetadata`) is now resolved at compile time by the `PacketHandlerGenerator` source generator, which reads the attributes on handler methods. Custom attributes on handler methods are stored in `PacketMetadata.CustomAttributes` and can be read from middleware via `context.Attributes.GetCustomAttribute<T>()`.
 
 ## Middleware
 
@@ -83,7 +83,7 @@ The static factory pattern used to rent a packet from the object pool. The retur
 
 ## Return Handler
 
-The internal component that translates a handler's return type into a send action. Supported return types include:
+The source-generated invoker translates a handler's return type into a send action. Supported return types include:
 
 - `TPacket` / `Task<TPacket>` / `ValueTask<TPacket>`
 - `byte[]` / `Memory<byte>` / `ReadOnlyMemory<byte>`

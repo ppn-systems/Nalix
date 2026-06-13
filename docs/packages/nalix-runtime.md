@@ -107,13 +107,13 @@ The runtime includes advanced throttling and protection primitives used by the m
 - **ConcurrencyGate**: Manages per-opcode execution slots and circuit breaking.
 - **DirectiveGuard**: Protects against response directive spamming for failed requests.
 
-### Handler Compilation
+### Handler Registration
 
-Handler methods are discovered and compiled during `Build()`:
+Handler methods are registered during `Build()`:
 
+- The `PacketHandlerGenerator` source generator scans `[PacketController]` classes at compile time and emits zero-allocation invoker delegates
 - Methods annotated with `[PacketOpcode]` are matched to packet types
-- Handler delegates are pre-compiled using expression trees or IL emit to avoid reflection during the hot path
-- Handler metadata (permissions, timeouts, rate limits) is resolved once and cached in `PacketMetadata`
+- Handler metadata (permissions, timeouts, rate limits) is resolved at compile time and stored in `PacketMetadata`
 
 ### Session Resume
 

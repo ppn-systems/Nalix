@@ -95,23 +95,11 @@ public override void ProcessMessage(object? sender, IConnectEventArgs args)
 
 **Check first**
 
-- your provider implements `IPacketMetadataProvider`
-- the provider is registered before handler compilation / dispatcher setup
-- the handler method actually has the custom attribute
+- the handler method is decorated with the custom attribute
+- the `[PacketController]` class containing the handler is registered with `AddHandler<T>()`
+- the `PacketHandlerGenerator` source generator ran successfully at build time
 
-**Quick fix**
-
-```csharp
-PacketMetadataProviders.Register(new MyMetadataProvider());
-```
-
-Register it during startup, before building dispatch handlers.
-
-If you are using the hosting builder, prefer:
-
-```csharp
-builder.AddMetadataProvider<MyMetadataProvider>();
-```
+Custom attributes on handler methods are collected by the source generator at compile time and stored in `PacketMetadata.CustomAttributes`. If the generator did not process the controller, the attribute will not be available at runtime.
 
 ## 6. UDP packets are dropped
 

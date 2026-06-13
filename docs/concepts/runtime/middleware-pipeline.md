@@ -79,12 +79,12 @@ Middleware can read:
 - Timeout rules (`[PacketTimeout]`)
 - Rate limit rules (`[PacketRateLimit]`)
 - Concurrency limits (`[PacketConcurrencyLimit]`)
-- Custom attributes added by `IPacketMetadataProvider`
+- Custom attributes collected by the `PacketHandlerGenerator` source generator
 
 The typical flow is:
 
 1. Declare attributes on handler methods
-2. Optionally enrich them with `IPacketMetadataProvider`
+2. The `PacketHandlerGenerator` collects them at compile time into `PacketMetadata`
 3. Read the resolved metadata inside middleware via `context.Attributes`
 
 ## Decision Guide

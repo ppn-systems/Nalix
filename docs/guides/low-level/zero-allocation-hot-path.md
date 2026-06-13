@@ -73,19 +73,19 @@ To achieve zero-allocation performance, Nalix must "bake" your handlers and pack
 
 ### The Registration Flow
 
-When you call `ScanHandlers`, the framework performs two critical operations:
+When you register handlers, two critical operations occur:
 
 1.  **Frozen Registry Creation**: The `PacketRegistry` uses source-generated metadata to build an immutable `FrozenDictionary` for $O(1)$ branch-prediction-friendly lookups.
-2.  **Handler Compilation**: Uses expression trees to compile your controller methods into optimized static delegates, eliminating reflection overhead.
+2.  **Source-Generated Dispatch**: The `PacketHandlerGenerator` source generator emits zero-allocation invoker delegates at compile time, eliminating reflection overhead.
 
 ```csharp
 using Nalix.Hosting;
 
 var app = NetworkApplication.CreateBuilder()
-    // 1. Register Logic Handlers (triggers PacketHandlerCompiler)
-    .ScanHandlers<GameController>()
-    
-    .Build(); // Lookups are frozen and handlers compiled here
+    // 1. Register Handlers (invokers generated at build time by PacketHandlerGenerator)
+    .AddHandler<GameController>()
+
+    .Build(); // Lookups are frozen at startup
 ```
 
 ### Manual Configuration (Advanced)
@@ -95,16 +95,16 @@ If you are not using the Hosting layer, you must manually populate the dispatch 
 ```csharp
 var channel = new PacketDispatchChannel(options =>
 {
-    // Manually trigger compilation for a controller
+    // Register a controller (source-generated compiler is resolved via PacketHandlerRegistry)
     options.WithHandler(() => new MyController());
 });
 ```
 
 ---
 
-## 3. Compiled Handler Execution
+## 3. Source-Generated Handler Execution
 
-Nalix does not use reflection at runtime. When you call `.ScanHandlers<T>()`, the `PacketHandlerCompiler` generates optimized IL via expression trees.
+Nalix does not use reflection at runtime. The `PacketHandlerGenerator` source generator scans `[PacketController]` classes at compile time and emits zero-allocation invoker delegates.
 
 ### Behind the Scenes
 
