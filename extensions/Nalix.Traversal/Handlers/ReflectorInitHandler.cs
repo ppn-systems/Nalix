@@ -30,7 +30,7 @@ public sealed class ReflectorInitHandler
     {
         System.ArgumentNullException.ThrowIfNull(context);
 
-        ulong peerAId = context.Connection.ID.ToUInt64();
+        ulong peerAId = context.Connection.ID;
         ulong peerBId = context.Packet.TargetPeerId;
 
         // 2. Create Reflector Session (Bind lifecycle to requester's connection)
