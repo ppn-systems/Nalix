@@ -84,9 +84,8 @@ internal static class AsyncCallback
 {
     #region Options
 
-    private static readonly NetworkCallbackOptions s_netOpts = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
-    private static readonly PoolingOptions s_pooling = ConfigurationManager.Instance.Get<PoolingOptions>();
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    private static readonly NetworkCallbackOptions s_netOpts = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
 
     #endregion Options
 
@@ -122,14 +121,6 @@ internal static class AsyncCallback
 
     static AsyncCallback()
     {
-        s_pooling.Validate();
-
-        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .SetMaxCapacity<PooledConnectEventContext>(s_pooling.ConnectEventContextCapacity);
-
-        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Prealloc<PooledConnectEventContext>(s_pooling.ConnectEventContextPreallocate);
-
         s_perIpPostMap = new long[s_netOpts.FairnessMapSize];
         s_perIpProcessMap = new long[s_netOpts.FairnessMapSize];
     }

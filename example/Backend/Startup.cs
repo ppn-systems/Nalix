@@ -26,7 +26,7 @@ internal class Startup
 
     public static ILogger CreateBootstrapLogger() => new NLogixBuilder()
         .AddTarget(new BatchConsoleLogTarget(t => t.EnableColors = false))
-        .SetMinimumLevel(LogLevel.Warning)
+        .SetMinimumLevel(LogLevel.Information)
         .Build();
 
     public static NetworkApplication Configure(ILogger logger)
@@ -283,27 +283,6 @@ internal class Startup
                 o.StoreFileName = "blacklist.txt";
                 o.MaxBlacklistedIps = 10_000;
             })
-            .Configure<Nalix.Network.Options.PoolingOptions>(o =>
-            {
-                // AcceptContext is one per in-flight accept operation, not one per connection.
-                o.AcceptContextCapacity = 128;
-                o.AcceptContextPreallocate = 32;
-
-                // SocketArgs and ReceiveContext scale with active TCP connections.
-                o.SocketArgsCapacity = 20_000;
-                o.SocketArgsPreallocate = 4_096;
-
-                o.ReceiveContextCapacity = 20_000;
-                o.ReceiveContextPreallocate = 4_096;
-
-                // TimingWheel keeps timeout tasks for active connections.
-                o.TimeoutTaskCapacity = 20_000;
-                o.TimeoutTaskPreallocate = 4_096;
-
-                // Connection callback wrappers scale with queued connection events.
-                o.ConnectEventContextCapacity = 20_000;
-                o.ConnectEventContextPreallocate = 4_096;
-            })
             .Configure<ProxyProtocolOptions>(o =>
             {
                 // Enable only if your TCP proxy actually sends PROXY protocol V1/V2.
@@ -331,7 +310,7 @@ internal class Startup
                 //_ = o.WithMiddleware(new RateLimitMiddleware());
                 //_ = o.WithMiddleware(new PermissionMiddleware());
                 //_ = o.WithMiddleware(new ConcurrencyMiddleware());
-                _ = o.WithDispatchLoopCount(16);
+                _ = o.WithDispatchLoopCount(8);
                 _ = o.WithErrorHandling((ex, cmd) => logger.LogError(ex, "Dispatch error: {Cmd}", cmd));
             })
             .BindTcp<DefaultProtocol>()

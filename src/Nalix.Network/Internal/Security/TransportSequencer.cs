@@ -26,6 +26,18 @@ internal readonly struct TransportSequencer : ITransportSequencer
     /// <inheritdoc />
     public readonly ISequenceCounter ReceiveSequence => _receive;
 
+    /// <inheritdoc />
+    public readonly uint NextSendSequence() => _send.Next();
+
+    /// <inheritdoc />
+    public readonly uint NextReceiveSequence() => _receive.Next();
+
+    /// <inheritdoc />
+    public readonly uint CurrentSendSequence => _send.Current();
+
+    /// <inheritdoc />
+    public readonly uint CurrentReceiveSequence => _receive.Current();
+
     /// <summary>
     /// Initializes a new instance of the <see cref="TransportSequencer"/> class.
     /// Both counters start at sequence 0.

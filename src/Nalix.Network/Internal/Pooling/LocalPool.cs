@@ -21,7 +21,7 @@ namespace Nalix.Network.Internal.Pooling;
 /// <para>
 /// <b>Design characteristics:</b>
 /// <list type="bullet">
-/// <item><description>Fixed-size pool (8 slots) using a bitmask for tracking usage.</description></item>
+/// <item><description>Fixed-size pool (2 slots) using a bitmask for tracking usage.</description></item>
 /// <item><description>Lock-free acquisition using <see cref="Interlocked"/> operations.</description></item>
 /// <item><description>Safe fallback to global pool when local pool is unavailable or destroyed.</description></item>
 /// <item><description>No object-level awareness of pool ownership (pool is externally managed).</description></item>
@@ -31,7 +31,7 @@ namespace Nalix.Network.Internal.Pooling;
 /// <typeparam name="T">
 /// The pooled object type. Must implement <see cref="IPoolable"/> and provide a parameterless constructor.
 /// </typeparam>
-internal sealed class LocalPool<T> where T : class, IPoolable, new()
+internal struct LocalPool<T> where T : class, IPoolable, new()
 {
     /// <summary>
     /// The fixed number of slots in the local pool.
@@ -67,78 +67,22 @@ internal sealed class LocalPool<T> where T : class, IPoolable, new()
     private int _destroyed;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="LocalPool{T}"/> class.
+    /// Flag for CAS initialization lock:
+    /// 0 = uninitialized, 1 = initializing, 2 = initialized.
     /// </summary>
-    /// <param name="globalPool">The global pool manager used for fallback operations.</param>
-    public LocalPool(ObjectPoolManager globalPool) => _globalPool = globalPool;
+    private int _initLock;
 
     /// <summary>
-    /// Attempts to acquire an object from the local pool.
+    /// Initializes a new instance of the <see cref="LocalPool{T}"/> struct.
     /// </summary>
-    /// <param name="initialize">
-    /// A delegate used to initialize each object during first-time pool creation.
-    /// </param>
-    /// <returns>
-    /// An available pooled object if a free slot exists; otherwise, <c>null</c>.
-    /// </returns>
-    /// <remarks>
-    /// This method is lock-free for the fast path and uses a bitmask to claim a slot atomically.
-    /// If the pool has not been initialized yet, it will be lazily created.
-    /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public T? Acquire(System.Action<T> initialize)
+    /// <param name="globalPool">The global pool manager used for fallback operations.</param>
+    public LocalPool(ObjectPoolManager globalPool)
     {
-        if (Volatile.Read(ref _destroyed) != 0)
-        {
-            return null;
-        }
-
-        this.EnsureInitialized(initialize);
-
-        T[]? items = _items;
-        if (items == null)
-        {
-            return null;
-        }
-        for (int i = 0; i < Size; i++)
-        {
-            long bit = 1L << i;
-            long oldMask;
-            long newMask;
-            bool success = false;
-
-            do
-            {
-                oldMask = Volatile.Read(ref _mask);
-                if ((oldMask & DestroyedBit) != 0)
-                {
-                    return null;
-                }
-
-                if ((oldMask & bit) != 0)
-                {
-                    break; // Slot is busy, try next slot
-                }
-
-                newMask = oldMask | bit;
-                success = Interlocked.CompareExchange(ref _mask, newMask, oldMask) == oldMask;
-            } while (!success);
-
-            if (success)
-            {
-                T item = items[i];
-
-                if (item is IPoolRentable rentable)
-                {
-                    rentable.OnRent();
-                }
-
-                return item;
-            }
-        }
-
-        // All slots are busy
-        return null;
+        _globalPool = globalPool;
+        _items = null;
+        _mask = 0;
+        _destroyed = 0;
+        _initLock = 0;
     }
 
     /// <summary>
@@ -279,6 +223,7 @@ internal sealed class LocalPool<T> where T : class, IPoolable, new()
     /// transparently use the global pool.
     /// </para>
     /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Destroy()
     {
         long oldMask;
@@ -322,67 +267,52 @@ internal sealed class LocalPool<T> where T : class, IPoolable, new()
         ArrayPool<T>.Shared.Return(items, clearArray: true);
     }
 
-    /// <summary>
-    /// Ensures the local pool is initialized.
-    /// </summary>
-    /// <param name="initialize">
-    /// A delegate used to initialize each pooled object during creation.
-    /// </param>
-    /// <remarks>
-    /// Uses double-checked locking to avoid unnecessary synchronization.
-    /// Objects are preallocated from the global pool and initialized once.
-    /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void EnsureInitialized(System.Action<T> initialize)
-    {
-        if (_items != null || Volatile.Read(ref _destroyed) != 0)
-        {
-            return;
-        }
-
-        lock (this)
-        {
-            if (_items != null || Volatile.Read(ref _destroyed) != 0)
-            {
-                return;
-            }
-
-            T[] arr = ArrayPool<T>.Shared.Rent(Size);
-
-            for (int i = 0; i < Size; i++)
-            {
-                arr[i] = _globalPool.Get<T>();
-                initialize(arr[i]);
-            }
-
-            _items = arr;
-        }
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void EnsureInitialized<TState>(TState state, System.Action<T, TState> initialize)
     {
-        if (_items != null || Volatile.Read(ref _destroyed) != 0)
+        if (Volatile.Read(ref _initLock) == 2 || Volatile.Read(ref _destroyed) != 0)
         {
             return;
         }
 
-        lock (this)
+        if (Interlocked.CompareExchange(ref _initLock, 1, 0) != 0)
         {
-            if (_items != null || Volatile.Read(ref _destroyed) != 0)
+            SpinWait spin = default;
+            while (Volatile.Read(ref _initLock) == 1)
             {
-                return;
+                spin.SpinOnce();
             }
+            return;
+        }
 
-            T[] arr = ArrayPool<T>.Shared.Rent(Size);
-
+        T[]? arr = null;
+        try
+        {
+            arr = ArrayPool<T>.Shared.Rent(Size);
             for (int i = 0; i < Size; i++)
             {
                 arr[i] = _globalPool.Get<T>();
                 initialize(arr[i], state);
             }
-
             _items = arr;
+            Volatile.Write(ref _initLock, 2);
+        }
+        catch
+        {
+            if (arr != null)
+            {
+                for (int i = 0; i < Size; i++)
+                {
+                    if (arr[i] != null)
+                    {
+                        arr[i].ResetForPool();
+                        _globalPool.Return(arr[i]);
+                    }
+                }
+                ArrayPool<T>.Shared.Return(arr, clearArray: true);
+            }
+            Volatile.Write(ref _initLock, 0);
+            throw;
         }
     }
 }

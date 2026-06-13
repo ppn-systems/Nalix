@@ -3,7 +3,6 @@
 
 using System;
 using System.ComponentModel;
-using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
@@ -32,7 +31,7 @@ public partial interface IConnection : IDisposable, IConnectionErrorTracked
     /// <summary>
     /// Gets the unique identifier for the connection.
     /// </summary>
-    ISnowflake ID { get; }
+    ulong ID { get; }
 
     /// <summary>
     /// Gets the total duration (in milliseconds) since the connection was established.

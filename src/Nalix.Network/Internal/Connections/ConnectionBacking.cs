@@ -1,0 +1,91 @@
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Networking;
+using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
+using Nalix.Network.Connections;
+using Nalix.Network.Internal.Pooling;
+using Nalix.Network.Internal.Security;
+using Nalix.Network.Internal.Transport;
+
+namespace Nalix.Network.Internal.Connections;
+
+internal sealed class ConnectionBacking : IPoolable
+{
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+
+    public readonly Lock Lock = new();
+
+    // Per-connection local pool for packet arguments to avoid global pool contention.
+    // Size 8 matches the default MaxPerConnectionPendingPackets.
+    public LocalPool<ConnectionEventArgs> ArgsPool;
+    public LocalPool<PooledConnectEventContext> ContextPool;
+
+    public SocketConnection? Socket;
+    public SocketTcpTransport? TcpTransport;
+    public SocketUdpTransport? UdpTransport;
+    public SlidingWindow? UdpReplayWindow;
+
+    public long BytesSent;
+    public long BytesReceived;
+    public long PacketsDropped;
+
+    public int ErrorCount;
+    public int DisposeState; // 0=Active, 1=Closing(Event running), 2=Disposed
+    public int CloseSignaled;
+    public int IsDispatchingClose; // 0=no, 1=yes
+    public int PendingProcessCallbacks;
+
+    public IObjectMap<string, object>? Attributes;
+    public ConcurrentDictionary<ushort, object>? RateLimitCache;
+
+    public EventHandler<IConnectEventArgs>? OnCloseEvent;
+    public EventHandler<IConnectEventArgs>? OnProcessEvent;
+    public EventHandler<IConnectEventArgs>? OnPostProcessEvent;
+
+    public ConnectionBacking()
+    {
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Initialize()
+    {
+        ArgsPool = new LocalPool<ConnectionEventArgs>(s_pool);
+        ContextPool = new LocalPool<PooledConnectEventContext>(s_pool);
+    }
+
+    public void ResetForPool()
+    {
+        Socket = null;
+        TcpTransport = null;
+        UdpTransport = null;
+        UdpReplayWindow = null;
+
+        BytesSent = 0;
+        BytesReceived = 0;
+        PacketsDropped = 0;
+
+        ErrorCount = 0;
+        DisposeState = 0;
+        CloseSignaled = 0;
+        IsDispatchingClose = 0;
+        PendingProcessCallbacks = 0;
+
+        Attributes?.Return();
+        Attributes = null;
+        RateLimitCache?.Clear();
+
+        OnCloseEvent = null;
+        OnProcessEvent = null;
+        OnPostProcessEvent = null;
+
+        ArgsPool.Destroy();
+        ContextPool.Destroy();
+    }
+}

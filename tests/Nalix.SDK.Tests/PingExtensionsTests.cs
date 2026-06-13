@@ -16,6 +16,7 @@ public sealed class PingExtensionsTests : IDisposable
 {
     public PingExtensionsTests()
     {
+        TestAssemblySetup.EnsureHighLimits();
         if (!PacketRegistry.IsBuilt)
             PacketRegistry.Build();
         TestUtils.SetupCertificate();

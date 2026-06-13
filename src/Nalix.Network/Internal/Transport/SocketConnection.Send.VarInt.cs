@@ -74,7 +74,7 @@ internal sealed partial class SocketConnection
                 return result;
             }
 
-            _sink.OnFrameSent(_owner);
+            _connectionOwner?.OnFrameSent();
             return SendResult.Success;
         }
 

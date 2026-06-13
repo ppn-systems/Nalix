@@ -34,6 +34,7 @@ public sealed class ResumeExtensionsTests : IDisposable
 {
     public ResumeExtensionsTests()
     {
+        TestAssemblySetup.EnsureHighLimits();
         if (!PacketRegistry.IsBuilt)
         PacketRegistry.Build();
 TestUtils.SetupCertificate();

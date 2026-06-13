@@ -98,16 +98,16 @@ public abstract partial class UdpListenerBase : IListener
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
             {
                 string protocolType = this.Protocol.GetType().Name;
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
-                {
-                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Information, new DiagnosticLog("NW.UdpListenerBase:Activate", $"listening port=port={_port} protocol=protocol-type={protocolType}"));
-                }
-                ;
+
+                DiagnosticsEvents.Write(
+                    DiagnosticsEvents.Internal.Information,
+                    new DiagnosticLog("NW.UdpListenerBase:Activate", $"listening port=port={_port} protocol=protocol-type={protocolType}"));
             }
 
             // Dispatch parallel SAEA receive workers via TaskManager
             int concurrency = Math.Max(1, _options.MaxParallelUDP);
             IWorkerHandle[] receiveWorkers = new IWorkerHandle[concurrency];
+
             for (int i = 0; i < concurrency; i++)
             {
                 int workerIndex = i;
@@ -179,13 +179,11 @@ public abstract partial class UdpListenerBase : IListener
         }
 
         // Try RUNNING ? STOPPING; if that fails, try STARTING ? STOPPING.
-        int prev = Interlocked.CompareExchange(ref _state,
-            (int)ListenerState.STOPPING, (int)ListenerState.RUNNING);
+        int prev = Interlocked.CompareExchange(ref _state, (int)ListenerState.STOPPING, (int)ListenerState.RUNNING);
 
         if (prev != (int)ListenerState.RUNNING)
         {
-            prev = Interlocked.CompareExchange(ref _state,
-                (int)ListenerState.STOPPING, (int)ListenerState.STARTING);
+            prev = Interlocked.CompareExchange(ref _state, (int)ListenerState.STOPPING, (int)ListenerState.STARTING);
 
             if (prev != (int)ListenerState.STARTING)
             {
@@ -346,7 +344,7 @@ public abstract partial class UdpListenerBase : IListener
         _ = sb.AppendLine("------------------------------------------------------------");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReuseAddress    : {_options.ReuseAddress}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"BufferSize      : {_options.BufferSize}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"EnableIPv6      : {_options.EnableIPv6}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"EnableIPv6      : {_options.EnableDualStack}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DualMode        : {_options.DualMode}");
         _ = sb.AppendLine();
 
@@ -402,7 +400,7 @@ public abstract partial class UdpListenerBase : IListener
         writer.WriteStartObject("Config");
         writer.WriteBoolean("ReuseAddress", _options.ReuseAddress);
         writer.WriteNumber("BufferSize", _options.BufferSize);
-        writer.WriteBoolean("EnableIPv6", _options.EnableIPv6);
+        writer.WriteBoolean("EnableDualStack", _options.EnableDualStack);
         writer.WriteBoolean("DualMode", _options.DualMode);
         writer.WriteEndObject();
 

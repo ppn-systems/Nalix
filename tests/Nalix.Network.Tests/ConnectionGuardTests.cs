@@ -13,14 +13,21 @@ using Nalix.Abstractions.Networking;
 
 namespace Nalix.Network.Tests;
 
+[Collection("NetworkConfigTests")]
 public sealed class ConnectionGuardTests
 {
+    private static IPAddress GetUniqueIp()
+    {
+        byte[] b = Guid.NewGuid().ToByteArray();
+        return new IPAddress(new byte[] { (byte)(b[0] % 223 + 1), b[1], b[2], b[3] });
+    }
+
     [Fact]
     public void TryAccept_WhenUnderLimit_ReturnsTrue()
     {
         ConnectionQuotaOptions options = new() { MaxConnectionsPerIpAddress = 2 };
         using ConnectionGuard guard = new(options);
-        IPEndPoint endpoint = new(IPAddress.Parse("1.2.3.4"), 12345);
+        IPEndPoint endpoint = new(GetUniqueIp(), 12345);
 
         guard.TryAccept(endpoint).Should().BeTrue();
         guard.TryAccept(endpoint).Should().BeTrue();
@@ -31,7 +38,7 @@ public sealed class ConnectionGuardTests
     {
         ConnectionQuotaOptions options = new() { MaxConnectionsPerIpAddress = 1 };
         using ConnectionGuard guard = new(options);
-        IPEndPoint endpoint = new(IPAddress.Parse("1.2.3.4"), 12345);
+        IPEndPoint endpoint = new(GetUniqueIp(), 12345);
 
         guard.TryAccept(endpoint).Should().BeTrue();
         guard.TryAccept(endpoint).Should().BeFalse();
@@ -43,14 +50,14 @@ public sealed class ConnectionGuardTests
     {
         ConnectionQuotaOptions options = new() { MaxConnectionsPerIpAddress = 1 };
         using ConnectionGuard guard = new(options);
-        IPEndPoint endpoint = new(IPAddress.Parse("1.2.3.4"), 12345);
+        IPEndPoint endpoint = new(GetUniqueIp(), 12345);
 
         guard.TryAccept(endpoint).Should().BeTrue();
         guard.TryAccept(endpoint).Should().BeFalse();
 
         // Simulate connection closed
         IConnectEventArgs args = Substitute.For<IConnectEventArgs>();
-        args.Connection.NetworkEndpoint.Address.Returns("1.2.3.4");
+        args.Connection.NetworkEndpoint.Address.Returns(endpoint.Address.ToString());
         args.Connection.NetworkEndpoint.Returns(Nalix.Network.Internal.Transport.SocketEndpoint.FromIpAddress(endpoint.Address));
 
         guard.OnConnectionClosed(null, args);
@@ -68,7 +75,7 @@ public sealed class ConnectionGuardTests
             ConnectionRateWindow = TimeSpan.FromSeconds(10)
         };
         using ConnectionGuard guard = new(options);
-        IPEndPoint endpoint = new(IPAddress.Parse("5.6.7.8"), 12345);
+        IPEndPoint endpoint = new(GetUniqueIp(), 12345);
 
         // Burst 2 connections
         guard.TryAccept(endpoint).Should().BeTrue();
@@ -96,7 +103,7 @@ public sealed class ConnectionGuardTests
             ConnectionRateWindow = TimeSpan.FromSeconds(10)
         };
         using ConnectionGuard guard = new(options);
-        IPEndPoint endpoint = new(IPAddress.Parse("9.9.9.9"), 12345);
+        IPEndPoint endpoint = new(GetUniqueIp(), 12345);
 
         // 1st attempt: Allowed (Current = 1, Limit = 1)
         guard.TryAccept(endpoint).Should().BeTrue();
@@ -126,7 +133,7 @@ public sealed class ConnectionGuardTests
             ConnectionRateWindow = TimeSpan.FromSeconds(5)
         };
         using ConnectionGuard guard = new(options);
-        IPEndPoint endpoint = new(IPAddress.Parse("11.11.11.11"), 12345);
+        IPEndPoint endpoint = new(GetUniqueIp(), 12345);
 
         // 1st & 2nd attempts: Allowed (within limit of 2)
         guard.TryAccept(endpoint).Should().BeTrue();

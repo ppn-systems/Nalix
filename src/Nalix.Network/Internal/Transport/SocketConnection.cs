@@ -10,6 +10,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
@@ -21,7 +22,7 @@ using Nalix.Environment.Options;
 using Nalix.Environment.Time;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Network.Internal.Abstractions;
+using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Options;
 
@@ -50,16 +51,66 @@ namespace Nalix.Network.Internal.Transport;
 /// This prevents a single abusive IP from consuming the global callback quota and
 /// starving legitimate connections.</para>
 /// </summary>
-/// <param name="socket">The accepted, connected socket.</param>
-/// <param name="owner"></param>
-/// <param name="sink"></param>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
 [DebuggerDisplay("{ToString()}")]
 [ExcludeFromCodeCoverage]
-internal sealed partial class SocketConnection(Socket socket, IConnection owner, ITransportEventSink sink) : IDisposable
+internal sealed partial class SocketConnection : IDisposable, IPoolable
 {
-    internal enum ReceiveResult
+    #region Constructor and Pooling
+
+    public SocketConnection()
+    {
+    }
+
+    internal void Initialize(Socket socket, IConnection owner)
+    {
+        _socket = socket;
+        _owner = owner ?? throw new ArgumentNullException(nameof(owner));
+        _connectionOwner = owner as Connection;
+        _endpointString = owner.NetworkEndpoint.ToString() ?? "Unknown";
+
+        _buffer ??= BufferLease.ByteArrayPool.Rent(s_fragmentOptions.MinReceiveBufferSize);
+    }
+
+    public void ResetForPool()
+    {
+        _socket = null!;
+        _owner = null!;
+        _connectionOwner = null;
+        _endpointString = "Unknown";
+
+        _packetCount = 0;
+        _bytesSent = 0;
+        _bytesReceived = 0;
+        _openFragmentStreams = 0;
+        _receiveLoopTask = null;
+        _fragmentAssembler = null;
+
+        _disposed = 0;
+        _closeSignaled = 0;
+        _receiveStarted = 0;
+        _cancelSignaled = 0;
+        _socketDetached = 0;
+        _framingLocked = 0;
+        _framing = TransportFraming.None;
+
+        _bufferDataLength = 0;
+        this.StolenData = null;
+        this.LastPingTime = 0;
+
+        if (_buffer != null)
+        {
+            BufferLease.ByteArrayPool.Return(_buffer);
+            _buffer = null;
+        }
+    }
+
+    #endregion Constructor and Pooling
+
+    #region Nested Types
+
+    internal enum ReceiveResult : byte
     {
         Success,
         PeerClosed,
@@ -68,13 +119,15 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
         Failed
     }
 
-    internal enum SendResult
+    internal enum SendResult : byte
     {
         Success,
         PeerClosed,
         Aborted,
         Failed
     }
+
+    #endregion Nested Types
 
     #region Const
 
@@ -94,14 +147,14 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     #region Fields
 
     private readonly Lock _sendLock = new();
-    private readonly Socket _socket = socket;
+    private Socket _socket = null!;
 
     /// <summary>
     /// Gets the underlying <see cref="System.Net.Sockets.Socket"/> for direct access.
     /// </summary>
     internal Socket Socket => _socket;
-    private readonly IConnection _owner = owner ?? throw new ArgumentNullException(nameof(owner));
-    private readonly ITransportEventSink _sink = sink ?? throw new ArgumentNullException(nameof(sink));
+    private IConnection _owner = null!;
+    private Connection? _connectionOwner;
 
     /// <summary>
     /// PooledReceiveContext wraps a PooledSocketAsyncEventArgs from ObjectPoolManager.
@@ -149,7 +202,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     private byte[]? _buffer = BufferLease.ByteArrayPool.Rent(s_fragmentOptions.MinReceiveBufferSize);
 
     private int _bufferDataLength;
-    private readonly string _endpointString = owner.NetworkEndpoint.ToString() ?? "Unknown";
+    private string _endpointString = "Unknown";
 
     #endregion Fields
 
@@ -192,12 +245,6 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     /// due to Unwrap() or cancellation.
     /// </summary>
     public byte[]? StolenData { get; private set; }
-
-    /// <summary>
-    /// Returns the event sink (bridge) wired to this transport.
-    /// Used by <see cref="Network.Connections.Connection"/> to delegate throttle queries.
-    /// </summary>
-    internal ITransportEventSink? EventSink => _sink;
 
     #endregion Properties
 
@@ -306,7 +353,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override string ToString()
-        => $"FramedSocketConnection (Client={_endpointString}, Disposed={Volatile.Read(ref _disposed) != 0}, LastPing={this.LastPingTime}ms, PendingPackets={(_sink as SocketEventBridge)?.PendingPackets ?? 0}, OpenFragmentStreams={Volatile.Read(ref _openFragmentStreams)}.";
+        => $"FramedSocketConnection (Client={_endpointString}, Disposed={Volatile.Read(ref _disposed) != 0}, LastPing={this.LastPingTime}ms, PendingPackets={_connectionOwner?.PendingPackets ?? 0}, OpenFragmentStreams={Volatile.Read(ref _openFragmentStreams)}.";
 
     #endregion Dispose Pattern
 
@@ -658,9 +705,8 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
         // wheel sees activity even if the sink drops the frame.
         this.LastPingTime = Clock.UnixMillisecondsNow();
 
-        // Delegate throttle check, event-args creation, and async dispatch
-        // to the event sink (SocketEventBridge).
-        if (!_sink.OnFrameReceived(_owner, lease, isReliable: true))
+        bool handled = _connectionOwner?.OnFrameReceived(lease) ?? true;
+        if (!handled)
         {
             if (_owner is IConnectionTrafficMetrics trafficMetrics)
             {
@@ -728,7 +774,8 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 
                 this.LastPingTime = Clock.UnixMillisecondsNow();
 
-                if (!_sink.OnFrameReceived(_owner, assembledLease, isReliable: true))
+                bool handled = _connectionOwner?.OnFrameReceived(assembledLease) ?? true;
+                if (!handled)
                 {
                     if (_owner is IConnectionTrafficMetrics trafficMetrics)
                     {
@@ -909,6 +956,8 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
             DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"disposed endpoint={_endpointString}"));
         }
 #endif
+
+        s_pool.Return(this);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1004,7 +1053,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
             return;
         }
 
-        _sink.OnTransportClosed(_owner);
+        _connectionOwner?.OnTransportClosed();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

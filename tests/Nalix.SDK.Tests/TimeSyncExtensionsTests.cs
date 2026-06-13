@@ -19,6 +19,7 @@ public sealed class TimeSyncExtensionsTests : IDisposable
     public TimeSyncExtensionsTests()
     {
     
+        TestAssemblySetup.EnsureHighLimits();
         if (!PacketRegistry.IsBuilt)
         PacketRegistry.Build();
         TestUtils.SetupCertificate();

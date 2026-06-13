@@ -14,7 +14,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Network.Internal.Pooling;
+using Nalix.Network.Connections;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Options;
 using Nalix.Network.RateLimiting;
@@ -116,16 +116,7 @@ public abstract partial class TcpListenerBase : IListener
 
         _lock = new SemaphoreSlim(1, 1);
 
-        PoolingOptions options = ConfigurationManager.Instance.Get<PoolingOptions>();
-        options.Validate();
-
-        // Configure object pools for accept contexts and socket async event args based on the provided options.
-        _ = _pool.SetMaxCapacity<PooledAcceptContext>(options.AcceptContextCapacity);
-        _ = _pool.SetMaxCapacity<PooledSocketAsyncEventArgs>(options.SocketArgsCapacity);
-
-        // Preallocate objects in the pools to improve performance and reduce latency during runtime.
-        _ = _pool.Prealloc<PooledAcceptContext>(options.AcceptContextPreallocate);
-        _ = _pool.Prealloc<PooledSocketAsyncEventArgs>(options.SocketArgsPreallocate);
+        _ = nameof(Connection);
     }
 
     /// <summary>

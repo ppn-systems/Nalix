@@ -124,7 +124,7 @@ public sealed class PacketSender : IPacketSender
             rawLease.CommitLength(written);
 
             IBufferLease current = rawLease;
-            uint? sequenceToUse = needEncrypt ? transport.SendSequence.Next() : null;
+            uint? sequenceToUse = needEncrypt ? transport.NextSendSequence() : null;
 
             // FramePipeline mutates `current` and properly cleans up older leases.
             FramePipeline.ProcessOutbound(

@@ -278,7 +278,7 @@ public abstract partial class TcpListenerBase
             if (bytesReceived > headerBytesConsumed && receiveBuffer != null)
             {
                 ReadOnlySpan<byte> extraBytes = receiveBuffer.AsSpan(headerBytesConsumed, bytesReceived - headerBytesConsumed);
-                connection.TcpTransport.InjectPreReadBytes(extraBytes);
+                connection.InjectPreReadBytes(extraBytes);
             }
 
             return connection;

@@ -121,9 +121,9 @@ public abstract partial class TcpListenerBase
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.RUNNING);
 
-            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
             {
-                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Information,
                     new DiagnosticLog("NW.TcpListenerBase:Activate", $"start protocol={_protocol} port={_port}"));
             }
 
@@ -321,9 +321,9 @@ public abstract partial class TcpListenerBase
                                         .Deactivate(CancellationToken.None);
             }
 
-            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
             {
-                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Information,
                     new DiagnosticLog("NW.TcpListenerBase:Deactivate", $"stop protocol={_protocol} port={_port}"));
             }
         }
@@ -383,7 +383,7 @@ public abstract partial class TcpListenerBase
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"BufferSize          : {_config.BufferSize}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"KeepAlive           : {_config.KeepAlive}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReuseAddress        : {_config.ReuseAddress}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"EnableIPv6          : {_config.EnableIPv6}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"EnableDualStack     : {_config.EnableDualStack}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Backlog             : {_config.Backlog}");
         _ = sb.AppendLine();
 
@@ -438,7 +438,7 @@ public abstract partial class TcpListenerBase
         writer.WriteNumber("BufferSize", _config.BufferSize);
         writer.WriteBoolean("KeepAlive", _config.KeepAlive);
         writer.WriteBoolean("ReuseAddress", _config.ReuseAddress);
-        writer.WriteBoolean("EnableIPv6", _config.EnableIPv6);
+        writer.WriteBoolean("EnableDualStack", _config.EnableDualStack);
         writer.WriteNumber("Backlog", _config.Backlog);
         writer.WriteEndObject();
 

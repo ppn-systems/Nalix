@@ -104,6 +104,7 @@ public sealed class ObjectPoolDiagnosticsTests
     {
         ObjectPoolOptions config = new() { EnableDiagnostics = true, EnableObjectTrimming = false };
         using ObjectPoolManager manager = new(config);
+        SetDefaultMaxPoolSize(manager, 16);
         using DiagnosticCollector collector = new(DiagnosticsEvents.Memory.PoolFailure,
             payload => DiagnosticCollector.GetProperty<string>(payload, "Type") == "HealthCheckPoolable");
 
@@ -117,6 +118,7 @@ public sealed class ObjectPoolDiagnosticsTests
         {
             Assert.Equal(1, collector.Events.Count);
         }
+
 
         Assert.Equal(0, manager.PerformHealthCheck());
         lock (collector.Events)
@@ -151,6 +153,7 @@ public sealed class ObjectPoolDiagnosticsTests
     {
         ObjectPoolOptions config = new() { EnableDiagnostics = true, EnableObjectTrimming = false };
         using ObjectPoolManager manager = new(config);
+        SetDefaultMaxPoolSize(manager, 16);
         List<HealthCheckPoolable> rented = new(32);
 
         for (int i = 0; i < 32; i++)
@@ -180,6 +183,7 @@ public sealed class ObjectPoolDiagnosticsTests
     {
         ObjectPoolOptions config = new() { EnableDiagnostics = true, EnableObjectTrimming = false };
         using ObjectPoolManager manager = new(config);
+        SetDefaultMaxPoolSize(manager, 16);
         using DiagnosticCollector collector = new(DiagnosticsEvents.Memory.PoolFailure,
             payload => DiagnosticCollector.GetProperty<string>(payload, "Type") == "GenericPoolable<HealthCheckPoolable>");
 
@@ -201,6 +205,17 @@ public sealed class ObjectPoolDiagnosticsTests
         Assert.Equal("CapacityPressure", DiagnosticCollector.GetProperty<string>(payload, "Reason"));
     }
 
+
+    /// <summary>
+    /// Overrides the default max pool size via reflection to allow health check tests
+    /// to exceed pool capacity with a small number of gets (32).
+    /// </summary>
+    private static void SetDefaultMaxPoolSize(ObjectPoolManager manager, int size)
+    {
+        typeof(ObjectPoolManager)
+            .GetField("_defaultMaxPoolSize", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .SetValue(manager, size);
+    }
 
 #if DEBUG
     [Fact]

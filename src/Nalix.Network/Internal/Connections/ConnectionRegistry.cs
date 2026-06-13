@@ -52,9 +52,7 @@ internal sealed class ConnectionRegistry
 
         for (int i = 0; i < _shardCount; i++)
         {
-            _shards[i] = new ConcurrentDictionary<ulong, IConnection>(
-                concurrencyLevel: System.Environment.ProcessorCount,
-                capacity: perShardCapacity);
+            _shards[i] = new ConcurrentDictionary<ulong, IConnection>(concurrencyLevel: System.Environment.ProcessorCount, capacity: perShardCapacity);
         }
     }
 

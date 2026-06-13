@@ -5,6 +5,7 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<TargetFramework>net10.0</TargetFramework>
+		<IsAotCompatible>true</IsAotCompatible>
 		<RootNamespace>Nalix.Observability.Contracts</RootNamespace>
 		<OutputType>Library</OutputType>
 		<AssemblyName>Nalix.Observability.Contracts</AssemblyName>

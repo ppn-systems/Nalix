@@ -19,7 +19,9 @@ namespace Nalix.Framework.Injection.DI;
 [ExcludeFromCodeCoverage]
 [DebuggerDisplay("Instance = {Instance}, IsCreated = {IsCreated}")]
 [SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "<Pending>")]
-public abstract class SingletonBase<T> : IDisposable where T : class
+public abstract class SingletonBase<
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.AllConstructors)] T> :
+    IDisposable where T : class
 {
     #region Fields
 

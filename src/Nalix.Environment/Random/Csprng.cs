@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
 
 namespace Nalix.Environment.Random;
@@ -46,7 +47,7 @@ public static class Csprng
             f(probe);
             s_f = f;
         }
-        catch (Exception ex) when (!IsFatal(ex))
+        catch (Exception ex) when (!ExceptionClassifier.IsNonFatal(ex))
         {
             // BUG-31 fix: Do NOT throw from static constructor.
             // A throw here causes TypeInitializationException on every future access,
@@ -54,15 +55,29 @@ public static class Csprng
             s_f = OsRandom.Fill;
             OsRandom.Reseed(TimeSpan.FromMinutes(1));
 
+            // Server: Listener is always registered before Csprng access.
+            // Throw here will propagate as TypeInitializationException on server — intentional.
+            // Client: Listener is not registered, fallback to OsRandom silently — acceptable.
             if (Listener.IsEnabled(DiagnosticsEvents.Random.Failure))
             {
-                DiagnosticsEvents.Write(DiagnosticsEvents.Random.Failure, new Nalix.Abstractions.Diagnostics.DiagnosticLog("ENV.Csprng:Internal", "os-csprng-unavailable OS CSPRNG unavailable — falling back to OsRandom. Cryptographic strength may be reduced."));
+                // NO FALLBACK: OS CSPRNG is unavailable. Do NOT fall back to a non-cryptographic PRNG, as that would be a critical security failure.
+
+                DiagnosticsEvents.Write(
+                    DiagnosticsEvents.Random.Failure,
+                    new Nalix.Abstractions.Diagnostics.DiagnosticLog(
+                        "ENV.Csprng:Internal",
+                        "s-csprng-unavailable\r\nCRITICAL SECURITY FAILURE: OS CSPRNG is unavailable. " +
+                        "Secure random generation has been aborted to prevent predictable cryptographic material from being used."));
+
+                throw new CipherException("OS CSPRNG is unavailable. Secure random generation has been aborted to prevent predictable cryptographic material from being used.", ex);
             }
         }
 
         if (Listener.IsEnabled(DiagnosticsEvents.Random.Init))
         {
-            DiagnosticsEvents.Write(DiagnosticsEvents.Random.Init, new Nalix.Abstractions.Diagnostics.DiagnosticLog("ENV.Csprng:Internal", $"initialized provider={(ReferenceEquals(s_f, f) ? "OS_CSPRNG" : "Xoshiro++")}"));
+            DiagnosticsEvents.Write(
+                DiagnosticsEvents.Random.Init,
+                new Nalix.Abstractions.Diagnostics.DiagnosticLog("ENV.Csprng:Internal", $"initialized provider={(ReferenceEquals(s_f, f) ? "OS_CSPRNG" : "Xoshiro++")}"));
         }
     }
 
@@ -293,12 +308,4 @@ public static class Csprng
     #endregion Next
 
     #endregion APIs
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsFatal(Exception ex)
-        => ex is OutOfMemoryException
-        or StackOverflowException
-        or AccessViolationException
-        or AppDomainUnloadedException
-        or BadImageFormatException;
 }

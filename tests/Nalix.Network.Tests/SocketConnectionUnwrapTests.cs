@@ -8,7 +8,6 @@ using Moq;
 using Xunit;
 using Nalix.Abstractions.Networking;
 using Nalix.Network.Internal.Transport;
-using Nalix.Network.Internal.Abstractions;
 using Nalix.Network.Connections;
 
 namespace Nalix.Network.Tests;
@@ -21,9 +20,10 @@ public class SocketConnectionUnwrapTests
         var ownerMock = new Mock<IConnection>();
         var endpointMock = new Mock<INetworkEndpoint>();
         ownerMock.Setup(m => m.NetworkEndpoint).Returns(endpointMock.Object);
-        var sinkMock = new Mock<ITransportEventSink>();
 
-        return new SocketConnection(originalSocket, ownerMock.Object, sinkMock.Object);
+        var connection = new SocketConnection();
+        connection.Initialize(originalSocket, ownerMock.Object);
+        return connection;
     }
 
     [Fact]

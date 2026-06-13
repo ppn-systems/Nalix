@@ -31,7 +31,12 @@ namespace Nalix.Network.Connections;
 /// Represents a network connection that manages WebSocket communication, stream
 /// transformation, and event handling.
 /// </summary>
-public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, IConnectionTrafficMetrics, TimingWheel.ITimeoutTrackedConnection, IPooledConnectContextPool
+public sealed class WebSocketConnection :
+    IConnection,
+    IConnectionErrorTracked,
+    IConnectionTrafficMetrics,
+    IPooledConnectContextPool,
+    TimingWheel.ITimeoutTrackedConnection
 {
     #region Fields
 
@@ -60,8 +65,8 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     private EventHandler<IConnectEventArgs>? _onProcessEvent;
     private EventHandler<IConnectEventArgs>? _onPostProcessEvent;
 
-    internal readonly LocalPool<ConnectionEventArgs> _argsPool;
-    internal readonly LocalPool<PooledConnectEventContext> _contextPool;
+    internal LocalPool<ConnectionEventArgs> _argsPool;
+    internal LocalPool<PooledConnectEventContext> _contextPool;
 
     #endregion Fields
 
@@ -84,7 +89,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
         this.Secret = Bytes32.Zero;
         this.PacketClassifier = packetClassifier;
-        this.ID = Snowflake.NewId(SnowflakeType.Session);
+        this.ID = Snowflake.NewId(SnowflakeType.Session).ToUInt64();
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(remoteEndPoint ?? new IPEndPoint(IPAddress.Loopback, 0));
 
         _argsPool = new LocalPool<ConnectionEventArgs>(s_pool);
@@ -92,7 +97,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.WebSocketConnection:UnknownMethod", $"created remote-endpoint={this.NetworkEndpoint} connection-id={this.ID}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.WebSocketConnection:UnknownMethod", $"created remote-endpoint={this.NetworkEndpoint} connection-id={this.ID:X16}"));
         }
     }
 
@@ -110,7 +115,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     public bool ExcludeFromIdleTimeout { get; set; } = true;
 
     /// <inheritdoc/>
-    public ISnowflake ID { get; }
+    public ulong ID { get; }
 
     /// <inheritdoc/>
     public IOpCodeExtractor PacketClassifier { get; }
@@ -322,7 +327,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.WebSocketConnection:Disconnect", $"disconnect request connection-id={this.ID} remote-endpoint={this.NetworkEndpoint} reason={reason}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.WebSocketConnection:Disconnect", $"disconnect request connection-id={this.ID:X16} remote-endpoint={this.NetworkEndpoint} reason={reason}"));
         }
         this.Dispose();
     }
@@ -439,6 +444,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
         PooledConnectEventContext? ctxLocal = _contextPool.Acquire(this, static (ctx, self) => ctx.LocalOwner = self);
         if (ctxLocal != null)
         {
+            ctxLocal.LocalOwner = this;
             return ctxLocal;
         }
 

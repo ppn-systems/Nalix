@@ -2,11 +2,14 @@ name: Release Extensions
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Draft release tag. Leave empty to use the latest draft release."
+        required: false
+        type: string
 
 permissions:
-  contents: read
-  checks: write
-  pull-requests: write
+  contents: write
 
 jobs:
   build-and-upload:
@@ -14,28 +17,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Resolve latest draft release tag
+      - name: Resolve target release tag
         id: release
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          INPUT_TAG: ${{ inputs.release_tag }}
         run: |
-          tag="$(gh release list --limit 20 --json tagName,isDraft,createdAt \
-            --jq 'sort_by(.createdAt) | reverse | .[] | select(.isDraft == true) | .tagName' \
-            | head -n 1)"
+          if [ -n "$INPUT_TAG" ]; then
+            tag="$INPUT_TAG"
+          else
+            tag="$(gh release list --limit 20 --json tagName,isDraft,createdAt \
+              --jq 'sort_by(.createdAt) | reverse | .[] | select(.isDraft == true) | .tagName' \
+              | head -n 1)"
+          fi
 
           if [ -z "$tag" ]; then
-            echo "No draft release found."
+            echo "No release tag provided and no draft release found."
             exit 1
           fi
 
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "Using draft release tag: $tag"
+          echo "Using release tag: $tag"
 
       - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.release.outputs.tag }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -47,52 +53,47 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y zip
 
-      - name: Build Observability Contracts
-        run: dotnet build extensions/Nalix.Observability.Contracts/Nalix.Observability.Contracts.csproj --configuration Release -o ./output/observability_contracts
+      - name: Build extensions
+        shell: bash
+        run: |
+          dotnet build extensions/Nalix.Observability.Contracts/Nalix.Observability.Contracts.csproj --configuration Release -o ./output/observability_contracts
+          dotnet build extensions/Nalix.Observability/Nalix.Observability.csproj --configuration Release -o ./output/observability
 
-      - name: Build Observability
-        run: dotnet build extensions/Nalix.Observability/Nalix.Observability.csproj --configuration Release -o ./output/observability
+          dotnet build extensions/Nalix.Traversal.Contracts/Nalix.Traversal.Contracts.csproj --configuration Release -o ./output/traversal_contracts
+          dotnet build extensions/Nalix.Traversal/Nalix.Traversal.csproj --configuration Release -o ./output/traversal
 
-      - name: Build Traversal Contracts
-        run: dotnet build extensions/Nalix.Traversal.Contracts/Nalix.Traversal.Contracts.csproj --configuration Release -o ./output/traversal_contracts
+          dotnet build extensions/Nalix.Tunneling.Contracts/Nalix.Tunneling.Contracts.csproj --configuration Release -o ./output/tunneling_contracts
+          dotnet build extensions/Nalix.Tunneling/Nalix.Tunneling.csproj --configuration Release -o ./output/tunneling
 
-      - name: Build Traversal
-        run: dotnet build extensions/Nalix.Traversal/Nalix.Traversal.csproj --configuration Release -o ./output/traversal
-
-      - name: Build Tunneling Contracts
-        run: dotnet build extensions/Nalix.Tunneling.Contracts/Nalix.Tunneling.Contracts.csproj --configuration Release -o ./output/tunneling_contracts
-
-      - name: Build Tunneling
-        run: dotnet build extensions/Nalix.Tunneling/Nalix.Tunneling.csproj --configuration Release -o ./output/tunneling
-
-      - name: Prepare Observability Zip
+      - name: Prepare release assets
+        shell: bash
         run: |
           mkdir -p release_assets/observability
+          mkdir -p release_assets/traversal
+          mkdir -p release_assets/tunneling
+
           cp output/observability_contracts/Nalix.Observability.Contracts.* release_assets/observability/ 2>/dev/null || true
           cp output/observability/Nalix.Observability.* release_assets/observability/ 2>/dev/null || true
 
-          cd release_assets/observability
-          zip -r ../Nalix.Observability.zip ./*
-
-      - name: Prepare Traversal Zip
-        run: |
-          mkdir -p release_assets/traversal
           cp output/traversal_contracts/Nalix.Traversal.Contracts.* release_assets/traversal/ 2>/dev/null || true
           cp output/traversal/Nalix.Traversal.* release_assets/traversal/ 2>/dev/null || true
 
-          cd release_assets/traversal
-          zip -r ../Nalix.Traversal.zip ./*
-
-      - name: Prepare Tunneling Zip
-        run: |
-          mkdir -p release_assets/tunneling
           cp output/tunneling_contracts/Nalix.Tunneling.Contracts.* release_assets/tunneling/ 2>/dev/null || true
           cp output/tunneling/Nalix.Tunneling.* release_assets/tunneling/ 2>/dev/null || true
 
+          cd release_assets/observability
+          zip -r ../Nalix.Observability.zip ./*
+          cd ../..
+
+          cd release_assets/traversal
+          zip -r ../Nalix.Traversal.zip ./*
+          cd ../..
+
           cd release_assets/tunneling
           zip -r ../Nalix.Tunneling.zip ./*
+          cd ../..
 
-      - name: Upload to Draft Release
+      - name: Upload to release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.release.outputs.tag }}
@@ -100,3 +101,5 @@ jobs:
             release_assets/Nalix.Observability.zip
             release_assets/Nalix.Traversal.zip
             release_assets/Nalix.Tunneling.zip
+          draft: true
+          fail_on_unmatched_files: true

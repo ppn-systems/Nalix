@@ -1,7 +1,10 @@
 using Nalix.Environment.Configuration;
 using Nalix.Network.Options;
+using Xunit;
 
-namespace Nalix.Network.Tests;
+[assembly: CollectionBehavior(CollectionBehavior.CollectionPerAssembly, MaxParallelThreads = 1)]
+
+namespace Nalix.Integration.Tests;
 
 internal static class TestAssemblySetup
 {

@@ -10,7 +10,6 @@ using Nalix.Runtime.Sessions;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
-
 namespace Nalix.SDK.Tests;
 
 [Collection("RealServerTests")]
@@ -20,6 +19,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
 
     public HandshakeIntegrationTests()
     {
+        TestAssemblySetup.EnsureHighLimits();
         if (!PacketRegistry.IsBuilt)
             PacketRegistry.Build();
         TestUtils.SetupCertificate();

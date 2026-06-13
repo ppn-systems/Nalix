@@ -127,7 +127,7 @@ internal sealed class DiagnosticChannel :
         [Codec.DiagnosticsEvents.Serialization.Poisoned] = LogLevel.Trace,
 
         // Environment.Random Failure
-        [Environment.DiagnosticsEvents.Random.Failure] = LogLevel.Warning,
+        [Environment.DiagnosticsEvents.Random.Failure] = LogLevel.Critical,
 
         // Runtime.Internal
         [Runtime.DiagnosticsEvents.Internal.Trace] = LogLevel.Trace,

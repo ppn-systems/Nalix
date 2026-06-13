@@ -32,46 +32,6 @@ namespace Nalix.Hosting;
 /// </remarks>
 public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
 {
-    #region Static Fields
-
-    private static readonly Action<ILogger, string?, Exception?> s_startedTcpServerMessage =
-        LoggerMessage.Define<string?>(
-            LogLevel.Information,
-            default,
-            "[HT.NetworkApplication] tcp-started protocol={ProtocolType}");
-
-    private static readonly Action<ILogger, string?, Exception?> s_startedWebSocketServerMessage =
-        LoggerMessage.Define<string?>(
-            LogLevel.Information,
-            default,
-            "[HT.NetworkApplication] websocket-started protocol={ProtocolType}");
-
-    private static readonly Action<ILogger, string?, Exception?> s_startedUdpServerMessage =
-        LoggerMessage.Define<string?>(
-            LogLevel.Information,
-            default,
-            "[HT.NetworkApplication] udp-started protocol={ProtocolType}");
-
-    private static readonly Action<ILogger, Exception?> s_stopListenerFailedMessage =
-        LoggerMessage.Define(
-            LogLevel.Warning,
-            default,
-            "[HT.NetworkApplication] failed-stop-listener");
-
-    private static readonly Action<ILogger, Exception?> s_disposeProtocolFailedMessage =
-        LoggerMessage.Define(
-            LogLevel.Warning,
-            default,
-            "[HT.NetworkApplication] failed-dispose-protocol");
-
-    private static readonly Action<ILogger, Exception?> s_stopDispatcherFailedMessage =
-        LoggerMessage.Define(
-            LogLevel.Warning,
-            default,
-            "[HT.NetworkApplication] failed-stop-packet-dispatcher");
-
-    #endregion Static Fields
-
     #region Fields
 
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -213,19 +173,6 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
                     ReportRegistry.Instance.Register<IProtocol>(server.Transport, server.Protocol);
 
                     server.Listener.Activate(cancellationToken);
-
-                    if (server.Transport == NetworkTransport.UDP)
-                    {
-                        s_startedUdpServerMessage(_logger, server.ProtocolType.FullName, null);
-                    }
-                    else if (server.Transport == NetworkTransport.TCP)
-                    {
-                        s_startedTcpServerMessage(_logger, server.ProtocolType.FullName, null);
-                    }
-                    else if (server.Transport == NetworkTransport.WEBSOCKET)
-                    {
-                        s_startedWebSocketServerMessage(_logger, server.ProtocolType.FullName, null);
-                    }
                 }
             }
             catch
@@ -285,7 +232,6 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    s_stopListenerFailedMessage(_logger, ex);
                 }
             }
 
@@ -299,7 +245,6 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    s_disposeProtocolFailedMessage(_logger, ex);
                 }
             }
 
@@ -313,7 +258,6 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
             {
                 if (_logger.IsEnabled(LogLevel.Error))
                 {
-                    s_stopDispatcherFailedMessage(_logger, ex);
                 }
             }
 
@@ -324,6 +268,7 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
             // BUG-Fix: Ensure all background workers are fully stopped before returning.
             // Without this, "zombie" tasks from Test A might interfere with Test B's resources.
             ITaskManager? taskManager = InstanceManager.Instance.GetExistingInstance<ITaskManager>();
+
             if (taskManager is not null)
             {
                 // Wait for all network and time-related workers (listeners, dispatchers, timing wheels, etc.)
