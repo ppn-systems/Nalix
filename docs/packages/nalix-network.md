@@ -82,7 +82,6 @@ Nalix.Network provides focused option types for each transport concern:
 | `NetworkWebSocketOptions` | WebSocket handshakes, frame sizes, and protocols |
 | `ConnectionHubOptions` | Hub behavior and capacity |
 | `TimingWheelOptions` | Idle timeout configuration |
-| `PoolingOptions` | Buffer pool, accept context pool, receive context pool sizes |
 | `NetworkCallbackOptions` | Callback flood protection thresholds |
 | `DatagramGuardOptions` | UDP source rate limiting and cleanup |
 

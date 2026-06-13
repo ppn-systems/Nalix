@@ -14,15 +14,15 @@
 
 The `Connection` type provides a unified interface for specialized transport protocols (TCP/UDP) while centralizing:
 
-- **Identity**: Every connection is assigned a unique `Snowflake` ID.
+- **Identity**: Every connection is assigned a unique `ulong` ID (derived from Snowflake).
 - **Security Context**: Stores the `Secret` and active `Algorithm` derived during handshake.
-- **Event Orchestration**: Bridges low-level socket-read events via `SocketEventBridge` into structured `OnProcess` and `OnPostProcess` hooks.
-- **Resource Lifecycle**: Manages pooled event args, attribute state, transport sockets, and teardown sequencing.
+- **Event Orchestration**: Bridges low-level socket-read events into structured `OnProcess` and `OnPostProcess` hooks using `AsyncCallback`.
+- **Resource Lifecycle**: Manages pooled event args, attribute state, transport sockets, and teardown sequencing through an internal pooled backing store.
 - **Timing Wheel Integration**: Implements `TimingWheel.ITimeoutTrackedConnection` to support low-overhead connection timeout tracking and lazy removal.
 
 ## Architectural Pipeline
 
-The following diagram illustrates how `Connection` bridges the raw `SocketConnection` events into the application-facing event system via the `SocketEventBridge`.
+The following diagram illustrates how `Connection` bridges the raw `SocketConnection` events into the application-facing event system via internal bridge methods dispatched through `AsyncCallback`.
 
 ```mermaid
 flowchart TD
@@ -31,7 +31,7 @@ flowchart TD
         RawClose[Native Disconnect Signal]
     end
 
-    subgraph Hub[Connection Internal Bridges via SocketEventBridge]
+    subgraph Bridge[Connection Internal Bridge Methods]
         ProcessBridge[OnProcessEventBridge]
         PostBridge[OnPostProcessEventBridge]
         CloseBridge[OnCloseEventBridge]
@@ -43,25 +43,25 @@ flowchart TD
         OnClose[OnCloseEvent Handler]
     end
 
-    RawData -->|Sync/Async| ProcessBridge
+    RawData -->|AsyncCallback.Invoke| ProcessBridge
     ProcessBridge --> OnProcess
     OnProcess --> PostBridge
     PostBridge --> OnPost
-    
-    RawClose --> CloseBridge
+
+    RawClose -->|AsyncCallback.InvokeHighPriority| CloseBridge
     CloseBridge --> OnClose
 
-    style Hub stroke-dasharray: 5 5
+    style Bridge stroke-dasharray: 5 5
 ```
 
 ## Internal Responsibilities (Source-Verified)
 
-### 1. High-Priority Event Bridging via SocketEventBridge
+### 1. Event Bridging via AsyncCallback
 
-`Connection` delegates low-level frame callbacks to `SocketEventBridge`, which routes them to the connection-level events using `AsyncCallback`.
+`Connection` routes low-level transport frame callbacks into connection-level events using internal bridge methods dispatched through `AsyncCallback`.
 
-- **High-priority close lane**: `OnCloseEventBridge(...)` uses `AsyncCallback.InvokeHighPriority(...)` so close/disconnect callbacks bypass the normal queue and run immediately to ensure prompt resources teardown.
-- **Normal packet lane**: `OnProcessEvent` and `OnPostProcessEvent` are queued and run asynchronously on the ThreadPool. The bridge disposes of the pooled `ConnectionEventArgs` in a `finally` block.
+- **High-priority close lane**: `OnCloseEventBridge` uses `AsyncCallback.InvokeHighPriority(...)` so close/disconnect callbacks bypass the normal queue and run immediately to ensure prompt resource teardown.
+- **Normal packet lane**: `OnProcessEvent` and `OnPostProcessEvent` are queued and run asynchronously on the ThreadPool. The bridge methods dispose of the pooled `ConnectionEventArgs` in a `finally` block.
 
 ### 2. Error Tracking (SEC-54)
 
@@ -83,7 +83,7 @@ The connection exposes a `UdpReplayWindow` (an instance of `SlidingWindow` sized
 
 ## Public APIs
 
-- `ID`: The unique `ISnowflake` identifier for the connection.
+- `ID`: The unique `ulong` identifier for the connection (derived from Snowflake).
 - `Secret`: Zero-allocation `Bytes32` secret derived during the handshake.
 - `Algorithm`: Active cipher suite (`CipherSuiteType`).
 - `Level`: The permission level of the connection (`PermissionLevel`).
@@ -107,7 +107,7 @@ The connection exposes a `UdpReplayWindow` (an instance of `SlidingWindow` sized
     Use `connection.Attributes` to store per-client state (e.g., UserId). These attributes use a pooled object map, meaning you can store and clear data without generating GC garbage.
 
 !!! warning "Avoid Blocking Handlers"
-    `OnProcessEvent` and `OnPostProcessEvent` are queued through `AsyncCallback` onto the `ThreadPool`, not invoked inline on the socket receive loop. Even so, blocking handlers still hold onto callback capacity and pooled resources longer than necessary, so keep handlers short and offload heavyweight work when needed.
+    `OnProcessEvent` and `OnPostProcessEvent` are queued through `AsyncCallback` onto the `ThreadPool`, not invoked inline on the socket receive loop. Blocking handlers still hold onto callback capacity and pooled resources longer than necessary, so keep handlers short and offload heavyweight work when needed.
 
 ## Related Information Paths
 

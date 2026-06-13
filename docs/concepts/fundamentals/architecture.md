@@ -34,7 +34,6 @@ flowchart TD
         direction TB
         Network["Nalix.Network"]
         Runtime["Nalix.Runtime"]
-        Logging["Nalix.Logging"]
     end
 
     subgraph Core ["Core Layer"]
@@ -59,7 +58,6 @@ flowchart TD
     Network --> Framework
     Runtime --> Codec
     Runtime --> Framework
-    Logging --> Framework
 
     Codec --> Env
     Framework --> Env
@@ -77,7 +75,6 @@ flowchart TD
 | Environment | `Nalix.Environment` | Configuration, directories, random generation, clock/time helpers |
 | Contracts | `Nalix.Abstractions` | Shared abstractions, packet attributes, connection contracts |
 | Client | `Nalix.SDK` | Transport sessions, request/response correlation, handshake and resume flows |
-| Logging | `Nalix.Logging` | Structured logging with batched console and file targets |
 
 ## Server vs. Client Separation
 

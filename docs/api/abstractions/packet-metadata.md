@@ -1,96 +1,49 @@
 # Packet Metadata
 
-`PacketMetadata` represents the resolved handler metadata used during packet dispatch and middleware execution.
-
-## Audit Summary
-
-- Existing page included accurate concepts but needed clearer separation between public APIs and internal compilation details.
-- Needed explicit emphasis that `PacketMetadataProviders` exposes registration API only.
-
-## Missing Content Identified
-
-- Stronger mapping from attributes/provider population to immutable `PacketMetadata` output.
-- Clarification of extension points for custom metadata.
-
-## Improvement Rationale
-
-This makes metadata customization safer for contributors and easier to reason about in production debugging.
+`PacketMetadata` is an immutable readonly struct that captures the packet attributes driving dispatch, validation, and transport behavior. It is resolved at compile time by the `PacketHandlerGenerator` source generator and passed into `PacketContext.Attributes` at runtime.
 
 ## Source Mapping
 
 - `src/Nalix.Abstractions/Networking/Packets/PacketMetadata.cs`
-- `src/Nalix.Runtime/Dispatching/PacketMetadataBuilder.cs`
-- `src/Nalix.Runtime/Dispatching/PacketMetadataProviders.cs`
-- `src/Nalix.Runtime/Dispatching/IPacketMetadataProvider.cs`
+- `analyzers/Nalix.Analyzers.Generators/PacketHandlerGenerator.cs`
 
 ## Why Metadata Exists
 
-Handler behavior (timeout, permission, encryption, rate/concurrency limits) must be resolved once during registration, then consumed cheaply on hot dispatch paths.
+Handler behavior (timeout, permission, encryption, rate/concurrency limits) must be resolved once at compile time, then consumed cheaply on hot dispatch paths without reflection or allocation.
 
 ## Build Flow
 
 ```mermaid
 flowchart LR
-    A["Handler Method + Attributes"] --> B["PacketMetadataBuilder"]
-    C["IPacketMetadataProvider.Populate(...) "] --> B
-    B --> D["Build()"]
-    D --> E["PacketMetadata"]
-    E --> F["PacketContext.Attributes"]
+    A["Handler Method + Attributes"] --> B["PacketHandlerGenerator (compile-time)"]
+    B --> C["new PacketMetadata(...)"]
+    C --> D["PacketContext.Attributes"]
 ```
 
-## Core Types
+## Struct Shape
 
-### `PacketMetadataBuilder`
+`PacketMetadata` is constructed with the following parameters:
 
-Mutable aggregation step used at registration time.
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `opCode` | `PacketOpcodeAttribute` | The opcode that identifies the handler. |
+| `timeout` | `PacketTimeoutAttribute?` | Optional handler execution timeout. |
+| `permission` | `PacketPermissionAttribute?` | Required permission level. |
+| `encryption` | `PacketEncryptionAttribute?` | Encryption requirement. |
+| `rateLimit` | `PacketRateLimitAttribute?` | Per-connection rate limit. |
+| `concurrencyLimit` | `PacketConcurrencyLimitAttribute?` | Parallel execution cap. |
+| `transport` | `PacketTransportAttribute?` | Preferred transport (TCP/UDP). |
+| `customAttributes` | `IReadOnlyDictionary<Type, Attribute>?` | Additional custom attributes. |
 
-Key members:
+## Custom Attribute Access
 
-- `Opcode`
-- `Timeout`
-- `Permission`
-- `Encryption`
-- `RateLimit`
-- `ConcurrencyLimit`
-- `Transport`
-- `Add(Attribute)`
-- `Get<TAttribute>()`
-- `Build()`
-
-`Build()` requires non-null `Opcode` and throws if missing.
-
-### `IPacketMetadataProvider`
+`PacketMetadata` stores custom attributes in a read-only dictionary. Middleware and handlers can retrieve them via:
 
 ```csharp
-void Populate(MethodInfo method, PacketMetadataBuilder builder)
+TAttribute? GetCustomAttribute<TAttribute>() where TAttribute : Attribute
 ```
 
-Use providers to add conventions or custom attributes without modifying every handler.
-
-### `PacketMetadataProviders`
-
-Public API:
-
-- `Register(IPacketMetadataProvider provider)`
-
-Providers are appended in registration order.
-
-## Practical Example
-
-```csharp
-public sealed class MyMetadataProvider : IPacketMetadataProvider
-{
-    public void Populate(MethodInfo method, PacketMetadataBuilder builder)
-    {
-        if (method.Name.EndsWith("Critical", StringComparison.Ordinal))
-        {
-            builder.Timeout = new PacketTimeoutAttribute(2000);
-        }
-    }
-}
-
-PacketMetadataProviders.Register(new MyMetadataProvider());
-```
+This allows application-defined attributes to flow through the dispatch pipeline without modifying the framework.
 
 ## Related APIs
 

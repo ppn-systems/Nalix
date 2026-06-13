@@ -16,7 +16,7 @@
 flowchart LR
     subgraph Config ["Configuration"]
         A["CreateBuilder()"] --> B["Register Services"]
-        B --> C["Scan Handlers"]
+        B --> C["Add Handlers"]
         C --> D["Bind Protocols"]
     end
 
@@ -32,7 +32,7 @@ flowchart LR
 
 - `NetworkApplication.CreateBuilder()`
 - Fluent `INetworkApplicationBuilder` configuration
-- Automatic packet registry creation from assembly scanning
+- Handler registration with source-generated dispatch via `PacketHandlerGenerator`
 - Application lifecycle management through `ActivateAsync`, `DeactivateAsync`, and `RunAsync`
 - Optimized server defaults through `Bootstrap` (Module Initializer)
 - Integrated dependency injection via `InstanceManager`
@@ -55,9 +55,8 @@ The builder exposes fluent methods for configuring the server:
 - `ConfigureDispatchOptions(...)`
 - `ConfigureDispatch(...)`
 - `Configure<TOptions>(...)`
-- `ScanHandlers<TMarker>()`
 - `AddHandler<THandler>()`
-- `AddMetadataProvider<TProvider>()`
+- `AddHandler(Type controllerType)`
 - `BindTcp<TProtocol>().Bind()`
 - `BindTcp<TProtocol>().OnPort(port).Bind()`
 - `BindUdp<TProtocol>().Bind()`

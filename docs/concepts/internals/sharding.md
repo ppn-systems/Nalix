@@ -161,7 +161,7 @@ public sealed class UserShardProxy : IConnection
     // reuse the SAME object instance for all connections belonging to the same Shard.
     
     // Delegate required members...
-    public ISnowflake ID => PhysicalConnection.ID;
+    public ulong ID => PhysicalConnection.ID;
     public INetworkEndpoint NetworkEndpoint => PhysicalConnection.NetworkEndpoint;
     // ... other IConnection members
 }

@@ -1,0 +1,3 @@
+<Project>
+  <Import Project="..\src\Version.props" Condition="Exists('..\src\Version.props')" />
+</Project>

@@ -13,6 +13,7 @@
 
 | Property | Default | Validation | Runtime consumer |
 | --- | ---: | --- | --- |
+| `MaxConnections` | `2000` | `1..int.MaxValue` | Global concurrent connection limit. Also controls network-layer pool capacities. |
 | `BanDuration` | `00:05:00` | `00:00:01..1.00:00:00` | Ban length after connection-attempt abuse. |
 | `DDoSLogSuppressWindow` | `00:00:20` | `00:00:01..01:00:00` | Per-endpoint suppress window for reject, DDoS, and close logs. |
 | `MaxErrorThreshold` | `50` | `1..int.MaxValue` | Per-connection error count threshold before disconnect. |
@@ -20,7 +21,7 @@
 | `BlacklistedIpsString` | `""` | IP address lists | List of permanently blocked IPs. |
 | `EnableProgressiveBanning` | `true` | `bool` | Enables progressive escalation schedules for ban durations. |
 
-`Validate()` uses manual range checks and throws `ArgumentOutOfRangeException` when constraints are violated.
+`Validate()` runs DataAnnotation validation and throws `ValidationException` when constraints are violated.
 
 ## Hosting Initialization
 

@@ -17,7 +17,7 @@ flowchart TD
         Table[Handler Lookup Table]
         Desc[Handler Descriptor]
         Error[Protocol FAIL Response]
-        
+
         P -->|1. Lookup OpCode| Table
         Table -->|Found| Desc
         Table -->|Not Found| Error
@@ -27,7 +27,7 @@ flowchart TD
         Pool[ObjectPool - PacketContext]
         Init[Initialize Context]
         Ctx[PacketContext Instance]
-        
+
         Desc -->|2. Rent| Pool
         Pool --> Init
         C & P -.-> Init
@@ -36,27 +36,27 @@ flowchart TD
 
     subgraph Execution[Layer 4: Logic Execution]
         MP[Middleware Pipeline]
-        Inv[Compiled Invoker]
-        RH[Return Handler]
-        
+        Inv[Source-Generated Invoker]
+
         Ctx -->|3. Run| MP
         MP -->|4. Call| Inv
-        Inv -->|5. Resolve Result| RH
-        RH -->|6. Send Response| C
+        Inv -->|5. Send Response| C
     end
 
     Ctx -.->|Finalize| Return[Return to Pool]
-    RH -.-> Return
 ```
 
 ## Internal Workflow (Source-Verified)
 
-1  **Resolution**: The `PacketDispatchOptions` uses a high-performance thread-safe dictionary to map `ushort` opcodes to pre-compiled `PacketHandler` descriptors.
+1. **Resolution**: The `PacketDispatchOptions` uses a high-performance thread-safe dictionary to map `ushort` opcodes to pre-compiled `PacketHandler` descriptors.
 
 2. **Zero-Allocation Pooling**: For every request, a `PacketContext` is rented from the `ObjectPoolManager`. This context carries the connection state, metadata, and handles the `CancellationToken` linkage.
+
 3. **Type Safety Gate**: Before the handler runs, the dispatcher performs a runtime type check against the deserialized packet to ensure it matches the handler signature, preventing cast exceptions in the business logic.
+
 4. **Middleware Orchestration**: The `MiddlewarePipeline` executes in three stages (Inbound, OutboundAlways, Outbound), allowing for complex cross-cutting concerns like authentication or encryption updates.
-5. **Return Handling**: The `IReturnHandler` (resolved at compile-time) automatically detects the handler's return type (e.g., `ValueTask<T>`, `T`, or `void`) and packages the result into the appropriate outbound transport call.
+
+5. **Return Handling**: The source-generated invoker handles the handler's return type (e.g., `ValueTask<T>`, `T`, or `void`) and routes the result into the appropriate outbound transport call.
 
 ## Public Surface
 

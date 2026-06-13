@@ -1,25 +1,32 @@
 ﻿# Custom Metadata Providers
 
-This guide shows how to attach your own metadata to handler methods and read it later from middleware or handlers.
+!!! danger "Deprecated"
+    The runtime metadata provider extensibility model (`IPacketMetadataProvider`,
+    `PacketMetadataBuilder`, `PacketMetadataProviders`) has been removed. Handler
+    metadata is now resolved at **compile time** by the `PacketHandlerGenerator` source
+    generator. The guide below explains the current approach.
 
-Use this when built-in attributes are not enough and you want your own convention.
-It works with built-in packets and custom packet types alike.
+## Current Model: Source-Generated Metadata
 
-## What a metadata provider does
+Nalix resolves handler metadata (opcode, timeout, permission, encryption, rate limit,
+concurrency limit, transport preference) at compile time using the `PacketHandlerGenerator`
+source generator. The generator reads the attributes on your handler methods and produces a
+`PacketMetadata` struct directly — no runtime builder or provider registration is needed.
 
-An `IPacketMetadataProvider` is called while Nalix.Network builds metadata for handler methods.
+### How it works
 
-It can:
+1. You annotate handler methods with built-in attributes (`[PacketOpcode]`,
+   `[PacketPermission]`, `[PacketEncryption]`, etc.).
+2. The `PacketHandlerGenerator` scans all `[PacketController]` classes at compile time.
+3. For each handler method, the generator emits code that constructs a `PacketMetadata`
+   instance from the declared attributes.
+4. At runtime, `PacketHandlerRegistry` registers the generated handlers without reflection.
 
-- inspect the handler method
-- look for your custom attributes
-- add derived metadata into `PacketMetadataBuilder`
+### Using custom attributes with middleware
 
-## Example goal
-
-We want a custom attribute called `PacketTenantAttribute` so middleware can enforce tenant routing rules.
-
-## Step 1. Create a custom attribute
+You can still define custom attributes and read them from middleware via
+`PacketContext.Attributes.GetCustomAttribute<T>()`. The `PacketMetadata` struct stores
+custom attributes in its `CustomAttributes` dictionary.
 
 ```csharp
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
@@ -31,34 +38,7 @@ public sealed class PacketTenantAttribute : Attribute
 }
 ```
 
-## Step 2. Create a metadata provider
-
-```csharp
-using System.Reflection;
-using Nalix.Runtime.Dispatching;
-
-public sealed class SampleTenantMetadataProvider : IPacketMetadataProvider
-{
-    public void Populate(MethodInfo method, PacketMetadataBuilder builder)
-    {
-        PacketTenantAttribute? attr = method.GetCustomAttribute<PacketTenantAttribute>();
-        if (attr is null)
-            return;
-
-        builder.Add(attr);
-    }
-}
-```
-
-## Step 3. Register the provider at startup
-
-```csharp
-PacketMetadataProviders.Register(new SampleTenantMetadataProvider());
-```
-
-Do this before building your handler catalog / dispatch configuration.
-
-## Step 4. Use the attribute on handlers
+Apply the attribute on a handler method:
 
 ```csharp
 [PacketController("SampleInvoiceHandlers")]
@@ -71,7 +51,7 @@ public sealed class SampleInvoiceHandlers
 }
 ```
 
-## Step 5. Read the custom metadata in middleware
+Read the custom attribute in middleware:
 
 ```csharp
 [MiddlewareOrder(-10)]
@@ -115,32 +95,11 @@ public sealed class TenantGuardMiddleware<TPacket> : IPacketMiddleware<TPacket>
 
 ```mermaid
 flowchart LR
-    A["Handler method"] --> B["Custom attribute"]
-    B --> C["IPacketMetadataProvider"]
-    C --> D["PacketMetadataBuilder.Add(...)"]
-    D --> E["PacketMetadata"]
-    E --> F["PacketContext.Attributes"]
-    F --> G["Middleware / handler logic"]
+    A["Handler method + Attributes"] --> B["PacketHandlerGenerator (compile-time)"]
+    B --> C["PacketMetadata (immutable struct)"]
+    C --> D["PacketContext.Attributes"]
+    D --> E["Middleware / handler logic"]
 ```
-
-## Good use cases
-
-Custom metadata providers are great for:
-
-- tenant routing
-- feature flags
-- internal audit categories
-- product/region policy tags
-- controller naming conventions that should become runtime metadata
-
-## Keep it simple
-
-Best practice:
-
-- add attributes, not mutable state
-- keep provider logic deterministic
-- avoid service lookups inside the provider unless absolutely necessary
-- do policy enforcement later in middleware, not in metadata building
 
 ## Related pages
 

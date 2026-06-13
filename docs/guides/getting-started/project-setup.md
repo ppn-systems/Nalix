@@ -92,7 +92,7 @@ using Nalix.Network.Options;
 
 using var app = NetworkApplication.CreateBuilder()
     .Configure<NetworkSocketOptions>(options => options.Port = 57206)
-    .ScanHandlers<JoinHandler>() // Scans the marker assembly for logic controllers
+    .AddHandler<JoinHandler>() // Registers the handler for source-generated dispatch
     .BindTcp<DefaultProtocol>().Bind()
     .Build();
 
@@ -104,8 +104,8 @@ await app.RunAsync();
 
 ### Builder Semantics
 
-- `ScanHandlers<TMarker>()` scans the assembly that contains `TMarker` for logic controllers.
-- `AddHandler<THandler>()` registers one handler type directly.
+- `AddHandler<THandler>()` registers one handler type using the default Nalix activator with dependency injection.
+- `AddHandler<THandler>(Func<THandler> factory)` registers a handler type with a custom factory.
 - `ConfigureConnectionHub(...)` and `ConfigureBufferPoolManager(...)` are optional, but make host wiring explicit.
 - `ConfigureBufferPoolManager(...)` is still worth calling explicitly for high-throughput servers, even though `NetworkApplicationBuilder` will create a default manager when omitted.
 - If you only need the standard "forward to dispatch" behavior, use `DefaultProtocol` directly. `src/Nalix.Hosting/DefaultProtocol.cs` already sets `IsAccepting = true` and forwards `args.Lease` to `IPacketDispatch.HandlePacket(...)`.

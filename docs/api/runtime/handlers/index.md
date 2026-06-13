@@ -8,31 +8,29 @@ The following diagram illustrates how your controller classes are transformed in
 
 ```mermaid
 flowchart LR
-    subgraph Compile[1. Registration Phase]
+    subgraph Compile[1. Compile-Time Generation]
         Class[Controller Class]
-        Scan[Attribute Scanner]
-        Comp[Handler Compiler]
-        
+        Scan[PacketHandlerGenerator]
+        Gen[Generated Compiler]
+
         Class --> Scan
-        Scan --> Comp
+        Scan --> Gen
     end
 
     subgraph Memory[2. Dispatch Registry]
         Table[OpCode Handler Table]
-        Desc[Compiled Descriptor]
-        
-        Comp --> Desc
+        Desc[Handler Descriptor]
+
+        Gen --> Desc
         Desc --> Table
     end
 
     subgraph Live[3. Execution Phase]
         Ctx[PacketContext]
-        Inv[Compiled Lambda]
-        Ret[IReturnHandler]
-        
+        Inv[Source-Generated Invoker]
+
         Ctx --> Inv
-        Inv --> Ret
-        Ret --> Send[Outbound Transport]
+        Inv --> Send[Outbound Transport]
     end
 
     Table -->|Resolve| Ctx
@@ -85,7 +83,7 @@ public class MyController
 
 ### Key Attributes
 
-- `[PacketController(string tag)]`: Identifies a class as a candidate for scanning.
+- `[PacketController(string tag)]`: Identifies a class as a candidate for source-generation by `PacketHandlerGenerator`.
 - `[PacketOpcode(ushort opcode)]`: Maps a specific opcode to a method.
 - `[PacketEncryption(bool, CipherSuiteType)]`: Overrides the default security requirement and algorithm for this handler.
 - `[PacketPermission(PermissionLevel)]`: Enforces specific access levels before execution starts. Defaults to `PermissionLevel.USER`.

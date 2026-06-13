@@ -9,7 +9,7 @@ The source of truth is `analyzers/Nalix.Analyzers/Diagnostics/DiagnosticDescript
 | --- | --- | ---: | --- | --- |
 | `NALIX001` | Packet controller contains duplicate PacketOpcode | Warning | Usage | Controller dispatch relies on unique opcodes per controller. |
 | `NALIX002` | Packet controller handler should declare PacketOpcode | Warning | Usage | Controller methods matching Nalix handler patterns should declare `[PacketOpcode(...)]`. |
-| `NALIX003` | Packet controller handler has unsupported signature | Warning | Usage | Handler signatures must match the forms supported by `PacketHandlerCompiler`. |
+| `NALIX003` | Packet controller handler has unsupported signature | Warning | Usage | Handler signatures must match the forms supported by the source-generated invoker (`PacketHandlerGenerator`). |
 | `NALIX004` | PacketContext<`T`> does not match dispatch packet type | Warning | Usage | `PacketContext<T>` should use the dispatcher packet type. |
 | `NALIX005` | Registered controller handler packet type does not match dispatcher type | Warning | Usage | Registered controllers should contain handlers compatible with `PacketDispatchOptions<TPacket>`. |
 | `NALIX008` | Registered handler controller is missing PacketController | Warning | Usage | Types registered through `WithHandler` should declare `[PacketController]`. |

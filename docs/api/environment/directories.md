@@ -101,6 +101,5 @@ string dataFile = Directories.GetFilePath(Directories.DataDirectory, "app.dat");
 
 - [Configuration](./configuration.md)
 - [Instance Manager (DI)](../framework/instance-manager.md)
-- [Logging Targets](../logging/targets.md)
 - [Installation](../../installation.md)
 

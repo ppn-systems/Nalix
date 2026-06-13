@@ -23,7 +23,10 @@ normal-callback throttles in `AsyncCallback`.
 | `CallbackWarningThreshold` | `5000` | `0..1000000` | Enables high-backpressure warnings when the pending count is at or above the threshold and divisible by `1000`; `0` disables warnings. |
 | `MaxPendingPerIp` | `64` | `1..10000` | Layer 2 cap for normal-priority callbacks hashed to one remote endpoint slot. |
 | `MaxPooledCallbackStates` | `1000` | `64..100000` | Declared configuration knob for reusable callback state objects. See the wiring note below. |
-| `FairnessMapSize` | `4096` | `1024..65536` | Allocates the fixed `int[]` used by endpoint-hash fairness accounting. |
+| `FairnessMapSize` | `16384` | `1024..65536` | Allocates the fixed `int[]` used by endpoint-hash fairness accounting. |
+| `MaxPendingPostCallbacks` | `5000` | `100..1000000` | Layer 2 global cap for post-process (send) callbacks. |
+| `MaxPendingPostPerIp` | `32` | `1..10000` | Layer 2 cap for post-process callbacks per remote IP. |
+| `MaxCallbackExecutionMs` | `50` | `1..60000` | Maximum execution time for a single callback before a warning is logged. |
 
 `Validate()` first runs DataAnnotation validation and then enforces two cross-field
 constraints:
@@ -139,16 +142,8 @@ of a larger static array.
 local eight-slot context pool when the sender is a `Connection`; otherwise it falls
 back to `PooledConnectEventContext.Get()`, which uses `ObjectPoolManager`.
 
-`AsyncCallback` also validates `PoolingOptions` in its static constructor and wires
-`ConnectEventContextCapacity` / `ConnectEventContextPreallocate` into
-`ObjectPoolManager` for this fallback pool.
-
-!!! important "Callback-state capacity"
-    `MaxPooledCallbackStates` is validated as part of `NetworkCallbackOptions`, but the
-    current source does not read it from `AsyncCallback`. The retained callback-state
-    capacity is presently controlled by `PoolingOptions.ConnectEventContextCapacity` and
-    `PoolingOptions.ConnectEventContextPreallocate`, plus each `Connection`'s fixed local
-    eight-slot context pool.
+`PooledConnectEventContext` pool capacity is derived internally from
+`ConnectionGuardOptions.MaxConnections` in the `Connection` static constructor.
 
 ## Local Connection Pools and Effective Concurrency
 
@@ -188,11 +183,12 @@ while the local pool size is `8`.
 - Increase `FairnessMapSize` when many legitimate remote endpoints trigger apparent
   per-IP backpressure despite low individual traffic.
 
-- Tune callback wrapper retention in `PoolingOptions`, not `MaxPooledCallbackStates`,
-  until the source wires that property into `AsyncCallback`.
+- Callback wrapper pool capacity is derived from `ConnectionGuardOptions.MaxConnections`.
+  Adjust that option to control wrapper retention.
 
 ## Related APIs
 
 - [Connection Limiter](../../network/connection/connection-limiter.md)
+- [Connection Guard Options](./connection-guard-options.md)
 - [Pooling Options](./pooling-options.md)
 - [Network Options](./options.md)

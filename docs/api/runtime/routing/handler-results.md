@@ -1,34 +1,30 @@
 # Handler Return Types
 
-Nalix runtime resolves handler return types through internal return handlers during dispatch execution.
+Handler return types are resolved at compile time by the `PacketHandlerGenerator` source generator. The generator inspects each handler method signature and emits an optimized invoker delegate that handles the return value without runtime reflection.
 
 ## Overview
 
-Nalix runtime resolves handler return types through internal return handlers during dispatch execution. This allows you to choose the most natural return style for your logic—whether synchronous, asynchronous, or even returning raw binary data—while keeping the outbound transport logic centralized and consistent.
+Nalix allows you to choose the most natural return style for your handler logic — synchronous, asynchronous, or raw binary data — while keeping outbound transport logic centralized and consistent.
 
 ## Source Mapping
 
-- `src/Nalix.Runtime/Internal/Results/ReturnTypeHandlerFactory.cs`
-- `src/Nalix.Runtime/Internal/Results/Packet/PacketReturnHandler.cs`
-- `src/Nalix.Runtime/Internal/Results/Task`
-- `src/Nalix.Runtime/Internal/Results/Memory`
-- `src/Nalix.Runtime/Internal/Results/Primitives/ByteArrayReturnHandler.cs`
-- `src/Nalix.Runtime/Internal/Results/Void/VoidReturnHandler.cs`
+- `analyzers/Nalix.Analyzers.Generators/PacketHandlerGenerator.cs`
+- `src/Nalix.Runtime/Dispatching/Options/PacketDispatchOptions.PublicMethods.cs`
 
 ## Supported Shapes
 
-| Return type shape | Runtime behavior |
+| Return type shape | Behavior |
 | --- | --- |
 | `void` | No payload is sent. |
-| `Task` / `ValueTask` | Await completion, no payload is sent. |
-| `TPacket` (or any `IPacket`) | Sent as packet response through runtime sender flow. Supports both classes and structs (e.g., `MemoryPacket`). |
+| `Task` / `ValueTask` | Awaited to completion; no payload is sent. |
+| `TPacket` (or any `IPacket`) | Sent as a packet response through the runtime sender flow. |
 | `byte[]` | Sent as raw payload. |
 | `Memory<byte>` / `ReadOnlyMemory<byte>` | Sent as raw payload memory. |
-| `Task<T>` / `ValueTask<T>` | Awaited, then resolved again as type `T`. `T` must be a supported shape (`IPacket`, `byte[]`, `Memory<byte>`, `ReadOnlyMemory<byte>`). |
+| `Task<T>` / `ValueTask<T>` | Awaited, then the inner `T` is resolved as one of the above shapes. |
 
 ## Why It Exists
 
-Handlers should be able to return responses naturally (sync or async) while runtime keeps sending behavior centralized and consistent.
+Handlers should be able to return responses naturally (sync or async) while the runtime keeps sending behavior centralized and consistent.
 
 ## Practical Examples
 

@@ -11,7 +11,6 @@ Treat it as a release gate, not as a general introduction to the framework.
 Start by confirming that the important option types are loaded and validated during startup:
 
 - `NetworkSocketOptions`
-- `PoolingOptions`
 - `DispatchOptions`
 - `ConnectionQuotaOptions`
 - `ConnectionGuardOptions`
@@ -101,13 +100,9 @@ Good production middleware should be:
 
 ## 8. Pooling and memory pressure
 
-Check pool settings for:
+Network-layer pool capacities (accept contexts, socket args, receive contexts, timeout tasks, transports, connections) are derived from `ConnectionGuardOptions.MaxConnections`. Set that option to your expected peak concurrent connection count.
 
-- accept contexts
-- socket async args
-- receive contexts
-- timeout tasks
-- packet contexts
+Runtime pool capacities (packet contexts) are configured through `Nalix.Runtime.Options.PoolingOptions`.
 
 A useful rule of thumb:
 

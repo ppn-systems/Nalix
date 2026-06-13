@@ -5,14 +5,16 @@ The `ConnectionGuard` (documented here as the Connection Limiter) is a high-perf
 ## Source Mapping
 
 - `src/Nalix.Network/RateLimiting/Connection.Guard.cs`
+- `src/Nalix.Network/RateLimiting/Connection.Guard.Subnet.cs`
 - `src/Nalix.Network/Options/ConnectionQuotaOptions.cs`
 - `src/Nalix.Network/Options/ConnectionGuardOptions.cs`
 
 ## Why This Type Exists
 
-Without a limiter, a single malicious client could opening thousands of TCP or WebSocket connections could exhaust the server's file descriptors or memory. `ConnectionGuard` prevents this through:
+Without a limiter, a single malicious client could open thousands of TCP or WebSocket connections and exhaust the server's file descriptors or memory. `ConnectionGuard` prevents this through:
 
 - **Concurrent Caps**: Limiting how many active connections a single IP address can hold concurrently.
+- **Subnet-Level Caps**: Limiting concurrent connections and rate of new connections per /24 (IPv4) or /48 (IPv6) subnet block.
 - **Rate Limiting**: Throttling how quickly an IP address can open *new* connections.
 - **Progressive Banning**: Dynamically banning IP addresses that violate connection rate thresholds.
 - **Global Caps**: Enforcing a hard limit on the total number of concurrent connections across the entire server.
@@ -24,18 +26,21 @@ The following diagram illustrates the decision matrix used by the guard when a n
 ```mermaid
 flowchart TD
     Start[New Connection Attempt] --> Banned{IP Banned?}
-    
+
     Banned -->|Yes| Reject[Reject Attempt]
     Banned -->|No| GlobalLimitCheck{Global Connections < Max?}
-    
+
     GlobalLimitCheck -->|No| Reject
     GlobalLimitCheck -->|Yes| PerIpLimit{IP Concurrent < Max?}
-    
+
     PerIpLimit -->|No| Reject
-    PerIpLimit -->|Yes| SlidingWindow[Track Attempt in Rate Window]
-    
+    PerIpLimit -->|Yes| SubnetLimit{Subnet Limits OK?}
+
+    SubnetLimit -->|No| Reject
+    SubnetLimit -->|Yes| SlidingWindow[Track Attempt in Rate Window]
+
     SlidingWindow --> RateLimit{Rate Window Exceeded?}
-    
+
     RateLimit -->|Yes| TriggerBan[Ban IP Progressively] --> Reject
     RateLimit -->|No| Allow[Allow Connection]
 ```
@@ -56,7 +61,16 @@ When an IP address is banned for aggressive connection attempts, the ban duratio
 - Progressive tiers determine ban times (e.g., 1 min, 5 min, 15 min, 1 hr, 6 hr, 24 hr).
 - Progressive ban states are persisted by `NetworkBanRepository` to the ban database file (`ban.store.dat`) so that bans survive application restarts.
 
-### 3. DDoS Log Suppression
+### 3. Subnet-Level Tracking
+
+The guard tracks connections at the subnet level in addition to per-IP:
+
+- **IPv4**: Connections are grouped by /24 subnet (top 24 bits of the address).
+- **IPv6**: Connections are grouped by /48 subnet (top 48 bits of the address).
+- Each subnet has independent concurrent connection limits (`MaxConnectionsPerSubnet`) and rate limits (`MaxSubnetConnectionsPerWindow`).
+- Subnet tracking uses `SocketEndpoint` raw bytes to avoid `IPAddress` heap allocation on the hot path.
+
+### 4. DDoS Log Suppression
 
 To prevent the server logs from being flooded during a massive connection flood, `ConnectionGuard` utilizes CAS (Compare-And-Swap) operations to suppress duplicate rejection log messages. It writes a single aggregated log summary showing the count of suppressed attempts periodically.
 
@@ -78,6 +92,8 @@ Settings are controlled via `ConnectionQuotaOptions` (per-IP limits) and `Connec
 | `MaxConnectionsPerIpAddress` | Maximum concurrent active connections per individual IP. | `10` |
 | `MaxConnectionsPerWindow` | Maximum connection attempts allowed within the rate window. | `10` |
 | `ConnectionRateWindow` | The sliding window duration for rate tracking. | `00:00:05` |
+| `MaxConnectionsPerSubnet` | Maximum concurrent connections per /24 (IPv4) or /48 (IPv6) subnet. | `50` |
+| `MaxSubnetConnectionsPerWindow` | Maximum connection attempts from a subnet within the rate window. | `100` |
 
 Note: `MaxConnectionsPerTrustedProxy` is configured via `TrustedProxyOptions` (default `5000`).
 
@@ -85,7 +101,7 @@ Note: `MaxConnectionsPerTrustedProxy` is configured via `TrustedProxyOptions` (d
 
 | Option | Description | Default Value |
 | --- | --- | --- |
-| `MaxConnections` | Global concurrent connection limit across the entire server. `-1` means unlimited. | `-1` |
+| `MaxConnections` | Global concurrent connection limit across the entire server. | `2000` |
 | `EnableProgressiveBanning` | Enables progressive scaling of ban durations on consecutive violations. | `true` |
 | `BanDuration` | Base ban duration for non-progressive bans or initial progressive violation. | `00:05:00` |
 | `DDoSLogSuppressWindow` | Throttling window for suppressing repeated DDoS rejection log entries. | `00:00:20` |

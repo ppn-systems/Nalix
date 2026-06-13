@@ -58,7 +58,8 @@ if (isValid)
 - **Replay Protection**: The `IsValid` method combined with `UpdateTo` provides a basic mechanism to reject old or duplicate packets.
  
 ## Related APIs
- 
+
+- `ITransportSequencer` — the connection-level interface that exposes `SendSequence` / `ReceiveSequence` counters and convenience methods `NextSendSequence()` / `NextReceiveSequence()` / `CurrentSendSequence` / `CurrentReceiveSequence`
 - [AEAD and Envelope](../security/aead-and-envelope.md)
 - [Handshake Protocol](../security/handshake.md)
 - [Frame Model](../codec/packets/frame-model.md)

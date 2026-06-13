@@ -67,19 +67,19 @@ public sealed class HighFreqUpdate : PacketBase<HighFreqUpdate>
 
 ---
 
-## 2. Compiled Handler Execution
+## 2. Source-Generated Handler Execution
 
-Nalix does not use reflection at runtime. When you call `.ScanHandlers<T>()`, the `PacketHandlerCompiler` generates optimized IL via expression trees.
+Nalix does not use reflection at runtime. The `PacketHandlerGenerator` source generator scans `[PacketController]` classes at compile time and emits zero-allocation invoker delegates.
 
 ### Behind the Scenes
 
-The compiler transforms your method into a static delegate similar to this:
+The generator transforms your handler method into a compiled delegate similar to this:
 
 ```csharp
-// Conceptually what is compiled at startup:
-public static ValueTask<object> CompiledInvoker(object instance, PacketContext<HighFreqUpdate> ctx)
+// Generated at compile time by PacketHandlerGenerator:
+public static ValueTask<object?> CompiledInvoker(object? instance, PacketContext<HighFreqUpdate> ctx)
 {
-    return ((MyController)instance).HandleUpdate(ctx);
+    return ((MyController)instance!).HandleUpdate(ctx);
 }
 ```
 
@@ -241,7 +241,7 @@ using System;
 using Nalix.Hosting;
 
 var app = NetworkApplication.CreateBuilder()
-    .ScanHandlers<GameMarker>() // Triggers handler compilation
+    .AddHandler<GameHandlers>() // Registers handler for source-generated dispatch
     .ConfigureDispatchOptions(options => {
         // Scale dispatch loops to the current machine's logical CPU count
         options.WithDispatchLoopCount(Environment.ProcessorCount);
