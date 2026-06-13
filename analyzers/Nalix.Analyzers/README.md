@@ -23,7 +23,7 @@ The analyzer defines a rich catalog of diagnostic checks across four main catego
 | :--- | :--- | :---: | :---: | :--- |
 | **`NALIX001`** | Duplicate Controller Opcode | **Warning** | Routing | Multiple handler methods inside the same controller share a duplicate `PacketOpcode`. |
 | **`NALIX002`** | Missing Handler Opcode | **Warning** | Routing | A method matches handler signature patterns but is missing a `[PacketOpcode]` annotation. |
-| **`NALIX003`** | Invalid Handler Signature | **Warning** | Routing | A controller method has a signature that is not compatible with `PacketHandlerCompiler`. |
+| **`NALIX003`** | Invalid Handler Signature | **Warning** | Routing | A controller method has a signature that is not compatible with the source-generated handler invoker (`PacketHandlerGenerator`). |
 | **`NALIX008`** | Missing Controller Attribute | **Warning** | Routing | A type registered as a dispatch handler is missing the `[PacketController]` attribute. |
 | **`NALIX009`** | Missing Static Deserialize | **Warning** | Serialization | A packet type is registered in the registry but is missing a `public static T Deserialize(ReadOnlySpan<byte>)` method. |
 | **`NALIX010`** | Generic Self-Type Mismatch | **Warning** | Type Safety | A packet class inherits from `PacketBase<TSelf>` but fails to use itself as the `TSelf` argument. |

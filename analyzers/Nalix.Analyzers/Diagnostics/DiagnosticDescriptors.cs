@@ -32,7 +32,7 @@ internal static class DiagnosticDescriptors
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Nalix packet handlers must follow one of the signatures supported by PacketHandlerCompiler.");
+        description: "Nalix packet handlers must follow one of the signatures supported by the source-generated handler invoker (PacketHandlerGenerator).");
 
     public static readonly DiagnosticDescriptor PacketContextTypeMismatch = new(
         id: "NALIX004",
