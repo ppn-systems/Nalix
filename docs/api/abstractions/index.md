@@ -15,3 +15,8 @@ The `Nalix.Abstractions` package defines the fundamental interfaces, attributes,
 - [**Common Enumerations**](./enums.md) — Reference table for all system-wide Enums.
 - [**Serialization Attributes**](./serialization-attributes.md) — Metadata for the binary serializer.
 
+## Validation & Injection
+
+- [**Validation Attributes**](./validation.md) — AOT-safe validation attributes (`ValueRange`, `DurationRange`, `Required`, `Length`, `AllowedEnum`) and `ValidationException`.
+- [**Injection Attributes**](./injection.md) — Compile-time DI attributes (`[Injectable]`, `[Inject]`) used by the `InstanceGenerator` source generator.
+

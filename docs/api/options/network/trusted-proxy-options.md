@@ -17,7 +17,7 @@
 | `MaxConnectionsPerTrustedProxy` | `5000` | `1..100_000` | Concurrent connection cap allowed from a single trusted proxy IP. |
 | `MaxAttemptsPerTrustedProxyWindow` | `2000` | `1..10_000_000` | Connection attempt rate limit allowed from a single trusted proxy within the window. |
 
-`Validate()` uses manual range checks and throws `ArgumentOutOfRangeException` when constraints are violated.
+`Validate()` runs DataAnnotation validation and throws `ValidationException` when constraints are violated.
 
 ## Hosting Initialization
 

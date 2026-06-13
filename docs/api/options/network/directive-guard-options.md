@@ -19,8 +19,7 @@ responses such as `UNAUTHORIZED`, `RATE_LIMITED`, and `TIMEOUT`.
 | --- | ---: | --- | --- |
 | `DefaultCooldownMs` | `1000` | `0..60000` | Minimum cooldown, in milliseconds, between repeated directives of the same category per connection. `0` disables suppression. |
 
-`Validate()` uses `System.ComponentModel.DataAnnotations.Range` and calls
-`Validator.ValidateObject(..., validateAllProperties: true)`.
+`Validate()` runs DataAnnotation validation using Nalix's AOT-safe validation attributes and throws `ValidationException` when constraints are violated.
 
 ## Runtime Flow
 

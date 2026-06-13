@@ -17,7 +17,7 @@
 | `SessionTtl` | `00:05:00` | Required and `> TimeSpan.Zero` | `ISessionFactory.CreateSession(...)` sets `ExpiresAtUnixMilliseconds`. |
 | `MinAttributesForPersistence` | `10` | `0..int.MaxValue` | `SessionService.SaveSessionAsync(IConnection)` skips low-value sessions. |
 
-`Validate()` uses manual range checks and throws `ArgumentOutOfRangeException` when constraints are violated. It rejects non-positive `SessionTtl` values and negative `MinAttributesForPersistence`.
+`Validate()` runs DataAnnotation validation and performs additional manual checks. Throws `ValidationException` for annotation failures and `ArgumentOutOfRangeException` for non-positive `SessionTtl` or negative `MinAttributesForPersistence`.
 
 ## Hosting Initialization
 

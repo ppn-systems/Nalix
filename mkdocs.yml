@@ -202,6 +202,8 @@ nav:
         - Code Fixes: api/analyzers/code-fixes.md
         - Generators:
           - Overview: api/analyzers/autogen/index.md
+          - Packet Handler: api/analyzers/autogen/packet-handler-generator.md
+          - Instance: api/analyzers/autogen/instance-generator.md
           - Serialization: api/analyzers/autogen/serialization-generator.md
           - Packet Registry: api/analyzers/autogen/packet-registry-generator.md
           - Packet Schema: api/analyzers/autogen/packet-schema-generator.md
@@ -216,6 +218,8 @@ nav:
         - Packet Attributes: api/abstractions/packet-attributes.md
         - Packet Metadata: api/abstractions/packet-metadata.md
         - Enums: api/abstractions/enums.md
+        - Validation Attributes: api/abstractions/validation.md
+        - Injection Attributes: api/abstractions/injection.md
       - Framework:
         - Overview: api/framework/index.md
         - Environment:

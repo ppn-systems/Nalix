@@ -15,6 +15,8 @@ Source generation is a core pillar of the Nalix architecture. By moving logic fr
  
 The following generators are included in the `Nalix.Analyzers.Generators` project:
  
+- [**Packet Handler Generator**](./packet-handler-generator.md): Generates zero-allocation dispatch compilers for `[PacketController]` classes. Replaces runtime reflection-based handler compilation with compile-time source generation.
+- [**Instance Generator**](./instance-generator.md): Generates compile-time activation factories and service registrations for `[Injectable]` classes.
 - [**Serialization Generator**](./serialization-generator.md): Creates optimized binary formatters for packets and data structures.
 - [**Packet Registry Generator**](./packet-registry-generator.md): Automates packet discovery and provides O(1) dispatch tables.
 - [**Packet Schema Generator**](./packet-schema-generator.md): Generates binary schema metadata for diagnostics and cross-language support.
