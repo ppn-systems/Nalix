@@ -6,6 +6,7 @@
 
 - `src/Nalix.Network/Options/ConnectionQuotaOptions.cs`
 - `src/Nalix.Network/RateLimiting/Connection.Guard.cs`
+- `src/Nalix.Network/RateLimiting/Connection.Guard.Subnet.cs`
 - `src/Nalix.Hosting/Bootstrap.cs`
 
 ## Defaults and Validation
@@ -15,12 +16,14 @@
 | `MaxConnectionsPerIpAddress` | `10` | `1..10_000` | `ConnectionGuard` concurrent slot limit per endpoint. |
 | `MaxConnectionsPerWindow` | `10` | `1..10_000_000` | `ConnectionGuard` rate-window admission check. |
 | `ConnectionRateWindow` | `00:00:05` | `00:00:01..00:10:00` | Sliding window used to trim recent connection timestamps. |
+| `MaxConnectionsPerSubnet` | `50` | `1..100_000` | Maximum concurrent connections per /24 (IPv4) or /48 (IPv6) subnet. |
+| `MaxSubnetConnectionsPerWindow` | `100` | `1..10_000_000` | Maximum connection attempts from a subnet within the rate window. |
 | `CleanupInterval` | `00:01:00` | `00:00:01..01:00:00` | Recurring cleanup interval for stale endpoint entries. |
 | `InactivityThreshold` | `00:05:00` | `00:00:01..1.00:00:00` | Age cutoff for removing inactive zero-connection entries. |
 | `MaxCleanupKeysPerRun` | `0` | `0..10_000_000` | Max endpoint keys scanned per cleanup cycle; `0` auto-scales based on tracked entry count. |
 | `DailyResetTimeOffset` | `00:00:00` | `-14:00:00..14:00:00` | UTC offset used to determine the start-of-day for daily connection-limit resets. |
 
-`Validate()` uses manual range checks and throws `ArgumentOutOfRangeException` when constraints are violated.
+`Validate()` runs DataAnnotation validation and throws `ValidationException` when constraints are violated.
 
 ## Hosting Initialization
 
@@ -48,7 +51,7 @@ flowchart TD
     J --> K["Enqueue current timestamp"]
 ```
 
-`ConnectionGuard.TryAccept(...)` tracks endpoints by IP address using `SocketEndpoint.FromIpAddress(...)`. It does not include the remote port in the key, so the limits apply per source address.
+`ConnectionGuard.TryAccept(...)` tracks endpoints by IP address using `SocketEndpoint`. The internal overload accepts `SocketEndpoint` directly to avoid `IPAddress`/`IPEndPoint` heap allocation on the hot path. Limits apply per source address (port excluded from the key).
 
 The entry lock protects mutations to the `ConnectionLimitInfo` value snapshot. The recent-attempt queue is a `ConcurrentQueue<DateTime>` and is trimmed against `ConnectionRateWindow` before each admission check.
 
