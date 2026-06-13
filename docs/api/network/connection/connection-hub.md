@@ -77,7 +77,7 @@ When the hub is disposed, it shuts down all registered connections.
 - `ConnectionUnregistered`: Event raised after a connection is successfully unregistered from the hub.
 - `RegisterConnection(conn)`: Enrolls a new connection (Thread-safe).
 - `UnregisterConnection(conn)`: Removes a connection and disposes of it.
-- `GetConnection(id)`: O(1) retrieval by `ulong` or `ISnowflake` ID.
+- `GetConnection(ulong id)`: O(1) retrieval by `ulong` connection ID.
 - `GetConnection(ReadOnlySpan<byte> id)`: O(1) retrieval using a serialized binary ID.
 - `ListConnections()`: Returns a read-only snapshot collection of all active connections.
 - `ListConnections(networkEndpoint)`: Returns active connections originating from a specific remote endpoint.

@@ -16,7 +16,6 @@ A Shard Proxy is a wrapper for `IConnection` that provides a stable object ident
     The dispatcher uses the **Reference Identity** of the `IConnection` object. You **must** return the exact same instance of your proxy for all connections that belong to the same shard.
 
 ```csharp
-using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
@@ -34,7 +33,7 @@ public sealed class UserShardProxy : IConnection
 
     // --- IDENTITY MEMBERS ---
     // These are what the Dispatcher uses for sharding and identification.
-    public ISnowflake ID => _physical.ID;
+    public ulong ID => _physical.ID;
     public INetworkEndpoint NetworkEndpoint => _physical.NetworkEndpoint;
 
     // --- TRANSMISSION DELEGATION ---

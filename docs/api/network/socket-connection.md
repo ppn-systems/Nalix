@@ -119,13 +119,12 @@ TCP is a byte-stream protocol and does not guarantee frame boundaries. `SocketCo
 - Prepending a **2-byte little-endian `ushort`** representing the total length of the frame.
 - Performing **Exact Receives** (`SAEA_RECEIVE_EXACTLY_ASYNC`) to ensure partial TCP bundles don't corrupt the protocol state.
 
-### 2. Transport Event Sink & SocketEventBridge
+### 2. Event Dispatching and Layer 1 Throttle
 
-`SocketConnection` decouples transport events from the connection-level events (like `ConnectionEventArgs` or `AsyncCallback`) by using `ITransportEventSink`. In practice, it delegates to `SocketEventBridge`:
+`SocketConnection` fires frame events that are dispatched by `Connection` through `AsyncCallback`. The connection tracks pending callbacks to enforce per-connection backpressure:
 
-- **Decoupling**: `SocketConnection` fires simple frame events (e.g., passing raw `BufferLease`), while `SocketEventBridge` handles `ConnectionEventArgs` initialization and threadpool dispatching.
-- **Layer 1 Throttle**: `SocketEventBridge` tracks `_pendingProcessCallbacks`. If it exceeds `MaxPerConnectionPendingPackets` (configured in `NetworkCallbackOptions`), incoming packets are immediately discarded, and the lease is returned to the pool without invoking the callback.
-- **High-Priority Close**: Connection closure triggers `SocketEventBridge.OnTransportClosed` which invokes the close handler using `AsyncCallback.InvokeHighPriority` so teardown executes immediately.
+- **Layer 1 Throttle**: The connection tracks `_pendingProcessCallbacks`. If it exceeds `MaxPerConnectionPendingPackets` (configured in `NetworkCallbackOptions`), incoming packets are immediately discarded and the lease is returned to the pool without invoking the callback.
+- **High-Priority Close**: Connection closure is dispatched using `AsyncCallback.InvokeHighPriority` so teardown executes immediately, bypassing the normal callback queue.
 
 ### 3. Automatic Fragmentation
 

@@ -39,8 +39,8 @@ public sealed class WebSocketConnection :
 * `public bool IsUdpCreated { get => false; }`
   Returns `false` as UDP transport is unsupported over WebSockets.
 
-* `public ISnowflake ID { get; }`
-  Gets the globally unique snowflake identifier assigned to this connection session.
+* `public ulong ID { get; }`
+  Gets the unique identifier assigned to this connection session (derived from Snowflake).
 
 * `public IConnection.ITransport TCP { get; }`
   Gets the `WebSocketTransport` adapter for sending and receiving binary stream frames.

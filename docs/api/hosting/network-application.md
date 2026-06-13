@@ -8,7 +8,7 @@ While you can instantiate listeners and protocols manually, the `NetworkApplicat
 
 - **Unified Lifecycle**: Ensures that the memory pool, handler registry, dispatcher, and listeners are activated and deactivated in the correct order.
 - **Automatic Service Injection**: Automatically registers critical shared services (Logger, ConnectionHub, BufferPool) into the `InstanceManager`.
-- **Handler Discovery**: Scans assemblies for `[PacketController]` classes and performs high-performance **Handler Compilation** (Expression Trees) to eliminate reflection overhead.
+- **Handler Discovery**: Registers `[PacketController]` classes for source-generated dispatch. The `PacketHandlerGenerator` produces zero-allocation invokers at compile time, eliminating runtime reflection.
 - **Coexistence**: Easily manages multiple listeners (e.g., TCP and UDP) within the same application process.
 
 The public API surface revolves around two main types:
@@ -28,7 +28,7 @@ The public API surface revolves around two main types:
 graph LR
     subgraph Configuration ["Phase 1: Configuration"]
         Create["CreateBuilder()"] --> Config["Configure Loggers, Options, Hubs"]
-        Config --> Discover["ScanHandlers()"]
+        Config --> Discover["AddHandler()"]
         Discover --> Bind["BindTcp() / BindUdp()"]
     end
 
@@ -49,7 +49,7 @@ graph LR
 | Type | Public members |
 |---|---|
 | `NetworkApplication` | `CreateMinimal(...)`, `CreateBuilder()`, `ActivateAsync(...)`, `DeactivateAsync(...)`, `RunAsync(...)`, `DisposeAsync()`, `Dispose()` |
-| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `ConfigureConnectionHub(...)`, `ConfigureBufferPoolManager(...)`, `ConfigureObjectPoolManager(...)`, `ConfigureCertificate(...)`, `Configure<TOptions>(...)`, `ConfigureSessionService(...)`, `ConfigureSessionStore(...)`, `ConfigureSessionFactory(...)`, `ScanHandlers(...)`, `AddHandler(...)`, `AddMetadataProvider(...)`, `ConfigureDispatchOptions(...)`, `ConfigureDispatch(...)`, `BindTcp<T>().Bind()`, `BindUdp<T>().Bind()`, `BindWebSocket<T>().Bind()`, `Build()` |
+| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `ConfigureConnectionHub(...)`, `ConfigureBufferPoolManager(...)`, `ConfigureObjectPoolManager(...)`, `ConfigureCertificate(...)`, `Configure<TOptions>(...)`, `ConfigureSessionService(...)`, `ConfigureSessionStore(...)`, `ConfigureSessionFactory(...)`, `AddHandler(...)`, `ConfigureDispatchOptions(...)`, `ConfigureDispatch(...)`, `BindTcp<T>().Bind()`, `BindUdp<T>().Bind()`, `BindWebSocket<T>().Bind()`, `Build()` |
 
 ## Builder composition details
 
@@ -63,7 +63,6 @@ During activation, the builder preparation callback performs this source-defined
 4. ensure an `IConnectionHub` exists, creating `ConnectionHub(logger)` when missing
 5. ensure a `BufferPoolManager` exists and bind `BufferLease.ByteArrayPool` to it
 6. configure `HandshakeHandlers` with `ConfigureCertificate(...)` when provided, otherwise initialize the default identity path
-7. register metadata providers once
 
 Listener factories then resolve the shared `IConnectionHub` from `InstanceManager` and construct `TcpServerListener` or `UdpServerListener` with the protocol instance, optional explicit port, and optional UDP authentication predicate.
 
@@ -105,19 +104,16 @@ The builder uses a fluent API to configure the host before it is built.
     The builder automatically registers built-in `SessionHandlers`, `HandshakeHandlers`, and `SystemControlHandlers` in its constructor before user-defined handler discovery runs.
     `Configure<TOptions>(...)` applies delegates during host activation, not at the fluent call site. Use it for options that must be loaded into `ConfigurationManager` before dispatch and listeners start.
 
-### Handler Discovery
+### Handler Registration
 
-- `ScanHandlers(assembly)`: Scans an assembly for `[PacketController]` classes.
-- `ScanHandlers<TMarker>()`: Marker-type shortcut for scanning handlers.
-- `AddHandler<THandler>()`: Manually registers a handler type.
+- `AddHandler<THandler>()`: Registers a handler type using the default Nalix activator with dependency injection.
 - `AddHandler<THandler>(Func<THandler> factory)`: Registers a handler type with a custom factory.
+- `AddHandler(Type controllerType)`: Registers a controller type directly. Primarily used for static controller classes.
 
-Manual handler registrations override assembly-scanned registrations for the same handler type because the builder resolves handlers into a type-keyed dictionary before configuring dispatch.
+Handler registration stores descriptors in a type-keyed list. During activation, each registered type is passed to `PacketDispatchOptions.WithHandler(...)`, which delegates to the source-generated compiler via `PacketHandlerRegistry`.
 
-### Metadata and Dispatch
+### Dispatch Configuration
 
-- `AddMetadataProvider<TProvider>()`: Registers a packet metadata provider.
-- `AddMetadataProvider<TProvider>(Func<TProvider> factory)`: Registers a metadata provider with a custom factory.
 - `ConfigureDispatchOptions(Action<PacketDispatchOptions<IPacket>>)`: Configures the `PacketDispatchChannel` options, including middleware and custom logic for built-in and custom packet pipelines.
 - `ConfigureDispatch(Func<Action<PacketDispatchOptions<IPacket>>, IPacketDispatch>)`: Configures a custom `IPacketDispatch` implementation by providing a factory that receives the dispatch configuration.
 
