@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -117,6 +118,11 @@ public class TcpSession : TransportSession
 
             await _socket.ConnectAsync(effectiveHost, effectivePort, connectCts.Token).ConfigureAwait(false);
 
+            if (_socket.LocalEndPoint is IPEndPoint localEp)
+            {
+                this.State.LocalPort = localEp.Port;
+            }
+
             this.OnConnected?.Invoke(this, EventArgs.Empty);
 
             // Start background worker for reading frames
@@ -175,6 +181,11 @@ public class TcpSession : TransportSession
             }
 
             await _socket.ConnectAsync(effectiveHost, effectivePort, connectCts.Token).ConfigureAwait(false);
+
+            if (_socket.LocalEndPoint is IPEndPoint localEp)
+            {
+                this.State.LocalPort = localEp.Port;
+            }
 
             // Inject Proxy Protocol V2 header if configured before triggering connected events
             _ = await _socket.SendAsync(proxyProtocolV2, SocketFlags.None, connectCts.Token).ConfigureAwait(false);

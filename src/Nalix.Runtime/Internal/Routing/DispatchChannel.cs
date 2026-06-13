@@ -111,8 +111,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
                         continue;
                     }
 
-                    ConnectionState state = node.State;
-                    if (!state.IsActive)
+                    ConnectionState? state = node.State;
+                    if (state is null || !state.IsActive)
                     {
                         continue;
                     }
@@ -120,7 +120,11 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
                     int pending = state.TotalCount;
                     if (pending > 0)
                     {
-                        result[node.Connection] = pending;
+                        IConnection? conn = node.Connection;
+                        if (conn is not null)
+                        {
+                            result[conn] = pending;
+                        }
                     }
                 }
             }
@@ -332,7 +336,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void Push(IConnection connection, [Borrowed] IBufferLease raw)
     {
-        if (!this.PushCore(connection, raw))
+        if (!this.PushCore(connection, raw, out _))
         {
             raw?.Dispose();
         }
@@ -349,8 +353,12 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
             Node? node = Interlocked.Exchange(ref _stateBuckets[i], null);
             while (node is not null)
             {
-                _ = node.State.TryDeactivate();
-                _ = node.State.DrainAndDisposeAll();
+                ConnectionState? state = node.State;
+                if (state is not null)
+                {
+                    _ = state.TryDeactivate();
+                    _ = state.DrainAndDisposeAll();
+                }
                 node = node.Next;
             }
         }
@@ -367,11 +375,14 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
     /// </summary>
     /// <param name="connection">The destination connection.</param>
     /// <param name="raw">The packet lease to enqueue.</param>
+    /// <param name="readyEmitted">When <see langword="true"/>, indicates that a ready queue entry was emitted.</param>
     /// <param name="noBlock">When <see langword="true"/>, block-mode overflow will fail fast instead of waiting for capacity.</param>
-    /// <returns><see langword="true"/> if a ready queue entry was emitted.</returns>
+    /// <returns><see langword="true"/> if the packet was successfully enqueued.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    internal bool PushCore(IConnection connection, [Borrowed] IBufferLease raw, bool noBlock = false)
+    internal bool PushCore(IConnection connection, [Borrowed] IBufferLease raw, out bool readyEmitted, bool noBlock = false)
     {
+        readyEmitted = false;
+
         if (connection is null)
         {
             return false;
@@ -434,6 +445,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
         {
             _ = Interlocked.Increment(ref _readyConnections);
             this.EnqueueReady(state, priority);
+            readyEmitted = true;
         }
 
         return true;
@@ -601,14 +613,20 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
                     continue;
                 }
 
+                ConnectionState? existingState = node.State;
+                if (existingState is null)
+                {
+                    continue;
+                }
+
                 if (Volatile.Read(ref node.Removed) != 0 &&
                     Interlocked.CompareExchange(ref node.Removed, 0, 1) == 1)
                 {
-                    node.State.Reactivate();
+                    existingState.Reactivate();
                     _ = Interlocked.Increment(ref _activeConnections);
                 }
 
-                return node.State;
+                return existingState;
             }
 
             ConnectionState createdState = new(connection, _boundedPerPriorityMode, _boundedPerPriorityCapacity);
@@ -630,7 +648,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
 
         for (Node? node = Volatile.Read(ref _stateBuckets[index]); node is not null; node = node.Next)
         {
-            if (ReferenceEquals(node.Connection, connection))
+            IConnection? nodeConnection = node.Connection;
+            if (nodeConnection is not null && ReferenceEquals(nodeConnection, connection))
             {
                 found = node;
                 return true;
@@ -664,8 +683,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
             return;
         }
 
-        ConnectionState state = node.State;
-        if (!state.TryDeactivate())
+        ConnectionState? state = node.State;
+        if (state is null || !state.TryDeactivate())
         {
             return;
         }
@@ -682,6 +701,12 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
         {
             DecrementNonNegative(ref _packetCount.Value, drained);
         }
+
+        // Break the tombstone node's strong references to the closed connection graph.
+        // The node may remain in the bucket chain as a small tombstone, but it must not
+        // retain ConnectionState, Connection, SocketConnection, or Socket.
+        node.State = null;
+        node.Connection = null;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -844,8 +869,13 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
         public int Removed;
 
         public readonly Node? Next = next;
-        public readonly ConnectionState State = state;
-        public readonly IConnection Connection = connection;
+
+        // Mutable so RemoveConnection can null them to break the tombstone's
+        // retention of the closed connection graph (Connection -> SocketConnection
+        // -> Socket). Without this, every removed node
+        // permanently roots the entire connection object graph.
+        public ConnectionState? State = state;
+        public IConnection? Connection = connection;
     }
 
     private sealed class UnboundedQueue
@@ -853,7 +883,14 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
         private readonly Channel<IBufferLease> _channel = Channel.CreateUnbounded<IBufferLease>(
             new UnboundedChannelOptions
             {
-                SingleReader = false,
+                // SingleReader = true: only one DispatchSession consumer holds
+                // exclusive access via Interlocked.Exchange(ref _disposed, 1) in
+                // DispatchSession.Dispose.  No concurrent readers are possible.
+                //
+                // SingleWriter = false: MPSC — multiple ThreadPool process callbacks
+                // (up to MaxPerConnectionPendingPackets = 16) can call TryEnqueue
+                // concurrently for the same connection.
+                SingleReader = true,
                 SingleWriter = false,
                 AllowSynchronousContinuations = false
             });

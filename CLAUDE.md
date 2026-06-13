@@ -17,7 +17,6 @@ Level 2 : Nalix.Codec                   → Abstractions, Environment, Analyzers
 Level 2 : Nalix.Framework               → Abstractions, Environment, Codec
 Level 3 : Nalix.Runtime                 → Abstractions, Framework, Codec
 Level 3 : Nalix.Network                 → Abstractions, Framework
-Level 3 : Nalix.Logging                 → Abstractions, Framework
 Level 3 : Nalix.SDK                     → Codec
 Level 4 : Nalix.Hosting                 → Abstractions, Framework, Codec, Runtime, Network
 Level 5 : Nalix.SDK.Native              → SDK (Native AOT, C ABI, internal only)
@@ -36,20 +35,6 @@ Level 5 : Nalix.SDK.Native              → SDK (Native AOT, C ABI, internal onl
 - **Hot paths:** Zero-allocation. Use `Span<T>`, pooled buffers, no LINQ.
 - **Security:** Never invent crypto. Reuse existing primitives in `Nalix.Codec.Security`. Never log secrets.
 - **Subclasses:** Large classes are split into `.cs`, `.Types.cs`, `.Cleanup.cs`, `.Report.cs` files — please follow this pattern consistently — and only split when the file is larger than 800 lines.
-
-### Structured Logging Rules
-
-All `_logger.Log*` / `s_logger.Log*` calls must follow these rules:
-
-1. **No `$""` in any Log call** — Use message templates with placeholders: `_logger.LogDebug("id={ConnectionId}", id)` not `_logger.LogDebug($"id={id}")`.
-2. **Exception is always the first parameter** — `_logger.LogWarning(ex, "failed")` not `_logger.LogWarning("failed", ex)`. All exception properties (`ex.Message`, `ex.SocketErrorCode`, etc.) must be passed as structured template properties.
-3. **Method calls must be extracted before logging** — Extract `packet.GetType().Name` into a local variable before passing it to a log call.
-4. **Ternary must be extracted before logging** — Extract `isEnabled ? "enabled" : "disabled"` into a local variable before passing it to a log call.
-5. **Format specifiers must be extracted** — Compute `Math.Round(scope.GetElapsedMilliseconds(), 3)` into a local variable before logging.
-6. **No multi-line concat in log templates** — Merge into a single template: `_logger.LogDebug("a={A} b={B}", a, b)`.
-7. **No `nameof()` in log templates** — Use hardcoded bracket prefixes: `"[NW.Connection:Disconnect]"` not `$"[NW.{nameof(Connection)}:{nameof(Disconnect)}]"`.
-
-These rules also apply to `ThrottledError` calls: remove `$""` and `nameof()`, use string concatenation for dynamic parts (e.g. `"[NW.SocketConnection:Send] error ep=" + _endpointString`).
 
 ## API Stability
 
@@ -78,7 +63,6 @@ Each skill contains: **Triggers** (when to use it), **Rules** (invariants from s
 | [nalix-runtime](skills/nalix-runtime.md) | `Nalix.Runtime` | Handler shape; protocol ordering invariant; middleware stages; throttle tiers |
 | [nalix-network](skills/nalix-network.md) | `Nalix.Network` | Session timing; `ConnectionGuard` ban tiers; UDP anti-replay; session resume |
 | [nalix-hosting](skills/nalix-hosting.md) | `Nalix.Hosting` | Startup sequence; auto-registered handlers; middleware vs handler ordering |
-| [nalix-logging](skills/nalix-logging.md) | `Nalix.Logging` | `NLogix` facade; shutdown flush; what must never be logged |
 | [nalix-sdk](skills/nalix-sdk.md) | `Nalix.SDK` | Client connect flow; `On<T>()` vs `RequestAsync`; reconnect gotchas |
 | [nalix-sdk-native](skills/nalix-sdk-native.md) | `Nalix.SDK.Native` | C ABI constraints; error-code pattern; publish RIDs |
 | [nalix-analyzers](skills/nalix-analyzers.md) | `Nalix.Analyzers` | `NAL0xxx` ranges; adding diagnostic rules; zero-alloc constraint |

@@ -1,9 +1,8 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.ComponentModel.DataAnnotations;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Framework.Options;
@@ -39,7 +38,7 @@ public sealed partial class ObjectPoolOptions : ConfigurationLoader, IValidatabl
     /// Threshold in seconds after which an outstanding object is considered "suspicious".
     /// </summary>
     [IniComment("Threshold in seconds to flag 'suspicious' objects in reports")]
-    [Range(0, 3600, ErrorMessage = "SuspiciousThresholdSeconds must be between 0 and 3600.")]
+    [ValueRange(0, 3600)]
     public int SuspiciousThresholdSeconds { get; set; } = 30;
 
     /// <summary>
@@ -53,7 +52,7 @@ public sealed partial class ObjectPoolOptions : ConfigurationLoader, IValidatabl
     /// The number of recent lifetime samples to keep for p95 calculation.
     /// </summary>
     [IniComment("Number of recent samples to keep for percentile (p95) calculation")]
-    [Range(16, 1024, ErrorMessage = "LifetimeReservoirSize must be between 16 and 1024.")]
+    [ValueRange(16, 1024)]
     public int LifetimeReservoirSize { get; set; } = 64;
 
     /// <summary>
@@ -66,14 +65,14 @@ public sealed partial class ObjectPoolOptions : ConfigurationLoader, IValidatabl
     /// Interval between routine trim cycles (minutes).
     /// </summary>
     [IniComment("Trim interval in minutes")]
-    [Range(1, 60)]
+    [ValueRange(1, 60)]
     public int TrimIntervalMinutes { get; set; } = 5;
 
     /// <summary>
     /// Interval for deep (more aggressive) trim cycles.
     /// </summary>
     [IniComment("Deep trim interval in minutes")]
-    [Range(5, 120)]
+    [ValueRange(5, 120)]
     public int DeepTrimIntervalMinutes { get; set; } = 30;
 
     /// <summary>
@@ -82,7 +81,7 @@ public sealed partial class ObjectPoolOptions : ConfigurationLoader, IValidatabl
     /// Default value is 25%.
     /// </summary>
     [IniComment("Base trim percentage for normal cycles (default ~25%)")]
-    [Range(10, 40)]
+    [ValueRange(10, 40)]
     public int BaseKeepPercentage { get; set; } = 25;
 
     /// <summary>
@@ -91,7 +90,7 @@ public sealed partial class ObjectPoolOptions : ConfigurationLoader, IValidatabl
     /// Default value is 60%.
     /// </summary>
     [IniComment("Deep trim percentage (aggressive cycle)")]
-    [Range(45, 75)]
+    [ValueRange(45, 75)]
     public int DeepTrimPercentage { get; set; } = 60;
 
     /// <summary>
@@ -100,7 +99,7 @@ public sealed partial class ObjectPoolOptions : ConfigurationLoader, IValidatabl
     /// Default value is 85%.
     /// </summary>
     [IniComment("Hit rate threshold to be considered 'Hot' pool (light trim)")]
-    [Range(75.0, 98.0)]
+    [ValueRange(75.0, 98.0)]
     public double HotHitRateThreshold { get; set; } = 85.0;
 
     /// <summary>
@@ -109,7 +108,7 @@ public sealed partial class ObjectPoolOptions : ConfigurationLoader, IValidatabl
     /// Default value is 8.
     /// </summary>
     [IniComment("Minimum objects to keep in any pool (safety floor)")]
-    [Range(4, 64)]
+    [ValueRange(4, 64)]
     public int MinimumKeepObjects { get; set; } = 8;
 
     /// <summary>
@@ -117,20 +116,35 @@ public sealed partial class ObjectPoolOptions : ConfigurationLoader, IValidatabl
     /// Default value is 8192. This applies to pools like BufferLease and ConnectionEventArgs.
     /// </summary>
     [IniComment("Default max capacity for any dynamically created pool (default 8192)")]
-    [Range(1024, 1_000_000, ErrorMessage = "DefaultMaxPoolSize must be between 1024 and 1,000,000.")]
+    [ValueRange(1024, 1_000_000)]
     public int DefaultMaxPoolSize { get; set; } = 8192;
 
     /// <summary>
     /// Number of instances to preallocate when a new object type pool is created.
     /// </summary>
     [IniComment("Objects to warm up for each newly created type pool (default 0 = lazy allocation)")]
-    [Range(0, 1_000_000, ErrorMessage = "DefaultPreallocate must be between 0 and 1,000,000.")]
+    [ValueRange(0, 1_000_000)]
     public int DefaultPreallocate { get; set; } = 0;
+
+    /// <summary>
+    /// Maximum number of objects held in per-thread cache slots, per pooled type.
+    /// Set to <c>0</c> (default) to disable thread-local caching entirely.
+    /// <para>
+    /// WARNING: Do not enable in highly asynchronous environments (async/await) using
+    /// the ThreadPool. Thread-local caches keep objects on the thread that returned them,
+    /// so a continuation that resumes on a different thread will miss the cache.
+    /// This leads to objects being stranded on idle threads and inaccurate
+    /// <c>AvailableCount</c> reporting.
+    /// </para>
+    /// </summary>
+    [IniComment("Max thread-local slots per type per thread. Keep at 0 (disabled) for async/await workloads to prevent object stranding.")]
+    [ValueRange(0, 4)]
+    public int ThreadCacheDepth { get; set; } = 0;
 
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
-    /// <exception cref="ValidationException">
+    /// <exception cref="Abstractions.Exceptions.ValidationException">
     /// Thrown when one or more validation attributes fail.
     /// </exception>
     public void Validate() => this.ValidateDataAnnotations();

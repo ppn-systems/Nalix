@@ -2,16 +2,13 @@ name: "Publish: NuGet"
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-# Chỉ chạy khi push tag có dạng v* (ví dụ: v1.0.0, v2.3.1)
 on:
   push:
-    tags:
-      - "v*"
+    types: [published]
 
 permissions:
   contents: read
-  packages: write # Cần thiết để push lên GitHub Packages
-
+  packages: write
 jobs:
   publish:
     name: "Publish NuGet (tag only)"

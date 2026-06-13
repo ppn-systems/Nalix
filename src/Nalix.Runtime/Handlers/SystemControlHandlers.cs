@@ -20,7 +20,7 @@ namespace Nalix.Runtime.Handlers;
 /// Provides handlers for system-level control packets like PING and PONG.
 /// </summary>
 [PacketController("Nalix.Control")]
-public sealed class SystemControlHandlers
+public static class SystemControlHandlers
 {
     /// <summary>
     /// Handles incoming system control packets.
@@ -136,10 +136,10 @@ public sealed class SystemControlHandlers
             return;
         }
 
-        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {
-            DiagnosticsEvents.Source.Write(
-                DiagnosticsEvents.Internal.Error,
+            DiagnosticsEvents.Write(
+                DiagnosticsEvents.Internal.Information,
                 new DiagnosticLog(
                     "RT.SystemControlHandlers:HandleAsync",
                     $"error ep={connection.NetworkEndpoint} reason={packet.Reason}"));
@@ -162,7 +162,7 @@ public sealed class SystemControlHandlers
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Warning,
                 new DiagnosticLog(
                     "RT.SystemControlHandlers:HandleAsync",
@@ -184,7 +184,7 @@ public sealed class SystemControlHandlers
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Debug,
                 new DiagnosticLog(
                     "RT.SystemControlHandlers:HandleAsync",

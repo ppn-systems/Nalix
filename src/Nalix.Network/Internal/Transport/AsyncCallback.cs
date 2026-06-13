@@ -84,8 +84,8 @@ internal static class AsyncCallback
 {
     #region Options
 
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
     private static readonly NetworkCallbackOptions s_netOpts = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
-    private static readonly PoolingOptions s_pooling = ConfigurationManager.Instance.Get<PoolingOptions>();
 
     #endregion Options
 
@@ -121,14 +121,6 @@ internal static class AsyncCallback
 
     static AsyncCallback()
     {
-        s_pooling.Validate();
-
-        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .SetMaxCapacity<PooledConnectEventContext>(s_pooling.ConnectEventContextCapacity);
-
-        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Prealloc<PooledConnectEventContext>(s_pooling.ConnectEventContextPreallocate);
-
         s_perIpPostMap = new long[s_netOpts.FairnessMapSize];
         s_perIpProcessMap = new long[s_netOpts.FairnessMapSize];
     }
@@ -201,7 +193,7 @@ internal static class AsyncCallback
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.AsyncCallback:Invoke", "callback-null skipping"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.AsyncCallback:Invoke", "callback-null skipping"));
             }
             return false;
         }
@@ -291,13 +283,16 @@ internal static class AsyncCallback
         bool releasePendingPacketOnCompletion,
         CallbackLane lane)
     {
-        if (sender is not IPooledConnectContextPool owner)
+        PooledConnectEventContext wrapper;
+        if (sender is IPooledConnectContextPool owner)
         {
-            throw new InvalidOperationException("Invalid sender type.");
+            wrapper = owner.AcquireContext() ?? throw new InvalidOperationException("Failed to acquire context.");
         }
-
-        PooledConnectEventContext wrapper = owner.AcquireContext()
-            ?? throw new InvalidOperationException("Failed to acquire context.");
+        else
+        {
+            wrapper = s_pool.Get<PooledConnectEventContext>();
+            wrapper.LocalOwner = null;
+        }
 
         wrapper.Initialize(callback, sender, args, releasePendingPacketOnCompletion);
 
@@ -477,7 +472,7 @@ internal static class AsyncCallback
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.AsyncCallback:Internal", $"message event={eventName} suppressed-count={suppressed} endpoint={GET_ENDPOINT_SAFE(args)}"));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.AsyncCallback:Internal", $"message event={eventName} suppressed-count={suppressed} endpoint={GET_ENDPOINT_SAFE(args)}"));
                 }
                 ;
             }
@@ -493,7 +488,7 @@ internal static class AsyncCallback
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.AsyncCallback:Internal", $"message event={eventName} suppressed-count={suppressed} endpoint={GET_ENDPOINT_SAFE(args)}", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.AsyncCallback:Internal", $"message event={eventName} suppressed-count={suppressed} endpoint={GET_ENDPOINT_SAFE(args)}", ex));
                 }
                 ;
             }

@@ -176,14 +176,34 @@ public static class AeadEngine
         System.ReadOnlySpan<byte> aad,
         out int written)
     {
+        if (!TryDecrypt(key, envelope, plaintext, aad, out written, out CipherError error))
+        {
+            ThrowCipherError(error);
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    internal static bool TryDecrypt(
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> key,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.ReadOnlySpan<byte> envelope,
+        [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> plaintext,
+        System.ReadOnlySpan<byte> aad,
+        out int written,
+        out CipherError error)
+    {
         written = 0;
-        EnvelopeFormat.Envelope env = EnvelopeFormat.ParseEnvelope(envelope);
+        if (!EnvelopeFormat.TryParseEnvelope(envelope, out EnvelopeFormat.Envelope env, out error))
+        {
+            return false;
+        }
 
         int ctLen = env.Ciphertext.Length;
 
         if (plaintext.Length < env.Ciphertext.Length)
         {
-            throw new System.ArgumentException("The destination plaintext buffer is too small for the decrypted payload.", nameof(plaintext));
+            error = CipherError.DestinationTooSmall;
+            return false;
         }
 
         System.Span<byte> ptSlice = plaintext[..ctLen];
@@ -218,16 +238,19 @@ public static class AeadEngine
                 case CipherSuiteType.Salsa20:
                 case CipherSuiteType.Chacha20:
                 default:
-                    Throw.UnsupportedAlgorithm();
-                    return;
+                    error = CipherError.UnsupportedAlgorithm;
+                    return false;
             }
 
             if (result < 0)
             {
-                Throw.AeadAuthenticationFailed();
+                error = CipherError.AuthenticationFailed;
+                return false;
             }
 
             written = result;
+            error = CipherError.Success;
+            return true;
         }
         finally
         {
@@ -235,6 +258,32 @@ public static class AeadEngine
             {
                 BufferLease.ByteArrayPool.Return(rentedAad);
             }
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void ThrowCipherError(CipherError error)
+    {
+        switch (error)
+        {
+            case CipherError.DestinationTooSmall:
+                throw new System.ArgumentException("The destination plaintext buffer is too small for the decrypted payload.");
+            case CipherError.AuthenticationFailed:
+                Throw.AeadAuthenticationFailed();
+                break;
+            case CipherError.UnsupportedAlgorithm:
+                Throw.UnsupportedAlgorithm();
+                break;
+            case CipherError.Success:
+            case CipherError.InvalidHeader:
+            case CipherError.EnvelopeTooShort:
+            case CipherError.InvalidTagLength:
+            case CipherError.AlgorithmMismatch:
+            case CipherError.InvalidNonceLength:
+            case CipherError.CiphertextTooShort:
+            default:
+                EnvelopeFormat.ThrowCipherError(error);
+                break;
         }
     }
 }

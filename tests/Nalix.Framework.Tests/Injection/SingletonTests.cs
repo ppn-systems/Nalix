@@ -59,12 +59,22 @@ public sealed class SingletonTests : IDisposable
     [Fact]
     public void SingletonRegisterInterfaceWithoutFactoryThenResolveCreatesImplementation()
     {
-        Singleton.Register<IService, DefaultService>();
+        Singleton.Register<IService, DefaultService>(() => new DefaultService());
 
         IService? resolved = Singleton.Resolve<IService>();
 
         Assert.NotNull(resolved);
         Assert.Equal("default", resolved!.Name);
+    }
+
+    [Fact]
+    public void SingletonRegisterInterfaceWithoutFactoryOrActivatorThrowsInvalidOperationException()
+    {
+        Singleton.Register<IService, DefaultService>();
+
+        // Must fail fast — no generated activator exists for DefaultService
+        // (it is a private nested test class, not [Injectable] or SingletonBase<T>).
+        Assert.Throws<InvalidOperationException>(() => Singleton.Resolve<IService>());
     }
 
     [Fact]
@@ -140,7 +150,7 @@ public sealed class SingletonTests : IDisposable
         });
 
         Assert.NotNull(ex.InnerException);
-        Assert.Contains("parameterless constructor", ex.InnerException!.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("generated activator", ex.InnerException!.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     private interface IService
@@ -164,22 +174,24 @@ public sealed class SingletonTests : IDisposable
         public void Dispose() => IsDisposed = true;
     }
 
-    private sealed class FreshSingleton : SingletonBase<FreshSingleton>
+    internal sealed class FreshSingleton : SingletonBase<FreshSingleton>
     {
-        private FreshSingleton() { }
+        internal FreshSingleton() { }
     }
 
-    private sealed class DisposableSingleton : SingletonBase<DisposableSingleton>
+    internal sealed class DisposableSingleton : SingletonBase<DisposableSingleton>
     {
-        private DisposableSingleton() { }
+        internal DisposableSingleton() { }
         public int DisposeManagedCount { get; private set; }
         protected override void DisposeManaged() => DisposeManagedCount++;
     }
 
-    private sealed class NoDefaultCtorSingleton : SingletonBase<NoDefaultCtorSingleton>
+    #pragma warning disable NALIX065 // Intentionally missing parameterless ctor for error-path testing
+    internal sealed class NoDefaultCtorSingleton : SingletonBase<NoDefaultCtorSingleton>
     {
-        private NoDefaultCtorSingleton(int _) { }
+        internal NoDefaultCtorSingleton(int _) { }
     }
+    #pragma warning restore NALIX065
 }
 
 

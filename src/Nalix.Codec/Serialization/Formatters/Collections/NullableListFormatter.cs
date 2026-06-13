@@ -26,7 +26,9 @@ internal sealed class NullableValueListFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
     : IFillableFormatter<System.Collections.Generic.List<T?>> where T : struct
 {
-    private static readonly IFormatter<T> s_elementFormatter = FormatterProvider.Get<T>();
+    private static IFormatter<T>? s_elementFormatter;
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static IFormatter<T> GetElementFormatter() => s_elementFormatter ??= FormatterProvider.Get<T>();
     private static string DebuggerDisplay => $"NullableValueListFormatter<{typeof(T).FullName}?>";
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -59,7 +61,7 @@ internal sealed class NullableValueListFormatter<
             }
 
             writer.Write((byte)1);
-            s_elementFormatter.Serialize(ref writer, item.Value);
+            GetElementFormatter().Serialize(ref writer, item.Value);
         }
     }
 
@@ -79,7 +81,10 @@ internal sealed class NullableValueListFormatter<
             return [];
         }
 
-        CollectionGuard.EnsureRead(ref reader, length);
+        if (!CollectionGuard.TryEnsureRead(ref reader, length))
+        {
+            return default!;
+        }
 
         System.Collections.Generic.List<T?> list = new(length);
         CollectionsMarshal.SetCount(list, length);
@@ -87,7 +92,7 @@ internal sealed class NullableValueListFormatter<
 
         for (int i = 0; i < span.Length; i++)
         {
-            span[i] = reader.ReadByte() == 0 ? null : s_elementFormatter.Deserialize(ref reader);
+            span[i] = reader.ReadByte() == 0 ? null : GetElementFormatter().Deserialize(ref reader);
         }
 
         return list;
@@ -106,7 +111,10 @@ internal sealed class NullableValueListFormatter<
             return;
         }
 
-        CollectionGuard.EnsureRead(ref reader, length);
+        if (!CollectionGuard.TryEnsureRead(ref reader, length))
+        {
+            return;
+        }
 
         value.Clear();
         CollectionsMarshal.SetCount(value, length);
@@ -115,7 +123,7 @@ internal sealed class NullableValueListFormatter<
 
         for (int i = 0; i < length; i++)
         {
-            span[i] = reader.ReadByte() == 0 ? null : s_elementFormatter.Deserialize(ref reader);
+            span[i] = reader.ReadByte() == 0 ? null : GetElementFormatter().Deserialize(ref reader);
         }
     }
 }

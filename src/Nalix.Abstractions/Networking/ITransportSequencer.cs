@@ -23,4 +23,24 @@ public interface ITransportSequencer
     /// Gets the sequence counter for incoming packets.
     /// </summary>
     ISequenceCounter ReceiveSequence { get; }
+
+    /// <summary>
+    /// Increments and returns the next outgoing packet sequence number.
+    /// </summary>
+    uint NextSendSequence();
+
+    /// <summary>
+    /// Increments and returns the next incoming packet sequence number.
+    /// </summary>
+    uint NextReceiveSequence();
+
+    /// <summary>
+    /// Gets the current outgoing packet sequence number.
+    /// </summary>
+    uint CurrentSendSequence { get; }
+
+    /// <summary>
+    /// Gets the current incoming packet sequence number.
+    /// </summary>
+    uint CurrentReceiveSequence { get; }
 }

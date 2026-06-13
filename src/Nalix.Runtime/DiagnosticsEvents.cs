@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Diagnostics;
@@ -31,6 +31,23 @@ public static class DiagnosticsEvents
     /// </remarks>
     public static readonly DiagnosticListener Source =
         Environment.Diagnostics.DiagnosticListenerFactory.Create(ListenerName);
+
+    /// <summary>
+    /// Writes a diagnostic event payload through <see cref="Source"/> in an AOT-safe manner.
+    /// </summary>
+    /// <typeparam name="T">The diagnostic payload type.</typeparam>
+    /// <param name="name">The event name.</param>
+    /// <param name="payload">The event payload.</param>
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2026",
+        Justification = "DiagnosticSource.Write<T>() requires unreferenced-code analysis for payload property discovery. " +
+            "Nalix diagnostic payloads are observational only and do not affect runtime behavior.")]
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2091",
+        Justification = "Diagnostic payloads are observational only; public-property preservation is not required for runtime behavior.")]
+    public static void Write<T>(string name, T payload) => Source.Write(name, payload);
 
     /// <summary>
     /// Diagnostic event names for internal Runtime module faults, warnings, and traces.

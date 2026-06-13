@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Network.Options;
@@ -33,7 +34,7 @@ public sealed partial class ProxyProtocolOptions : ConfigurationLoader, IValidat
     /// Tune to roughly RTT_max + 50ms. Default 2000ms.
     /// </summary>
     [IniComment("Timeout in ms for the PROXY header read (default: 2000)")]
-    [System.ComponentModel.DataAnnotations.Range(100, 30000, ErrorMessage = "HeaderTimeoutMs must be between 100 and 30000.")]
+    [ValueRange(100, 30000)]
     public int HeaderTimeoutMs { get; set; } = 2000;
 
     /// <summary>
@@ -41,13 +42,13 @@ public sealed partial class ProxyProtocolOptions : ConfigurationLoader, IValidat
     /// This prevents DDoS attacks that exhaust server memory by holding connections open.
     /// </summary>
     [IniComment("Maximum concurrent connections waiting for a Proxy Protocol header (default: 1024)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 100_000, ErrorMessage = "MaxPendingProxyConnections must be between 1 and 100,000.")]
+    [ValueRange(1, 100_000)]
     public int MaxPendingProxyConnections { get; set; } = 1024;
 
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
-    /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
+    /// <exception cref="Abstractions.Exceptions.ValidationException">
     /// Thrown when one or more validation attributes fail.
     /// </exception>
     public void Validate() => this.ValidateDataAnnotations();

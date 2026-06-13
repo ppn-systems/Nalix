@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
@@ -16,7 +17,6 @@ using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Codec.Security.Hashing;
 using Nalix.Environment.Time;
-using Nalix.Framework.Identifiers;
 using Nalix.Runtime.Extensions;
 
 namespace Nalix.Runtime.Handlers;
@@ -25,17 +25,10 @@ namespace Nalix.Runtime.Handlers;
 /// Handles dedicated session resume packets.
 /// </summary>
 [PacketController("Nalix.Session")]
-public sealed class SessionHandlers
+public static partial class SessionHandlers
 {
-    private readonly ISessionService _sessionService;
-
-    /// <inheritdoc/>
-    public SessionHandlers(ISessionService sessionService)
-    {
-        ArgumentNullException.ThrowIfNull(sessionService);
-
-        _sessionService = sessionService;
-    }
+    [Inject]
+    private static ISessionService s_sessionService = null!;
 
     /// <summary>
     /// Handles a session resume request and restores the connection state when the token is valid.
@@ -46,7 +39,7 @@ public sealed class SessionHandlers
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode(ProtocolOpCode.SESSION_SIGNAL)]
-    public async ValueTask HandleAsync(IPacketContext<SessionResume> context)
+    public static async ValueTask HandleAsync(IPacketContext<SessionResume> context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -82,7 +75,7 @@ public sealed class SessionHandlers
         // SEC-33: Use ConsumeAsync for atomic retrieve-and-remove to prevent TOCTOU race.
         // Two parallel requests with the same token: only the first gets the entry,
         // the second gets null because TryRemove is atomic.
-        SessionEntry? session = await _sessionService.ConsumeAsync(packet.SessionToken)
+        SessionEntry? session = await s_sessionService.ConsumeAsync(packet.SessionToken)
                                                      .ConfigureAwait(false);
         if (session == null)
         {
@@ -157,13 +150,12 @@ public sealed class SessionHandlers
             }
         }
 
-        await _sessionService.SaveSessionAsync(connection).ConfigureAwait(false);
+        await s_sessionService.SaveSessionAsync(connection).ConfigureAwait(false);
 
-        ulong newToken = connection.ID.ToUInt64();
-        Snowflake newTokenSnowflake = Snowflake.NewId(newToken);
+        ulong newToken = connection.ID;
 
         Span<byte> responseMessageBytes = stackalloc byte[16];
-        _ = newTokenSnowflake.TryWriteBytes(responseMessageBytes);
+        BinaryPrimitives.WriteUInt64LittleEndian(responseMessageBytes, newToken);
         BinaryPrimitives.WriteInt64LittleEndian(responseMessageBytes[8..], Clock.UnixSecondsNow() / 30);
         Span<byte> responseProofBytes = stackalloc byte[32];
         HmacKeccak256.Compute(session.Snapshot.Secret.AsSpan(), responseMessageBytes, responseProofBytes);
@@ -172,7 +164,7 @@ public sealed class SessionHandlers
         SessionResume ack = lease.Value;
         ack.Initialize(
             stage: SessionResumeStage.RESPONSE,
-            sessionToken: newTokenSnowflake.ToUInt64(),
+            sessionToken: newToken,
             reason: ProtocolReason.NONE,
             proof: new Bytes32(responseProofBytes),
             flags: packet.Flags);

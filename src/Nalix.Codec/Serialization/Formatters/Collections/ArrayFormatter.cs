@@ -93,7 +93,10 @@ internal sealed class ArrayFormatter<
             return null!;
         }
 
-        int total = CollectionGuard.EnsureCan(ref reader, length, s_elementSize);
+        if (!CollectionGuard.TryEnsureCan(ref reader, length, s_elementSize, out int total))
+        {
+            return default!;
+        }
 
         T[] result = System.GC.AllocateUninitializedArray<T>(length);
         ref byte src = ref reader.GetSpanReference(total);

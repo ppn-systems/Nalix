@@ -34,6 +34,7 @@ public sealed class ResumeExtensionsTests : IDisposable
 {
     public ResumeExtensionsTests()
     {
+        TestAssemblySetup.EnsureHighLimits();
         if (!PacketRegistry.IsBuilt)
         PacketRegistry.Build();
 TestUtils.SetupCertificate();
@@ -86,6 +87,7 @@ TestUtils.SetupCertificate();
             // 3. Setup Client
             using TcpSession session = new(new TransportOptions 
             { 
+                ResumeTimeoutMillis = 30000
             });
             session.State.Secret = secret;
             session.State.SessionToken = token;

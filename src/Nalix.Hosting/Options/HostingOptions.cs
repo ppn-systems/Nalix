@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Hosting.Options;
@@ -28,14 +29,14 @@ public sealed partial class HostingOptions : ConfigurationLoader, IValidatableCo
     /// Gets or sets the minimum number of worker threads in the ThreadPool.
     /// </summary>
     [IniComment("Minimum worker threads for the ThreadPool (0 = system default, recommended: processor count * 2)")]
-    [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue, ErrorMessage = "MinWorkerThreads cannot be negative.")]
+    [ValueRange(0, int.MaxValue)]
     public int MinWorkerThreads { get; set; } = 0;
 
     /// <summary>
     /// Gets or sets the minimum number of completion port threads in the ThreadPool.
     /// </summary>
     [IniComment("Minimum completion port threads for the ThreadPool (0 = system default)")]
-    [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue, ErrorMessage = "MinCompletionPortThreads cannot be negative.")]
+    [ValueRange(0, int.MaxValue)]
     public int MinCompletionPortThreads { get; set; } = 0;
 
     /// <summary>

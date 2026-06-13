@@ -20,7 +20,11 @@ namespace Nalix.Framework.Memory.Pools;
 /// intentionally simple: rent fast, reset on return, and discard when full.
 /// </remarks>
 /// <param name="defaultMaxItemsPerType">The default maximum number of items to keep per pooled type.</param>
-public sealed class ObjectPool(int defaultMaxItemsPerType)
+/// <param name="threadCacheDepth">
+/// Maximum thread-local slots per type. <c>0</c> (default) disables thread-local caching.
+/// Keep at <c>0</c> for async/await workloads to prevent object stranding on idle threads.
+/// </param>
+public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth = 0)
 {
     #region Constants
 
@@ -53,6 +57,11 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// Configuration for the default per-type pool capacity.
     /// </summary>
     private readonly int _defaultMaxItemsPerType = defaultMaxItemsPerType > 0 ? defaultMaxItemsPerType : DefaultMaxSize;
+
+    /// <summary>
+    /// Maximum thread-local slots per type. <c>0</c> disables thread-local caching entirely.
+    /// </summary>
+    private readonly int _threadCacheDepth = threadCacheDepth;
 
     #endregion Fields
 
@@ -130,12 +139,15 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal (T obj, bool isCacheHit) GetWithInfoFast<T>(int id) where T : IPoolable, new()
     {
-        // Try the fast-path thread-local slot first
-        T? localObj = ThreadLocalCache<T>.TryPop(this);
-        if (localObj != null)
+        // Try the fast-path thread-local slot first (only when enabled)
+        if (_threadCacheDepth > 0)
         {
-            _ = Interlocked.Increment(ref _totalRented);
-            return (localObj, true);
+            T? localObj = ThreadLocalCache<T>.TryPop(this);
+            if (localObj != null)
+            {
+                _ = Interlocked.Increment(ref _totalRented);
+                return (localObj, true);
+            }
         }
 
         /*
@@ -178,14 +190,14 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
             return;
         }
 
-        // Try the fast-path thread-local slot
-        if (ThreadLocalCache<T>.TryPush(this, obj))
+        // Try the fast-path thread-local slot (only when enabled)
+        if (_threadCacheDepth > 0 && ThreadLocalCache<T>.TryPush(this, obj))
         {
             _ = Interlocked.Increment(ref _totalReturned);
             return;
         }
 
-        // Fallback to central pool if thread-local slot is occupied
+        // Fallback to central pool if thread-local slot is occupied or disabled
         if (typePool.TryPush(obj))
         {
             _ = Interlocked.Increment(ref _totalReturned);
@@ -402,13 +414,17 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// <summary>
     /// Trims all type pools to their target sizes.
     /// </summary>
-    /// <param name="percentage">The percentage of the maximum capacity to trim to (0-100).</param>
+    /// <param name="percentage">
+    /// The percentage of the maximum capacity to keep (0-100).
+    /// <c>0</c> = no trim (safety floor), <c>1–99</c> = keep that percentage of max capacity,
+    /// <c>100</c> = keep up to full capacity. Negative values are clamped to <c>0</c>.
+    /// </param>
     /// <returns>The total number of objects removed.</returns>
     public int Trim(int percentage = 50)
     {
         if (percentage < 0)
         {
-            percentage = 0;
+            percentage = 0; // Negative → no trim (safety floor semantics)
         }
 
         if (percentage > 100)
@@ -536,6 +552,8 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     public TypedObjectPool<T> CreateTypedPool<T>() where T : IPoolable, new() => new(this);
 
     internal int AvailableCountByType(Type type) => _typePools.TryGetValue(type, out TypePool? typePool) ? typePool.AvailableCount : 0;
+
+    internal int GetMaxCapacity(Type type) => _typePools.TryGetValue(type, out TypePool? typePool) ? typePool.MaxCapacity : _defaultMaxItemsPerType;
 
     internal Dictionary<string, object> GetTypeInfoByType(Type type)
     {

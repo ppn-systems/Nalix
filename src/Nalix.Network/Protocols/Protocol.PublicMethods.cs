@@ -58,7 +58,7 @@ public abstract partial class Protocol
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Protocol:OnAccept", $"reject id=connection-id={connection.ID} reason=not-accepting"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Protocol:OnAccept", $"reject id=connection-id={connection.ID} reason=not-accepting"));
             }
             connection.Disconnect();
             return;
@@ -76,7 +76,7 @@ public abstract partial class Protocol
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Protocol:OnAccept", $"accepted id=connection-id={connection.ID}"));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Protocol:OnAccept", $"accepted id=connection-id={connection.ID}"));
                 }
 
                 connection.TCP.UseFraming(this.Framing);
@@ -89,7 +89,7 @@ public abstract partial class Protocol
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Protocol:OnAccept", $"reject id=connection-id={connection.ID} reason=validation-failed"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Protocol:OnAccept", $"reject id=connection-id={connection.ID} reason=validation-failed"));
             }
 
             // Connections failed validation, close immediately
@@ -99,7 +99,7 @@ public abstract partial class Protocol
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Protocol:OnAccept", $"accept-canceled id=connection-id={connection.ID}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Protocol:OnAccept", $"accept-canceled id=connection-id={connection.ID}"));
             }
             connection.Disconnect();
         }
@@ -110,7 +110,7 @@ public abstract partial class Protocol
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.Protocol:OnAccept", $"accept-disposed id=connection-id={connection.ID} target=target={ex.ObjectName}", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.Protocol:OnAccept", $"accept-disposed id=connection-id={connection.ID} target=target={ex.ObjectName}", ex));
                 }
             }
 
@@ -124,7 +124,7 @@ public abstract partial class Protocol
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.Protocol:OnAccept", $"accept-error id=connection-id={connection.ID}", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.Protocol:OnAccept", $"accept-error id=connection-id={connection.ID}", ex));
             }
         }
     }

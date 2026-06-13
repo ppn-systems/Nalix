@@ -1,10 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
-// Licensed under the Apache License, Version 2.0.
-
 namespace Nalix.Codec.Serialization.Formatters.Cache;
 
 /// <summary>
@@ -12,11 +8,7 @@ namespace Nalix.Codec.Serialization.Formatters.Cache;
 /// </summary>
 /// <typeparam name="T">The type for which the formatter is stored.</typeparam>
 [System.Diagnostics.DebuggerStepThrough]
-internal sealed class ComplexTypeCache<
-    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
+internal sealed class ComplexTypeCache<T>
 {
     /// <summary>
     /// The cached formatter instance for the specified type <typeparamref name="T"/>.

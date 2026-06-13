@@ -51,6 +51,11 @@ public ref struct DataReader
         get => _buffer.Length - _pos;
     }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the reader has failed and is poisoned.
+    /// </summary>
+    public bool IsFailed { get; set; }
+
     #endregion Properties
 
     #region Constructors

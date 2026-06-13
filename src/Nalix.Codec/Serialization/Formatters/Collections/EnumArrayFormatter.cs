@@ -97,7 +97,10 @@ internal sealed class EnumArrayFormatter<
             return null!;
         }
 
-        int totalBytes = CollectionGuard.EnsureCan(ref reader, length, s_elementSize);
+        if (!CollectionGuard.TryEnsureCan(ref reader, length, s_elementSize, out int totalBytes))
+        {
+            return default!;
+        }
 
         T[] result = System.GC.AllocateUninitializedArray<T>(length);
         ref byte src = ref reader.GetSpanReference(totalBytes);

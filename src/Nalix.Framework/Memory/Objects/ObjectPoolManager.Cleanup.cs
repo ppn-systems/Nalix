@@ -25,7 +25,7 @@ public sealed partial class ObjectPoolManager
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new DiagnosticLog("FW.ObjectPoolManager:Internal",
+            DiagnosticsEvents.Write(DiagnosticsEvents.Memory.PoolTrimmed, new DiagnosticLog("FW.ObjectPoolManager:Internal",
                 $"pool-trimmed cycle={cycle} deep-trim={isDeepTrim.ToString().ToLowerInvariant()} phase=ObjectTrimRun"));
         }
 
@@ -56,7 +56,7 @@ public sealed partial class ObjectPoolManager
                 // One pool failing must not crash the entire trim job
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolFailure))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new DiagnosticLog("FW.ObjectPoolManager:Internal",
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Memory.PoolFailure, new DiagnosticLog("FW.ObjectPoolManager:Internal",
                         $"pool-failure type={type.Name} phase=TrimSinglePool", ex));
                 }
             }
@@ -68,7 +68,7 @@ public sealed partial class ObjectPoolManager
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new DiagnosticLog("FW.ObjectPoolManager:Internal",
+                DiagnosticsEvents.Write(DiagnosticsEvents.Memory.PoolTrimmed, new DiagnosticLog("FW.ObjectPoolManager:Internal",
                     $"pool-trimmed cycle={cycle} deep-trim={isDeepTrim.ToString().ToLowerInvariant()} removed={totalRemoved}"));
             }
         }

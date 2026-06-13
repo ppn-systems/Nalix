@@ -13,9 +13,7 @@ internal sealed class Program
 {
     public static int Main()
     {
-#if NALIX_AOT
         AotCompareFormatterBootstrap.Register();
-#endif
 
         List<ScenarioResult> results =
         [
@@ -284,8 +282,9 @@ internal sealed class Program
     private static ScenarioResult PacketMalformedBuffer()
     {
         Byte[] bytes = [0x01, 0x02, 0x03, 0x04];
-        Exception ex = ExpectException(() => _ = LargeDataPacket.Deserialize(bytes));
-        return Result(bytes, ex.GetType().Name);
+        LargeDataPacket? packet = LargeDataPacket.Deserialize(bytes);
+        Require(packet is null, "expected null packet for malformed buffer");
+        return Result(bytes, "NullPacket");
     }
 
     private static ScenarioResult Result(Byte[] bytes, String details)

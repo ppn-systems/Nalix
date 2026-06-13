@@ -4,7 +4,7 @@ using Nalix.Environment.Options;
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel.DataAnnotations;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Framework.Options;
 using Xunit;
 
@@ -121,8 +121,8 @@ public sealed class FrameworkOptionsTests
         SecurityOptions min = new() { Pbkdf2Iterations = 1000 };
         SecurityOptions max = new() { Pbkdf2Iterations = 10_000_000 };
 
-        Validator.ValidateObject(min, new ValidationContext(min), validateAllProperties: true);
-        Validator.ValidateObject(max, new ValidationContext(max), validateAllProperties: true);
+        min.Validate();
+        max.Validate();
     }
 
     [Fact]
@@ -130,8 +130,7 @@ public sealed class FrameworkOptionsTests
     {
         SecurityOptions options = new() { Pbkdf2Iterations = 999 };
 
-        Assert.Throws<ValidationException>(() =>
-            Validator.ValidateObject(options, new ValidationContext(options), validateAllProperties: true));
+        Assert.Throws<ValidationException>(() => options.Validate());
     }
 
     [Fact]

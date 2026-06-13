@@ -116,7 +116,7 @@ public sealed partial class ObjectPoolManager
                 trimmed = metrics.TrimCount;
                 hitPercent = gets > 0 ? (metrics.CacheHits / (double)gets * 100.0) : 0.0;
 
-                string poolStatus = GET_POOL_STATUS(metrics);
+                string poolStatus = this.GET_POOL_STATUS(type, metrics);
                 status = poolStatus == "Unhealthy" ? "⚠ FAIL" : poolStatus;
             }
 
@@ -232,7 +232,7 @@ public sealed partial class ObjectPoolManager
                 writer.WriteString("LastAccessType", metrics.LastAccessType ?? "None");
                 writer.WriteNumber("Outstanding", metrics.Outstanding);
                 writer.WriteNumber("ConsecutiveFailures", metrics.ConsecutiveFailures);
-                writer.WriteString("Status", GET_POOL_STATUS(metrics));
+                writer.WriteString("Status", this.GET_POOL_STATUS(kvp.Key, metrics));
             }
             writer.WriteEndObject();
         }

@@ -42,12 +42,11 @@ internal sealed partial class SocketConnection
 
                     if (payloadLen < 0 || payloadLen > _maxVarIntPayloadSize)
                     {
-                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+                        if (_owner is IConnectionTrafficMetrics trafficMetrics)
                         {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"varint-invalid-size-drop payload-length={payloadLen} max-var-int-payload-size={_maxVarIntPayloadSize} endpoint={_endpointString}"));
+                            trafficMetrics.IncrementPacketsDropped();
                         }
-
-                        throw new InternalErrorException($"VarInt payload size {payloadLen} is invalid or exceeds the maximum allowed size of {_maxVarIntPayloadSize}.");
+                        break;
                     }
 
                     int totalFrameSize = varIntBytesRead + payloadLen;
@@ -105,7 +104,18 @@ internal sealed partial class SocketConnection
                 // Opportunistic Read
                 if (!parsedAtLeastOne || _bufferDataLength == 0 || incomplete)
                 {
-                    await this.RECEIVE_OPPORTUNISTIC_ASYNC(token).ConfigureAwait(false);
+                    ReceiveResult receiveResult = await this.RECEIVE_OPPORTUNISTIC_ASYNC(token).ConfigureAwait(false);
+                    if (receiveResult != ReceiveResult.Success)
+                    {
+                        if (receiveResult == ReceiveResult.InvalidPacketSize)
+                        {
+                            if (_owner is IConnectionTrafficMetrics trafficMetrics)
+                            {
+                                trafficMetrics.IncrementPacketsDropped();
+                            }
+                        }
+                        break;
+                    }
                 }
             }
         }
@@ -113,14 +123,16 @@ internal sealed partial class SocketConnection
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"saea-receive-loop varint ended (peer closed/shutdown) endpoint={_owner?.NetworkEndpoint.Address}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
+                    new DiagnosticLog("NW.SocketConnection:Internal", $"saea-receive-loop varint ended (peer closed/shutdown) endpoint={_owner?.NetworkEndpoint.Address}"));
             }
         }
         catch (OperationCanceledException)
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"saea-receive-loop varint cancelled endpoint={_owner?.NetworkEndpoint.Address}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
+                    new DiagnosticLog("NW.SocketConnection:Internal", $"saea-receive-loop varint cancelled endpoint={_owner?.NetworkEndpoint.Address}"));
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -132,7 +144,8 @@ internal sealed partial class SocketConnection
                 {
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"receive varint faulted endpoint={_owner.NetworkEndpoint.Address} suppressed-count={suppressed}", e));
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
+                            new DiagnosticLog("NW.SocketConnection:Internal", $"receive varint faulted endpoint={_owner.NetworkEndpoint.Address} suppressed-count={suppressed}", e));
                     }
                     ;
                 }
@@ -159,7 +172,8 @@ internal sealed partial class SocketConnection
 
         this.LastPingTime = Clock.UnixMillisecondsNow();
 
-        if (!_sink.OnFrameReceived(_owner, lease, isReliable: true))
+        bool handled = _connectionOwner?.OnFrameReceived(lease) ?? true;
+        if (!handled)
         {
             if (_owner is IConnectionTrafficMetrics trafficMetrics)
             {
@@ -168,7 +182,7 @@ internal sealed partial class SocketConnection
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"sink-rejected-frame-drop payload-length={payloadLen} endpoint={_endpointString}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"sink-rejected-frame-drop payload-length={payloadLen} endpoint={_endpointString}"));
             }
 
             lease.Dispose();
@@ -177,7 +191,7 @@ internal sealed partial class SocketConnection
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"accepted payload-length={payloadLen} endpoint={_endpointString}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.SocketConnection:Internal", $"accepted payload-length={payloadLen} endpoint={_endpointString}"));
         }
     }
 }

@@ -23,7 +23,7 @@ namespace Nalix.Environment.Sequencing;
 /// <item>Critical for security when using stream ciphers (ChaCha20, Salsa20, etc.)</item>
 /// </list>
 /// </remarks>
-public struct SequenceCounter : ISequenceCounter
+public sealed class SequenceCounter : ISequenceCounter
 {
     private uint _value;
 
@@ -49,7 +49,7 @@ public struct SequenceCounter : ISequenceCounter
     /// </summary>
     /// <returns>The current value of the counter.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly uint Current() => Volatile.Read(ref Unsafe.AsRef(in _value));
+    public uint Current() => Volatile.Read(ref Unsafe.AsRef(in _value));
 
     /// <summary>
     /// Resets the counter to a new value.
@@ -73,7 +73,7 @@ public struct SequenceCounter : ISequenceCounter
     /// </param>
     /// <returns><c>true</c> if the sequence number is valid; otherwise, <c>false</c>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly bool IsValid(uint? receivedSeq, uint window = 0)
+    public bool IsValid(uint? receivedSeq, uint window = 0)
     {
         if (receivedSeq == null)
         {
@@ -92,7 +92,7 @@ public struct SequenceCounter : ISequenceCounter
             return true;
         }
 
-        return receivedSeq > current || (window > 0 && receivedSeq + window > current);
+        return receivedSeq > current || (window > 0 && receivedSeq < current && current - receivedSeq < window);
     }
 
     /// <summary>

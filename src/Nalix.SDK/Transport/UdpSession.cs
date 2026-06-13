@@ -146,6 +146,16 @@ public class UdpSession : TransportSession
                 ReceiveBufferSize = this.Options.BufferSize
             };
 
+            _socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+
+            if (this.State.LocalPort > 0)
+            {
+                IPAddress bindAddress = _remoteEndPoint.AddressFamily == AddressFamily.InterNetworkV6
+                    ? IPAddress.IPv6Any
+                    : IPAddress.Any;
+                _socket.Bind(new IPEndPoint(bindAddress, this.State.LocalPort));
+            }
+
             // Apply connect timeout if configured
             using CancellationTokenSource connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             if (this.Options.ConnectTimeoutMillis > 0)

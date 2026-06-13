@@ -11,6 +11,7 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Runtime.Options;
@@ -22,8 +23,9 @@ namespace Nalix.Runtime.Throttling;
 /// using Stopwatch ticks for time arithmetic and fixed-point token precision.
 /// Provides precise Retry-After and Credit for client backoff and flow control.
 /// </summary>
-[DebuggerNonUserCode]
+[Injectable]
 [SkipLocalsInit]
+[DebuggerNonUserCode]
 public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReportable
 {
 
@@ -218,7 +220,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Warning,
                     new DiagnosticLog(
                         "RT.TokenBucketLimiter:Internal",
@@ -258,7 +260,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Debug,
                 new DiagnosticLog(
                     "RT.TokenBucketLimiter:Internal",
@@ -274,7 +276,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Warning,
                     new DiagnosticLog(
                         "RT.TokenBucketLimiter:Internal",
@@ -300,7 +302,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Debug,
                 new DiagnosticLog(
                     "RT.TokenBucketLimiter:Internal",
@@ -935,7 +937,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Debug,
                 new DiagnosticLog(
                     "RT.TokenBucketLimiter:Dispose",
@@ -966,7 +968,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Trace,
                 new DiagnosticLog(
                     "RT.TokenBucketLimiter:Internal",
@@ -979,7 +981,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Trace,
                 new DiagnosticLog(
                     "RT.TokenBucketLimiter:Internal",

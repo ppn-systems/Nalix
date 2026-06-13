@@ -82,7 +82,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
             // If the limiter has been disposed (e.g., during shutdown), deny the packet (fail-closed)
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Warning,
                     new DiagnosticLog(
                         "RT.RateLimitMiddleware:InvokeAsync",

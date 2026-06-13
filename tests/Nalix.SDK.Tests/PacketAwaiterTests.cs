@@ -21,14 +21,14 @@ public sealed class PacketAwaiterTests
             Nalix.Codec.DataFrames.PacketRegistry.Build();
         Nalix.Codec.ProtocolFrames.Control packet = new();
         var header = packet.Header;
-        header.OpCode = 0x100;
+        header.OpCode = Nalix.Codec.ProtocolFrames.Control.StaticOpCode;
         packet.Header = header;
         byte[] data = packet.Serialize();
         ManualLease lease = new(data);
 
         Task<Nalix.Codec.ProtocolFrames.Control> awaitTask = PacketAwaiter.AwaitAsync<Nalix.Codec.ProtocolFrames.Control>(
             session,
-            p => p.Header.OpCode == 0x100,
+            p => p.Header.OpCode == Nalix.Codec.ProtocolFrames.Control.StaticOpCode,
             1000,
             ct => Task.CompletedTask,
             CancellationToken.None);
@@ -37,7 +37,7 @@ public sealed class PacketAwaiterTests
         session.OnMessageReceived += Raise.Event<EventHandler<IBufferLease>>(session, lease);
 
         Nalix.Codec.ProtocolFrames.Control result = await awaitTask;
-        Assert.Equal(0x100, result.Header.OpCode);
+        Assert.Equal(Nalix.Codec.ProtocolFrames.Control.StaticOpCode, result.Header.OpCode);
     }
 
     private sealed class ManualLease : IBufferLease
@@ -58,19 +58,6 @@ public sealed class PacketAwaiterTests
             buffer = _data;
             start = 0;
             length = _data.Length;
-            return true;
-        }
-    }
-
-    private sealed class ManualCatalog(IPacket result) : IPacketRegistry
-    {
-        public int DeserializerCount => 1;
-        public bool IsKnownMagic(uint magic) => true;
-        public bool IsRegistered<TPacket>() where TPacket : IPacket => true;
-        public IPacket Deserialize(ReadOnlySpan<byte> buffer) => result;
-        public bool TryDeserialize(ReadOnlySpan<byte> buffer, [NotNullWhen(true)] out IPacket? packet)
-        {
-            packet = result;
             return true;
         }
     }

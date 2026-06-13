@@ -15,18 +15,15 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Security;
 using Nalix.Environment.Configuration;
+using Nalix.Environment.Sequencing;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
-using Nalix.Network.Internal.Security;
 using Nalix.Network.Options;
 
-
-#if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
-#endif
 
 namespace Nalix.Network.Internal.Transport;
 
@@ -43,7 +40,8 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
 
     private static readonly NetworkSocketOptions s_options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
 
-    private TransportSequencer _sequencer = new();
+    private readonly ISequenceCounter _sendSequence = new SequenceCounter();
+    private readonly ISequenceCounter _receiveSequence = new SequenceCounter();
 
     #endregion Static Factory
 
@@ -53,10 +51,22 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     public TransportFraming Framing => TransportFraming.None;
 
     /// <inheritdoc/>
-    public ISequenceCounter SendSequence => _sequencer.SendSequence;
+    public ISequenceCounter SendSequence => _sendSequence;
 
     /// <inheritdoc/>
-    public ISequenceCounter ReceiveSequence => _sequencer.ReceiveSequence;
+    public ISequenceCounter ReceiveSequence => _receiveSequence;
+
+    /// <inheritdoc/>
+    public uint NextSendSequence() => _sendSequence.Next();
+
+    /// <inheritdoc/>
+    public uint NextReceiveSequence() => _receiveSequence.Next();
+
+    /// <inheritdoc/>
+    public uint CurrentSendSequence => _sendSequence.Current();
+
+    /// <inheritdoc/>
+    public uint CurrentReceiveSequence => _receiveSequence.Current();
 
     /// <summary>
     /// Gets the total number of bytes sent by this UDP transport instance.
@@ -76,21 +86,46 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     /// Gets an existing UDP transport instance or creates one, injecting the provided socket if available.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void CreateUDP(Connection connection, IPEndPoint remoteEndPoint, Socket socket)
+    public static void CreateUDP(Connection connection, IPEndPoint remoteEndPoint, Socket socket) => EnsureUDP(connection, remoteEndPoint, socket);
+
+    /// <summary>
+    /// Ensures that the connection has a valid UDP transport bound to the specified socket and remote endpoint.
+    /// Reuses the existing transport if it is already bound to the same socket and endpoint.
+    /// If the socket or endpoint changes, the previous transport is returned to the pool before a new one is rented.
+    /// </summary>
+    public static void EnsureUDP(Connection connection, IPEndPoint remoteEndPoint, Socket socket)
     {
         ArgumentNullException.ThrowIfNull(socket);
         ArgumentNullException.ThrowIfNull(remoteEndPoint);
 
+        SocketUdpTransport? current = connection.UdpTransport;
+        if (current is not null)
+        {
+            if (ReferenceEquals(current._socket, socket) && current._endPoint is IPEndPoint ep && ep.Equals(remoteEndPoint))
+            {
+                return;
+            }
+
+            // A replacement is required. Clear connection reference first to prevent double-return or race usage.
+            connection.SetUdpTransport(null!);
+
+            try
+            {
+                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Return(current);
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            {
+                // Suppress non-fatal pool errors during cleanup
+            }
+        }
+
         SocketUdpTransport transport = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                                                .Get<SocketUdpTransport>();
 
-        if (socket != null)
-        {
-            transport.SetSocket(socket);
-        }
+        transport.SetSocket(socket);
 
-        IPEndPoint ep = remoteEndPoint;
-        transport.Initialize(ref ep);
+        IPEndPoint epTarget = remoteEndPoint;
+        transport.Initialize(ref epTarget);
         connection.SetUdpTransport(transport);
 
         if (connection.Attributes.TryGetValue(ConnectionAttributes.UdpSendSequence, out object? us) && us is uint udpSend)
@@ -168,7 +203,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                         string exceptionType = ex.GetType().Name;
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                         {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketUdpTransport:Initialize", $"dualmode-not-applied exception-type={exceptionType}", ex));
+                            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketUdpTransport:Initialize", $"dualmode-not-applied exception-type={exceptionType}", ex));
                         }
                         ;
                     }
@@ -189,7 +224,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                     System.Net.Sockets.SocketError socketError = ex.SocketErrorCode;
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketUdpTransport:Initialize", $"dontfragment-not-applied socket-error={socketError}", ex));
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketUdpTransport:Initialize", $"dontfragment-not-applied socket-error={socketError}", ex));
                     }
                     ;
                 }
@@ -201,7 +236,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                     string exceptionType = ex.GetType().Name;
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketUdpTransport:Initialize", $"dontfragment-not-supported exception-type={exceptionType}", ex));
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketUdpTransport:Initialize", $"dontfragment-not-supported exception-type={exceptionType}", ex));
                     }
                     ;
                 }
@@ -213,7 +248,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                     string exceptionType = ex.GetType().Name;
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketUdpTransport:Initialize", $"dontfragment-object-disposed exception-type={exceptionType}", ex));
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketUdpTransport:Initialize", $"dontfragment-object-disposed exception-type={exceptionType}", ex));
                     }
                     ;
                 }
@@ -225,7 +260,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                     string exceptionType = ex.GetType().Name;
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                     {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketUdpTransport:Initialize", $"dontfragment-invalid-op exception-type={exceptionType}", ex));
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketUdpTransport:Initialize", $"dontfragment-invalid-op exception-type={exceptionType}", ex));
                     }
                     ;
                 }
@@ -245,7 +280,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                         string exceptionType = ex.GetType().Name;
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                         {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketUdpTransport:Initialize", $"udp-connreset-ioctl-not-applied exception-type={exceptionType}", ex));
+                            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketUdpTransport:Initialize", $"udp-connreset-ioctl-not-applied exception-type={exceptionType}", ex));
                         }
                         ;
                     }
@@ -352,6 +387,9 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
 
         _bytesSent = 0;
         _bytesReceived = 0;
+
+        _sendSequence.Reset(0);
+        _receiveSequence.Reset(0);
     }
 
     /// <inheritdoc/>

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -184,6 +185,318 @@ public sealed class DispatchChannelTests
 
     #endregion
 
+    #region Test Case 3: RemoveConnection clears node Connection reference
+
+    [Fact]
+    public void DispatchChannel_RemoveConnection_ClearsNodeConnectionReference()
+    {
+        // Arrange
+        using DispatchChannel<FakePacket> channel = new();
+        FakeConnection connection = new();
+
+        FakeBufferLease lease = CreatePacketLease(1, PacketPriority.NONE);
+        channel.Push(connection, lease);
+
+        // Verify node exists with non-null Connection before removal
+        object? nodeBefore = FindNodeForConnection(channel, connection);
+        Assert.NotNull(nodeBefore);
+        Assert.NotNull(GetNodeFieldValue(channel, nodeBefore!, "Connection"));
+
+        // Simulate ConnectionUnregistered by calling RemoveConnection via reflection
+        InvokeRemoveConnection(channel, connection);
+
+        // Assert: After removal, all nodes with Removed=1 must have Connection=null.
+        // (FindNodeForConnection won't find cleared nodes, so walk all buckets directly.)
+        bool foundClearedNode = false;
+        FieldInfo removedField = GetNodeField(channel, "Removed");
+        FieldInfo connectionField = GetNodeField(channel, "Connection");
+
+        foreach (object? node in GetAllNodes(channel))
+        {
+            int removed = (int)removedField.GetValue(node)!;
+            if (removed != 0)
+            {
+                object? connValue = connectionField.GetValue(node);
+                Assert.Null(connValue);
+                foundClearedNode = true;
+            }
+        }
+
+        Assert.True(foundClearedNode, "Expected at least one removed (tombstone) node with Connection=null.");
+    }
+
+    #endregion
+
+    #region Test Case 4: RemoveConnection clears node State reference
+
+    [Fact]
+    public void DispatchChannel_RemoveConnection_ClearsNodeStateReference()
+    {
+        // Arrange
+        using DispatchChannel<FakePacket> channel = new();
+        FakeConnection connection = new();
+
+        FakeBufferLease lease = CreatePacketLease(1, PacketPriority.NONE);
+        channel.Push(connection, lease);
+
+        // Verify node exists with non-null State before removal
+        object? nodeBefore = FindNodeForConnection(channel, connection);
+        Assert.NotNull(nodeBefore);
+        Assert.NotNull(GetNodeFieldValue(channel, nodeBefore!, "State"));
+
+        // Simulate ConnectionUnregistered
+        InvokeRemoveConnection(channel, connection);
+
+        // Assert: After removal, all nodes with Removed=1 must have State=null.
+        bool foundClearedNode = false;
+        FieldInfo removedField = GetNodeField(channel, "Removed");
+        FieldInfo stateField = GetNodeField(channel, "State");
+
+        foreach (object? node in GetAllNodes(channel))
+        {
+            int removed = (int)removedField.GetValue(node)!;
+            if (removed != 0)
+            {
+                object? stateValue = stateField.GetValue(node);
+                Assert.Null(stateValue);
+                foundClearedNode = true;
+            }
+        }
+
+        Assert.True(foundClearedNode, "Expected at least one removed (tombstone) node with State=null.");
+    }
+
+    #endregion
+
+    #region Test Case 5: RemoveConnection is idempotent
+
+    [Fact]
+    public void DispatchChannel_RemoveConnection_IsIdempotent()
+    {
+        // Arrange
+        using DispatchChannel<FakePacket> channel = new();
+        FakeConnection connection = new();
+
+        FakeBufferLease lease = CreatePacketLease(1, PacketPriority.NONE);
+        channel.Push(connection, lease);
+
+        // Act: Call RemoveConnection multiple times — no exception should be thrown
+        InvokeRemoveConnection(channel, connection);
+        InvokeRemoveConnection(channel, connection);
+        InvokeRemoveConnection(channel, connection);
+
+        // Assert: No exception thrown, all tombstoned nodes have cleared references
+        FieldInfo removedField = GetNodeField(channel, "Removed");
+        FieldInfo connectionField = GetNodeField(channel, "Connection");
+        FieldInfo stateField = GetNodeField(channel, "State");
+
+        foreach (object? node in GetAllNodes(channel))
+        {
+            int removed = (int)removedField.GetValue(node)!;
+            if (removed != 0)
+            {
+                Assert.Null(connectionField.GetValue(node));
+                Assert.Null(stateField.GetValue(node));
+            }
+        }
+    }
+
+    #endregion
+
+    #region Test Case 6: Removed node is skipped by traversal
+
+    [Fact]
+    public void DispatchChannel_RemovedNode_IsSkippedByTraversal()
+    {
+        // Arrange
+        using DispatchChannel<FakePacket> channel = new();
+        FakeConnection connection = new();
+
+        FakeBufferLease lease = CreatePacketLease(1, PacketPriority.NONE);
+        channel.Push(connection, lease);
+
+        // Remove the connection (simulating ConnectionUnregistered event)
+        InvokeRemoveConnection(channel, connection);
+
+        // Act: TryClaim should not return the removed connection
+        bool claimed = channel.TryClaim(out IDispatchSession? session);
+        if (claimed)
+        {
+            using (session)
+            {
+                // If a session was claimed, it must NOT be for the removed connection
+                Assert.NotSame(connection, session!.Connection);
+            }
+        }
+
+        // The removed connection should have 0 pending packets
+        Assert.Equal(0, channel.TotalPackets);
+    }
+
+    #endregion
+
+    #region Test Case 7: RemoveConnection drains pending packets
+
+    [Fact]
+    public void DispatchChannel_RemoveConnection_DrainsPendingPackets()
+    {
+        // Arrange
+        using DispatchChannel<FakePacket> channel = new();
+        FakeConnection connection = new();
+
+        const int packetCount = 10;
+        for (int i = 1; i <= packetCount; i++)
+        {
+            FakeBufferLease lease = CreatePacketLease(i, PacketPriority.NONE);
+            channel.Push(connection, lease);
+        }
+
+        Assert.Equal(packetCount, channel.TotalPackets);
+
+        // Act: Remove the connection
+        InvokeRemoveConnection(channel, connection);
+
+        // Assert: All pending packets must have been drained
+        Assert.Equal(0, channel.TotalPackets);
+    }
+
+    #endregion
+
+    #region Test Case 8: Weak reference — removed connection is GC-collectible
+
+    [Fact]
+    public void DispatchChannel_RemoveConnection_ConnectionIsGcCollectible()
+    {
+        // Arrange: Create channel and connection in a helper to avoid root on stack
+        WeakReference weakRef = RegisterPushRemoveAndDropReference();
+
+        // Act: Force full GC
+        ForceFullGC();
+
+        // Assert: The connection should have been collected
+        Assert.False(weakRef.IsAlive, "Connection should be GC-collectible after RemoveConnection clears node references. " +
+                                      "If this fails, the DispatchChannel node tombstone is still retaining the connection graph.");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference RegisterPushRemoveAndDropReference()
+    {
+        DispatchChannel<FakePacket> channel = new();
+        FakeConnection connection = new();
+
+        FakeBufferLease lease = CreatePacketLease(1, PacketPriority.NONE);
+        channel.Push(connection, lease);
+
+        InvokeRemoveConnection(channel, connection);
+
+        WeakReference weakRef = new(connection);
+
+        // Drop the strong reference
+        connection = null!;
+
+        // Keep channel alive (it's a GC root via InstanceManager in production,
+        // but here we just hold it to prove the node doesn't retain the connection)
+        GC.KeepAlive(channel);
+        channel.Dispose();
+
+        return weakRef;
+    }
+
+    #endregion
+
+    #region Reflection Helpers (test-only access to private Node type)
+
+    private static void ForceFullGC()
+    {
+        GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+        GC.WaitForPendingFinalizers();
+        GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+    }
+
+    private static Type GetNodeType<TPacket>(DispatchChannel<TPacket> channel) where TPacket : IPacket
+    {
+        // Derive the closed Node type from the _stateBuckets field's element type.
+        // This avoids the ContainsGenericParameters issue with GetNestedType on generic parents.
+        FieldInfo? bucketsField = typeof(DispatchChannel<TPacket>).GetField("_stateBuckets", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(bucketsField);
+        Type? elementType = bucketsField!.FieldType.GetElementType();
+        Assert.NotNull(elementType);
+        Assert.False(elementType!.ContainsGenericParameters, "Node element type should be closed.");
+        return elementType;
+    }
+
+    private static FieldInfo GetNodeField<TPacket>(DispatchChannel<TPacket> channel, string fieldName) where TPacket : IPacket
+    {
+        Type nodeType = GetNodeType(channel);
+        FieldInfo? field = nodeType.GetField(fieldName, BindingFlags.Public | BindingFlags.Instance);
+        Assert.NotNull(field);
+        return field!;
+    }
+
+    private static Array GetStateBuckets<TPacket>(DispatchChannel<TPacket> channel) where TPacket : IPacket
+    {
+        FieldInfo? field = typeof(DispatchChannel<TPacket>).GetField("_stateBuckets", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(field);
+        object? value = field!.GetValue(channel);
+        Assert.NotNull(value);
+        return (Array)value!;
+    }
+
+    private static object? FindNodeForConnection<TPacket>(DispatchChannel<TPacket> channel, IConnection connection) where TPacket : IPacket
+    {
+        Array buckets = GetStateBuckets(channel);
+        FieldInfo connectionField = GetNodeField(channel, "Connection");
+        FieldInfo nextField = GetNodeField(channel, "Next");
+
+        for (int i = 0; i < buckets.Length; i++)
+        {
+            object? node = buckets.GetValue(i);
+            while (node is not null)
+            {
+                object? nodeConnection = connectionField.GetValue(node);
+                if (ReferenceEquals(nodeConnection, connection))
+                {
+                    return node;
+                }
+                node = nextField.GetValue(node);
+            }
+        }
+        return null;
+    }
+
+    private static List<object> GetAllNodes<TPacket>(DispatchChannel<TPacket> channel) where TPacket : IPacket
+    {
+        List<object> nodes = [];
+        Array buckets = GetStateBuckets(channel);
+        FieldInfo nextField = GetNodeField(channel, "Next");
+
+        for (int i = 0; i < buckets.Length; i++)
+        {
+            object? node = buckets.GetValue(i);
+            while (node is not null)
+            {
+                nodes.Add(node);
+                node = nextField.GetValue(node);
+            }
+        }
+        return nodes;
+    }
+
+    private static object? GetNodeFieldValue<TPacket>(DispatchChannel<TPacket> channel, object node, string fieldName) where TPacket : IPacket
+    {
+        FieldInfo field = GetNodeField(channel, fieldName);
+        return field.GetValue(node);
+    }
+
+    private static void InvokeRemoveConnection<TPacket>(DispatchChannel<TPacket> channel, IConnection connection) where TPacket : IPacket
+    {
+        MethodInfo? method = typeof(DispatchChannel<TPacket>).GetMethod("RemoveConnection", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+        method!.Invoke(channel, [connection]);
+    }
+
+    #endregion
+
     #region Helpers
 
     private static FakeBufferLease CreatePacketLease(int sequence, PacketPriority priority)
@@ -249,7 +562,7 @@ public sealed class DispatchChannelTests
     {
         public bool IsDisposed => false;
         public bool IsUdpCreated => false;
-        public ISnowflake ID => null!;
+        public ulong ID => 0;
         public long UpTime => 0;
         public long LastPingTime => 0;
         public bool ExcludeFromIdleTimeout { get; set; }

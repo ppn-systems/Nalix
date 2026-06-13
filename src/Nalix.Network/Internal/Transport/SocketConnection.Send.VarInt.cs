@@ -7,7 +7,6 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Environment.Memory;
@@ -16,7 +15,7 @@ namespace Nalix.Network.Internal.Transport;
 
 internal sealed partial class SocketConnection
 {
-    private void SEND_VARINT(ReadOnlySpan<byte> data)
+    private SendResult SEND_VARINT(ReadOnlySpan<byte> data)
     {
         int varIntSize = Leb128.GetByteCount(data.Length);
         long totalLengthLong = (long)data.Length + varIntSize;
@@ -33,54 +32,50 @@ internal sealed partial class SocketConnection
 
         if (totalLength <= PacketConstants.StackAllocLimit)
         {
-            try
-            {
-#if DEBUG
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-                {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"stackalloc varint length={data.Length} remote-endpoint={_socket.RemoteEndPoint}"));
-                }
-#endif
-                Span<byte> frameS = stackalloc byte[totalLength];
-                WRITE_VARINT_FRAME_HEADER(frameS, data.Length, varIntSize, data);
+            Span<byte> frameS = stackalloc byte[totalLength];
+            WRITE_VARINT_FRAME_HEADER(frameS, data.Length, varIntSize, data);
 
-                lock (_sendLock)
+            int sent = 0;
+            SendResult result = SendResult.Success;
+            lock (_sendLock)
+            {
+                try
                 {
-                    int sent = 0;
                     while (sent < frameS.Length)
                     {
                         int n = _socket.Send(frameS[sent..]);
                         if (n == 0)
                         {
-                            this.CANCEL_RECEIVE_ONCE();
-                            this.INVOKE_CLOSE_ONCE();
-                            Throw.SendFailedNow();
+                            result = SendResult.PeerClosed;
+                            break;
                         }
                         sent += n;
-                        Interlocked.Add(ref _bytesSent, n);
+                        _ = Interlocked.Add(ref _bytesSent, n);
                     }
                 }
-                _sink.OnFrameSent(_owner);
-                return;
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-            {
-                if (IS_BENIGN_DISCONNECT(ex)) { /* benign */ }
+                catch (SocketException ex) when (ex.SocketErrorCode is
+                       SocketError.ConnectionReset or
+                       SocketError.ConnectionAborted or
+                       SocketError.Shutdown or
+                       SocketError.OperationAborted)
                 {
-                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                    {
-                        if (Security.ThrottledEventGate.TryAcquire(ref s_sendVarIntErrorTicks, ref s_sendVarIntErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
-                        {
-                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                            {
-                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"varint send error endpoint={_endpointString} suppressed-count={suppressed}", ex));
-                            }
-                            ;
-                        }
-                    }
+                    result = SendResult.Aborted;
                 }
-                throw;
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                {
+                    result = SendResult.Failed;
+                }
             }
+
+            if (result != SendResult.Success)
+            {
+                this.CANCEL_RECEIVE_ONCE();
+                this.INVOKE_CLOSE_ONCE();
+                return result;
+            }
+
+            _connectionOwner?.OnFrameSent();
+            return SendResult.Success;
         }
 
         byte[] heapBuf = BufferLease.ByteArrayPool.Rent(totalLength);
@@ -88,43 +83,47 @@ internal sealed partial class SocketConnection
         {
             WRITE_VARINT_FRAME_HEADER(MemoryExtensions.AsSpan(heapBuf), data.Length, varIntSize, data);
 
+            int sent = 0;
+            SendResult result = SendResult.Success;
             lock (_sendLock)
             {
-                int sent = 0;
-                while (sent < totalLength)
+                try
                 {
-                    int n = _socket.Send(heapBuf, sent, totalLength - sent, SocketFlags.None);
-                    if (n == 0)
+                    while (sent < totalLength)
                     {
-                        this.CANCEL_RECEIVE_ONCE();
-                        this.INVOKE_CLOSE_ONCE();
-                        Throw.SendFailedNow();
+                        int n = _socket.Send(heapBuf, sent, totalLength - sent, SocketFlags.None);
+                        if (n == 0)
+                        {
+                            result = SendResult.PeerClosed;
+                            break;
+                        }
+                        sent += n;
+                        _ = Interlocked.Add(ref _bytesSent, n);
                     }
-                    sent += n;
-                    Interlocked.Add(ref _bytesSent, n);
+                }
+                catch (SocketException ex) when (ex.SocketErrorCode is
+                       SocketError.ConnectionReset or
+                       SocketError.ConnectionAborted or
+                       SocketError.Shutdown or
+                       SocketError.OperationAborted)
+                {
+                    result = SendResult.Aborted;
+                }
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                {
+                    result = SendResult.Failed;
                 }
             }
 
-            this.INVOKE_POST_CALLBACK();
-            return;
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            if (IS_BENIGN_DISCONNECT(ex)) { /* benign */ }
+            if (result != SendResult.Success)
             {
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                {
-                    if (Security.ThrottledEventGate.TryAcquire(ref s_sendVarIntErrorTicks, ref s_sendVarIntErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
-                    {
-                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                        {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"varint send error endpoint={_endpointString} suppressed-count={suppressed}", ex));
-                        }
-                        ;
-                    }
-                }
+                this.CANCEL_RECEIVE_ONCE();
+                this.INVOKE_CLOSE_ONCE();
+                return result;
             }
-            throw;
+
+            this.INVOKE_POST_CALLBACK();
+            return SendResult.Success;
         }
         finally
         {
@@ -132,14 +131,14 @@ internal sealed partial class SocketConnection
         }
     }
 
-    private ValueTask SEND_VARINT_ASYNC(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
+    private ValueTask<SendResult> SEND_VARINT_ASYNC(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
     {
         int varIntSize = Leb128.GetByteCount(data.Length);
         long totalLengthLong = (long)data.Length + varIntSize;
 
         if (totalLengthLong > _maxVarIntPayloadSize)
         {
-            return ValueTask.FromException(new ArgumentOutOfRangeException(
+            return ValueTask.FromException<SendResult>(new ArgumentOutOfRangeException(
                 nameof(data),
                 totalLengthLong,
                 $"VarInt payload exceeds the maximum allowed size of {_maxVarIntPayloadSize}."));
@@ -164,7 +163,7 @@ internal sealed partial class SocketConnection
                         BufferLease.ByteArrayPool.Return(heapBuf);
                         this.CANCEL_RECEIVE_ONCE();
                         this.INVOKE_CLOSE_ONCE();
-                        return ValueTask.FromException(Throw.GetSendFailed());
+                        return ValueTask.FromResult(SendResult.PeerClosed);
                     }
                     sent += n;
                     _ = Interlocked.Add(ref _bytesSent, n);
@@ -177,37 +176,34 @@ internal sealed partial class SocketConnection
 
             this.INVOKE_POST_CALLBACK();
             BufferLease.ByteArrayPool.Return(heapBuf);
-            return default;
+            return ValueTask.FromResult(SendResult.Success);
+        }
+        catch (SocketException ex) when (ex.SocketErrorCode is
+               SocketError.ConnectionReset or
+               SocketError.ConnectionAborted or
+               SocketError.Shutdown or
+               SocketError.OperationAborted)
+        {
+            BufferLease.ByteArrayPool.Return(heapBuf);
+            return ValueTask.FromResult(SendResult.Aborted);
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             BufferLease.ByteArrayPool.Return(heapBuf);
-            if (!IS_BENIGN_DISCONNECT(ex))
-            {
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                {
-                    if (Security.ThrottledEventGate.TryAcquire(ref s_sendVarIntErrorTicks, ref s_sendVarIntErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
-                    {
-                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                        {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"varint send error endpoint={_endpointString} suppressed-count={suppressed}", ex));
-                        }
-                        ;
-                    }
-                }
-            }
-            return ValueTask.FromException(ex);
+            return ValueTask.FromResult(SendResult.Failed);
         }
 
-        [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
-        static async ValueTask AWAIT_VARINT_SEND(SocketConnection self, ValueTask<int> vt, byte[] heapBuf, int sent, int totalLength, CancellationToken token)
+        [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
+        static async ValueTask<SendResult> AWAIT_VARINT_SEND(SocketConnection self, ValueTask<int> vt, byte[] heapBuf, int sent, int totalLength, CancellationToken token)
         {
             try
             {
                 int n = await vt.ConfigureAwait(false);
                 if (n == 0)
                 {
-                    throw HANDLE_PEER_CLOSED_EXCEPTION(self);
+                    self.CANCEL_RECEIVE_ONCE();
+                    self.INVOKE_CLOSE_ONCE();
+                    return SendResult.PeerClosed;
                 }
 
                 sent += n;
@@ -218,43 +214,33 @@ internal sealed partial class SocketConnection
                     n = await self._socket.SendAsync(MemoryExtensions.AsMemory(heapBuf, sent, totalLength - sent), SocketFlags.None, token).ConfigureAwait(false);
                     if (n == 0)
                     {
-                        throw HANDLE_PEER_CLOSED_EXCEPTION(self);
+                        self.CANCEL_RECEIVE_ONCE();
+                        self.INVOKE_CLOSE_ONCE();
+                        return SendResult.PeerClosed;
                     }
 
                     sent += n;
                     _ = Interlocked.Add(ref self._bytesSent, n);
                 }
                 self.INVOKE_POST_CALLBACK();
+                return SendResult.Success;
+            }
+            catch (SocketException ex) when (ex.SocketErrorCode is
+                   SocketError.ConnectionReset or
+                   SocketError.ConnectionAborted or
+                   SocketError.Shutdown or
+                   SocketError.OperationAborted)
+            {
+                return SendResult.Aborted;
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (!IS_BENIGN_DISCONNECT(ex))
-                {
-                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                    {
-                        if (Security.ThrottledEventGate.TryAcquire(ref s_sendVarIntErrorTicks, ref s_sendVarIntErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
-                        {
-                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                            {
-                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"varint send error endpoint={self._endpointString} suppressed-count={suppressed}", ex));
-                            }
-                            ;
-                        }
-                    }
-                }
-                throw;
+                return SendResult.Failed;
             }
             finally
             {
                 BufferLease.ByteArrayPool.Return(heapBuf);
             }
-        }
-
-        static Exception HANDLE_PEER_CLOSED_EXCEPTION(SocketConnection self)
-        {
-            self.CANCEL_RECEIVE_ONCE();
-            self.INVOKE_CLOSE_ONCE();
-            return Throw.GetSendFailed();
         }
     }
 

@@ -20,8 +20,6 @@ using Nalix.Hosting;
 using Nalix.Network.Options;
 using Nalix.Framework.Options;
 
-[assembly: CollectionBehavior(DisableTestParallelization = true)]
-
 namespace Nalix.Integration.Tests;
 
 public class WebSocketTransportTests : IDisposable
@@ -31,7 +29,8 @@ public class WebSocketTransportTests : IDisposable
     /// <summary>
     /// A real protocol implementation for testing, inheriting from Nalix.Network.Protocols.Protocol
     /// </summary>
-    private sealed class IntegrationTestProtocol : Protocol
+    [Nalix.Abstractions.Injection.Injectable]
+    internal sealed class IntegrationTestProtocol : Protocol
     {
         public int ProcessedCount;
 

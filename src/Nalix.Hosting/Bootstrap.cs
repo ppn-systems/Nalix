@@ -17,6 +17,7 @@ using Nalix.Codec.Options;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.IO;
 using Nalix.Environment.Options;
+using Nalix.Environment.Random;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
@@ -62,6 +63,13 @@ public static partial class Bootstrap
             // This ensures that if the server was running with defaults
             ConfigurationManager.Instance.Flush();
 
+            // Dispose InstanceManager to trigger disposal of all registered services
+            // (including ConnectionGuard, which saves the ban database to disk).
+            if (InstanceManager.IsCreated)
+            {
+                InstanceManager.Instance.Dispose();
+            }
+
             if (s_isHighPrecisionTimerEnabled && OperatingSystem.IsWindows())
             {
                 _ = TimeEndPeriod(1);
@@ -82,6 +90,8 @@ public static partial class Bootstrap
         "CA2255:The 'ModuleInitializer' attribute should not be used in libraries", Justification = "Architectural requirement to auto-configure server defaults")]
     internal static void Initialize()
     {
+        _ = nameof(Csprng);
+
         // Server typically uses server.ini to avoid conflicts with client.ini in dual-deployment scenarios
         ConfigurationManager.Instance.SetConfigFilePath(Path.Combine(Directories.ConfigurationDirectory, "server.ini"));
 
@@ -109,12 +119,11 @@ public static partial class Bootstrap
         _ = ConfigurationManager.Instance.Get<ConnectionBlacklistStoreOptions>();
         _ = ConfigurationManager.Instance.Get<TrustedProxyOptions>();
         _ = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
-        _ = ConfigurationManager.Instance.Get<Network.Options.PoolingOptions>();
 
         // Runtime-level options
         _ = ConfigurationManager.Instance.Get<DispatchOptions>();
-        _ = ConfigurationManager.Instance.Get<Runtime.Options.PoolingOptions>();
-        _ = ConfigurationManager.Instance.Get<Runtime.Options.SessionStoreOptions>();
+        _ = ConfigurationManager.Instance.Get<PoolingOptions>();
+        _ = ConfigurationManager.Instance.Get<SessionStoreOptions>();
 
         // Security and concurrency options
         //_ = ConfigurationManager.Instance.Get<ConcurrencyOptions>();

@@ -58,7 +58,7 @@ public sealed partial class DataFramesPublicApiTests
         }
         else
         {
-            _ = Assert.IsType<System.ComponentModel.DataAnnotations.ValidationException>(exception);
+            _ = Assert.IsType<Nalix.Abstractions.Exceptions.ValidationException>(exception);
         }
     }
 

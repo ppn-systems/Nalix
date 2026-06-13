@@ -86,22 +86,16 @@ public sealed class StringFormatterTests
     }
 
     [Fact]
-    public void DeserializeWhenLengthIsNegativeAndNotNullSentinelThrowsSerializationFailureException()
+    public void DeserializeWhenLengthIsNegativeAndNotNullSentinelReturnsNullAndPoisonsReader()
     {
         StringFormatter formatter = new();
         byte[] invalid = BitConverter.GetBytes(-2);
         DataReader reader = new(invalid);
-        Exception? ex = null;
-        try
-        {
-            _ = formatter.Deserialize(ref reader);
-        }
-        catch (Exception e)
-        {
-            ex = e;
-        }
 
-        _ = Assert.IsType<SerializationFailureException>(ex, exactMatch: false);
+        string result = formatter.Deserialize(ref reader);
+
+        Assert.True(reader.IsFailed);
+        Assert.Null(result);
     }
 }
 #endif

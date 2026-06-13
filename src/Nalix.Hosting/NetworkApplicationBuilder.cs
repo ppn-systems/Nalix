@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
@@ -15,7 +16,10 @@ using Nalix.Environment.Configuration;
 using Nalix.Environment.Configuration.Binding;
 using Nalix.Environment.Memory;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Hosting.Internal;
+using Nalix.Network.Connections;
 using Nalix.Network.Listeners.Udp;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Routing;
@@ -29,23 +33,11 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 {
     #region Fields
 
-    private static readonly MethodInfo s_applyOptionsMethod;
-    private static readonly MethodInfo s_registerHandlerMethod;
-
     internal readonly HostingBuilderContext _state;
 
     #endregion Fields
 
     #region Constructors
-
-    static NetworkApplicationBuilder()
-    {
-        s_applyOptionsMethod = typeof(NetworkApplicationBuilder).GetMethod(nameof(ApplyOptionsCore), BindingFlags.NonPublic | BindingFlags.Static)
-            ?? throw new MissingMethodException(typeof(NetworkApplicationBuilder).FullName, nameof(ApplyOptionsCore));
-
-        s_registerHandlerMethod = typeof(ServiceRegistrar).GetMethod(nameof(ServiceRegistrar.RegisterHandler), BindingFlags.Public | BindingFlags.Static)
-            ?? throw new MissingMethodException(typeof(ServiceRegistrar).FullName, nameof(ServiceRegistrar.RegisterHandler));
-    }
 
     internal NetworkApplicationBuilder(HostingBuilderContext state) => _state = state ?? throw new ArgumentNullException(nameof(state));
 
@@ -61,7 +53,16 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
         _state.Options.Add(new OptionsConfiguration(
             typeof(TOptions),
-            options => configure((TOptions)options)));
+            apply: () =>
+            {
+                TOptions options = ConfigurationManager.Instance.Get<TOptions>();
+                configure(options);
+
+                if (options is IValidatableConfiguration validatable)
+                {
+                    validatable.Validate();
+                }
+            }));
 
         return this;
     }
@@ -87,6 +88,12 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
         _state.HasCustomConnectionHub = true;
         InstanceManager.Instance.Register<IConnectionHub>(connectionHub);
+
+        if (connectionHub is ConnectionHub concrete)
+        {
+            InstanceManager.Instance.Register<ConnectionHub>(concrete);
+        }
+
         return this;
     }
 
@@ -122,6 +129,12 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
         _state.HasCustomBufferPoolManager = true;
         InstanceManager.Instance.Register<IBufferPoolManager>(manager);
+
+        if (manager is BufferPoolManager concrete)
+        {
+            InstanceManager.Instance.Register<BufferPoolManager>(concrete);
+        }
+
         BufferLease.ByteArrayPool.Configure(manager);
 
         return this;
@@ -136,6 +149,11 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     {
         ArgumentNullException.ThrowIfNull(manager);
         InstanceManager.Instance.Register<IObjectPoolManager>(manager);
+
+        if (manager is ObjectPoolManager concrete)
+        {
+            InstanceManager.Instance.Register<ObjectPoolManager>(concrete);
+        }
 
         BufferLease.Configure(manager);
         PacketRegistry.Configure(manager);
@@ -171,19 +189,9 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     #endregion Configuration Methods
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder ScanHandlers(Assembly assembly)
-    {
-        ArgumentNullException.ThrowIfNull(assembly);
-
-        _ = _state.HandlerAssemblies.Add(assembly);
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder ScanHandlers<TMarker>() => this.ScanHandlers(typeof(TMarker).Assembly);
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder AddHandler<THandler>() where THandler : class
+    public INetworkApplicationBuilder AddHandler<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods)] THandler>()
+        where THandler : class
     {
 #pragma warning disable CA2263 // Factory is Func<object>; generic overload not applicable
         _state.Handlers.Add(new HandlerDescriptor(
@@ -195,7 +203,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddHandler<THandler>(Func<THandler> factory) where THandler : class
+    public INetworkApplicationBuilder AddHandler<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] THandler>(Func<THandler> factory) where THandler : class
     {
         ArgumentNullException.ThrowIfNull(factory);
 
@@ -207,31 +216,23 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddMetadataProvider<TProvider>()
-        where TProvider : class, IPacketMetadataProvider
+    public INetworkApplicationBuilder AddHandler(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods)] Type controllerType)
     {
-        _state.MetadataProviders.Add(new PacketMetadataProviderDescriptor(
-            typeof(TProvider),
-            () => (IPacketMetadataProvider)InstanceManager.Instance.CreateInstance(typeof(TProvider))));
+        ArgumentNullException.ThrowIfNull(controllerType);
+
+        _state.Handlers.Add(new HandlerDescriptor(
+            controllerType,
+            () => InstanceManager.Instance.CreateInstanceWithInjection(controllerType)));
 
         return this;
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddMetadataProvider<TProvider>(Func<TProvider> factory)
-        where TProvider : class, IPacketMetadataProvider
-    {
-        ArgumentNullException.ThrowIfNull(factory);
-
-        _state.MetadataProviders.Add(new PacketMetadataProviderDescriptor(
-            typeof(TProvider),
-            () => factory()));
-
-        return this;
-    }
-
     /// <inheritdoc />
-    public IProtocolBindingBuilder BindTcp<TProtocol>() where TProtocol : class, IProtocol
+    public IProtocolBindingBuilder BindTcp<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
+        where TProtocol : class, IProtocol
     {
         ProtocolBindingBuilder builder = new(this);
 
@@ -239,7 +240,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             typeof(TProtocol),
             dispatch => builder.Factory is not null
                 ? builder.Factory(dispatch)
-                : CreateProtocol(typeof(TProtocol), dispatch),
+                : CreateProtocol<TProtocol>(dispatch),
             Port: null,
             BindingBuilder: builder));
 
@@ -247,7 +248,9 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public IProtocolBindingBuilder BindUdp<TProtocol>() where TProtocol : class, IProtocol
+    public IProtocolBindingBuilder BindUdp<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
+        where TProtocol : class, IProtocol
     {
         ProtocolBindingBuilder builder = new(this);
 
@@ -255,7 +258,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             typeof(TProtocol),
             dispatch => builder.Factory is not null
                 ? builder.Factory(dispatch)
-                : CreateProtocol(typeof(TProtocol), dispatch),
+                : CreateProtocol<TProtocol>(dispatch),
             Port: null,
             Authentication: null,
             BindingBuilder: builder));
@@ -264,7 +267,9 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public IWebSocketBindingBuilder BindWebSocket<TProtocol>() where TProtocol : class, IProtocol
+    public IWebSocketBindingBuilder BindWebSocket<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
+        where TProtocol : class, IProtocol
     {
         WebSocketBindingBuilder builder = new(this);
 
@@ -272,7 +277,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             typeof(TProtocol),
             dispatch => builder.Factory is not null
                 ? builder.Factory(dispatch)
-                : CreateProtocol(typeof(TProtocol), dispatch),
+                : CreateProtocol<TProtocol>(dispatch),
             Port: null,
             Path: null,
             BindingBuilder: builder));
@@ -404,20 +409,31 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
             ServiceRegistrar.RegisterLogger(_state);
             ServiceRegistrar.RegistererConnectionHub(_state);
-            ServiceRegistrar.RegisterMetadataProviders(_state);
             ServiceRegistrar.RegistererBufferPoolManager(_state);
         }
     }
 
     #region Factory Methods
 
-    internal static IProtocol CreateProtocol(Type protocolType, IPacketDispatch dispatch)
+    /// <summary>
+    /// Creates a protocol instance using the most appropriate constructor.
+    /// If the protocol type has a constructor accepting <see cref="IPacketDispatch"/>,
+    /// the provided dispatch instance is injected. Otherwise, the parameterless constructor is used.
+    /// </summary>
+    /// <typeparam name="TProtocol">The protocol type to instantiate.</typeparam>
+    /// <param name="dispatch">The packet dispatch instance to inject if the protocol supports it.</param>
+    /// <returns>A new protocol instance.</returns>
+    internal static IProtocol CreateProtocol<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>(
+        IPacketDispatch dispatch)
+        where TProtocol : class, IProtocol
     {
-        ArgumentNullException.ThrowIfNull(protocolType);
         ArgumentNullException.ThrowIfNull(dispatch);
 
+        Type protocolType = typeof(TProtocol);
+
         ConstructorInfo? dispatchConstructor = protocolType
-            .GetConstructors(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            .GetConstructors(BindingFlags.Instance | BindingFlags.Public)
             .FirstOrDefault(static constructor =>
             {
                 ParameterInfo[] parameters = constructor.GetParameters();
@@ -432,6 +448,9 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         return (IProtocol)InstanceManager.Instance.CreateInstance(protocolType);
     }
 
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2072",
+        Justification = "HandlerDescriptor.HandlerType carries DynamicallyAccessedMembers(PublicMethods) on its record parameter. " +
+            "The trimmer cannot always propagate DAM through record property getters.")]
     internal static IPacketDispatch CreatePacketDispatch(HostingBuilderContext state)
     {
         ArgumentNullException.ThrowIfNull(state);
@@ -445,8 +464,10 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
             foreach (HandlerDescriptor registration in ResolveHandlerRegistrations(state))
             {
-                _ = s_registerHandlerMethod.MakeGenericMethod(registration.HandlerType)
-                                           .Invoke(obj: null, parameters: [dispatchOptions, registration.Factory]);
+                // IL2072: HandlerDescriptor.HandlerType carries DAM(PublicMethods) on its record
+                // parameter, but the trimmer cannot always propagate the annotation through
+                // record property getters. The annotation is correct and the type is preserved.
+                ServiceRegistrar.RegisterHandler(dispatchOptions, registration.HandlerType, registration.Factory);
             }
         }
 
@@ -458,68 +479,17 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         return new PacketDispatchChannel(ConfigureOptions);
     }
 
-    private static IEnumerable<HandlerDescriptor> ResolveHandlerRegistrations(HostingBuilderContext state)
-    {
-        Dictionary<Type, HandlerDescriptor> handlers = [];
-
-        for (int i = 0; i < state.Handlers.Count; i++)
-        {
-            HandlerDescriptor registration = state.Handlers[i];
-            handlers[registration.HandlerType] = registration;
-        }
-
-        foreach (Assembly assembly in state.HandlerAssemblies)
-        {
-            Type[] types;
-            try
-            {
-                types = assembly.GetTypes();
-            }
-            catch (ReflectionTypeLoadException ex)
-            {
-                types = [.. ex.Types.Where(static type => type is not null).Cast<Type>()];
-            }
-
-            for (int i = 0; i < types.Length; i++)
-            {
-                Type type = types[i];
-                if (!type.IsClass || type.IsAbstract)
-                {
-                    continue;
-                }
-
-                if (type.GetCustomAttribute<PacketControllerAttribute>(inherit: false) is null)
-                {
-                    continue;
-                }
-
-                _ = handlers.TryAdd(type, new HandlerDescriptor(
-                    type,
-                    () => InstanceManager.Instance.CreateInstanceWithInjection(type)));
-            }
-        }
-
-        return handlers.Values;
-    }
+    // AOT-safe: assembly scanning (Assembly.GetTypes) has been removed.
+    // Handlers are registered explicitly via AddHandler<T>() / AddHandler(Type)
+    // or discovered at compile time via source-generated PacketHandlerRegistry.
+    private static IEnumerable<HandlerDescriptor> ResolveHandlerRegistrations(HostingBuilderContext state) => state.Handlers;
 
     private static void ApplyOptions(HostingBuilderContext state)
     {
         for (int i = 0; i < state.Options.Count; i++)
         {
-            OptionsConfiguration registration = state.Options[i];
-            _ = s_applyOptionsMethod.MakeGenericMethod(registration.OptionsType)
-                                    .Invoke(obj: null, parameters: [registration]);
+            state.Options[i].Apply();
         }
-    }
-
-    private static void ApplyOptionsCore<TOptions>(OptionsConfiguration registration)
-        where TOptions : ConfigurationLoader, new()
-    {
-        TOptions options = ConfigurationManager.Instance.Get<TOptions>();
-        registration.Apply(options);
-
-        MethodInfo? validateMethod = typeof(TOptions).GetMethod("Validate", BindingFlags.Instance | BindingFlags.Public);
-        _ = (validateMethod?.Invoke(options, parameters: null));
     }
 
     #endregion

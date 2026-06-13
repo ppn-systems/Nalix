@@ -113,11 +113,7 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
             if (!IS_PARTIAL(type))
             {
                 context.ReportDiagnostic(Diagnostic.Create(
-                    new DiagnosticDescriptor(
-                        "NALIX060",
-                        "Packet class must be partial",
-                        "The class '{0}' inherits from PacketBase but is not partial. Source generation requires partial classes to override Length and ResetForPool.",
-                        "Usage", DiagnosticSeverity.Error, true),
+                    GeneratorDiagnosticDescriptors.PacketClassMustBePartial,
                     type.Locations.FirstOrDefault(), type.Name));
                 continue;
             }

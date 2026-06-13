@@ -3,13 +3,11 @@
 
 using System;
 using System.ComponentModel;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Runtime.Dispatching;
-using Nalix.Runtime.Internal.Results;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Runtime.Tests")]
@@ -29,25 +27,21 @@ namespace Nalix.Runtime.Internal.Compilation;
 /// <param name="opCode">The opcode mapped to this handler.</param>
 /// <param name="metadata">Dispatch metadata used for runtime policies.</param>
 /// <param name="controllerInstance">The controller instance that owns the handler method.</param>
-/// <param name="method">The reflected handler method information.</param>
+/// <param name="methodName">The name of the handler method.</param>
 /// <param name="returnType">The handler return type.</param>
 /// <param name="compiledInvoker">Compiled delegate used to invoke the handler.</param>
 /// <param name="expectedPacketType">
 /// Cached concrete packet runtime type expected by the handler, or <see langword="null"/>
 /// when runtime packet type checks are not required.
 /// </param>
-/// <param name="returnHandler">
-/// Cached outbound return handler resolved for <paramref name="returnType"/>.
-/// </param>
 [StructLayout(LayoutKind.Sequential)]
 [EditorBrowsable(EditorBrowsableState.Never)]
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
 internal readonly struct PacketHandler<TPacket>(
     ushort opCode, PacketMetadata metadata,
-    object controllerInstance, MethodInfo method, Type returnType,
-    Func<object, PacketContext<TPacket>, ValueTask<object>> compiledInvoker,
-    Type? expectedPacketType,
-    IReturnHandler<TPacket> returnHandler) where TPacket : IPacket
+    object? controllerInstance, string methodName, Type returnType,
+    Func<object?, PacketContext<TPacket>, ValueTask<object?>> compiledInvoker,
+    Type? expectedPacketType) where TPacket : IPacket
 {
     #region Fields
 
@@ -69,31 +63,26 @@ internal readonly struct PacketHandler<TPacket>(
     /// <summary>
     /// The controller instance to invoke the handler on (cached for reuse).
     /// </summary>
-    public readonly object Instance = controllerInstance;
+    public readonly object? Instance = controllerInstance;
 
     /// <summary>
-    /// The original method info, useful for debugging or reflection fallback.
+    /// The name of the handler method, useful for debugging or logging.
     /// </summary>
-    public readonly MethodInfo MethodInfo = method;
+    public readonly string MethodName = methodName;
 
     /// <summary>
     /// A compiled delegate for invoking the handler directly.
     /// This is the performance-critical entry point used every time a packet is dispatched.
     /// It avoids reflection, parameter boxing, and per-call delegate allocation.
     /// </summary>
-    public readonly Func<object, PacketContext<TPacket>,
-                    ValueTask<object>> Invoker = compiledInvoker;
+    public readonly Func<object?, PacketContext<TPacket>,
+                    ValueTask<object?>> Invoker = compiledInvoker;
 
     /// <summary>
     /// Concrete packet type expected by this handler, or <see langword="null"/>
     /// when no strict runtime type check is required.
     /// </summary>
     public readonly Type? ExpectedPacketType = expectedPacketType;
-
-    /// <summary>
-    /// Cached return handler for the method return type.
-    /// </summary>
-    public readonly IReturnHandler<TPacket> ReturnHandler = returnHandler;
 
     #endregion Fields
 
@@ -108,7 +97,7 @@ internal readonly struct PacketHandler<TPacket>(
     /// A <see cref="ValueTask{TResult}"/> that completes with the handler’s result.
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public ValueTask<object> ExecuteAsync(PacketContext<TPacket> context) => Invoker(Instance, context);
+    public ValueTask<object?> ExecuteAsync(PacketContext<TPacket> context) => Invoker(Instance, context);
 
     /// <summary>
     /// Determines whether this handler can be executed for the specified packet context.

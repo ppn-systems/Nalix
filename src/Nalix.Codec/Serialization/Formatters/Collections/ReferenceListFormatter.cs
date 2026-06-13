@@ -26,7 +26,18 @@ internal sealed class ReferenceListFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFillableFormatter<System.Collections.Generic.List<T>>
 {
-    private static readonly IFormatter<T> s_elementFormatter = FormatterProvider.Get<T>();
+    private static IFormatter<T>? s_elementFormatter;
+
+    /// <summary>
+    /// Lazily resolves the element formatter to avoid circular static initialization
+    /// when this type is instantiated during <see cref="FormatterProvider"/>'s own
+    /// static constructor (e.g. for <c>List&lt;object&gt;</c>).
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static IFormatter<T> GetElementFormatter()
+        => s_elementFormatter ??= FormatterProvider.Get<T>();
+
     private static string DebuggerDisplay => $"ReferenceListFormatter<{typeof(T).FullName}>";
 
     /// <summary>
@@ -51,9 +62,10 @@ internal sealed class ReferenceListFormatter<
         writer.Write(count);
 
         ReadOnlySpan<T> span = CollectionsMarshal.AsSpan(value);
+        IFormatter<T> elem = GetElementFormatter();
         for (int i = 0; i < span.Length; i++)
         {
-            s_elementFormatter.Serialize(ref writer, span[i]);
+            elem.Serialize(ref writer, span[i]);
         }
     }
 
@@ -81,14 +93,18 @@ internal sealed class ReferenceListFormatter<
             return null!;
         }
 
-        CollectionGuard.EnsureRead(ref reader, count);
+        if (!CollectionGuard.TryEnsureRead(ref reader, count))
+        {
+            return default!;
+        }
 
         System.Collections.Generic.List<T> list = new(count);
         CollectionsMarshal.SetCount(list, count);
         Span<T> span = CollectionsMarshal.AsSpan(list);
+        IFormatter<T> elem = GetElementFormatter();
         for (int i = 0; i < span.Length; i++)
         {
-            span[i] = s_elementFormatter.Deserialize(ref reader);
+            span[i] = elem.Deserialize(ref reader);
         }
 
         return list;
@@ -107,15 +123,19 @@ internal sealed class ReferenceListFormatter<
             return;
         }
 
-        CollectionGuard.EnsureRead(ref reader, length);
+        if (!CollectionGuard.TryEnsureRead(ref reader, length))
+        {
+            return;
+        }
 
         value.Clear();
         CollectionsMarshal.SetCount(value, length);
 
         Span<T> span = CollectionsMarshal.AsSpan(value);
+        IFormatter<T> fillElem = GetElementFormatter();
         for (int i = 0; i < length; i++)
         {
-            span[i] = s_elementFormatter.Deserialize(ref reader);
+            span[i] = fillElem.Deserialize(ref reader);
         }
     }
 }

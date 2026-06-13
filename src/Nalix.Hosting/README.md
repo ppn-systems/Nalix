@@ -8,7 +8,7 @@
 
 - **Fluent & Intuitive Builder API**
 - **`DefaultProtocol`** – Zero-boilerplate solution that forwards all packets to the dispatch pipeline
-- **Automatic Handler Discovery** via `ScanHandlers`
+- **Explicit Handler Registration** via `AddHandler<T>()` (AOT-safe, no assembly scanning)
 - **Full TCP + UDP Support** – Bind multiple listeners easily
 - **Deep Integration** with `Microsoft.Extensions.Logging`, `InstanceManager`, and Configuration system
 - **Robust Lifecycle Management** – `ActivateAsync` / `DeactivateAsync` / `RunAsync` with graceful shutdown
@@ -31,7 +31,7 @@ using var app = NetworkApplication.CreateBuilder()
     .BindTcp<DefaultProtocol>()
         .OnPort(8080)
         .Bind()
-    .ScanHandlers<Program>()           // Scan all PacketController in the assembly
+    .AddHandler<MyPacketController>()  // Register handlers explicitly (AOT-safe)
     .Build();
 
 await app.RunAsync();
@@ -66,8 +66,8 @@ builder.Configure<NetworkSocketOptions>(options =>
 // 3. Register custom application services in the InstanceManager container
 InstanceManager.Instance.Register<IMyDatabase>(new MyDatabase());
 
-// 4. Discover custom PacketController types in the assembly
-builder.ScanHandlers<Program>();
+// 4. Register custom PacketController handlers explicitly (AOT-safe)
+builder.AddHandler<MyPacketController>();
 
 // Build and run the server application host
 using var host = builder.Build();

@@ -30,6 +30,7 @@ public sealed class PacketSender : IPacketSender
     private CancellationToken _token;
     private IConnection? _connection;
     private PacketMetadata _attributes;
+    private bool _isReliable;
 
     private static readonly CompressionOptions s_options = ConfigurationManager.Instance.Get<CompressionOptions>();
 
@@ -55,6 +56,7 @@ public sealed class PacketSender : IPacketSender
         _connection = context.Connection;
         _attributes = context.Attributes;
         _token = context.CancellationToken;
+        _isReliable = context.IsReliable;
     }
 
     /// <inheritdoc/>
@@ -63,17 +65,21 @@ public sealed class PacketSender : IPacketSender
         _token = default;
         _connection = null;
         _attributes = default;
+        _isReliable = false;
     }
 
     /// <inheritdoc/>
     public ValueTask SendAsync(IPacket packet, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(packet);
-        bool needEncrypt = _attributes.Encryption?.IsEncrypted ?? false;
 
+        IConnection connection = this.GET_CONNECTION_OR_THROW();
+        IConnection.ITransport transport = GetTransport(connection, _attributes, _isReliable);
+
+        bool needEncrypt = _attributes.Encryption?.IsEncrypted ?? false;
         CancellationToken safeToken = ct == default ? _token : ct;
 
-        return SEND_CORE_ASYNC(this.GET_CONNECTION_OR_THROW(), GetTransport(this.GET_CONNECTION_OR_THROW(), _attributes), packet, needEncrypt, safeToken);
+        return SEND_CORE_ASYNC(connection, transport, packet, needEncrypt, safeToken);
     }
 
     /// <inheritdoc/>
@@ -81,9 +87,12 @@ public sealed class PacketSender : IPacketSender
     {
         ArgumentNullException.ThrowIfNull(packet);
 
+        IConnection connection = this.GET_CONNECTION_OR_THROW();
+        IConnection.ITransport transport = GetTransport(connection, _attributes, _isReliable);
+
         CancellationToken safeToken = ct == default ? _token : ct;
 
-        return SEND_CORE_ASYNC(this.GET_CONNECTION_OR_THROW(), GetTransport(this.GET_CONNECTION_OR_THROW(), _attributes), packet, forceEncrypt, safeToken);
+        return SEND_CORE_ASYNC(connection, transport, packet, forceEncrypt, safeToken);
     }
 
     #endregion APIs
@@ -97,7 +106,7 @@ public sealed class PacketSender : IPacketSender
 #if DEBUG
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(
+            DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Debug,
                 new DiagnosticLog(
                     "RT.PacketSender:SendCoreAsync",
@@ -115,7 +124,7 @@ public sealed class PacketSender : IPacketSender
             rawLease.CommitLength(written);
 
             IBufferLease current = rawLease;
-            uint? sequenceToUse = needEncrypt ? transport.SendSequence.Next() : null;
+            uint? sequenceToUse = needEncrypt ? transport.NextSendSequence() : null;
 
             // FramePipeline mutates `current` and properly cleans up older leases.
             FramePipeline.ProcessOutbound(
@@ -148,19 +157,25 @@ public sealed class PacketSender : IPacketSender
         }
     }
 
-    private static IConnection.ITransport GetTransport(IConnection connection, PacketMetadata attributes)
+    private static IConnection.ITransport GetTransport(IConnection connection, PacketMetadata attributes, bool isReliable)
     {
-        // BUG-76: Prioritize the transport specified on the handler attribute.
-        // If no attribute is present, default to TCP as per requirements.
-        NetworkTransport transport = attributes.Transport?.TransportType ?? NetworkTransport.TCP;
-
-        return transport switch
+        // Prioritize the transport specified on the handler attribute.
+        if (attributes.Transport?.TransportType is { } t)
         {
-            NetworkTransport.UDP => connection.UDP ?? throw new InvalidOperationException("UDP companion transport is not created on this connection."),
-            NetworkTransport.TCP => connection.TCP,
-            NetworkTransport.WEBSOCKET => connection.TCP,
-            _ => throw new InvalidOperationException($"Unsupported transport type: {transport}")
-        };
+            return t switch
+            {
+                NetworkTransport.UDP => connection.UDP ?? throw new InvalidOperationException("UDP companion transport is not created on this connection."),
+                NetworkTransport.TCP or NetworkTransport.WEBSOCKET or _ => connection.TCP
+            };
+        }
+
+        // If the incoming request was received over unreliable transport (UDP), reply on UDP!
+        if (!isReliable && connection.UDP is not null)
+        {
+            return connection.UDP;
+        }
+
+        return connection.TCP;
     }
 
     private IConnection GET_CONNECTION_OR_THROW()

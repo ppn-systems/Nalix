@@ -17,6 +17,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Internal.Protocol;
+using Nalix.Network.Internal.Transport;
 
 namespace Nalix.Network.Listeners.Tcp;
 
@@ -190,7 +191,9 @@ public abstract partial class TcpListenerBase
         state.BytesReceived += args.BytesTransferred;
         ReadOnlySpan<byte> buffer = state.Buffer.AsSpan(0, state.BytesReceived);
 
-        if (!ProxyProtocolParser.TryParse(buffer, out IPEndPoint? realIp, out int consumed))
+        // Use zero-alloc overload: returns SocketEndpoint (stack struct) instead of IPEndPoint.
+        // On the reject path, no IPAddress/IPEndPoint heap allocation occurs.
+        if (!ProxyProtocolParser.TryParse(buffer, out SocketEndpoint parsedEndpoint, out int consumed))
         {
             if (state.BytesReceived >= 232)
             {
@@ -201,7 +204,8 @@ public abstract partial class TcpListenerBase
 
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", $"invalid-proxy-header-drop state-socket-remote-end-point={state.Socket?.RemoteEndPoint}"));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
+                        new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", $"invalid-proxy-header-drop state-socket-remote-end-point={state.Socket?.RemoteEndPoint}"));
                 }
 
                 this.Metrics.RECORD_PROXY_ERROR();
@@ -236,18 +240,35 @@ public abstract partial class TcpListenerBase
             this.DetachProxyContext(state);
         }
 
-        IPEndPoint effectiveIp = realIp ?? (IPEndPoint)state.Socket!.RemoteEndPoint!;
+        // Zero-alloc reject path: TryAccept(SocketEndpoint) avoids IPEndPoint construction.
+        // If the parser returned Empty (LOCAL command), fall back to socket remote endpoint.
+        bool accepted;
+        if (parsedEndpoint != SocketEndpoint.Empty)
+        {
+            accepted = _limiter.TryAccept(parsedEndpoint);
+        }
+        else
+        {
+            IPEndPoint fallbackIp = (IPEndPoint)state.Socket!.RemoteEndPoint!;
+            accepted = _limiter.TryAccept(fallbackIp);
+        }
 
-        if (!_limiter.TryAccept(effectiveIp))
+        if (!accepted)
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", $"proxy-rate-limit-drop effective-ip={effectiveIp}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
+                    new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", "proxy-rate-limit-drop"));
             }
 
             this.ReleaseProxyContext(state, args, success: false);
             return;
         }
+
+        // Accept path: construct IPEndPoint only now (needed for Connection constructor).
+        IPEndPoint? realIp = parsedEndpoint != SocketEndpoint.Empty
+            ? new IPEndPoint(parsedEndpoint.ToIPAddress(), parsedEndpoint.Port)
+            : null;
 
         IConnection? connection = null;
 
@@ -261,7 +282,8 @@ public abstract partial class TcpListenerBase
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", "socket-disposed-during-init"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
+                    new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", "socket-disposed-during-init"));
             }
         }
         catch (SocketException ex) when (
@@ -272,14 +294,16 @@ public abstract partial class TcpListenerBase
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", $"socket-error-during-init socket-error={ex.SocketErrorCode}", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
+                    new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", $"socket-error-during-init socket-error={ex.SocketErrorCode}", ex));
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", "init-error", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.LoopFaulted,
+                    new DiagnosticLog("NW.TcpListenerBase:OnProxyReadCompleted", "init-error", ex));
             }
         }
 
@@ -335,7 +359,11 @@ public abstract partial class TcpListenerBase
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            lock (_proxyLock) { this.DetachProxyContext(state); }
+            lock (_proxyLock)
+            {
+                this.DetachProxyContext(state);
+            }
+
             this.Metrics.RECORD_PROXY_ERROR();
             this.ReleaseProxyContext(state, args, success: false);
             return;

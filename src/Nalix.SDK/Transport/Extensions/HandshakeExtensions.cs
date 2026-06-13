@@ -63,7 +63,7 @@ public static class HandshakeExtensions
 
         using SessionChallenge serverHello = await session.RequestAsync<SessionChallenge>(
             clientHello,
-            options: RequestOptions.Default.WithTimeout(5000),
+            options: RequestOptions.Default.WithTimeout(session.Options.ConnectTimeoutMillis),
             predicate: null,
             ct: ct).ConfigureAwait(false);
 

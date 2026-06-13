@@ -22,7 +22,18 @@ internal sealed class ReferenceArrayFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T[]>
 {
-    private static readonly IFormatter<T> s_elementFormatter = FormatterProvider.Get<T>();
+    private static IFormatter<T>? s_elementFormatter;
+
+    /// <summary>
+    /// Lazily resolves the element formatter to avoid circular static initialization
+    /// when this type is instantiated during <see cref="FormatterProvider"/>'s own
+    /// static constructor (e.g. for <c>object[]</c>).
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static IFormatter<T> GetElementFormatter()
+        => s_elementFormatter ??= FormatterProvider.Get<T>();
+
     private static string DebuggerDisplay => $"ReferenceArrayFormatter<{typeof(T).FullName}>";
 
     /// <summary>
@@ -48,9 +59,10 @@ internal sealed class ReferenceArrayFormatter<
         }
 
         System.ReadOnlySpan<T> span = value;
+        IFormatter<T> elem = GetElementFormatter();
         for (int i = 0; i < span.Length; i++)
         {
-            s_elementFormatter.Serialize(ref writer, span[i]);
+            elem.Serialize(ref writer, span[i]);
         }
     }
 
@@ -75,12 +87,16 @@ internal sealed class ReferenceArrayFormatter<
             return [];
         }
 
-        CollectionGuard.EnsureRead(ref reader, length);
+        if (!CollectionGuard.TryEnsureRead(ref reader, length))
+        {
+            return default!;
+        }
 
         T[] array = new T[length];
+        IFormatter<T> elem = GetElementFormatter();
         for (int i = 0; i < length; i++)
         {
-            array[i] = s_elementFormatter.Deserialize(ref reader);
+            array[i] = elem.Deserialize(ref reader);
         }
 
         return array;

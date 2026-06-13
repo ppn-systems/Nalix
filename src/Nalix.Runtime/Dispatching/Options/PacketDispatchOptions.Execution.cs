@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Net.Sockets;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -34,6 +33,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             Type? actualType = context.Packet?.GetType();
             IPacket? packet = context.Packet;
+
             if (packet is null)
             {
                 return;
@@ -42,7 +42,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
                 string actualName = actualType?.Name ?? "null";
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Debug,
                     new DiagnosticLog(
                         "RT.PacketDispatchOptions:ExecuteHandlerAsync",
@@ -69,7 +69,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Warning,
                     new DiagnosticLog(
                         "RT.PacketDispatchOptions:ExecuteHandlerAsync",
@@ -106,6 +106,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         async ValueTask InvokeHandlerAsync(CancellationToken ct = default)
         {
+            IPacket? responsePacket = null;
             try
             {
                 ct.ThrowIfCancellationRequested();
@@ -127,12 +128,27 @@ public sealed partial class PacketDispatchOptions<TPacket>
                     return;
                 }
 
-                object result = await AwaitHandlerResultAsync(descriptor.ExecuteAsync(context), ct).ConfigureAwait(false);
+                object? result = await AwaitHandlerResultAsync(descriptor.ExecuteAsync(context), ct).ConfigureAwait(false);
 
-                if (!context.SkipOutbound)
+                if (!context.SkipOutbound && result is not null)
                 {
-                    // The return handler converts the raw handler result into the wire-level reply.
-                    await AwaitReturnAsync(descriptor.ReturnHandler.HandleAsync(result, context), ct).ConfigureAwait(false);
+                    if (result is IPacket packetResult)
+                    {
+                        responsePacket = packetResult;
+                        await AwaitReturnAsync(context.Sender.SendAsync(packetResult, ct), ct).ConfigureAwait(false);
+                    }
+                    else if (result is ReadOnlyMemory<byte> rom)
+                    {
+                        await SendRawAsync(context, rom).ConfigureAwait(false);
+                    }
+                    else if (result is byte[] arr)
+                    {
+                        await SendRawAsync(context, arr).ConfigureAwait(false);
+                    }
+                    else if (result is Memory<byte> mem)
+                    {
+                        await SendRawAsync(context, mem).ConfigureAwait(false);
+                    }
                 }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -143,9 +159,25 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 await this.HandleDispatchExceptionAsync(descriptor, context, ex)
                           .ConfigureAwait(false);
             }
+            finally
+            {
+                // Return handler-returned response packets to their pool.
+                // PacketSender.SendAsync only serializes; it does not own or dispose the packet.
+                // Skip disposal when the handler returned the same request-packet instance,
+                // because the base PacketContext already owns that lifecycle.
+                // PacketBase.Dispose is idempotent (atomic _isRented guard), so this is safe
+                // even if the packet was already disposed by another path.
+                if (responsePacket is not null && !ReferenceEquals(responsePacket, context.Packet))
+                {
+                    if (responsePacket is IDisposable disposableResponse)
+                    {
+                        disposableResponse.Dispose();
+                    }
+                }
+            }
         }
 
-        static async ValueTask<object> AwaitHandlerResultAsync(ValueTask<object> pending, CancellationToken token)
+        static async ValueTask<object?> AwaitHandlerResultAsync(ValueTask<object?> pending, CancellationToken token)
         {
             // Fast path: if the handler already completed, avoid an allocation and return the result directly.
             token.ThrowIfCancellationRequested();
@@ -155,7 +187,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 return pending.Result;
             }
 
-            return await CancellableValueTaskSource<object>.Await(pending, token)
+            return await CancellableValueTaskSource<object?>.Await(pending, token)
                                                            .ConfigureAwait(false);
         }
 
@@ -175,6 +207,18 @@ public sealed partial class PacketDispatchOptions<TPacket>
             await CancellableValueTaskSource.Await(pending, token)
                                             .ConfigureAwait(false);
         }
+
+        static async ValueTask SendRawAsync(PacketContext<TPacket> context, ReadOnlyMemory<byte> data)
+        {
+            if (context.IsReliable || context.Connection.UDP is null)
+            {
+                await context.Connection.TCP.SendAsync(data).ConfigureAwait(false);
+            }
+            else
+            {
+                await context.Connection.UDP.SendAsync(data).ConfigureAwait(false);
+            }
+        }
     }
 
     [StackTraceHidden]
@@ -190,7 +234,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Debug,
                     new DiagnosticLog(
                         "RT.PacketDispatchOptions:HandleDispatchExceptionAsync",
@@ -202,7 +246,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Error,
                     new DiagnosticLog(
                         "RT.PacketDispatchOptions:HandleDispatchExceptionAsync",
@@ -268,7 +312,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Debug,
                     new DiagnosticLog(
                         "RT.PacketDispatchOptions:TrySendControlAsync",
@@ -316,53 +360,6 @@ public sealed partial class PacketDispatchOptions<TPacket>
         or SocketError.ConnectionReset
         or SocketError.NotConnected
         or SocketError.Shutdown;
-
-
-    /// <summary>
-    /// Inspects a handler method and returns the concrete packet type it expects,
-    /// or <see langword="null"/> when the handler uses <c>PacketContext&lt;TPacket&gt;</c>.
-    /// </summary>
-    /// <param name="method">The handler method to inspect.</param>
-    /// <param name="contextType">The closed <c>PacketContext&lt;TPacket&gt;</c> type for the current dispatcher.</param>
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Type? ResolveConcretePacketType(
-        MethodInfo method,
-        Type contextType)
-    {
-        ParameterInfo[] parms = method.GetParameters();
-
-        if (parms.Length == 0)
-        {
-            return null;
-        }
-
-        Type firstParam = parms[0].ParameterType;
-
-        if (firstParam == contextType)
-        {
-            return null;
-        }
-
-        if (firstParam.IsGenericType)
-        {
-            Type genericDefinition = firstParam.GetGenericTypeDefinition();
-            if (genericDefinition == typeof(PacketContext<>) || genericDefinition == typeof(IPacketContext<>))
-            {
-                Type concretePacketType = firstParam.GetGenericArguments()[0];
-                return concretePacketType == typeof(TPacket) ? null : concretePacketType;
-            }
-        }
-
-        if (firstParam == typeof(ReadOnlyMemory<byte>))
-        {
-            return typeof(MemoryPacket);
-        }
-
-        // Legacy-style handlers receive the packet directly, so capture the actual packet type
-        // for a dispatch-time sanity check.
-        return typeof(IPacket).IsAssignableFrom(firstParam) ? firstParam : null;
-    }
 
     /// <summary>
     /// Maps an exception to the protocol-level response that should be sent back to the peer.

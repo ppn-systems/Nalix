@@ -123,8 +123,11 @@ internal sealed class DiagnosticChannel :
         [Codec.DiagnosticsEvents.Serialization.Failure] = LogLevel.Error,
         [Codec.DiagnosticsEvents.Serialization.Initialization] = LogLevel.Debug,
 
+        [Codec.DiagnosticsEvents.Packet.Malformed] = LogLevel.Trace,
+        [Codec.DiagnosticsEvents.Serialization.Poisoned] = LogLevel.Trace,
+
         // Environment.Random Failure
-        [Environment.DiagnosticsEvents.Random.Failure] = LogLevel.Warning,
+        [Environment.DiagnosticsEvents.Random.Failure] = LogLevel.Critical,
 
         // Runtime.Internal
         [Runtime.DiagnosticsEvents.Internal.Trace] = LogLevel.Trace,
@@ -292,6 +295,8 @@ internal sealed class DiagnosticChannel :
         public readonly System.Reflection.PropertyInfo? ExceptionProperty;
         public readonly System.Reflection.PropertyInfo[] OtherProperties;
 
+        [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2070",
+            Justification = "Diagnostic payload property scanning is observational only; trimming does not affect runtime behavior.")]
         public ObjectAccessor(Type type)
         {
             System.Reflection.PropertyInfo[] props = type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);

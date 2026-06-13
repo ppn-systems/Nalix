@@ -32,7 +32,7 @@ namespace Nalix.Runtime.Handlers;
 /// Provides handlers for the default server-side X25519 handshake protocol.
 /// </summary>
 [PacketController("Nalix.Handshake")]
-public sealed class HandshakeHandlers
+public static partial class HandshakeHandlers
 {
     #region APIs
 
@@ -177,7 +177,7 @@ public sealed class HandshakeHandlers
         using PacketScope<SessionEstablished> lease = PacketFactory<SessionEstablished>.Acquire();
         SessionEstablished reply = lease.Value;
 
-        reply.Initialize(expectedFinish, connection.ID.ToUInt64());
+        reply.Initialize(expectedFinish, connection.ID);
         reply.SequenceId = packet.SequenceId;
         reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
 
@@ -252,8 +252,11 @@ public sealed class HandshakeHandlers
     /// </summary>
     public static Bytes32 ServerPublicKey => s_serverPublicKey;
 
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-    private static readonly ISessionService? s_sessionService = InstanceManager.Instance.GetExistingInstance<ISessionService>();
+    [global::Nalix.Abstractions.Injection.Inject]
+    private static ObjectPoolManager s_pool = null!;
+
+    [global::Nalix.Abstractions.Injection.Inject]
+    private static ISessionService? s_sessionService;
 
     #endregion Fields
 

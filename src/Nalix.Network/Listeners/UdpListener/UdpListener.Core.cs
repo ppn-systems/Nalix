@@ -131,7 +131,7 @@ public abstract partial class UdpListenerBase
             string protocolType = protocol.GetType().Name;
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.with:UnknownMethod", $"created port={_port} protocol-type={protocolType}"));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.with:UnknownMethod", $"created port={_port} protocol-type={protocolType}"));
             }
             ;
         }
@@ -191,14 +191,14 @@ public abstract partial class UdpListenerBase
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.using:Dispose", $"cts-dispose-ignored port={_port} exception-type={ex.GetType().Name}", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.using:Dispose", $"cts-dispose-ignored port={_port} exception-type={ex.GetType().Name}", ex));
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.using:Dispose", $"cts-dispose-failed port={_port}", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.using:Dispose", $"cts-dispose-failed port={_port}", ex));
                 }
             }
 
@@ -214,14 +214,14 @@ public abstract partial class UdpListenerBase
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.using:Dispose", $"socket-dispose-ignored port={_port} exception-type={ex.GetType().Name}", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.using:Dispose", $"socket-dispose-ignored port={_port} exception-type={ex.GetType().Name}", ex));
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.using:Dispose", $"socket-dispose-failed port={_port}", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.using:Dispose", $"socket-dispose-failed port={_port}", ex));
                 }
             }
 
@@ -233,7 +233,7 @@ public abstract partial class UdpListenerBase
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.using:Dispose", $"disposed port={_port}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.using:Dispose", $"disposed port={_port}"));
         }
     }
 

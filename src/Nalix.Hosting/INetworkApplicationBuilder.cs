@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Reflection;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
@@ -106,25 +106,13 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder ConfigureDispatch(Func<Action<PacketDispatchOptions<IPacket>>, IPacketDispatch> factory);
 
     /// <summary>
-    /// Scans the specified assembly for packet controller types and registers them.
-    /// </summary>
-    /// <param name="assembly">The assembly to scan for packet controllers.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ScanHandlers(Assembly assembly);
-
-    /// <summary>
-    /// Scans the assembly that contains <typeparamref name="TMarker"/> for packet controller types and registers them.
-    /// </summary>
-    /// <typeparam name="TMarker">A marker type used to resolve the target assembly.</typeparam>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ScanHandlers<TMarker>();
-
-    /// <summary>
     /// Adds a packet controller type using the default Nalix activator.
     /// </summary>
     /// <typeparam name="THandler">The packet controller type to register.</typeparam>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddHandler<THandler>() where THandler : class;
+    INetworkApplicationBuilder AddHandler<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods)] THandler>()
+        where THandler : class;
 
     /// <summary>
     /// Adds a packet controller type using an explicit factory.
@@ -132,41 +120,42 @@ public interface INetworkApplicationBuilder
     /// <typeparam name="THandler">The packet controller type to register.</typeparam>
     /// <param name="factory">The factory used to create controller instances.</param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddHandler<THandler>(Func<THandler> factory) where THandler : class;
+    INetworkApplicationBuilder AddHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] THandler>(Func<THandler> factory) where THandler : class;
 
     /// <summary>
-    /// Adds a packet metadata provider using the default Nalix activator.
+    /// Adds a packet controller type directly (primarily for static classes).
     /// </summary>
-    /// <typeparam name="TProvider">The metadata provider type to register.</typeparam>
+    /// <param name="controllerType">The type of the controller to register.</param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddMetadataProvider<TProvider>() where TProvider : class, IPacketMetadataProvider;
+    INetworkApplicationBuilder AddHandler(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods)] Type controllerType);
 
-    /// <summary>
-    /// Adds a packet metadata provider using an explicit factory.
-    /// </summary>
-    /// <typeparam name="TProvider">The metadata provider type to register.</typeparam>
-    /// <param name="factory">The factory used to create provider instances.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddMetadataProvider<TProvider>(Func<TProvider> factory) where TProvider : class, IPacketMetadataProvider;
+
 
     /// <summary>
     /// Binds a TCP protocol using a fluent builder for port and factory configuration.
     /// </summary>
     /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
     /// <returns>A fluent builder to configure the binding.</returns>
-    IProtocolBindingBuilder BindTcp<TProtocol>() where TProtocol : class, IProtocol;
+    IProtocolBindingBuilder BindTcp<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
+        where TProtocol : class, IProtocol;
 
     /// <summary>
     /// Binds a UDP protocol using a fluent builder for port, factory, and authentication configuration.
     /// </summary>
     /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
     /// <returns>A fluent builder to configure the binding.</returns>
-    IProtocolBindingBuilder BindUdp<TProtocol>() where TProtocol : class, IProtocol;
+    IProtocolBindingBuilder BindUdp<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
+        where TProtocol : class, IProtocol;
 
     /// <summary>
     /// Binds a WebSocket protocol using a fluent builder for port, path, and factory configuration.
     /// </summary>
     /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
     /// <returns>A fluent builder to configure the WebSocket binding.</returns>
-    IWebSocketBindingBuilder BindWebSocket<TProtocol>() where TProtocol : class, IProtocol;
+    IWebSocketBindingBuilder BindWebSocket<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
+        where TProtocol : class, IProtocol;
 }

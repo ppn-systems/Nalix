@@ -40,8 +40,4 @@ This library focuses on performance, consistency, and cross-platform reliability
 		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.Generators\netstandard2.0\Nalix.Analyzers.Generators.dll" Pack="true" Visible="false" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.Generators\netstandard2.0\Nalix.Analyzers.Generators.dll')" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Folder Include="Hosting\" />
-	</ItemGroup>
-
 </Project>

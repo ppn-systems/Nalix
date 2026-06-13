@@ -96,7 +96,7 @@ public sealed class ConsumerHandler
         TunnelSession session = new(consumerConnection, _options, _sessionRegistry, _logger);
         try
         {
-            _sessionRegistry.Register(consumerConnection.ID.ToUInt64(), session);
+            _sessionRegistry.Register(consumerConnection.ID, session);
             session.StartTunnel(providerDataConnection);
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))

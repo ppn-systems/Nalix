@@ -69,7 +69,7 @@ public abstract partial class Protocol
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Protocol:Dispose", "disposed"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Protocol:Dispose", "disposed"));
         }
 
         // Derived protocols can release managed resources when disposing == true.

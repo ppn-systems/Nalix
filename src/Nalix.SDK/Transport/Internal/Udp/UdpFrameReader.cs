@@ -124,23 +124,12 @@ internal sealed class UdpFrameReader : IDisposable
     private async Task ProcessDatagramAsync(IBufferLease datagram, CancellationToken ct)
     {
         IBufferLease original = datagram;
+        uint? seq = null;
 
         try
         {
-            ulong token = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(datagram.Span[..Abstractions.Identity.ISnowflake.Size]);
-            if (token != _state.SessionToken)
-            {
-                // Drop datagram quietly
-                return;
-            }
-
-            // Shift data left to remove token
-            int payloadLength = datagram.Length - Abstractions.Identity.ISnowflake.Size;
-            datagram.Span[Abstractions.Identity.ISnowflake.Size..].CopyTo(datagram.SpanFull);
-            datagram.CommitLength(payloadLength);
-
             // 2) Decompress / Decrypt
-            FramePipeline.ProcessInbound(ref datagram, _state.Secret.AsSpan(), _options.Algorithm, out uint? seq);
+            FramePipeline.ProcessInbound(ref datagram, _state.Secret.AsSpan(), _options.Algorithm, out seq);
 
             if (!_sequence.IsValid(seq, window: 64))
             {
@@ -149,14 +138,14 @@ internal sealed class UdpFrameReader : IDisposable
 
             // Dispatch
             await this.DispatchMessageAsync(datagram, ct).ConfigureAwait(false);
-
+        }
+        finally
+        {
             if (seq.HasValue)
             {
                 _sequence.UpdateTo(seq.Value);
             }
-        }
-        finally
-        {
+
             if (!ReferenceEquals(datagram, original))
             {
                 datagram.Dispose();

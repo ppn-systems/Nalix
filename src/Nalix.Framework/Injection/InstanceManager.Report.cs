@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -11,6 +12,7 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Sessions;
 
 namespace Nalix.Framework.Injection;
 
@@ -159,8 +161,8 @@ public sealed partial class InstanceManager
             _ when reportable.GetType().Name == "ConnectionGuard" => CoreTelemetryTarget.ConnectionGuard,
             _ when reportable.GetType().Name == "PolicyRateLimiter" => CoreTelemetryTarget.PolicyRateLimiter,
             _ when reportable.GetType().Name == "TokenBucketLimiter" => CoreTelemetryTarget.TokenBucketLimiter,
-            _ when reportable.GetType().GetInterface("ISessionService") is not null => CoreTelemetryTarget.Sessions,
-            _ when reportable.GetType().GetInterface("IPacketDispatch") is not null => CoreTelemetryTarget.PacketDispatch,
+            _ when reportable is ISessionService => CoreTelemetryTarget.Sessions,
+            _ when IsPacketDispatch(reportable) => CoreTelemetryTarget.PacketDispatch,
             _ => CoreTelemetryTarget.None
         };
 
@@ -169,6 +171,22 @@ public sealed partial class InstanceManager
             ReportRegistry.Instance.Register<IReportable>(target, reportable);
         }
     }
+
+    /// <summary>
+    /// Checks whether <paramref name="reportable"/> implements the <c>IPacketDispatch</c> interface.
+    /// </summary>
+    /// <remarks>
+    /// IPacketDispatch lives in Nalix.Runtime, which Nalix.Framework does not reference.
+    /// A direct <see langword="is"/> check is not possible without creating an unwanted
+    /// project dependency. This categorisation is purely for diagnostics.
+    /// </remarks>
+    [UnconditionalSuppressMessage("Trimming", "IL2075",
+        Justification = "IPacketDispatch lives in Nalix.Runtime, which Nalix.Framework " +
+            "does not reference. A direct type check is not possible without creating an " +
+            "unwanted project dependency. This categorisation is purely for diagnostics.")]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsPacketDispatch(IReportable reportable)
+        => reportable.GetType().GetInterface("IPacketDispatch") is not null;
 
     #endregion IReportable
 }

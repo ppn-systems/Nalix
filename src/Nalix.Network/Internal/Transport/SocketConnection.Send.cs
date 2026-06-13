@@ -8,7 +8,6 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
@@ -27,7 +26,7 @@ internal sealed partial class SocketConnection
     /// <param name="data"></param>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public void Send(ReadOnlySpan<byte> data)
+    public SendResult Send(ReadOnlySpan<byte> data)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, nameof(SocketConnection));
 
@@ -38,14 +37,12 @@ internal sealed partial class SocketConnection
 
         if (_framing == TransportFraming.VarIntLengthPrefixed)
         {
-            this.SEND_VARINT(data);
-            return;
+            return this.SEND_VARINT(data);
         }
 
         if (data.Length >= s_fragmentOptions.MaxChunkSize)
         {
-            this.SEND_FRAGMENTED(data);
-            return;
+            return this.SEND_FRAGMENTED(data);
         }
 
         long totalLengthLong = (long)data.Length + HeaderSize;
@@ -60,11 +57,11 @@ internal sealed partial class SocketConnection
 
         int totalLength = (int)totalLengthLong;
 
-        this.SEND_SAFE(data, totalLength);
+        return this.SEND_SAFE(data, totalLength);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void SEND_SAFE(ReadOnlySpan<byte> data, int totalLength)
+    private SendResult SEND_SAFE(ReadOnlySpan<byte> data, int totalLength)
     {
         /*
          * [Fast Path: Stack Allocation]
@@ -74,93 +71,51 @@ internal sealed partial class SocketConnection
          */
         if (data.Length <= PacketConstants.StackAllocLimit)
         {
-            try
+            Span<byte> frameS = stackalloc byte[totalLength];
+            WRITE_FRAME_HEADER(frameS, (ushort)totalLength, data);
+
+            int sent = 0;
+            SendResult result = SendResult.Success;
+            lock (_sendLock)
             {
-#if DEBUG
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
+                try
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"stackalloc length={data.Length} remote-endpoint={_socket.RemoteEndPoint}"));
-                }
-#endif
-                Span<byte> frameS = stackalloc byte[totalLength];
-                WRITE_FRAME_HEADER(frameS, (ushort)totalLength, data);
-
-#if DEBUG
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-                {
-                    Span<byte> payloadSpan = frameS.Slice(HeaderSize, data.Length);
-                    string payload = FORMAT_FRAME_FOR_LOG(payloadSpan);
-                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-                    {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"sending frame total-length={totalLength} payload={payload} remote-endpoint={_socket.RemoteEndPoint}"));
-                    }
-                    ;
-                }
-#endif
-
-                lock (_sendLock)
-                {
-                    int sent = 0;
                     while (sent < frameS.Length)
                     {
                         int n = _socket.Send(frameS[sent..]);
                         if (n == 0)
                         {
-#if DEBUG
-                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-                            {
-                                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-                                {
-                                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"stackalloc peer-closed remote-endpoint={_socket.RemoteEndPoint}"));
-                                }
-                                ;
-                            }
-#endif
-                            this.CANCEL_RECEIVE_ONCE();
-                            this.INVOKE_CLOSE_ONCE();
-                            Throw.SendFailedNow();
+                            result = SendResult.PeerClosed;
+                            break;
                         }
 
                         sent += n;
-                        Interlocked.Add(ref _bytesSent, n);
+                        _ = Interlocked.Add(ref _bytesSent, n);
                     }
                 }
+                catch (SocketException ex) when (ex.SocketErrorCode is
+                       SocketError.ConnectionReset or
+                       SocketError.ConnectionAborted or
+                       SocketError.Shutdown or
+                       SocketError.OperationAborted)
+                {
+                    result = SendResult.Aborted;
+                }
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                {
+                    result = SendResult.Failed;
+                }
+            }
 
-                _sink.OnFrameSent(_owner);
-                return;
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            if (result != SendResult.Success)
             {
-                if (IS_BENIGN_DISCONNECT(ex))
-                {
-#if DEBUG
-                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-                    {
-                        string exceptionType = ex.GetType().Name;
-                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-                        {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"stackalloc-benign-disconnect endpoint={_endpointString} exception-type={exceptionType}", ex));
-                        }
-                        ;
-                    }
-#endif
-                }
-                else
-                {
-                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                    {
-                        if (Security.ThrottledEventGate.TryAcquire(ref s_sendStackallocErrorTicks, ref s_sendStackallocErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
-                        {
-                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                            {
-                                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"stackalloc-error endpoint={_endpointString} suppressed-count={suppressed}", ex));
-                            }
-                            ;
-                        }
-                    }
-                }
-                throw;
+                this.CANCEL_RECEIVE_ONCE();
+                this.INVOKE_CLOSE_ONCE();
+                return result;
             }
+
+            _connectionOwner?.OnFrameSent();
+            return SendResult.Success;
         }
 
         /*
@@ -172,87 +127,51 @@ internal sealed partial class SocketConnection
         byte[] heapBuf = BufferLease.ByteArrayPool.Rent(totalLength);
         try
         {
-#if DEBUG
-            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-            {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"pooled length={data.Length} remote-endpoint={_socket.RemoteEndPoint}"));
-            }
-#endif
             BinaryPrimitives.WriteUInt16LittleEndian(MemoryExtensions.AsSpan(heapBuf), (ushort)totalLength);
             data.CopyTo(MemoryExtensions.AsSpan(heapBuf, HeaderSize));
 
-#if DEBUG
-            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-            {
-                Span<byte> payloadSpan = MemoryExtensions.AsSpan(heapBuf, HeaderSize, data.Length);
-                string payload = FORMAT_FRAME_FOR_LOG(payloadSpan);
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-                {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"sending frame total-length={totalLength} payload={payload} remote-endpoint={_socket.RemoteEndPoint}"));
-                }
-                ;
-            }
-#endif
-
+            int sent = 0;
+            SendResult result = SendResult.Success;
             lock (_sendLock)
             {
-                int sent = 0;
-                while (sent < totalLength)
+                try
                 {
-                    int n = _socket.Send(heapBuf, sent, totalLength - sent,
-                                                  SocketFlags.None);
-                    if (n == 0)
+                    while (sent < totalLength)
                     {
-#if DEBUG
-                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
+                        int n = _socket.Send(heapBuf, sent, totalLength - sent, SocketFlags.None);
+                        if (n == 0)
                         {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"pooled peer-closed remote-endpoint={_socket.RemoteEndPoint}"));
+                            result = SendResult.PeerClosed;
+                            break;
                         }
-#endif
-                        this.CANCEL_RECEIVE_ONCE();
-                        this.INVOKE_CLOSE_ONCE();
-                        Throw.SendFailedNow();
-                    }
 
-                    sent += n;
-                    Interlocked.Add(ref _bytesSent, n);
+                        sent += n;
+                        _ = Interlocked.Add(ref _bytesSent, n);
+                    }
                 }
+                catch (SocketException ex) when (ex.SocketErrorCode is
+                       SocketError.ConnectionReset or
+                       SocketError.ConnectionAborted or
+                       SocketError.Shutdown or
+                       SocketError.OperationAborted)
+                {
+                    result = SendResult.Aborted;
+                }
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                {
+                    result = SendResult.Failed;
+                }
+            }
+
+            if (result != SendResult.Success)
+            {
+                this.CANCEL_RECEIVE_ONCE();
+                this.INVOKE_CLOSE_ONCE();
+                return result;
             }
 
             this.INVOKE_POST_CALLBACK();
-            return;
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            if (IS_BENIGN_DISCONNECT(ex))
-            {
-#if DEBUG
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-                {
-                    string exceptionType = ex.GetType().Name;
-                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-                    {
-                        DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"pooled-benign-disconnect endpoint={_endpointString} exception-type={exceptionType}", ex));
-                    }
-                    ;
-                }
-#endif
-            }
-            else
-            {
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                {
-                    if (Security.ThrottledEventGate.TryAcquire(ref s_sendPooledErrorTicks, ref s_sendPooledErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
-                    {
-                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                        {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"pooled-error endpoint={_endpointString} suppressed-count={suppressed}", ex));
-                        }
-                        ;
-                    }
-                }
-            }
-            throw;
+            return SendResult.Success;
         }
         finally
         {
@@ -268,13 +187,13 @@ internal sealed partial class SocketConnection
     /// <returns><see langword="true"/> if the data was sent successfully.</returns>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ValueTask SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
+    public ValueTask<SendResult> SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, nameof(SocketConnection));
 
         if (data.IsEmpty)
         {
-            return ValueTask.FromException(new ArgumentException("Data must not be empty.", nameof(data)));
+            return ValueTask.FromException<SendResult>(new ArgumentException("Data must not be empty.", nameof(data)));
         }
 
         if (_framing == TransportFraming.VarIntLengthPrefixed)
@@ -290,7 +209,7 @@ internal sealed partial class SocketConnection
         long totalLengthLong = (long)data.Length + HeaderSize;
         if (totalLengthLong > ushort.MaxValue)
         {
-            return ValueTask.FromException(new ArgumentOutOfRangeException(
+            return ValueTask.FromException<SendResult>(new ArgumentOutOfRangeException(
                 nameof(data),
                 totalLengthLong,
                 $"Non-fragmented frame size must not exceed {ushort.MaxValue} bytes."));
@@ -302,32 +221,13 @@ internal sealed partial class SocketConnection
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private ValueTask SEND_ASYNC_SAFE(ReadOnlyMemory<byte> data, int totalLength, CancellationToken cancellationToken)
+    private ValueTask<SendResult> SEND_ASYNC_SAFE(ReadOnlyMemory<byte> data, int totalLength, CancellationToken cancellationToken)
     {
         byte[] heapBuf = BufferLease.ByteArrayPool.Rent(totalLength);
 
         try
         {
-#if DEBUG
-            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-            {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"SendAsync length={data.Length} remote-endpoint={_socket.RemoteEndPoint}"));
-            }
-#endif
             WRITE_FRAME_HEADER(MemoryExtensions.AsSpan(heapBuf), (ushort)totalLength, data.Span);
-
-#if DEBUG
-            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-            {
-                ReadOnlySpan<byte> payloadSpan = data.Span;
-                string payload = FORMAT_FRAME_FOR_LOG(payloadSpan);
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-                {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.SocketConnection:Internal", $"sending frame total-length={totalLength} payload={payload} remote-endpoint={_socket.RemoteEndPoint}"));
-                }
-                ;
-            }
-#endif
 
             int sent = 0;
             while (sent < totalLength)
@@ -340,11 +240,14 @@ internal sealed partial class SocketConnection
                     int n = vt.Result;
                     if (n == 0)
                     {
-                        return HANDLE_PEER_CLOSED(this, heapBuf);
+                        BufferLease.ByteArrayPool.Return(heapBuf);
+                        this.CANCEL_RECEIVE_ONCE();
+                        this.INVOKE_CLOSE_ONCE();
+                        return ValueTask.FromResult(SendResult.PeerClosed);
                     }
 
                     sent += n;
-                    Interlocked.Add(ref _bytesSent, n);
+                    _ = Interlocked.Add(ref _bytesSent, n);
                 }
                 else
                 {
@@ -354,103 +257,72 @@ internal sealed partial class SocketConnection
 
             this.INVOKE_POST_CALLBACK();
             BufferLease.ByteArrayPool.Return(heapBuf);
-            return default;
+            return ValueTask.FromResult(SendResult.Success);
+        }
+        catch (SocketException ex) when (ex.SocketErrorCode is
+               SocketError.ConnectionReset or
+               SocketError.ConnectionAborted or
+               SocketError.Shutdown or
+               SocketError.OperationAborted)
+        {
+            BufferLease.ByteArrayPool.Return(heapBuf);
+            return ValueTask.FromResult(SendResult.Aborted);
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             BufferLease.ByteArrayPool.Return(heapBuf);
-            return HANDLE_SEND_ERROR(this, ex);
+            return ValueTask.FromResult(SendResult.Failed);
         }
 
-        [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
-        static async ValueTask AWAIT_SEND(SocketConnection self, ValueTask<int> vt, byte[] heapBuf, int sent, int totalLength, CancellationToken token)
+        [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
+        static async ValueTask<SendResult> AWAIT_SEND(SocketConnection self, ValueTask<int> vt, byte[] heapBuf, int sent, int totalLength, CancellationToken token)
         {
             try
             {
                 int n = await vt.ConfigureAwait(false);
                 if (n == 0)
                 {
-                    throw HANDLE_PEER_CLOSED_EXCEPTION(self);
+                    self.CANCEL_RECEIVE_ONCE();
+                    self.INVOKE_CLOSE_ONCE();
+                    return SendResult.PeerClosed;
                 }
 
                 sent += n;
-                Interlocked.Add(ref self._bytesSent, n);
+                _ = Interlocked.Add(ref self._bytesSent, n);
 
                 while (sent < totalLength)
                 {
                     n = await self._socket.SendAsync(MemoryExtensions.AsMemory(heapBuf, sent, totalLength - sent), SocketFlags.None, token).ConfigureAwait(false);
                     if (n == 0)
                     {
-                        throw HANDLE_PEER_CLOSED_EXCEPTION(self);
+                        self.CANCEL_RECEIVE_ONCE();
+                        self.INVOKE_CLOSE_ONCE();
+                        return SendResult.PeerClosed;
                     }
 
                     sent += n;
-                    Interlocked.Add(ref self._bytesSent, n);
+                    _ = Interlocked.Add(ref self._bytesSent, n);
                 }
 
                 self.INVOKE_POST_CALLBACK();
+                return SendResult.Success;
+            }
+            catch (SocketException ex) when (ex.SocketErrorCode is
+                   SocketError.ConnectionReset or
+                   SocketError.ConnectionAborted or
+                   SocketError.Shutdown or
+                   SocketError.OperationAborted)
+            {
+                return SendResult.Aborted;
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                throw HANDLE_SEND_ERROR_EXCEPTION(self, ex);
+                return SendResult.Failed;
             }
             finally
             {
                 BufferLease.ByteArrayPool.Return(heapBuf);
             }
-        }
-
-        static ValueTask HANDLE_PEER_CLOSED(SocketConnection self, byte[] buf)
-        {
-            BufferLease.ByteArrayPool.Return(buf);
-            self.CANCEL_RECEIVE_ONCE();
-            self.INVOKE_CLOSE_ONCE();
-            return ValueTask.FromException(Throw.GetSendFailed());
-        }
-
-        static Exception HANDLE_PEER_CLOSED_EXCEPTION(SocketConnection self)
-        {
-            self.CANCEL_RECEIVE_ONCE();
-            self.INVOKE_CLOSE_ONCE();
-            return Throw.GetSendFailed();
-        }
-
-        static ValueTask HANDLE_SEND_ERROR(SocketConnection self, Exception ex)
-        {
-            if (!IS_BENIGN_DISCONNECT(ex))
-            {
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                {
-                    if (Security.ThrottledEventGate.TryAcquire(ref s_sendErrorTicks, ref s_sendErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
-                    {
-                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                        {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"send error endpoint={self._endpointString} suppressed-count={suppressed}", ex));
-                        }
-                        ;
-                    }
-                }
-            }
-            return ValueTask.FromException(ex);
-        }
-
-        static Exception HANDLE_SEND_ERROR_EXCEPTION(SocketConnection self, Exception ex)
-        {
-            if (!IS_BENIGN_DISCONNECT(ex))
-            {
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                {
-                    if (Security.ThrottledEventGate.TryAcquire(ref s_sendErrorTicks, ref s_sendErrorSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
-                    {
-                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                        {
-                            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.SocketConnection:Internal", $"send error endpoint={self._endpointString} suppressed-count={suppressed}", ex));
-                        }
-                        ;
-                    }
-                }
-            }
-            return ex;
         }
     }
 
@@ -475,7 +347,7 @@ internal sealed partial class SocketConnection
     /// fragment in order.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2014:Do not use stackalloc in loops", Justification = "<Pending>")]
-    private void SEND_FRAGMENTED(ReadOnlySpan<byte> payload)
+    private SendResult SEND_FRAGMENTED(ReadOnlySpan<byte> payload)
     {
         if (payload.Length > s_fragmentOptions.MaxPayloadSize)
         {
@@ -545,7 +417,11 @@ internal sealed partial class SocketConnection
                 headerBuffer.CopyTo(frame[HeaderSize..]);
                 payload.Slice(offset, thisChunkSize).CopyTo(frame[(HeaderSize + FragmentHeader.WireSize)..]);
 
-                SEND_RAW_FRAME(frame);
+                SendResult res = SEND_RAW_FRAME(frame);
+                if (res != SendResult.Success)
+                {
+                    return res;
+                }
             }
             else
             {
@@ -560,7 +436,11 @@ internal sealed partial class SocketConnection
                     headerBuffer.CopyTo(MemoryExtensions.AsSpan(rented, HeaderSize));
                     payload.Slice(offset, thisChunkSize).CopyTo(MemoryExtensions.AsSpan(rented, HeaderSize + FragmentHeader.WireSize));
 
-                    SEND_RAW_FRAME(rented.AsSpan(0, totalFrameSize));
+                    SendResult res = SEND_RAW_FRAME(rented.AsSpan(0, totalFrameSize));
+                    if (res != SendResult.Success)
+                    {
+                        return res;
+                    }
                 }
                 finally
                 {
@@ -570,35 +450,58 @@ internal sealed partial class SocketConnection
         }
 
         this.INVOKE_POST_CALLBACK();
+        return SendResult.Success;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        void SEND_RAW_FRAME(ReadOnlySpan<byte> frame)
+        SendResult SEND_RAW_FRAME(ReadOnlySpan<byte> frame)
         {
+            int sent = 0;
+            SendResult result = SendResult.Success;
             lock (_sendLock)
             {
-                int sent = 0;
-                while (sent < frame.Length)
+                try
                 {
-                    int n = _socket.Send(frame[sent..]);
-                    if (n == 0)
+                    while (sent < frame.Length)
                     {
-                        this.CANCEL_RECEIVE_ONCE();
-                        this.INVOKE_CLOSE_ONCE();
-                        Throw.SendFailedNow();
-                    }
+                        int n = _socket.Send(frame[sent..]);
+                        if (n == 0)
+                        {
+                            result = SendResult.PeerClosed;
+                            break;
+                        }
 
-                    sent += n;
-                    _ = Interlocked.Add(ref _bytesSent, n);
+                        sent += n;
+                        _ = Interlocked.Add(ref _bytesSent, n);
+                    }
+                }
+                catch (SocketException ex) when (ex.SocketErrorCode is
+                       SocketError.ConnectionReset or
+                       SocketError.ConnectionAborted or
+                       SocketError.Shutdown or
+                       SocketError.OperationAborted)
+                {
+                    result = SendResult.Aborted;
+                }
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                {
+                    result = SendResult.Failed;
                 }
             }
+
+            if (result != SendResult.Success)
+            {
+                this.CANCEL_RECEIVE_ONCE();
+                this.INVOKE_CLOSE_ONCE();
+            }
+            return result;
         }
     }
 
-    private ValueTask SEND_FRAGMENTED_ASYNC(ReadOnlyMemory<byte> payload, CancellationToken token)
+    private ValueTask<SendResult> SEND_FRAGMENTED_ASYNC(ReadOnlyMemory<byte> payload, CancellationToken token)
     {
         if (payload.Length > s_fragmentOptions.MaxPayloadSize)
         {
-            return ValueTask.FromException(new ArgumentOutOfRangeException(nameof(payload),
+            return ValueTask.FromException<SendResult>(new ArgumentOutOfRangeException(nameof(payload),
                 $"Payload exceeds maximum allowed size {s_fragmentOptions.MaxPayloadSize}"));
         }
 
@@ -608,14 +511,14 @@ internal sealed partial class SocketConnection
 
         if (totalChunks > ushort.MaxValue)
         {
-            return ValueTask.FromException(new InternalErrorException(
+            return ValueTask.FromException<SendResult>(new InternalErrorException(
                 $"Fragmented payload requires {totalChunks} chunks, which exceeds the {ushort.MaxValue}-chunk wire header limit."));
         }
 
         return SEND_CHUNKS_ASYNC(this, payload, streamId, chunkBodySize, totalChunks, token);
 
-        [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
-        static async ValueTask SEND_CHUNKS_ASYNC(SocketConnection self, ReadOnlyMemory<byte> payload, ushort streamId, int chunkBodySize, int totalChunks, CancellationToken token)
+        [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
+        static async ValueTask<SendResult> SEND_CHUNKS_ASYNC(SocketConnection self, ReadOnlyMemory<byte> payload, ushort streamId, int chunkBodySize, int totalChunks, CancellationToken token)
         {
             for (int i = 0; i < totalChunks; i++)
             {
@@ -642,7 +545,11 @@ internal sealed partial class SocketConnection
 
                     BUILD_FRAGMENT_FRAME(rented.AsSpan(0, totalFrameLen), payload.Slice(offset, chunkLen).Span);
 
-                    await SEND_RAW_FRAME_ASYNC(self, rented.AsMemory(0, totalFrameLen), token).ConfigureAwait(false);
+                    SendResult res = await SEND_RAW_FRAME_ASYNC(self, rented.AsMemory(0, totalFrameLen), token).ConfigureAwait(false);
+                    if (res != SendResult.Success)
+                    {
+                        return res;
+                    }
                 }
                 finally
                 {
@@ -651,6 +558,7 @@ internal sealed partial class SocketConnection
             }
 
             self.INVOKE_POST_CALLBACK();
+            return SendResult.Success;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -666,7 +574,7 @@ internal sealed partial class SocketConnection
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static ValueTask SEND_RAW_FRAME_ASYNC(SocketConnection self, ReadOnlyMemory<byte> frame, CancellationToken token)
+        static ValueTask<SendResult> SEND_RAW_FRAME_ASYNC(SocketConnection self, ReadOnlyMemory<byte> frame, CancellationToken token)
         {
             int sent = 0;
             while (sent < frame.Length)
@@ -679,7 +587,7 @@ internal sealed partial class SocketConnection
                     {
                         self.CANCEL_RECEIVE_ONCE();
                         self.INVOKE_CLOSE_ONCE();
-                        return ValueTask.FromException(Throw.GetSendFailed());
+                        return ValueTask.FromResult(SendResult.PeerClosed);
                     }
 
                     sent += n;
@@ -691,41 +599,57 @@ internal sealed partial class SocketConnection
                 }
             }
 
-            return default;
+            return ValueTask.FromResult(SendResult.Success);
 
-            [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
-            static async ValueTask AWAIT_RAW_SEND(SocketConnection self, ValueTask<int> vt, ReadOnlyMemory<byte> frame, int sent, CancellationToken token)
+            [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
+            static async ValueTask<SendResult> AWAIT_RAW_SEND(SocketConnection self, ValueTask<int> vt, ReadOnlyMemory<byte> frame, int sent, CancellationToken token)
             {
-                int n = await vt.ConfigureAwait(false);
-                if (n == 0)
+                try
                 {
-                    self.CANCEL_RECEIVE_ONCE();
-                    self.INVOKE_CLOSE_ONCE();
-                    Throw.SendFailedNow();
-                }
-
-                sent += n;
-                _ = Interlocked.Add(ref self._bytesSent, n);
-
-                while (sent < frame.Length)
-                {
-                    n = await self._socket.SendAsync(frame[sent..], SocketFlags.None, token).ConfigureAwait(false);
+                    int n = await vt.ConfigureAwait(false);
                     if (n == 0)
                     {
                         self.CANCEL_RECEIVE_ONCE();
                         self.INVOKE_CLOSE_ONCE();
-                        Throw.SendFailedNow();
+                        return SendResult.PeerClosed;
                     }
 
                     sent += n;
                     _ = Interlocked.Add(ref self._bytesSent, n);
+
+                    while (sent < frame.Length)
+                    {
+                        n = await self._socket.SendAsync(frame[sent..], SocketFlags.None, token).ConfigureAwait(false);
+                        if (n == 0)
+                        {
+                            self.CANCEL_RECEIVE_ONCE();
+                            self.INVOKE_CLOSE_ONCE();
+                            return SendResult.PeerClosed;
+                        }
+
+                        sent += n;
+                        _ = Interlocked.Add(ref self._bytesSent, n);
+                    }
+                    return SendResult.Success;
+                }
+                catch (SocketException ex) when (ex.SocketErrorCode is
+                       SocketError.ConnectionReset or
+                       SocketError.ConnectionAborted or
+                       SocketError.Shutdown or
+                       SocketError.OperationAborted)
+                {
+                    return SendResult.Aborted;
+                }
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                {
+                    return SendResult.Failed;
                 }
             }
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void INVOKE_POST_CALLBACK() => _sink.OnFrameSent(_owner);
+    private void INVOKE_POST_CALLBACK() => _connectionOwner?.OnFrameSent();
 
     #endregion
 }

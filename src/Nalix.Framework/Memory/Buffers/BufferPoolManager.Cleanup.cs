@@ -34,7 +34,7 @@ public sealed partial class BufferPoolManager
         _isInitialized = true;
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolExpanded))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolExpanded, new DiagnosticLog("FW.BufferPoolManager:Internal",
+            DiagnosticsEvents.Write(DiagnosticsEvents.Memory.PoolExpanded, new DiagnosticLog("FW.BufferPoolManager:Internal",
                 $"pool-expanded total={_config.TotalBuffers} buckets={_bufferAllocations.Length} phase=init"));
         }
     }
@@ -54,7 +54,7 @@ public sealed partial class BufferPoolManager
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new DiagnosticLog("FW.BufferPoolManager:Internal",
+            DiagnosticsEvents.Write(DiagnosticsEvents.Memory.PoolTrimmed, new DiagnosticLog("FW.BufferPoolManager:Internal",
                 $"pool-trimmed deep-trim={deepTrim.ToString().ToLowerInvariant()} phase=BufferTrimRun"));
         }
 
@@ -246,7 +246,7 @@ public sealed partial class BufferPoolManager
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
         {
             string usageStr = usage.ToString("0.000", CultureInfo.InvariantCulture);
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new DiagnosticLog("FW.BufferPoolManager:Internal",
+            DiagnosticsEvents.Write(DiagnosticsEvents.Memory.PoolTrimmed, new DiagnosticLog("FW.BufferPoolManager:Internal",
                 $"pool-trimmed usage={usageStr} size={info.BufferSize} step={shrinkStep}"));
         }
     }

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Network.Options;
@@ -26,7 +27,7 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader, IValidat
     /// </summary>
     /// <exception cref="System.ArgumentOutOfRangeException"></exception>
     [IniComment("TCP port to listen on (1–65535, default 57206)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 65535, ErrorMessage = "Port must be between 1 and 65535.")]
+    [ValueRange(1, 65535)]
     public ushort Port
     {
         get;
@@ -45,7 +46,7 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader, IValidat
     /// Gets or sets the maximum length of the pending connections queue.
     /// </summary>
     [IniComment("Maximum pending connection queue length (1–65535)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 65535, ErrorMessage = "Backlog must be between 1 and 65535.")]
+    [ValueRange(1, 65535)]
     public int Backlog { get; set; } = 512;
 
     /// <summary>
@@ -58,7 +59,7 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader, IValidat
     /// Indicates whether to use IPv6 instead of IPv4.
     /// </summary>
     [IniComment("Listen on IPv6 instead of IPv4")]
-    public bool EnableIPv6 { get; set; } = false;
+    public bool EnableDualStack { get; set; } = true;
 
     /// <summary>
     /// Gets or sets whether Nagle's algorithm is disabled (low-latency mode).
@@ -69,22 +70,22 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader, IValidat
     /// <summary>
     /// Gets or sets the maximum number of parallel connections.
     /// </summary>
-    [IniComment("Maximum simultaneous parallel listeners/acceptors (1–1024, default 5)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1024, ErrorMessage = "MaxParallel must be between 1 and 1024.")]
-    public int MaxParallel { get; set; } = 5;
+    [IniComment("Maximum simultaneous parallel listeners/acceptors (1–1024, default 2)")]
+    [ValueRange(1, 1024)]
+    public int MaxParallel { get; set; } = 2;
 
     /// <summary>
     /// Gets or sets the maximum number of parallel connections.
     /// </summary>
     [IniComment("Maximum simultaneous parallel listeners/acceptors (1–1024, default 1)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1024, ErrorMessage = "MaxParallel UDP must be between 1 and 1024.")]
+    [ValueRange(1, 1024)]
     public int MaxParallelUDP { get; set; } = 1;
 
     /// <summary>
     /// Gets or sets the buffer size for both sending and receiving data.
     /// </summary>
     [IniComment("Send and receive buffer size in bytes (1024–10,485,760)")]
-    [System.ComponentModel.DataAnnotations.Range(2048, 10_485_760, ErrorMessage = "BufferSize must be between 2048B and 10MiB (10,485,760 bytes).")]
+    [ValueRange(2048, 10_485_760)]
     public int BufferSize { get; set; } = 65536;
 
     /// <summary>
@@ -103,7 +104,7 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader, IValidat
     /// Gets or sets the maximum number of concurrent groups for socket operations.
     /// </summary>
     [IniComment("Maximum concurrent socket operation groups (1–1024)")]
-    [System.ComponentModel.DataAnnotations.Range(1, 1024, ErrorMessage = "MaxGroupConcurrency must be between 1 and 1024.")]
+    [ValueRange(1, 1024)]
     public int MaxGroupConcurrency { get; set; } = 8;
 
     /// <summary>
@@ -121,7 +122,7 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader, IValidat
     /// </para>
     /// </summary>
     [IniComment("Maximum accepted connections that may queue in the channel while the consumer thread is busy (tune to ~2 × burst rate × ProcessConnection latency in ms, default 128)")]
-    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "ProcessChannelCapacity must be at least 1.")]
+    [ValueRange(1, int.MaxValue)]
     public int ProcessChannelCapacity { get; set; } = 256;
 
     /// <summary>
@@ -129,7 +130,7 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader, IValidat
     /// gracefully during shutdown before forceful termination.
     /// </summary>
     [IniComment("Maximum time in milliseconds to wait for the process channel to drain gracefully during shutdown (default: 5000)")]
-    [System.ComponentModel.DataAnnotations.Range(0, 60000, ErrorMessage = "ProcessChannelDrainTimeout must be between 0 and 60000 ms.")]
+    [ValueRange(0, 60000)]
     public int ProcessChannelDrainTimeout { get; set; } = 5000;
 
     /// <summary>
@@ -146,18 +147,18 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader, IValidat
 
     /// <summary>
     /// Gets or sets the maximum size (in bytes) allowed for a single UDP datagram.
-    /// Default 1400 avoids IP fragmentation.
+    /// Default 1440 avoids IP fragmentation.
     /// </summary>
-    [IniComment("Maximum allowed UDP datagram size in bytes to avoid fragmentation (default 1400)")]
-    [System.ComponentModel.DataAnnotations.Range(64, 65507, ErrorMessage = "MaxUdpDatagramSize must be between 64 and 65507.")]
-    public int MaxUdpDatagramSize { get; set; } = 1400;
+    [IniComment("Maximum allowed UDP datagram size in bytes to avoid fragmentation (default 1440)")]
+    [ValueRange(64, 65507)]
+    public int MaxUdpDatagramSize { get; set; } = 1440;
 
     #endregion Properties
 
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
-    /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
+    /// <exception cref="Abstractions.Exceptions.ValidationException">
     /// Thrown when one or more validation attributes fail.
     /// </exception>
     public void Validate() => this.ValidateDataAnnotations();

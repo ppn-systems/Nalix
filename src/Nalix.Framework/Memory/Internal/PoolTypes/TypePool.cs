@@ -129,14 +129,27 @@ internal class TypePool(int maxCapacity)
     /// <summary>
     /// Trims the pool to a target size based on a percentage of the maximum capacity.
     /// </summary>
-    /// <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
+    /// <param name="percentage">
+    /// The percentage of the maximum capacity to keep (0-100).
+    /// <list type="bullet">
+    ///   <item><description><c>0</c> = no trim (pool is at or below its safety floor).</description></item>
+    ///   <item><description><c>1–99</c> = keep <c>percentage</c>% of <see cref="MaxCapacity"/>.</description></item>
+    ///   <item><description><c>100</c> = keep up to full <see cref="MaxCapacity"/>.</description></item>
+    ///   <item><description><c>&lt; 0</c> = clear all objects.</description></item>
+    /// </list>
+    /// </param>
     /// <returns>The number of objects removed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public int Trim(int percentage)
     {
-        if (percentage <= 0)
+        if (percentage < 0)
         {
             return this.Clear();
+        }
+
+        if (percentage == 0)
+        {
+            return 0; // Safety floor reached — retain all available objects.
         }
 
         int targetSize = percentage >= 100

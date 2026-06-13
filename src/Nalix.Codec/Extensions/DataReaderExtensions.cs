@@ -4,7 +4,6 @@
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using Nalix.Codec.Internal;
 using Nalix.Codec.Serialization.Internal;
 using Nalix.Environment.Memory;
 
@@ -25,6 +24,7 @@ public static class DataReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte ReadByte(this ref DataReader reader)
     {
+        if (reader.BytesRemaining < sizeof(byte)) { SerializationDiagnostics.Poison(ref reader, "Out of bounds read"); return default; }
         ref byte ptr = ref reader.GetSpanReference(sizeof(byte));
         byte value = ptr;
         reader.Advance(sizeof(byte));
@@ -38,6 +38,7 @@ public static class DataReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ushort ReadUInt16(this ref DataReader reader)
     {
+        if (reader.BytesRemaining < sizeof(ushort)) { SerializationDiagnostics.Poison(ref reader, "Out of bounds read"); return default; }
         ref byte ptr = ref reader.GetSpanReference(sizeof(ushort));
         ushort value = Unsafe.ReadUnaligned<ushort>(ref ptr);
         reader.Advance(sizeof(ushort));
@@ -48,6 +49,7 @@ public static class DataReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static short ReadInt16(this ref DataReader reader)
     {
+        if (reader.BytesRemaining < sizeof(short)) { SerializationDiagnostics.Poison(ref reader, "Out of bounds read"); return default; }
         ref byte ptr = ref reader.GetSpanReference(sizeof(short));
         short value = Unsafe.ReadUnaligned<short>(ref ptr);
         reader.Advance(sizeof(short));
@@ -61,6 +63,7 @@ public static class DataReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint ReadUInt32(this ref DataReader reader)
     {
+        if (reader.BytesRemaining < sizeof(uint)) { SerializationDiagnostics.Poison(ref reader, "Out of bounds read"); return default; }
         ref byte ptr = ref reader.GetSpanReference(sizeof(uint));
         uint value = Unsafe.ReadUnaligned<uint>(ref ptr);
         reader.Advance(sizeof(uint));
@@ -74,6 +77,7 @@ public static class DataReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int ReadInt32(this ref DataReader reader)
     {
+        if (reader.BytesRemaining < sizeof(int)) { SerializationDiagnostics.Poison(ref reader, "Out of bounds read"); return default; }
         ref byte ptr = ref reader.GetSpanReference(sizeof(int));
         int value = Unsafe.ReadUnaligned<int>(ref ptr);
         reader.Advance(sizeof(int));
@@ -87,6 +91,7 @@ public static class DataReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static long ReadInt64(this ref DataReader reader)
     {
+        if (reader.BytesRemaining < sizeof(long)) { SerializationDiagnostics.Poison(ref reader, "Out of bounds read"); return default; }
         ref byte ptr = ref reader.GetSpanReference(sizeof(long));
         long value = Unsafe.ReadUnaligned<long>(ref ptr);
         reader.Advance(sizeof(long));
@@ -100,6 +105,7 @@ public static class DataReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong ReadUInt64(this ref DataReader reader)
     {
+        if (reader.BytesRemaining < sizeof(ulong)) { SerializationDiagnostics.Poison(ref reader, "Out of bounds read"); return default; }
         ref byte ptr = ref reader.GetSpanReference(sizeof(ulong));
         ulong value = Unsafe.ReadUnaligned<ulong>(ref ptr);
         reader.Advance(sizeof(ulong));
@@ -117,6 +123,7 @@ public static class DataReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static sbyte ReadSByte(this ref DataReader reader)
     {
+        if (reader.BytesRemaining < sizeof(sbyte)) { SerializationDiagnostics.Poison(ref reader, "Out of bounds read"); return default; }
         ref byte ptr = ref reader.GetSpanReference(sizeof(sbyte));
         sbyte value = (sbyte)ptr;
         reader.Advance(sizeof(sbyte));
@@ -127,6 +134,7 @@ public static class DataReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static char ReadChar(this ref DataReader reader)
     {
+        if (reader.BytesRemaining < sizeof(char)) { SerializationDiagnostics.Poison(ref reader, "Out of bounds read"); return default; }
         ref byte ptr = ref reader.GetSpanReference(sizeof(char));
         char value = Unsafe.ReadUnaligned<char>(ref ptr);
         reader.Advance(sizeof(char));
@@ -137,6 +145,7 @@ public static class DataReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static float ReadSingle(this ref DataReader reader)
     {
+        if (reader.BytesRemaining < sizeof(float)) { SerializationDiagnostics.Poison(ref reader, "Out of bounds read"); return default; }
         ref byte ptr = ref reader.GetSpanReference(sizeof(float));
         float value = Unsafe.ReadUnaligned<float>(ref ptr);
         reader.Advance(sizeof(float));
@@ -147,6 +156,7 @@ public static class DataReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double ReadDouble(this ref DataReader reader)
     {
+        if (reader.BytesRemaining < sizeof(double)) { SerializationDiagnostics.Poison(ref reader, "Out of bounds read"); return default; }
         ref byte ptr = ref reader.GetSpanReference(sizeof(double));
         double value = Unsafe.ReadUnaligned<double>(ref ptr);
         reader.Advance(sizeof(double));
@@ -245,9 +255,10 @@ public static class DataReaderExtensions
             return [];
         }
 
-        if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
+        if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength || count > reader.BytesRemaining)
         {
-            Throw.LengthOutOfRange();
+            SerializationDiagnostics.Poison(ref reader, "Out of bounds read");
+            return [];
         }
 
         ref byte ptr = ref reader.GetSpanReference(count);
@@ -288,6 +299,7 @@ public static class DataReaderExtensions
     {
         int size = Unsafe.SizeOf<T>();
 
+        if (reader.BytesRemaining < size) { SerializationDiagnostics.Poison(ref reader, "Out of bounds read"); return default; }
         ref byte srcPtr = ref reader.GetSpanReference(size);
         T value = Unsafe.ReadUnaligned<T>(ref srcPtr);
 

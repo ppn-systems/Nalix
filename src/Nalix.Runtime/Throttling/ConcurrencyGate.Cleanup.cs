@@ -45,7 +45,7 @@ public sealed partial class ConcurrencyGate
 
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
                 {
-                    DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Write(
                         DiagnosticsEvents.Internal.Information,
                         new DiagnosticLog(
                             "RT.ConcurrencyGate:Internal",
@@ -76,7 +76,7 @@ public sealed partial class ConcurrencyGate
 
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                 {
-                    DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Write(
                         DiagnosticsEvents.Internal.Error,
                         new DiagnosticLog(
                             "RT.ConcurrencyGate:Internal",
@@ -204,7 +204,7 @@ public sealed partial class ConcurrencyGate
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
-                    DiagnosticsEvents.Source.Write(
+                    DiagnosticsEvents.Write(
                         DiagnosticsEvents.Internal.Debug,
                         new DiagnosticLog(
                             "RT.ConcurrencyGate:Internal",
@@ -216,7 +216,7 @@ public sealed partial class ConcurrencyGate
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Error,
                     new DiagnosticLog(
                         "RT.ConcurrencyGate:Internal",

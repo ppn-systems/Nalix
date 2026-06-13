@@ -15,16 +15,28 @@ namespace Nalix.Network.Internal.Security;
 /// <remarks>
 /// This class is thread-safe and suitable for use in high-performance networking scenarios.
 /// </remarks>
-internal struct TransportSequencer : ITransportSequencer
+internal readonly struct TransportSequencer : ITransportSequencer
 {
-    private SequenceCounter _send;
-    private SequenceCounter _receive;
+    private readonly SequenceCounter _send;
+    private readonly SequenceCounter _receive;
 
     /// <inheritdoc />
     public readonly ISequenceCounter SendSequence => _send;
 
     /// <inheritdoc />
     public readonly ISequenceCounter ReceiveSequence => _receive;
+
+    /// <inheritdoc />
+    public readonly uint NextSendSequence() => _send.Next();
+
+    /// <inheritdoc />
+    public readonly uint NextReceiveSequence() => _receive.Next();
+
+    /// <inheritdoc />
+    public readonly uint CurrentSendSequence => _send.Current();
+
+    /// <inheritdoc />
+    public readonly uint CurrentReceiveSequence => _receive.Current();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TransportSequencer"/> class.

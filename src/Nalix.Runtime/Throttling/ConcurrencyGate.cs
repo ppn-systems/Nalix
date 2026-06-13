@@ -144,7 +144,7 @@ public sealed partial class ConcurrencyGate : IReportable
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(
+                DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Error,
                     new DiagnosticLog(
                         "RT.ConcurrencyGate:TryEnter",

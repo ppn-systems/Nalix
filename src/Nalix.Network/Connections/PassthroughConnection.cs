@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -95,7 +94,7 @@ public sealed class PassthroughConnection :
 
         this.ExcludeFromIdleTimeout = true;
         this.PacketClassifier = packetClassifier;
-        this.ID = Snowflake.NewId(SnowflakeType.Session);
+        this.ID = Snowflake.NewId(SnowflakeType.Session).ToUInt64();
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(remoteEndPoint as IPEndPoint);
     }
 
@@ -177,7 +176,7 @@ public sealed class PassthroughConnection :
     public bool ExcludeFromIdleTimeout { get; set; }
 
     /// <inheritdoc />
-    public ISnowflake ID { get; }
+    public ulong ID { get; }
 
     /// <inheritdoc />
     public long UpTime => Clock.UnixMillisecondsNow() - _createdAtMs;
@@ -324,8 +323,9 @@ public sealed class PassthroughConnection :
                 try
                 {
                     Delegate[] handlers = _onCloseEvent.GetInvocationList();
-                    foreach (EventHandler<IConnectEventArgs> handler in handlers.Cast<EventHandler<IConnectEventArgs>>())
+                    for (int i = 0; i < handlers.Length; i++)
                     {
+                        EventHandler<IConnectEventArgs> handler = (EventHandler<IConnectEventArgs>)handlers[i];
                         try
                         {
                             handler(this, args);
@@ -334,11 +334,7 @@ public sealed class PassthroughConnection :
                         {
                             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                             {
-                                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                                {
-                                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.PassthroughConnection:Dispose", "close-handler-error", ex));
-                                }
-                                ;
+                                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.PassthroughConnection:Dispose", "close-handler-error", ex));
                             }
                         }
                     }
@@ -353,7 +349,7 @@ public sealed class PassthroughConnection :
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.PassthroughConnection:Dispose", "close-event-error", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.PassthroughConnection:Dispose", "close-event-error", ex));
             }
         }
 
