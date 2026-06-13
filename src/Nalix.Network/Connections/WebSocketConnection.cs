@@ -31,7 +31,12 @@ namespace Nalix.Network.Connections;
 /// Represents a network connection that manages WebSocket communication, stream
 /// transformation, and event handling.
 /// </summary>
-public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, IConnectionTrafficMetrics, TimingWheel.ITimeoutTrackedConnection, IPooledConnectContextPool
+public sealed class WebSocketConnection :
+    IConnection,
+    IConnectionErrorTracked,
+    IConnectionTrafficMetrics,
+    IPooledConnectContextPool,
+    TimingWheel.ITimeoutTrackedConnection
 {
     #region Fields
 

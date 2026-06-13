@@ -27,7 +27,6 @@ using Nalix.Network.Internal.Security;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Internal.Transport;
 using Nalix.Network.Options;
-using static Nalix.Network.Internal.Time.TimingWheel;
 
 namespace Nalix.Network.Connections;
 
@@ -70,12 +69,12 @@ public sealed partial class Connection :
         s_callbackOptions = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
 
         // Pre-configure pool capacities based on expected usage patterns to minimize resizing during runtime.
-        _ = s_pool.SetMaxCapacity<TimeoutTask>(s_options.MaxConnections);
         _ = s_pool.SetMaxCapacity<SocketConnection>(s_options.MaxConnections);
         _ = s_pool.SetMaxCapacity<ConnectionBacking>(s_options.MaxConnections);
         _ = s_pool.SetMaxCapacity<SocketTcpTransport>(s_options.MaxConnections);
         _ = s_pool.SetMaxCapacity<SocketUdpTransport>(s_options.MaxConnections);
         _ = s_pool.SetMaxCapacity<ProxyHeaderContext>(s_options.MaxConnections);
+        _ = s_pool.SetMaxCapacity<TimingWheel.TimeoutTask>(s_options.MaxConnections);
         _ = s_pool.SetMaxCapacity<PooledSocketReceiveContext>(s_options.MaxConnections);
 
         int capacity = (s_options.MaxConnections * 2) + 1024;
@@ -102,7 +101,7 @@ public sealed partial class Connection :
         _ = s_pool.Prealloc<ConnectionEventArgs>(256);
         _ = s_pool.Prealloc<PooledConnectEventContext>(256);
 
-        _ = s_pool.Prealloc<TimeoutTask>(128);
+        _ = s_pool.Prealloc<TimingWheel.TimeoutTask>(128);
 
         _ = s_pool.Prealloc<SocketConnection>(128);
         _ = s_pool.Prealloc<ConnectionBacking>(128);
