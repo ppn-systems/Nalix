@@ -85,7 +85,7 @@ Note: `MaxConnectionsPerTrustedProxy` is configured via `TrustedProxyOptions` (d
 
 | Option | Description | Default Value |
 | --- | --- | --- |
-| `MaxConnections` | Global concurrent connection limit across the entire server. `-1` means unlimited. | `-1` |
+| `MaxConnections` | Global concurrent connection limit across the entire server. | `2000` |
 | `EnableProgressiveBanning` | Enables progressive scaling of ban durations on consecutive violations. | `true` |
 | `BanDuration` | Base ban duration for non-progressive bans or initial progressive violation. | `00:05:00` |
 | `DDoSLogSuppressWindow` | Throttling window for suppressing repeated DDoS rejection log entries. | `00:00:20` |

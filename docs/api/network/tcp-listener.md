@@ -66,12 +66,12 @@ flowchart TD
 
 ### 2.1. Accept Pipeline
 
-Nalix uses pooled accept contexts and pooled `SocketAsyncEventArgs` for the accept path. During construction, `TcpListenerBase` loads `PoolingOptions`, validates them, and preallocates:
+Nalix uses pooled accept contexts and pooled `SocketAsyncEventArgs` for the accept path. Pool capacities are derived from `ConnectionGuardOptions.MaxConnections` and `NetworkSocketOptions.MaxParallel` during server startup. The accept path rents:
 
 - `PooledAcceptContext`
 - `PooledSocketAsyncEventArgs`
 
-The listener also validates `NetworkSocketOptions` up front.
+The listener validates `NetworkSocketOptions` up front.
 
 ### 2.2. Admission Control (`ConnectionGuard`)
 

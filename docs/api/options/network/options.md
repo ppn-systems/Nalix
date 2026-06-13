@@ -10,7 +10,6 @@ The following diagram illustrates how various Options classes map to the core ru
 flowchart LR
     subgraph Config[Options Layer]
         NSO[NetworkSocketOptions]
-        PO[PoolingOptions]
         CQO[ConnectionQuotaOptions]
         CGO[ConnectionGuardOptions]
         TPO[TrustedProxyOptions]
@@ -32,15 +31,14 @@ flowchart LR
     end
 
     NSO --> SC
-    PO --> SC
-    PO --> AC
-    
+    CGO --> SC
+
     CQO --> CG
     CGO --> CG
     TPO --> CG
     DGO --> DG
     NCO --> AC
-    
+
     CHO --> Hub
     TWO --> TW
     SSO --> SS
@@ -53,9 +51,8 @@ Nalix uses a modular configuration system. Depending on the packages you have in
 | Option type | Package | Primary Role | Tuning Impact |
 | --- | --- | --- | --- |
 | `NetworkSocketOptions` | `Nalix.Network` | Low-level OS socket settings. | Throughput / Latency |
-| `PoolingOptions` | `Nalix.Network` | Memory and object pool limits. | GC Pressure |
 | `ConnectionQuotaOptions` | `Nalix.Network` | Per-IP concurrent connection caps and window-based rate limits. | Security |
-| `ConnectionGuardOptions` | `Nalix.Network` | Ban duration, packet rate limit, blacklist, and error thresholds. | Security |
+| `ConnectionGuardOptions` | `Nalix.Network` | Global connection ceiling, ban duration, packet rate limit, and error thresholds. | Security |
 | `TrustedProxyOptions` | `Nalix.Network` | Trusted reverse proxy / CDN definitions and customized limits. | Security |
 | `DatagramGuardOptions` | `Nalix.Network` | Bounded UDP source-window tracking. | Security / Memory |
 | `ConnectionHubOptions` | `Nalix.Network` | Hub sharding and total capacity. | Concurrency |
@@ -65,7 +62,7 @@ Nalix uses a modular configuration system. Depending on the packages you have in
 | `DispatchOptions` | `Nalix.Runtime` | Internal message routing. | Parallelism |
 | `CompressionOptions` | `Nalix.Codec` | LZ4 threshold settings. | Bandwidth |
 | `TokenBucketOptions` | `Nalix.Runtime` | Token-bucket traffic shaping. | QoS |
-| `PoolingOptions` | `Nalix.Runtime` | Memory and object pool limits. | GC Pressure |
+| `PoolingOptions` | `Nalix.Runtime` | Packet context pool limits. | GC Pressure |
 | `ConcurrencyOptions` | `Nalix.Runtime` | Global concurrency gate and circuit-breaker thresholds. | Resilience |
 | `DirectiveGuardOptions` | `Nalix.Runtime` | Inbound directive cooldown suppression. | Anti-spam |
 
