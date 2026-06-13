@@ -38,7 +38,7 @@ public sealed class PeerSignalHandler
             return;
         }
 
-        ulong senderId = context.Connection.ID.ToUInt64();
+        ulong senderId = context.Connection.ID;
         ulong targetId = context.Packet.TargetPeerId;
 
         IConnectionHub? hub = context.Connection.GetHub();
