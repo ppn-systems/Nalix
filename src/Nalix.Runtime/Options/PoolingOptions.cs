@@ -34,9 +34,9 @@ public sealed partial class PoolingOptions : ConfigurationLoader, IValidatableCo
     /// <summary>
     /// Maximum number of <see cref="PacketContext{T}"/> instances retained in the pool.
     /// </summary>
-    [IniComment("Max pooled IPacketContext instances (default 8192)")]
+    [IniComment("Max pooled IPacketContext instances (default 2048)")]
     [ValueRange(1, 1_000_000)]
-    public int PacketContextCapacity { get; set; } = 8192;
+    public int PacketContextCapacity { get; set; } = 2048;
 
     /// <summary>
     /// Number of <see cref="PacketContext{T}"/> instances to create at startup.

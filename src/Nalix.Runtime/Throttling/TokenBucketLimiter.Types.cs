@@ -3,6 +3,7 @@
 
 using System;
 using System.Threading;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 
 namespace Nalix.Runtime.Throttling;
@@ -93,8 +94,7 @@ public sealed partial class TokenBucketLimiter
 
     #region Private Types
 
-    /// <summary>Per-endpoint mutable state; optimized with SpinLock for micro-operations.</summary>
-    private sealed class EndpointState
+    private sealed class EndpointState : IPoolable
     {
         public long LastSeenSw;
         public long MicroBalance;
@@ -103,8 +103,19 @@ public sealed partial class TokenBucketLimiter
         public long AccumulatedMicro;
         public long LastRefillSwTicks;
         public long HardBlockedUntilSw;
+ 
+        public readonly Lock Lock = new();
 
-        public SpinLock SpinLock = new(false);
+        public void ResetForPool()
+        {
+            Volatile.Write(ref LastSeenSw, 0);
+            Volatile.Write(ref MicroBalance, 0);
+            Volatile.Write(ref SoftViolations, 0);
+            Volatile.Write(ref LastViolationSw, 0);
+            Volatile.Write(ref AccumulatedMicro, 0);
+            Volatile.Write(ref LastRefillSwTicks, 0);
+            Volatile.Write(ref HardBlockedUntilSw, 0);
+        }
     }
 
     /// <summary>A shard contains a dictionary of endpoint states.</summary>

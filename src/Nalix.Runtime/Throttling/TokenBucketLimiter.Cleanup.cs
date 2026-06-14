@@ -142,18 +142,9 @@ public sealed partial class TokenBucketLimiter
             return false;
         }
 
-        bool lockTaken = false;
-        try
+        lock (state.Lock)
         {
-            state.SpinLock.Enter(ref lockTaken);
             shouldRemove = (now - state.LastSeenSw) > staleTicks;
-        }
-        finally
-        {
-            if (lockTaken)
-            {
-                state.SpinLock.Exit();
-            }
         }
 
         if (!shouldRemove)
@@ -162,8 +153,9 @@ public sealed partial class TokenBucketLimiter
         }
 
         // Only proceed if truly stale
-        if (shard.Map.TryRemove(kv.Key, out _))
+        if (shard.Map.TryRemove(kv.Key, out EndpointState? evictedState))
         {
+            s_pool.Return(evictedState);
             _ = Interlocked.Decrement(ref _totalEndpointCount);
             return true;
         }
@@ -222,104 +214,68 @@ public sealed partial class TokenBucketLimiter
             return 0;
         }
 
-        List<(INetworkEndpoint Key, long LastSeen)> candidates = this.COLLECT_EVICTION_CANDIDATES(cancellationToken);
-
-        try
-        {
-            candidates.Sort((a, b) => a.LastSeen.CompareTo(b.LastSeen));
-            return this.EVICT_OLDEST_CANDIDATES(candidates, count, cancellationToken);
-        }
-        finally
-        {
-            RETURN_EVICTION_CANDIDATES_TO_POOL(candidates);
-        }
-    }
-
-    /// <summary>
-    /// Collects all endpoints as eviction candidates.
-    /// </summary>
-    /// <param name="cancellationToken"></param>
-    private List<(INetworkEndpoint Key, long LastSeen)> COLLECT_EVICTION_CANDIDATES(CancellationToken cancellationToken)
-    {
-        int estimatedCapacity = Math.Min(
-            _totalEndpointCount * 2,
-            _options.MaxEvictionCapacity);
-
-        ListPool<(INetworkEndpoint Key, long LastSeen)> pool = ListPool<(INetworkEndpoint Key, long LastSeen)>.Instance;
-        List<(INetworkEndpoint Key, long LastSeen)> candidates = pool.Rent(minimumCapacity: estimatedCapacity);
-
-        foreach (Shard shard in _shards)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            foreach (KeyValuePair<INetworkEndpoint, EndpointState> kv in shard.Map)
-            {
-                long lastSeen;
-                bool lockTaken = false;
-
-                try
-                {
-                    kv.Value.SpinLock.Enter(ref lockTaken);
-                    lastSeen = kv.Value.LastSeenSw;
-                }
-                finally
-                {
-                    if (lockTaken)
-                    {
-                        kv.Value.SpinLock.Exit();
-                    }
-                }
-
-                candidates.Add((kv.Key, lastSeen));
-            }
-        }
-
-        return candidates;
-    }
-
-    /// <summary>
-    /// Evicts the oldest N candidates.
-    /// </summary>
-    /// <param name="candidates"></param>
-    /// <param name="count"></param>
-    /// <param name="cancellationToken"></param>
-    private int EVICT_OLDEST_CANDIDATES(
-        List<(INetworkEndpoint Key, long LastSeen)> candidates,
-        int count,
-        CancellationToken cancellationToken)
-    {
         int removed = 0;
-        int toRemove = Math.Min(count, candidates.Count);
+        int visited = 0;
+        int shardCount = _shards.Length;
+        int startIdx = Volatile.Read(ref _cleanupShardStart);
 
-        for (int i = 0; i < toRemove; i++)
+        long staleTicks = this.TO_TICKS(_options.StaleEntrySeconds);
+        long thresholdTicks = staleTicks / 2;
+        long now = Stopwatch.GetTimestamp();
+
+        // Pass 0: Evict endpoints idle for more than 50% of stale seconds
+        // Pass 1: Evict any non-blocked endpoints until limit is enforced
+        for (int pass = 0; pass < 2 && removed < count; pass++)
         {
-            if ((i & (CancellationCheckFrequency - 1)) == 0)
+            for (int s = 0; s < shardCount && removed < count; s++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-            }
 
-            INetworkEndpoint endpoint = candidates[i].Key;
-            Shard shard = this.SELECT_SHARD(endpoint);
+                Shard shard = _shards[(startIdx + s) % shardCount];
 
-            if (shard.Map.TryRemove(endpoint, out _))
-            {
-                removed++;
-                _ = Interlocked.Decrement(ref _totalEndpointCount);
+                foreach (KeyValuePair<INetworkEndpoint, EndpointState> kv in shard.Map)
+                {
+                    visited++;
+                    if ((visited & (CancellationCheckFrequency - 1)) == 0)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                    }
+
+                    EndpointState state = kv.Value;
+                    bool shouldEvict = false;
+
+                    lock (state.Lock)
+                    {
+                        bool isBlocked = state.HardBlockedUntilSw > now;
+                        if (!isBlocked)
+                        {
+                            if (pass == 0)
+                            {
+                                shouldEvict = (now - state.LastSeenSw) > thresholdTicks;
+                            }
+                            else
+                            {
+                                shouldEvict = true;
+                            }
+                        }
+                    }
+
+                    if (shouldEvict && shard.Map.TryRemove(kv.Key, out EndpointState? evictedState))
+                    {
+                        s_pool.Return(evictedState);
+                        removed++;
+                        _ = Interlocked.Decrement(ref _totalEndpointCount);
+
+                        if (removed >= count)
+                        {
+                            break;
+                        }
+                    }
+                }
             }
         }
 
         return removed;
-    }
-
-    /// <summary>
-    /// Returns eviction candidates list to pool.
-    /// </summary>
-    /// <param name="candidates"></param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void RETURN_EVICTION_CANDIDATES_TO_POOL(List<(INetworkEndpoint Key, long LastSeen)> candidates)
-    {
-        ListPool<(INetworkEndpoint Key, long LastSeen)> pool = ListPool<(INetworkEndpoint Key, long LastSeen)>.Instance;
-        pool.Return(candidates, clearItems: true);
     }
 
     #endregion Cleanup

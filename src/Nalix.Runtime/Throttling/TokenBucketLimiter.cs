@@ -15,6 +15,7 @@ using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Runtime.Options;
 
 namespace Nalix.Runtime.Throttling;
@@ -38,6 +39,8 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     #endregion Constants
 
     #region Fields
+
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     private readonly Shard[] _shards;
     private readonly double _swFreq;
@@ -97,6 +100,10 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
 
         _taskManager = InstanceManager.Instance.GetExistingInstance<ITaskManager>();
         _adaptiveThrottlingEnabled = _options.AdaptiveThrottlingEnabled && _taskManager is not null;
+
+        int poolCapacity = Math.Clamp(_options.MaxTrackedEndpoints / 10, 1024, 65536);
+        s_pool.SetMaxCapacity<EndpointState>(poolCapacity);
+        s_pool.Prealloc<EndpointState>(Math.Min(64, _options.MaxTrackedEndpoints));
  
         this.SCHEDULE_CLEANUP_JOB();
     }
@@ -332,29 +339,27 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private EndpointState CREATE_INITIAL_ENDPOINT_STATE(long now)
     {
-        return new EndpointState
-        {
-            LastSeenSw = now,
-            SoftViolations = 0,
-            LastViolationSw = 0,
-            HardBlockedUntilSw = 0,
-            LastRefillSwTicks = now,
-            MicroBalance = _initialBalanceMicro // Start with full bucket
-        };
+        EndpointState state = s_pool.Get<EndpointState>();
+        state.LastSeenSw = now;
+        state.SoftViolations = 0;
+        state.LastViolationSw = 0;
+        state.HardBlockedUntilSw = 0;
+        state.LastRefillSwTicks = now;
+        state.MicroBalance = _initialBalanceMicro; // Start with full bucket
+        return state;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private EndpointState CREATE_INITIAL_ENDPOINT_STATE(long now, in RateLimitPolicy policy)
     {
-        return new EndpointState
-        {
-            LastSeenSw = now,
-            SoftViolations = 0,
-            LastViolationSw = 0,
-            HardBlockedUntilSw = 0,
-            LastRefillSwTicks = now,
-            MicroBalance = this.CalculateInitialBalance(in policy)
-        };
+        EndpointState state = s_pool.Get<EndpointState>();
+        state.LastSeenSw = now;
+        state.SoftViolations = 0;
+        state.LastViolationSw = 0;
+        state.HardBlockedUntilSw = 0;
+        state.LastRefillSwTicks = now;
+        state.MicroBalance = this.CalculateInitialBalance(in policy);
+        return state;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -375,8 +380,9 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void REMOVE_NEWLY_ADDED_ENDPOINT(INetworkEndpoint key, Shard shard)
     {
-        if (shard.Map.TryRemove(key, out _))
+        if (shard.Map.TryRemove(key, out EndpointState? state))
         {
+            s_pool.Return(state);
             _ = Interlocked.Decrement(ref _totalEndpointCount);
         }
     }
@@ -400,8 +406,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private RateLimitDecision EVALUATE_RATE_LIMIT(EndpointState state, long now)
     {
-        bool lockTaken = false;
-        try
+        lock (state.Lock)
         {
             /*
              * HIGH-PRECISION TOKEN BUCKET (NANOSECOND RESOLUTION):
@@ -410,7 +415,6 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
              * * This allows us to track fractions of tokens without floating point math,
              * and provides extremely smooth throttling even at very high rates (100k+ req/sec).
              */
-            state.SpinLock.Enter(ref lockTaken);
             state.LastSeenSw = now;
 
             // Step 1: Check hard lockout first (set when users repeatedly exceed soft limits)
@@ -431,22 +435,13 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
             // Step 4: No tokens left - apply penalty or block
             return this.HANDLE_INSUFFICIENT_TOKENS(state, now);
         }
-        finally
-        {
-            if (lockTaken)
-            {
-                state.SpinLock.Exit();
-            }
-        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private RateLimitDecision EVALUATE_RATE_LIMIT(EndpointState state, long now, in RateLimitPolicy policy)
     {
-        bool lockTaken = false;
-        try
+        lock (state.Lock)
         {
-            state.SpinLock.Enter(ref lockTaken);
             state.LastSeenSw = now;
 
             if (this.IS_HARD_BLOCKED(state, now, out RateLimitDecision blockedDecision, in policy))
@@ -462,13 +457,6 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
             }
 
             return this.HANDLE_INSUFFICIENT_TOKENS(state, now, in policy);
-        }
-        finally
-        {
-            if (lockTaken)
-            {
-                state.SpinLock.Exit();
-            }
         }
     }
 
@@ -874,12 +862,12 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Shard SELECT_SHARD(INetworkEndpoint key)
     {
-        int hash = key.GetHashCode();
+        ReadOnlySpan<byte> bytes = System.Runtime.InteropServices.MemoryMarshal.AsBytes(key.Address.AsSpan());
+        uint h = Nalix.Environment.Hashing.XxHash32.Compute(bytes);
 
-        // Mix hash with FNV-1a prime for better distribution
+        // Mix hash for better distribution
         unchecked
         {
-            uint h = (uint)hash;
             h ^= h >> 16;
             h *= 0x85ebca6b;
             h ^= h >> 13;
