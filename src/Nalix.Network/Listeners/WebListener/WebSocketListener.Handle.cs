@@ -250,11 +250,12 @@ public abstract partial class WebSocketListenerBase
             work: this.PROCESS_CHANNEL_LOOP_ASYNC,
             options: new WorkerOptions
             {
-                OSPriority = ThreadPriority.BelowNormal,
                 Tag = TaskNaming.Tags.Net,
-                IdType = SnowflakeType.System,
                 RetainFor = TimeSpan.Zero,
-                CancellationToken = cancellationToken
+                IdType = SnowflakeType.System,
+                CancellationToken = cancellationToken,
+                OSPriority = ThreadPriority.BelowNormal,
+                ProcessorAffinity = _config.DispatchProcessorAffinity >= 0 ? _config.DispatchProcessorAffinity : null,
             });
     }
 

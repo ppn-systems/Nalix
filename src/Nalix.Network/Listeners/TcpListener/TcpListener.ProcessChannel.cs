@@ -68,11 +68,12 @@ public abstract partial class TcpListenerBase
             {
                 // SEC-DDOS: Dedicated thread BelowNormal priority -> OS scheduler prioritizes Normal-priority ThreadPool threads.
                 // This ensures I/O callbacks always win CPU time over new connection accepting during saturation.
-                OSPriority = ThreadPriority.BelowNormal,
+                RetainFor = TimeSpan.Zero,
                 Tag = TaskNaming.Tags.Net,
                 IdType = SnowflakeType.System,
-                RetainFor = TimeSpan.Zero,
-                CancellationToken = cancellationToken
+                CancellationToken = cancellationToken,
+                OSPriority = ThreadPriority.BelowNormal,
+                ProcessorAffinity = _config.DispatchProcessorAffinity >= 0 ? _config.DispatchProcessorAffinity : null,
             });
     }
 

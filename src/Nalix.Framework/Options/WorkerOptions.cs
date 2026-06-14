@@ -74,4 +74,10 @@ public sealed class WorkerOptions : IWorkerOptions
     /// Gets the optional OS-level thread priority for the worker.
     /// </summary>
     public ThreadPriority? OSPriority { get; set; }
+
+    /// <summary>
+    /// Gets or sets the preferred CPU core index (0-based) for dedicated thread affinity.
+    /// Only effective when <see cref="OSPriority"/> is also set.
+    /// </summary>
+    public int? ProcessorAffinity { get; set; }
 }

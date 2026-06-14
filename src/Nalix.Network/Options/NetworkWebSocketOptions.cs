@@ -68,6 +68,13 @@ public sealed partial class NetworkWebSocketOptions : ConfigurationLoader, IVali
     public int MaxMessageSize { get; set; } = 1_048_576;
 
     /// <summary>
+    /// CPU core index (0-based) to pin the WebSocket dispatch worker thread.
+    /// Leave as -1 for OS default scheduling (no pinning).
+    /// </summary>
+    [IniComment("CPU core index (0-based) to pin the WebSocket dispatch worker thread (leave as -1 for OS default)")]
+    public int DispatchProcessorAffinity { get; set; } = -1;
+
+    /// <summary>
     /// Number of concurrent accept workers to spawn for handling new WebSocket connections.
     /// </summary>
     [IniComment("Number of concurrent accept workers (default 1)")]

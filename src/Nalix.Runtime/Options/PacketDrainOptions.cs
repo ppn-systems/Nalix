@@ -62,6 +62,13 @@ public sealed partial class PacketDrainOptions : ConfigurationLoader, IValidatab
     public int MaxDispatchLoops { get; set; } = 64;
 
     /// <summary>
+    /// Comma-separated list of CPU core indices to pin the packet dispatch worker threads.
+    /// Example: "0,2,4,6". Leave empty to run on the OS default ThreadPool.
+    /// </summary>
+    [IniComment("Comma-separated CPU cores to pin dispatch workers (e.g. '0,2,4', leave empty for ThreadPool)")]
+    public string DispatchProcessorAffinities { get; set; } = string.Empty;
+
+    /// <summary>
     /// The offset added to the Minecraft Packet ID to map it to a unique Nalix OpCode.
     /// Default is 0x1000 (4096).
     /// </summary>

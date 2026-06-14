@@ -388,6 +388,12 @@ public partial class TaskManager
                 try
                 {
                     Thread.CurrentThread.Priority = osPriority;
+
+                    if (options.ProcessorAffinity is int coreIndex)
+                    {
+                        SET_THREAD_AFFINITY(coreIndex, name);
+                    }
+
                     Task execution = this.EXECUTE_WORKER_ASYNC(st, gate, cts);
                     if (execution.IsCompletedSuccessfully)
                     {
