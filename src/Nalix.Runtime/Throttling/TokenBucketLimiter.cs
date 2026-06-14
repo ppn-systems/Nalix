@@ -142,9 +142,10 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         /*
          * [Decision Workflow]
          * 1. Validate endpoint.
-         * 2. Select shard based on endpoint hash (to minimize lock contention).
-         * 3. Retrieve or create endpoint state.
-         * 4. Perform high-precision token bucket evaluation.
+         * 2. Direct path for ScopedEndpoint cache check (bypasses global dictionary lookups).
+         * 3. Select shard based on endpoint hash.
+         * 4. Retrieve or create endpoint state.
+         * 5. Perform high-precision token bucket evaluation.
          */
         if (_disposed)
         {
@@ -160,12 +161,31 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         VALIDATE_ENDPOINT(key);
 
         long now = Stopwatch.GetTimestamp();
+
+        if (key is PolicyRateLimiter.ScopedEndpoint scopedKey)
+        {
+            EndpointState? cached = scopedKey.CachedState;
+            if (cached != null && cached.Generation == scopedKey.CachedGeneration && Volatile.Read(ref cached.LastSeenSw) != 0)
+            {
+                return this.EVALUATE_RATE_LIMIT(cached, now);
+            }
+        }
+
         Shard shard = this.SELECT_SHARD(key);
 
-        EndpointStateResult result = this.GET_OR_CREATE_ENDPOINT_STATE(key, shard, now);
+        EndpointState? state = this.GET_OR_CREATE_ENDPOINT_STATE(key, shard, now, out bool limitReached);
+        if (limitReached || state == null)
+        {
+            return this.CREATE_LIMIT_REACHED_DECISION();
+        }
 
-        // Early exit if limit reached during creation
-        return result.EarlyDecision ?? this.EVALUATE_RATE_LIMIT(result.State, now);
+        if (key is PolicyRateLimiter.ScopedEndpoint newScopedKey)
+        {
+            newScopedKey.CachedState = state;
+            newScopedKey.CachedGeneration = state.Generation;
+        }
+
+        return this.EVALUATE_RATE_LIMIT(state, now);
     }
 
     /// <summary>
@@ -191,11 +211,31 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         VALIDATE_ENDPOINT(key);
 
         long now = Stopwatch.GetTimestamp();
+
+        if (key is PolicyRateLimiter.ScopedEndpoint scopedKey)
+        {
+            EndpointState? cached = scopedKey.CachedState;
+            if (cached != null && cached.Generation == scopedKey.CachedGeneration && Volatile.Read(ref cached.LastSeenSw) != 0)
+            {
+                return this.EVALUATE_RATE_LIMIT(cached, now, in policy);
+            }
+        }
+
         Shard shard = this.SELECT_SHARD(key);
 
-        EndpointStateResult result = this.GET_OR_CREATE_ENDPOINT_STATE(key, shard, now, in policy);
+        EndpointState? state = this.GET_OR_CREATE_ENDPOINT_STATE(key, shard, now, out bool limitReached, in policy);
+        if (limitReached || state == null)
+        {
+            return this.CREATE_LIMIT_REACHED_DECISION();
+        }
 
-        return result.EarlyDecision ?? this.EVALUATE_RATE_LIMIT(result.State, now, in policy);
+        if (key is PolicyRateLimiter.ScopedEndpoint newScopedKey)
+        {
+            newScopedKey.CachedState = state;
+            newScopedKey.CachedGeneration = state.Generation;
+        }
+
+        return this.EVALUATE_RATE_LIMIT(state, now, in policy);
     }
 
     #endregion Public API
@@ -214,31 +254,34 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private EndpointStateResult GET_OR_CREATE_ENDPOINT_STATE(INetworkEndpoint key, Shard shard, long now)
+    private EndpointState? GET_OR_CREATE_ENDPOINT_STATE(INetworkEndpoint key, Shard shard, long now, out bool limitReached)
     {
+        limitReached = false;
         // Fast-path: endpoint already tracked
         if (shard.Map.TryGetValue(key, out EndpointState? existingState))
         {
-            return new EndpointStateResult { State = existingState, IsNew = false };
+            return existingState;
         }
 
         // Slow-path: create new state with limit check
-        return this.CREATE_NEW_ENDPOINT_STATE(key, shard, now);
+        return this.CREATE_NEW_ENDPOINT_STATE(key, shard, now, out limitReached);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private EndpointStateResult GET_OR_CREATE_ENDPOINT_STATE(INetworkEndpoint key, Shard shard, long now, in RateLimitPolicy policy)
+    private EndpointState? GET_OR_CREATE_ENDPOINT_STATE(INetworkEndpoint key, Shard shard, long now, out bool limitReached, in RateLimitPolicy policy)
     {
+        limitReached = false;
         if (shard.Map.TryGetValue(key, out EndpointState? existingState))
         {
-            return new EndpointStateResult { State = existingState, IsNew = false };
+            return existingState;
         }
 
-        return this.CREATE_NEW_ENDPOINT_STATE(key, shard, now, in policy);
+        return this.CREATE_NEW_ENDPOINT_STATE(key, shard, now, out limitReached, in policy);
     }
 
-    private EndpointStateResult CREATE_NEW_ENDPOINT_STATE(INetworkEndpoint key, Shard shard, long now)
+    private EndpointState? CREATE_NEW_ENDPOINT_STATE(INetworkEndpoint key, Shard shard, long now, out bool limitReached)
     {
+        limitReached = false;
         // Pre-check limit before allocation
         if (this.IS_ENDPOINT_LIMIT_REACHED())
         {
@@ -251,10 +294,8 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
                         $"endpoint-limit-reached-precheck count={_totalEndpointCount} limit={_options.MaxTrackedEndpoints}"));
             }
 
-            return new EndpointStateResult
-            {
-                EarlyDecision = this.CREATE_LIMIT_REACHED_DECISION()
-            };
+            limitReached = true;
+            return null;
         }
 
         EndpointState newState = this.CREATE_INITIAL_ENDPOINT_STATE(now);
@@ -265,21 +306,15 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
             // Lost the race - another thread added it first
             _ = Interlocked.Decrement(ref _totalEndpointCount);
 
-            return new EndpointStateResult
-            {
-                State = shard.Map[key],
-                IsNew = false
-            };
+            return shard.Map[key];
         }
 
         // Successfully added - double-check limit
         if (this.SHOULD_REJECT_DUE_TO_LIMIT(newCount))
         {
             this.REMOVE_NEWLY_ADDED_ENDPOINT(key, shard);
-            return new EndpointStateResult
-            {
-                EarlyDecision = this.CREATE_LIMIT_REACHED_DECISION()
-            };
+            limitReached = true;
+            return null;
         }
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
@@ -291,11 +326,12 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
                     $"new-endpoint total={_totalEndpointCount}"));
         }
 
-        return new EndpointStateResult { State = newState, IsNew = true };
+        return newState;
     }
 
-    private EndpointStateResult CREATE_NEW_ENDPOINT_STATE(INetworkEndpoint key, Shard shard, long now, in RateLimitPolicy policy)
+    private EndpointState? CREATE_NEW_ENDPOINT_STATE(INetworkEndpoint key, Shard shard, long now, out bool limitReached, in RateLimitPolicy policy)
     {
+        limitReached = false;
         if (this.IS_ENDPOINT_LIMIT_REACHED())
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
@@ -306,7 +342,8 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
                         "RT.TokenBucketLimiter:Internal",
                         $"endpoint-limit-reached-precheck count={_totalEndpointCount} limit={_options.MaxTrackedEndpoints}"));
             }
-            return new EndpointStateResult { EarlyDecision = this.CREATE_LIMIT_REACHED_DECISION() };
+            limitReached = true;
+            return null;
         }
 
         EndpointState newState = this.CREATE_INITIAL_ENDPOINT_STATE(now, in policy);
@@ -315,13 +352,14 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         if (!shard.Map.TryAdd(key, newState))
         {
             _ = Interlocked.Decrement(ref _totalEndpointCount);
-            return new EndpointStateResult { State = shard.Map[key], IsNew = false };
+            return shard.Map[key];
         }
 
         if (this.SHOULD_REJECT_DUE_TO_LIMIT(newCount))
         {
             this.REMOVE_NEWLY_ADDED_ENDPOINT(key, shard);
-            return new EndpointStateResult { EarlyDecision = this.CREATE_LIMIT_REACHED_DECISION() };
+            limitReached = true;
+            return null;
         }
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
@@ -333,7 +371,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
                     $"new-endpoint total={_totalEndpointCount}"));
         }
 
-        return new EndpointStateResult { State = newState, IsNew = true };
+        return newState;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
