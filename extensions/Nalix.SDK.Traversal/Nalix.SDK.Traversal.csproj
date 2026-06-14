@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+
+		<Nullable>enable</Nullable>
+		<IsPackable>true</IsPackable>
+		<IsTrimmable>true</IsTrimmable>
+		<OutputType>Library</OutputType>
+
+		<!-- NativeAOT: export UnmanagedCallersOnly symbols as a real DLL/.so/.dylib -->
+		<Optimize>true</Optimize>
+		<TrimMode>partial</TrimMode>
+		<IsAotCompatible>true</IsAotCompatible>
+		<InvariantGlobalization>true</InvariantGlobalization>
+
+		<!-- Reduce reflection metadata; keep it small & fast for interop -->
+		<IlcOptimizationPreference>Speed</IlcOptimizationPreference>
+		<IlcGenerateCompleteTypeMetadata>false</IlcGenerateCompleteTypeMetadata>
+
+		<Description><![CDATA[
+Nalix.SDK.Traversal provides NAT traversal (STUN/TURN equivalent) extensions for the Nalix client SDK.
+It enables P2P hole punching and automatic fallback to Reflector UDP proxying.
+		]]></Description>
+
+		<PackageReleaseNotes><![CDATA[
+- P2P UDP Hole Punching via NatProbe.
+- Automatic fallback to Reflector proxies when NAT is symmetric.
+- Transparent TraversalSocket wrapper for raw UDP communication.
+		]]></PackageReleaseNotes>
+
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+	</PropertyGroup>
+
+	<Import Project="..\..\src\Nalix.Build.props" />
+	<Import Project="..\..\src\Package.Build.props" />
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\Nalix.SDK\Nalix.SDK.csproj" />
+		<ProjectReference Include="..\Nalix.Traversal.Contracts\Nalix.Traversal.Contracts.csproj" />
+	</ItemGroup>
+</Project>

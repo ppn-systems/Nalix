@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.6.11822.322 stable
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.SDK.Traversal", "Nalix.SDK.Traversal\Nalix.SDK.Traversal.csproj", "{B8F78535-351B-7313-C674-90A2C1DE60F7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B8F78535-351B-7313-C674-90A2C1DE60F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8F78535-351B-7313-C674-90A2C1DE60F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8F78535-351B-7313-C674-90A2C1DE60F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8F78535-351B-7313-C674-90A2C1DE60F7}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3385473C-5E54-49E0-BFA9-9A5090AC1E33}
+	EndGlobalSection
+EndGlobal
