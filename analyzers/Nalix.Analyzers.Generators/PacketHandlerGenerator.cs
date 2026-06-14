@@ -311,7 +311,6 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
         string tPermission = "null";
         string tEncryption = "null";
         string tRate = "null";
-        string tConcurrency = "null";
         string tTransport = "null";
 
         List<string> customAttributesList = new();
@@ -355,17 +354,6 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
                 double burst = a.ConstructorArguments.Length > 1 ? (double)a.ConstructorArguments[1].Value! : 1.0;
                 tRate = $"new global::Nalix.Abstractions.Networking.Packets.PacketRateLimitAttribute({rps}, {burst})";
             }
-            else if (name == KnownNames.PacketConcurrencyLimitAttributeMetadataName)
-            {
-                if (a.ConstructorArguments.Length > 0)
-                {
-                    tConcurrency = $"new global::Nalix.Abstractions.Networking.Packets.PacketConcurrencyLimitAttribute((int){a.ConstructorArguments[0].Value})";
-                }
-                else
-                {
-                    tConcurrency = $"new global::Nalix.Abstractions.Networking.Packets.PacketConcurrencyLimitAttribute()";
-                }
-            }
             else if (name == KnownNames.PacketTransportAttributeMetadataName && a.ConstructorArguments.Length > 0)
             {
                 tTransport = $"new global::Nalix.Abstractions.Networking.Packets.PacketTransportAttribute((global::Nalix.Abstractions.Networking.NetworkTransport){a.ConstructorArguments[0].Value})";
@@ -396,7 +384,6 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
                 permission: {tPermission},
                 encryption: {tEncryption},
                 rateLimit: {tRate},
-                concurrencyLimit: {tConcurrency},
                 transport: {tTransport},
                 customAttributes: {customAttributesExpr})";
     }

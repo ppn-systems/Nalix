@@ -309,7 +309,6 @@ internal class Startup
                 //_ = o.WithMiddleware(new PacketTagMiddleware());
                 //_ = o.WithMiddleware(new RateLimitMiddleware());
                 //_ = o.WithMiddleware(new PermissionMiddleware());
-                //_ = o.WithMiddleware(new ConcurrencyMiddleware());
                 _ = o.WithDispatchLoopCount(8);
                 _ = o.WithErrorHandling((ex, cmd) => logger.LogError(ex, "Dispatch error: {Cmd}", cmd));
             })

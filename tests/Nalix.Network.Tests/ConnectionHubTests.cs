@@ -11,6 +11,7 @@ using Nalix.Abstractions.Primitives;
 using Nalix.Hosting.Internal;
 using Nalix.Network.Connections;
 using Nalix.Runtime.Sessions;
+using NSubstitute;
 
 namespace Nalix.Network.Tests;
 
@@ -85,10 +86,11 @@ public sealed class ConnectionHubTests
     [Fact]
     public async Task UnregisterConnection_WhenSessionStoreFails_ReclaimsSessionSnapshot()
     {
-        Nalix.Environment.Configuration.ConfigurationManager.Instance.Get<Nalix.Runtime.Options.SessionStoreOptions>().MinAttributesForPersistence = 0;
+        var testPolicy = NSubstitute.Substitute.For<ISessionPersistencePolicy>();
+        testPolicy.ShouldPersist(NSubstitute.Arg.Any<IConnection>()).Returns(true);
 
         using FailingSessionStore failingStore = new();
-        using SessionService sessionService = new(store: failingStore);
+        using SessionService sessionService = new(store: failingStore, policy: testPolicy);
         using ConnectionHub hub = new();
         using SessionPersistenceObserver observer = new(hub, sessionService);
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();

@@ -25,6 +25,7 @@ public sealed class SessionService : ISessionService, IDisposable, IReportable
 
     private readonly ISessionStore _store;
     private readonly ISessionFactory _factory;
+    private readonly ISessionPersistencePolicy _policy;
     private readonly SessionStoreOptions _options;
 
     private long _totalStoresAttempted;
@@ -40,10 +41,12 @@ public sealed class SessionService : ISessionService, IDisposable, IReportable
     /// </summary>
     /// <param name="factory">The factory used to create session snapshots.</param>
     /// <param name="store">The underlying storage engine.</param>
-    public SessionService(ISessionFactory? factory = null, ISessionStore? store = null)
+    /// <param name="policy">The policy to determine if sessions should be persisted.</param>
+    public SessionService(ISessionFactory? factory = null, ISessionStore? store = null, ISessionPersistencePolicy? policy = null)
     {
         _factory = factory ?? new SessionFactory();
         _store = store ?? new InMemorySessionStore();
+        _policy = policy ?? InstanceManager.Instance.GetExistingInstance<ISessionPersistencePolicy>() ?? new DefaultSessionPersistencePolicy();
         _options = ConfigurationManager.Instance.Get<SessionStoreOptions>();
 
         if (_store is IWorker hostedWorker)
@@ -70,16 +73,7 @@ public sealed class SessionService : ISessionService, IDisposable, IReportable
             return ValueTask.CompletedTask;
         }
 
-        // Policy 1: Only persist if the handshake was established
-        if (!connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeEstablished, out object? established) || established is not true)
-        {
-            // We don't throw here as it might be a legitimate disconnection before handshake completion
-            _ = Interlocked.Increment(ref _totalStoresRejectedByPolicy);
-            return ValueTask.CompletedTask;
-        }
-
-        // Policy 2: Only persist if there is meaningful metadata beyond internal flags.
-        if (connection.Attributes.Count <= _options.MinAttributesForPersistence)
+        if (!_policy.ShouldPersist(connection))
         {
             _ = Interlocked.Increment(ref _totalStoresRejectedByPolicy);
             return ValueTask.CompletedTask;

@@ -17,7 +17,6 @@ namespace Nalix.Abstractions.Networking.Packets;
 /// <param name="permission">The optional permission requirement.</param>
 /// <param name="encryption">The optional encryption requirement.</param>
 /// <param name="rateLimit">The optional rate limit metadata.</param>
-/// <param name="concurrencyLimit">The optional concurrency limit metadata.</param>
 /// <param name="transport">The optional transport preference metadata.</param>
 /// <param name="customAttributes">Additional custom attributes keyed by attribute type.</param>
 /// <remarks>
@@ -32,7 +31,6 @@ public readonly struct PacketMetadata(
     PacketPermissionAttribute? permission,
     PacketEncryptionAttribute? encryption,
     PacketRateLimitAttribute? rateLimit,
-    PacketConcurrencyLimitAttribute? concurrencyLimit,
     PacketTransportAttribute? transport,
     IReadOnlyDictionary<Type, Attribute>? customAttributes = null)
 {
@@ -60,11 +58,6 @@ public readonly struct PacketMetadata(
     /// Gets the optional rate limit requirement.
     /// </summary>
     public readonly PacketRateLimitAttribute? RateLimit = rateLimit;
-
-    /// <summary>
-    /// Gets the optional concurrency limit requirement.
-    /// </summary>
-    public readonly PacketConcurrencyLimitAttribute? ConcurrencyLimit = concurrencyLimit;
 
     /// <summary>
     /// Gets the optional transport preference.

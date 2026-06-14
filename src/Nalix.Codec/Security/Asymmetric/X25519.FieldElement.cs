@@ -241,52 +241,22 @@ internal struct FieldElement
         int g0 = g.E0, g1 = g.E1, g2 = g.E2, g3 = g.E3, g4 = g.E4;
         int g5 = g.E5, g6 = g.E6, g7 = g.E7, g8 = g.E8, g9 = g.E9;
 
+        int f7_2 = 2 * f7, f9_2 = 2 * f9;
+        int f1_2 = 2 * f1, f3_2 = 2 * f3, f5_2 = 2 * f5;
         int g1_19 = 19 * g1, g2_19 = 19 * g2, g3_19 = 19 * g3;
         int g4_19 = 19 * g4, g5_19 = 19 * g5, g6_19 = 19 * g6;
         int g7_19 = 19 * g7, g8_19 = 19 * g8, g9_19 = 19 * g9;
-        int f1_2 = 2 * f1, f3_2 = 2 * f3, f5_2 = 2 * f5;
-        int f7_2 = 2 * f7, f9_2 = 2 * f9;
 
-        long h0 = ((long)f0 * g0) + ((long)f1_2 * g9_19) + ((long)f2 * g8_19)
-                        + ((long)f3_2 * g7_19) + ((long)f4 * g6_19) + ((long)f5_2 * g5_19)
-                        + ((long)f6 * g4_19) + ((long)f7_2 * g3_19) + ((long)f8 * g2_19)
-                        + ((long)f9_2 * g1_19);
-        long h1 = ((long)f0 * g1) + ((long)f1 * g0) + ((long)f2 * g9_19)
-                        + ((long)f3 * g8_19) + ((long)f4 * g7_19) + ((long)f5 * g6_19)
-                        + ((long)f6 * g5_19) + ((long)f7 * g4_19) + ((long)f8 * g3_19)
-                        + ((long)f9 * g2_19);
-        long h2 = ((long)f0 * g2) + ((long)f1_2 * g1) + ((long)f2 * g0)
-                        + ((long)f3_2 * g9_19) + ((long)f4 * g8_19) + ((long)f5_2 * g7_19)
-                        + ((long)f6 * g6_19) + ((long)f7_2 * g5_19) + ((long)f8 * g4_19)
-                        + ((long)f9_2 * g3_19);
-        long h3 = ((long)f0 * g3) + ((long)f1 * g2) + ((long)f2 * g1)
-                        + ((long)f3 * g0) + ((long)f4 * g9_19) + ((long)f5 * g8_19)
-                        + ((long)f6 * g7_19) + ((long)f7 * g6_19) + ((long)f8 * g5_19)
-                        + ((long)f9 * g4_19);
-        long h4 = ((long)f0 * g4) + ((long)f1_2 * g3) + ((long)f2 * g2)
-                        + ((long)f3_2 * g1) + ((long)f4 * g0) + ((long)f5_2 * g9_19)
-                        + ((long)f6 * g8_19) + ((long)f7_2 * g7_19) + ((long)f8 * g6_19)
-                        + ((long)f9_2 * g5_19);
-        long h5 = ((long)f0 * g5) + ((long)f1 * g4) + ((long)f2 * g3)
-                        + ((long)f3 * g2) + ((long)f4 * g1) + ((long)f5 * g0)
-                        + ((long)f6 * g9_19) + ((long)f7 * g8_19) + ((long)f8 * g7_19)
-                        + ((long)f9 * g6_19);
-        long h6 = ((long)f0 * g6) + ((long)f1_2 * g5) + ((long)f2 * g4)
-                        + ((long)f3_2 * g3) + ((long)f4 * g2) + ((long)f5_2 * g1)
-                        + ((long)f6 * g0) + ((long)f7_2 * g9_19) + ((long)f8 * g8_19)
-                        + ((long)f9_2 * g7_19);
-        long h7 = ((long)f0 * g7) + ((long)f1 * g6) + ((long)f2 * g5)
-                        + ((long)f3 * g4) + ((long)f4 * g3) + ((long)f5 * g2)
-                        + ((long)f6 * g1) + ((long)f7 * g0) + ((long)f8 * g9_19)
-                        + ((long)f9 * g8_19);
-        long h8 = ((long)f0 * g8) + ((long)f1_2 * g7) + ((long)f2 * g6)
-                        + ((long)f3_2 * g5) + ((long)f4 * g4) + ((long)f5_2 * g3)
-                        + ((long)f6 * g2) + ((long)f7_2 * g1) + ((long)f8 * g0)
-                        + ((long)f9_2 * g9_19);
-        long h9 = ((long)f0 * g9) + ((long)f1 * g8) + ((long)f2 * g7)
-                        + ((long)f3 * g6) + ((long)f4 * g5) + ((long)f5 * g4)
-                        + ((long)f6 * g3) + ((long)f7 * g2) + ((long)f8 * g1)
-                        + ((long)f9 * g0);
+        long h9 = ((long)f0 * g9) + ((long)f1 * g8) + ((long)f2 * g7) + ((long)f3 * g6) + ((long)f4 * g5) + ((long)f5 * g4) + ((long)f6 * g3) + ((long)f7 * g2) + ((long)f8 * g1) + ((long)f9 * g0);
+        long h8 = ((long)f0 * g8) + ((long)f1_2 * g7) + ((long)f2 * g6) + ((long)f3_2 * g5) + ((long)f4 * g4) + ((long)f5_2 * g3) + ((long)f6 * g2) + ((long)f7_2 * g1) + ((long)f8 * g0) + ((long)f9_2 * g9_19);
+        long h7 = ((long)f0 * g7) + ((long)f1 * g6) + ((long)f2 * g5) + ((long)f3 * g4) + ((long)f4 * g3) + ((long)f5 * g2) + ((long)f6 * g1) + ((long)f7 * g0) + ((long)f8 * g9_19) + ((long)f9 * g8_19);
+        long h6 = ((long)f0 * g6) + ((long)f1_2 * g5) + ((long)f2 * g4) + ((long)f3_2 * g3) + ((long)f4 * g2) + ((long)f5_2 * g1) + ((long)f6 * g0) + ((long)f7_2 * g9_19) + ((long)f8 * g8_19) + ((long)f9_2 * g7_19);
+        long h5 = ((long)f0 * g5) + ((long)f1 * g4) + ((long)f2 * g3) + ((long)f3 * g2) + ((long)f4 * g1) + ((long)f5 * g0) + ((long)f6 * g9_19) + ((long)f7 * g8_19) + ((long)f8 * g7_19) + ((long)f9 * g6_19);
+        long h4 = ((long)f0 * g4) + ((long)f1_2 * g3) + ((long)f2 * g2) + ((long)f3_2 * g1) + ((long)f4 * g0) + ((long)f5_2 * g9_19) + ((long)f6 * g8_19) + ((long)f7_2 * g7_19) + ((long)f8 * g6_19) + ((long)f9_2 * g5_19);
+        long h3 = ((long)f0 * g3) + ((long)f1 * g2) + ((long)f2 * g1) + ((long)f3 * g0) + ((long)f4 * g9_19) + ((long)f5 * g8_19) + ((long)f6 * g7_19) + ((long)f7 * g6_19) + ((long)f8 * g5_19) + ((long)f9 * g4_19);
+        long h2 = ((long)f0 * g2) + ((long)f1_2 * g1) + ((long)f2 * g0) + ((long)f3_2 * g9_19) + ((long)f4 * g8_19) + ((long)f5_2 * g7_19) + ((long)f6 * g6_19) + ((long)f7_2 * g5_19) + ((long)f8 * g4_19) + ((long)f9_2 * g3_19);
+        long h1 = ((long)f0 * g1) + ((long)f1 * g0) + ((long)f2 * g9_19) + ((long)f3 * g8_19) + ((long)f4 * g7_19) + ((long)f5 * g6_19) + ((long)f6 * g5_19) + ((long)f7 * g4_19) + ((long)f8 * g3_19) + ((long)f9 * g2_19);
+        long h0 = ((long)f0 * g0) + ((long)f1_2 * g9_19) + ((long)f2 * g8_19) + ((long)f3_2 * g7_19) + ((long)f4 * g6_19) + ((long)f5_2 * g5_19) + ((long)f6 * g4_19) + ((long)f7_2 * g3_19) + ((long)f8 * g2_19) + ((long)f9_2 * g1_19);
 
         ReduceCarry(h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, out result);
     }
@@ -302,31 +272,21 @@ internal struct FieldElement
         int f0 = E0, f1 = E1, f2 = E2, f3 = E3, f4 = E4;
         int f5 = E5, f6 = E6, f7 = E7, f8 = E8, f9 = E9;
 
+        int f8_19 = 19 * f8, f9_38 = 38 * f9;
+        int f5_38 = 38 * f5, f6_19 = 19 * f6, f7_38 = 38 * f7;
         int f0_2 = 2 * f0, f1_2 = 2 * f1, f2_2 = 2 * f2, f3_2 = 2 * f3;
         int f4_2 = 2 * f4, f5_2 = 2 * f5, f6_2 = 2 * f6, f7_2 = 2 * f7;
-        int f5_38 = 38 * f5, f6_19 = 19 * f6, f7_38 = 38 * f7;
-        int f8_19 = 19 * f8, f9_38 = 38 * f9;
 
-        long h0 = ((long)f0 * f0) + ((long)f1_2 * f9_38) + ((long)f2_2 * f8_19)
-                        + ((long)f3_2 * f7_38) + ((long)f4_2 * f6_19) + ((long)f5 * f5_38);
-        long h1 = ((long)f0_2 * f1) + ((long)f2 * f9_38) + ((long)f3_2 * f8_19)
-                        + ((long)f4 * f7_38) + ((long)f5_2 * f6_19);
-        long h2 = ((long)f0_2 * f2) + ((long)f1_2 * f1) + ((long)f3_2 * f9_38)
-                        + ((long)f4_2 * f8_19) + ((long)f5_2 * f7_38) + ((long)f6 * f6_19);
-        long h3 = ((long)f0_2 * f3) + ((long)f1_2 * f2) + ((long)f4 * f9_38)
-                        + ((long)f5_2 * f8_19) + ((long)f6 * f7_38);
-        long h4 = ((long)f0_2 * f4) + ((long)f1_2 * f3_2) + ((long)f2 * f2)
-                        + ((long)f5_2 * f9_38) + ((long)f6_2 * f8_19) + ((long)f7 * f7_38);
-        long h5 = ((long)f0_2 * f5) + ((long)f1_2 * f4) + ((long)f2_2 * f3)
-                        + ((long)f6 * f9_38) + ((long)f7_2 * f8_19);
-        long h6 = ((long)f0_2 * f6) + ((long)f1_2 * f5_2) + ((long)f2_2 * f4)
-                        + ((long)f3_2 * f3) + ((long)f7_2 * f9_38) + ((long)f8 * f8_19);
-        long h7 = ((long)f0_2 * f7) + ((long)f1_2 * f6) + ((long)f2_2 * f5)
-                        + ((long)f3_2 * f4) + ((long)f8 * f9_38);
-        long h8 = ((long)f0_2 * f8) + ((long)f1_2 * f7_2) + ((long)f2_2 * f6)
-                        + ((long)f3_2 * f5_2) + ((long)f4 * f4) + ((long)f9 * f9_38);
-        long h9 = ((long)f0_2 * f9) + ((long)f1_2 * f8) + ((long)f2_2 * f7)
-                        + ((long)f3_2 * f6) + ((long)f4_2 * f5);
+        long h0 = ((long)f0 * f0) + ((long)f1_2 * f9_38) + ((long)f2_2 * f8_19) + ((long)f3_2 * f7_38) + ((long)f4_2 * f6_19) + ((long)f5 * f5_38);
+        long h1 = ((long)f0_2 * f1) + ((long)f2 * f9_38) + ((long)f3_2 * f8_19) + ((long)f4 * f7_38) + ((long)f5_2 * f6_19);
+        long h2 = ((long)f0_2 * f2) + ((long)f1_2 * f1) + ((long)f3_2 * f9_38) + ((long)f4_2 * f8_19) + ((long)f5_2 * f7_38) + ((long)f6 * f6_19);
+        long h3 = ((long)f0_2 * f3) + ((long)f1_2 * f2) + ((long)f4 * f9_38) + ((long)f5_2 * f8_19) + ((long)f6 * f7_38);
+        long h4 = ((long)f0_2 * f4) + ((long)f1_2 * f3_2) + ((long)f2 * f2) + ((long)f5_2 * f9_38) + ((long)f6_2 * f8_19) + ((long)f7 * f7_38);
+        long h5 = ((long)f0_2 * f5) + ((long)f1_2 * f4) + ((long)f2_2 * f3) + ((long)f6 * f9_38) + ((long)f7_2 * f8_19);
+        long h6 = ((long)f0_2 * f6) + ((long)f1_2 * f5_2) + ((long)f2_2 * f4) + ((long)f3_2 * f3) + ((long)f7_2 * f9_38) + ((long)f8 * f8_19);
+        long h7 = ((long)f0_2 * f7) + ((long)f1_2 * f6) + ((long)f2_2 * f5) + ((long)f3_2 * f4) + ((long)f8 * f9_38);
+        long h8 = ((long)f0_2 * f8) + ((long)f1_2 * f7_2) + ((long)f2_2 * f6) + ((long)f3_2 * f5_2) + ((long)f4 * f4) + ((long)f9 * f9_38);
+        long h9 = ((long)f0_2 * f9) + ((long)f1_2 * f8) + ((long)f2_2 * f7) + ((long)f3_2 * f6) + ((long)f4_2 * f5);
 
         ReduceCarry(h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, out result);
     }

@@ -142,7 +142,6 @@ public sealed class PolicyRateLimiterTests : IDisposable
                 permission: null,
                 encryption: null,
                 rateLimit: rateLimit,
-                concurrencyLimit: null,
                 transport: null);
 
         public IPacketSender Sender => null!;
