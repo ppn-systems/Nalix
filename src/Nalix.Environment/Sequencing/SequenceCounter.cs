@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Security;
 
 namespace Nalix.Environment.Sequencing;
@@ -19,13 +20,15 @@ namespace Nalix.Environment.Sequencing;
 /// <list type="bullet">
 /// <item>Starts at 1 by default (after first <see cref="Next"/> call)</item>
 /// <item>Never repeats values for the lifetime of the instance</item>
-/// <item>Fully thread-safe using <see cref="Interlocked"/> and <see cref="Volatile"/></item>
+/// <item>Fully thread-safe and lock-free using <see cref="Interlocked"/> CAS on a packed 64-bit state.</item>
 /// <item>Critical for security when using stream ciphers (ChaCha20, Salsa20, etc.)</item>
 /// </list>
 /// </remarks>
 public sealed class SequenceCounter : ISequenceCounter
 {
-    private uint _value;
+    // High 32-bits: Sequence Number
+    // Low 32-bits: Sliding Window Bitmap (for replay protection)
+    private ulong _packedState;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SequenceCounter"/> class.
@@ -35,21 +38,33 @@ public sealed class SequenceCounter : ISequenceCounter
     /// The first call to <see cref="Next"/> will return <paramref name="initialValue"/> + 1.
     /// Default is 0.
     /// </param>
-    public SequenceCounter(uint initialValue = 0) => _value = initialValue;
+    public SequenceCounter(uint initialValue = 0) => _packedState = (ulong)initialValue << 32;
 
     /// <summary>
     /// Returns the next sequence number and increments the counter atomically.
     /// </summary>
     /// <returns>The next monotonic sequence number.</returns>
+    /// <exception cref="CipherException">Thrown if the counter overflows.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public uint Next() => Interlocked.Increment(ref _value);
+    public uint Next()
+    {
+        ulong state = Interlocked.Add(ref _packedState, 1UL << 32);
+        uint seq = (uint)(state >> 32);
+        
+        if (seq == 0)
+        {
+            throw new CipherException("Sequence counter overflow. Key rotation is required to prevent nonce reuse.");
+        }
+        
+        return seq;
+    }
 
     /// <summary>
     /// Returns the current sequence number without incrementing it.
     /// </summary>
     /// <returns>The current value of the counter.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public uint Current() => Volatile.Read(ref Unsafe.AsRef(in _value));
+    public uint Current() => (uint)(Volatile.Read(ref _packedState) >> 32);
 
     /// <summary>
     /// Resets the counter to a new value.
@@ -60,7 +75,7 @@ public sealed class SequenceCounter : ISequenceCounter
     /// Resetting without changing the key may open replay attack vectors.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Reset(uint newValue = 0) => Volatile.Write(ref _value, newValue);
+    public void Reset(uint newValue = 0) => Volatile.Write(ref _packedState, (ulong)newValue << 32);
 
     /// <summary>
     /// Validates whether a received sequence number is valid (helps prevent replay attacks).
@@ -68,8 +83,8 @@ public sealed class SequenceCounter : ISequenceCounter
     /// <param name="receivedSeq">The sequence number received from the remote party.</param>
     /// <param name="window">
     /// Allowed reordering window. 
-    /// Use a small value (e.g. 32–128) if your protocol allows out-of-order packets.
-    /// Default is 0 (strictly monotonic).
+    /// Use a small value (e.g. 32) if your protocol allows out-of-order packets.
+    /// Max effective window is 32. Default is 0 (strictly monotonic).
     /// </param>
     /// <returns><c>true</c> if the sequence number is valid; otherwise, <c>false</c>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -80,34 +95,73 @@ public sealed class SequenceCounter : ISequenceCounter
             return true;
         }
 
-        uint current = this.Current();
-
-        if (receivedSeq == 0)
-        {
-            return current == 0;
-        }
+        uint seq = receivedSeq.Value;
+        ulong state = Volatile.Read(ref _packedState);
+        uint current = (uint)(state >> 32);
+        uint bitmap = (uint)state;
 
         if (current == 0)
         {
             return true;
         }
 
-        return receivedSeq > current || (window > 0 && receivedSeq < current && current - receivedSeq < window);
+        if (seq == 0)
+        {
+            return false;
+        }
+
+        if (seq > current)
+        {
+            return true;
+        }
+
+        if (window > 0 && current - seq <= window)
+        {
+            int shift = (int)(current - seq);
+            if (shift >= 32) return false;
+
+            uint mask = 1U << shift;
+            return (bitmap & mask) == 0;
+        }
+
+        return false;
     }
 
     /// <summary>
-    /// Updates the internal counter to the received sequence number if it is higher.
+    /// Updates the internal counter and window bitmap lock-free.
     /// Should be called after successfully decrypting and validating a packet.
     /// </summary>
     /// <param name="receivedSeq">The sequence number from a successfully decrypted packet.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void UpdateTo(uint receivedSeq)
     {
-        uint current = this.Current();
-        if (receivedSeq > current)
+        ulong currentState;
+        ulong newState;
+        do
         {
-            Volatile.Write(ref _value, receivedSeq);
-        }
+            currentState = Volatile.Read(ref _packedState);
+            uint currentSeq = (uint)(currentState >> 32);
+            uint currentBitmap = (uint)currentState;
+
+            if (receivedSeq > currentSeq)
+            {
+                int shift = (int)(receivedSeq - currentSeq);
+                uint newBitmap = shift >= 32 ? 1U : (currentBitmap << shift) | 1U;
+                newState = ((ulong)receivedSeq << 32) | newBitmap;
+            }
+            else
+            {
+                int shift = (int)(currentSeq - receivedSeq);
+                if (shift >= 32) return; // Outside window, cannot track
+                
+                uint mask = 1U << shift;
+                if ((currentBitmap & mask) != 0) return; // Already processed
+                
+                uint newBitmap = currentBitmap | mask;
+                newState = ((ulong)currentSeq << 32) | newBitmap;
+            }
+
+        } while (Interlocked.CompareExchange(ref _packedState, newState, currentState) != currentState);
     }
 
     /// <summary>
@@ -121,12 +175,20 @@ public sealed class SequenceCounter : ISequenceCounter
             return;
         }
 
-        uint newValue = lastKnownSeq + safetyGap;
-        uint current = this.Current();
-
-        if (newValue > current)
+        ulong currentState;
+        ulong newState;
+        do
         {
-            Volatile.Write(ref _value, newValue);
-        }
+            currentState = Volatile.Read(ref _packedState);
+            uint currentSeq = (uint)(currentState >> 32);
+            uint newValue = lastKnownSeq + safetyGap;
+
+            if (newValue <= currentSeq)
+            {
+                return;
+            }
+
+            newState = ((ulong)newValue << 32) | 1U;
+        } while (Interlocked.CompareExchange(ref _packedState, newState, currentState) != currentState);
     }
 }

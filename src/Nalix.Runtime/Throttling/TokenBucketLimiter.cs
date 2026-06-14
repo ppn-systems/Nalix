@@ -102,9 +102,9 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         _adaptiveThrottlingEnabled = _options.AdaptiveThrottlingEnabled && _taskManager is not null;
 
         int poolCapacity = Math.Clamp(_options.MaxTrackedEndpoints / 10, 1024, 65536);
-        s_pool.SetMaxCapacity<EndpointState>(poolCapacity);
-        s_pool.Prealloc<EndpointState>(Math.Min(64, _options.MaxTrackedEndpoints));
- 
+        _ = s_pool.SetMaxCapacity<EndpointState>(poolCapacity);
+        _ = s_pool.Prealloc<EndpointState>(Math.Min(64, _options.MaxTrackedEndpoints));
+
         this.SCHEDULE_CLEANUP_JOB();
     }
 
@@ -115,7 +115,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         {
             return 1.0;
         }
- 
+
         return _taskManager!.ConcurrencyLimitRatio;
     }
 
@@ -901,7 +901,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     private Shard SELECT_SHARD(INetworkEndpoint key)
     {
         ReadOnlySpan<byte> bytes = System.Runtime.InteropServices.MemoryMarshal.AsBytes(key.Address.AsSpan());
-        uint h = Nalix.Environment.Hashing.XxHash32.Compute(bytes);
+        uint h = Environment.Hashing.XxHash32.Compute(bytes);
 
         // Mix hash for better distribution
         unchecked

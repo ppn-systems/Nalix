@@ -30,7 +30,7 @@ internal readonly struct RentedConnectionSnapshot : IDisposable
     public ReadOnlySpan<IConnection> Span
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => new(_buffer, 0, Count);
+        get => new(_buffer, 0, this.Count);
     }
 
     /// <summary>
@@ -48,7 +48,7 @@ internal readonly struct RentedConnectionSnapshot : IDisposable
     public bool IsEmpty
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Count == 0;
+        get => this.Count == 0;
     }
 
     /// <summary>
@@ -60,7 +60,7 @@ internal readonly struct RentedConnectionSnapshot : IDisposable
     public RentedConnectionSnapshot(IConnection[] buffer, int count)
     {
         _buffer = buffer;
-        Count = count;
+        this.Count = count;
     }
 
     /// <summary>

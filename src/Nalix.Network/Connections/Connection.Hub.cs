@@ -252,7 +252,7 @@ public sealed class ConnectionHub : IConnectionHub
          * allocations entirely.
          */
         using RentedConnectionSnapshot snapshot = _registry.CaptureConnectionSnapshotRented();
-        
+
         if (snapshot.IsEmpty)
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))

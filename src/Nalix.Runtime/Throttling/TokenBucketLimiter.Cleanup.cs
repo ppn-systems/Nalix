@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Networking;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Memory.Pools;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 

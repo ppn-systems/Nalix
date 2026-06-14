@@ -30,7 +30,7 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
 {
     #region Fields
 
-    private static readonly AttributeKey ThrottleAttributeKey = AttributeKey.FromName("sys.log.protocol.process_error");
+    private static readonly AttributeKey s_throttleAttributeKey = AttributeKey.FromName("sys.log.protocol.process_error");
     private static readonly long s_throttleWindowTicks = (long)(TimeSpan.FromSeconds(20).TotalSeconds * Stopwatch.Frequency);
 
     private readonly ILogger? _logger;
@@ -205,9 +205,9 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
 
         long nowTicks = Stopwatch.GetTimestamp();
 
-        if (!attrs.TryGetValue(ThrottleAttributeKey, out object? val) || val is not long lastTicks)
+        if (!attrs.TryGetValue(s_throttleAttributeKey, out object? val) || val is not long lastTicks)
         {
-            attrs[ThrottleAttributeKey] = nowTicks;
+            attrs[s_throttleAttributeKey] = nowTicks;
             return true;
         }
 
@@ -216,7 +216,7 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
             return false;
         }
 
-        attrs[ThrottleAttributeKey] = nowTicks;
+        attrs[s_throttleAttributeKey] = nowTicks;
         return true;
     }
 

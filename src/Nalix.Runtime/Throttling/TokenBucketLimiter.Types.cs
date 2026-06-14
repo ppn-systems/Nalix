@@ -104,7 +104,7 @@ public sealed partial class TokenBucketLimiter
         public long LastRefillSwTicks;
         public long HardBlockedUntilSw;
         public int Generation;
- 
+
         public readonly Lock Lock = new();
 
         public void ResetForPool()
@@ -128,4 +128,3 @@ public sealed partial class TokenBucketLimiter
 
     #endregion Private Types
 }
-

@@ -61,20 +61,19 @@ public readonly struct AttributeKey : IEquatable<AttributeKey>
     public bool Equals(AttributeKey other) => _hash == other._hash;
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is AttributeKey other && Equals(other);
+    public override bool Equals(object? obj) => obj is AttributeKey other && this.Equals(other);
 
     /// <inheritdoc/>
     public override int GetHashCode() => _hash.GetHashCode();
 
     /// <inheritdoc/>
-    public override string ToString()
-    {
+    public override string ToString() =>
 #if DEBUG
-        return _name ?? $"0x{_hash:X16}";
+        _name ?? $"0x{_hash:X16}";
 #else
-        return $"0x{_hash:X16}";
+        $"0x{_hash:X16}";
 #endif
-    }
+
 
     /// <summary>
     /// Compares two <see cref="AttributeKey"/> instances for equality.

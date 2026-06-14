@@ -113,18 +113,18 @@ public sealed partial class ObjectPoolOptions : ConfigurationLoader, IValidatabl
 
     /// <summary>
     /// Gets or sets the default maximum capacity for newly created object pools.
-    /// Default value is 8192. This applies to pools like BufferLease and ConnectionEventArgs.
+    /// Default value is 2048. This applies to pools like BufferLease and ConnectionEventArgs.
     /// </summary>
-    [IniComment("Default max capacity for any dynamically created pool (default 8192)")]
+    [IniComment("Default max capacity for any dynamically created pool (default 2048)")]
     [ValueRange(1024, 1_000_000)]
-    public int DefaultMaxPoolSize { get; set; } = 8192;
+    public int DefaultMaxPoolSize { get; set; } = 2048;
 
     /// <summary>
     /// Number of instances to preallocate when a new object type pool is created.
     /// </summary>
-    [IniComment("Objects to warm up for each newly created type pool (default 0 = lazy allocation)")]
+    [IniComment("Objects to warm up for each newly created type pool (default 8)")]
     [ValueRange(0, 1_000_000)]
-    public int DefaultPreallocate { get; set; } = 0;
+    public int DefaultPreallocate { get; set; } = 8;
 
     /// <summary>
     /// Maximum number of objects held in per-thread cache slots, per pooled type.
