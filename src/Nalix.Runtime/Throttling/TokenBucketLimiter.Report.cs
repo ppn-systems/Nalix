@@ -71,17 +71,10 @@ public sealed partial class TokenBucketLimiter
 
                 EndpointState state = kv.Value;
                 long micro, blockedUntil;
-                bool lockTaken = false;
-
-                try
+                lock (state.Lock)
                 {
-                    state.SpinLock.Enter(ref lockTaken);
                     micro = state.MicroBalance;
                     blockedUntil = state.HardBlockedUntilSw;
-                }
-                finally
-                {
-                    if (lockTaken) { state.SpinLock.Exit(); }
                 }
 
                 bool isBlocked = blockedUntil > now;
@@ -133,19 +126,9 @@ public sealed partial class TokenBucketLimiter
 
                 // Count hard-blocked during collection
                 bool isBlocked;
-                bool lockTaken = false;
-
-                try
+                lock (kv.Value.Lock)
                 {
-                    kv.Value.SpinLock.Enter(ref lockTaken);
                     isBlocked = kv.Value.HardBlockedUntilSw > now;
-                }
-                finally
-                {
-                    if (lockTaken)
-                    {
-                        kv.Value.SpinLock.Exit();
-                    }
                 }
 
                 if (isBlocked)
@@ -178,20 +161,10 @@ public sealed partial class TokenBucketLimiter
         for (int i = 0; i < count; i++)
         {
             EndpointState state = snapshot[i].Value;
-            bool lockTaken = false;
-
-            try
+            lock (state.Lock)
             {
-                state.SpinLock.Enter(ref lockTaken);
                 blockedValues[i] = state.HardBlockedUntilSw > now;
                 microValues[i] = state.MicroBalance;
-            }
-            finally
-            {
-                if (lockTaken)
-                {
-                    state.SpinLock.Exit();
-                }
             }
         }
 
@@ -308,19 +281,10 @@ public sealed partial class TokenBucketLimiter
     {
         long micro, blockedUntil;
 
-        bool lockTaken = false;
-        try
+        lock (state.Lock)
         {
-            state.SpinLock.Enter(ref lockTaken);
             micro = state.MicroBalance;
             blockedUntil = state.HardBlockedUntilSw;
-        }
-        finally
-        {
-            if (lockTaken)
-            {
-                state.SpinLock.Exit();
-            }
         }
 
         bool isBlocked = blockedUntil > now;

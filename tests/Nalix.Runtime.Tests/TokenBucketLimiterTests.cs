@@ -183,4 +183,84 @@ public sealed class TokenBucketLimiterTests
         public bool HasPort => false;
         public bool IsIPv6 => false;
     }
+
+    [Fact]
+    public void Evaluate_AdaptiveThrottling_ShouldScaleRetryAfter()
+    {
+        var stub = new StubTaskManager { ConcurrencyLimitRatio = 0.5 };
+        Nalix.Framework.Injection.InstanceManager.Instance.Register<Nalix.Abstractions.Concurrency.ITaskManager>(stub);
+
+        try
+        {
+            var options = CreateOptions();
+            options.CapacityTokens = 10;
+            options.InitialTokens = 0; // Cold-start/empty
+            options.RefillTokensPerSecond = 10;
+            options.AdaptiveThrottlingEnabled = true;
+
+            using var limiter = new TokenBucketLimiter(options);
+            var endpoint = new TestEndpoint("adaptive-ip");
+
+            var decision = limiter.Evaluate(endpoint);
+            decision.Allowed.Should().BeFalse();
+            // With scale = 0.5, retry after should be doubled: 200ms instead of 100ms
+            decision.RetryAfterMs.Should().Be(200);
+        }
+        finally
+        {
+            Nalix.Framework.Injection.InstanceManager.Instance.RemoveInstance(typeof(Nalix.Abstractions.Concurrency.ITaskManager));
+        }
+    }
+
+    [Fact]
+    public void Evaluate_AdaptiveThrottlingDisabled_ShouldNotScaleRetryAfter()
+    {
+        var stub = new StubTaskManager { ConcurrencyLimitRatio = 0.5 };
+        Nalix.Framework.Injection.InstanceManager.Instance.Register<Nalix.Abstractions.Concurrency.ITaskManager>(stub);
+
+        try
+        {
+            var options = CreateOptions();
+            options.CapacityTokens = 10;
+            options.InitialTokens = 0; // Cold-start/empty
+            options.RefillTokensPerSecond = 10;
+            options.AdaptiveThrottlingEnabled = false; // Disabled!
+
+            using var limiter = new TokenBucketLimiter(options);
+            var endpoint = new TestEndpoint("adaptive-disabled-ip");
+
+            var decision = limiter.Evaluate(endpoint);
+            decision.Allowed.Should().BeFalse();
+            // With adaptive throttling disabled, retry after should stay 100ms despite ratio being 0.5
+            decision.RetryAfterMs.Should().Be(100);
+        }
+        finally
+        {
+            Nalix.Framework.Injection.InstanceManager.Instance.RemoveInstance(typeof(Nalix.Abstractions.Concurrency.ITaskManager));
+        }
+    }
+
+    private sealed class StubTaskManager : Nalix.Abstractions.Concurrency.ITaskManager
+    {
+        public double ConcurrencyLimitRatio { get; set; } = 1.0;
+        public string Title => "";
+        public string Report => "";
+
+        public Nalix.Abstractions.Concurrency.IRecurringHandle ScheduleRecurring(string name, TimeSpan interval, Func<System.Threading.CancellationToken, ValueTask> work, Nalix.Abstractions.Concurrency.IRecurringOptions? options = null) => null!;
+        public ValueTask RunOnceAsync(string name, Func<System.Threading.CancellationToken, ValueTask> work, System.Threading.CancellationToken ct = default) => default;
+        public Nalix.Abstractions.Concurrency.IWorkerHandle ScheduleWorker(Nalix.Abstractions.Concurrency.IWorker worker) => null!;
+        public Nalix.Abstractions.Concurrency.IWorkerHandle ScheduleWorker(string name, string group, Func<Nalix.Abstractions.Concurrency.IWorkerContext, System.Threading.CancellationToken, ValueTask> work, Nalix.Abstractions.Concurrency.IWorkerOptions? options = null) => null!;
+        public int CancelAllWorkers() => 0;
+        public void CancelWorker(Nalix.Abstractions.Identity.ISnowflake id) {}
+        public int CancelGroup(string group) => 0;
+        public void CancelRecurring(string name) {}
+        public System.Collections.Generic.IReadOnlyCollection<Nalix.Abstractions.Concurrency.IWorkerHandle> GetWorkers(bool runningOnly = true, string? group = null) => Array.Empty<Nalix.Abstractions.Concurrency.IWorkerHandle>();
+        public bool TryGetWorker(Nalix.Abstractions.Identity.ISnowflake id, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Nalix.Abstractions.Concurrency.IWorkerHandle? handle) { handle = null; return false; }
+        public System.Collections.Generic.IReadOnlyCollection<Nalix.Abstractions.Concurrency.IRecurringHandle> GetRecurring() => Array.Empty<Nalix.Abstractions.Concurrency.IRecurringHandle>();
+        public bool TryGetRecurring(string name, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Nalix.Abstractions.Concurrency.IRecurringHandle? handle) { handle = null; return false; }
+        public Task WaitGroupAsync(string group, System.Threading.CancellationToken ct = default) => Task.CompletedTask;
+        public void ScheduleWorker<TState>(string name, Action<TState> work, TState state) {}
+        public string GenerateReport() => "";
+        public void WriteReportData(System.Text.Json.Utf8JsonWriter writer) {}
+    }
 }

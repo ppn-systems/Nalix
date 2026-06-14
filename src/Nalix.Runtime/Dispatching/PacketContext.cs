@@ -9,10 +9,8 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Runtime.Options;
 
 namespace Nalix.Runtime.Dispatching;
 
@@ -103,23 +101,6 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
     #endregion Properties
 
     #region Constructor
-
-    /// <summary>
-    /// Preallocates pooled packet contexts and sets the per-type capacity for this
-    /// closed generic packet context.
-    /// </summary>
-    /// <remarks>
-    /// The pool sizing comes from configuration so hot dispatch paths do not need
-    /// to decide capacity dynamically.
-    /// </remarks>
-    static PacketContext()
-    {
-        PoolingOptions options = ConfigurationManager.Instance.Get<PoolingOptions>();
-
-        _ = s_pool.Prealloc<PacketContext<TPacket>>(options.PacketContextPreallocate);
-        _ = s_pool.SetMaxCapacity<PacketContext<TPacket>>(options.PacketContextCapacity);
-    }
-
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketContext{TPacket}"/> class for pooling.

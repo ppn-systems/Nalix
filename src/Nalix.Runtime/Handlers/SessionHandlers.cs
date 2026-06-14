@@ -188,7 +188,7 @@ public static partial class SessionHandlers
 
         if (snapshot.Attributes is not null)
         {
-            foreach (KeyValuePair<string, object> attribute in snapshot.Attributes)
+            foreach (KeyValuePair<AttributeKey, object> attribute in snapshot.Attributes)
             {
                 connection.Attributes[attribute.Key] = attribute.Value;
             }

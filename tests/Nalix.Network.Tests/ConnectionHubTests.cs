@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using FluentAssertions;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Protocols;
@@ -11,6 +12,7 @@ using Nalix.Abstractions.Primitives;
 using Nalix.Hosting.Internal;
 using Nalix.Network.Connections;
 using Nalix.Runtime.Sessions;
+using NSubstitute;
 
 namespace Nalix.Network.Tests;
 
@@ -85,10 +87,11 @@ public sealed class ConnectionHubTests
     [Fact]
     public async Task UnregisterConnection_WhenSessionStoreFails_ReclaimsSessionSnapshot()
     {
-        Nalix.Environment.Configuration.ConfigurationManager.Instance.Get<Nalix.Runtime.Options.SessionStoreOptions>().MinAttributesForPersistence = 0;
+        var testPolicy = NSubstitute.Substitute.For<ISessionPersistencePolicy>();
+        testPolicy.ShouldPersist(NSubstitute.Arg.Any<IConnection>()).Returns(true);
 
         using FailingSessionStore failingStore = new();
-        using SessionService sessionService = new(store: failingStore);
+        using SessionService sessionService = new(store: failingStore, policy: testPolicy);
         using ConnectionHub hub = new();
         using SessionPersistenceObserver observer = new(hub, sessionService);
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
@@ -96,11 +99,11 @@ public sealed class ConnectionHubTests
 
         connection.Secret = new Bytes32(RandomNumberGenerator.GetBytes(Bytes32.Size));
         connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
-        connection.Attributes["attr-1"] = 1;
-        connection.Attributes["attr-2"] = 2;
-        connection.Attributes["attr-3"] = 3;
-        connection.Attributes["attr-4"] = 4;
-        connection.Attributes["attr-5"] = 5;
+        connection.Attributes[AttributeKey.FromName("attr-1")] = 1;
+        connection.Attributes[AttributeKey.FromName("attr-2")] = 2;
+        connection.Attributes[AttributeKey.FromName("attr-3")] = 3;
+        connection.Attributes[AttributeKey.FromName("attr-4")] = 4;
+        connection.Attributes[AttributeKey.FromName("attr-5")] = 5;
 
         hub.RegisterConnection(connection);
         hub.UnregisterConnection(connection);

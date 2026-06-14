@@ -17,8 +17,6 @@ namespace Nalix.SDK.Transport.Extensions;
 /// </summary>
 public static class CipherExtensions
 {
-    private static int s_cipherUpdateSeq;
-
     /// <summary>
     /// Changes the active cipher suite of the connection by synchronizing with the server.
     /// Both sides will switch immediately after the request is transmitted.
@@ -38,7 +36,7 @@ public static class CipherExtensions
     {
         ArgumentNullException.ThrowIfNull(session);
 
-        ushort seq = unchecked((ushort)Interlocked.Increment(ref s_cipherUpdateSeq));
+        ushort seq = (ushort)Random.Shared.Next(1, ushort.MaxValue);
         CipherSuiteType previousCipher = session.Options.Algorithm;
 
         // HACK: Payload Overloading.

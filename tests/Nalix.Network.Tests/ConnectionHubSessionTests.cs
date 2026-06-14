@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Networking.Sessions;
@@ -38,7 +39,7 @@ public sealed class ConnectionHubSessionTests
         connection.Secret = new Abstractions.Primitives.Bytes32(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
         connection.Algorithm = Abstractions.Security.CipherSuiteType.Chacha20Poly1305;
         connection.Level = Abstractions.Security.PermissionLevel.OWNER;
-        connection.Attributes["test"] = "value";
+        connection.Attributes[AttributeKey.FromName("test")] = "value";
 
         SessionEntry session = factory.CreateSession(connection);
 
@@ -46,7 +47,7 @@ public sealed class ConnectionHubSessionTests
         _ = session.Snapshot.Secret.Should().Be(connection.Secret);
         _ = session.Snapshot.Algorithm.Should().Be(connection.Algorithm);
         _ = session.Snapshot.Level.Should().Be(connection.Level);
-        _ = session.Snapshot.Attributes.Should().ContainKey("test").WhoseValue.Should().Be("value");
+        _ = session.Snapshot.Attributes.Should().ContainKey(AttributeKey.FromName("test")).WhoseValue.Should().Be("value");
         _ = session.ConnectionId.Should().Be(connection.ID);
     }
 
@@ -61,7 +62,7 @@ public sealed class ConnectionHubSessionTests
         using Connection connection1 = new(scope1.ServerSocket, s_testOpCodeExtractor);
 
         connection1.Secret = new Abstractions.Primitives.Bytes32(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
-        connection1.Attributes["test"] = "value";
+        connection1.Attributes[AttributeKey.FromName("test")] = "value";
         connection1.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
         hub.RegisterConnection(connection1);
 
@@ -96,7 +97,7 @@ public sealed class ConnectionHubSessionTests
         ApplySession(connection2, ss);
 
         _ = connection2.Secret.Should().Be(expectedSecret);
-        _ = connection2.Attributes["test"].Should().Be("value");
+        _ = connection2.Attributes[AttributeKey.FromName("test")].Should().Be("value");
         _ = connection2.Attributes[ConnectionAttributes.HandshakeEstablished].Should().Be(true);
     }
 
@@ -119,7 +120,7 @@ public sealed class ConnectionHubSessionTests
         await store.StoreAsync(sessionInfo);
 
         // 2. Modify state AFTER session creation
-        connection1.Attributes["user_id"] = 12345;
+        connection1.Attributes[AttributeKey.FromName("user_id")] = 12345;
         connection1.Level = Abstractions.Security.PermissionLevel.SYSTEM_ADMINISTRATOR;
 
         // 3. Update session before unregistering (required now because Unregister doesn't auto-update)
@@ -138,7 +139,7 @@ public sealed class ConnectionHubSessionTests
         ApplySession(connection2, s!);
 
         // 6. Verify that modifications were persisted
-        _ = connection2.Attributes.Should().ContainKey("user_id").WhoseValue.Should().Be(12345);
+        _ = connection2.Attributes.Should().ContainKey(AttributeKey.FromName("user_id")).WhoseValue.Should().Be(12345);
         _ = connection2.Level.Should().Be(Abstractions.Security.PermissionLevel.SYSTEM_ADMINISTRATOR);
     }
 
@@ -158,7 +159,7 @@ public sealed class ConnectionHubSessionTests
         await store.StoreAsync(sessionInfo);
 
         // Modify state
-        connection.Attributes["custom"] = "data";
+        connection.Attributes[AttributeKey.FromName("custom")] = "data";
 
         // Manual sync
         SyncSession(connection, sessionInfo);
@@ -167,7 +168,7 @@ public sealed class ConnectionHubSessionTests
         // Verify snapshot from store
         SessionEntry? updated = await service.ConsumeAsync(sessionInfo.Snapshot.SessionToken);
         _ = updated.Should().NotBeNull();
-        _ = updated!.Snapshot.Attributes.Should().ContainKey("custom").WhoseValue.Should().Be("data");
+        _ = updated!.Snapshot.Attributes.Should().ContainKey(AttributeKey.FromName("custom")).WhoseValue.Should().Be("data");
     }
 
     [Fact]
@@ -181,7 +182,7 @@ public sealed class ConnectionHubSessionTests
         using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
 
         connection.Secret = new Abstractions.Primitives.Bytes32(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
-        connection.Attributes["marker"] = "old";
+        connection.Attributes[AttributeKey.FromName("marker")] = "old";
 
         ISessionFactory factory = new SessionFactory();
         SessionEntry original = factory.CreateSession(connection);
@@ -195,9 +196,9 @@ public sealed class ConnectionHubSessionTests
             Secret = new Abstractions.Primitives.Bytes32(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)),
             Algorithm = original.Snapshot.Algorithm,
             Level = original.Snapshot.Level,
-            Attributes = ObjectMap<string, object>.Rent()
+            Attributes = ObjectMap<AttributeKey, object>.Rent()
         };
-        replacementSnapshot.Attributes!["marker"] = "new";
+        replacementSnapshot.Attributes![AttributeKey.FromName("marker")] = "new";
 
         SessionEntry replacement = new(replacementSnapshot, original.ConnectionId);
         await store.StoreAsync(replacement);
@@ -213,10 +214,10 @@ public sealed class ConnectionHubSessionTests
     {
         SessionSnapshot old = session.Snapshot;
 
-        ObjectMap<string, object> attrs = ObjectMap<string, object>.Rent();
-        foreach (KeyValuePair<string, object> attr in connection.Attributes)
+        ObjectMap<AttributeKey, object> attrs = ObjectMap<AttributeKey, object>.Rent();
+        foreach (KeyValuePair<AttributeKey, object> attr in connection.Attributes)
         {
-            if (attr.Key == "nalix.handshake.state")
+            if (attr.Key == ConnectionAttributes.HandshakeState)
             {
                 continue;
             }
@@ -247,14 +248,14 @@ public sealed class ConnectionHubSessionTests
 
         if (snapshot.Attributes != null)
         {
-            foreach (KeyValuePair<string, object> attr in snapshot.Attributes)
+            foreach (KeyValuePair<AttributeKey, object> attr in snapshot.Attributes)
             {
                 connection.Attributes[attr.Key] = attr.Value;
             }
         }
 
-        connection.Attributes["nalix.handshake.established"] = true;
-        connection.Attributes["nalix.session.token"] = snapshot.SessionToken;
+        connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
+        connection.Attributes[AttributeKey.FromName("nalix.session.token")] = snapshot.SessionToken;
     }
 
     private sealed class ConnectedSocketScope : IDisposable
@@ -329,18 +330,3 @@ public sealed class ConnectionHubSessionTests
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

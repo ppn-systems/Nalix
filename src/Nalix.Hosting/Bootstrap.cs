@@ -122,7 +122,6 @@ public static partial class Bootstrap
 
         // Runtime-level options
         _ = ConfigurationManager.Instance.Get<DispatchOptions>();
-        _ = ConfigurationManager.Instance.Get<PoolingOptions>();
         _ = ConfigurationManager.Instance.Get<SessionStoreOptions>();
 
         // Security and concurrency options

@@ -568,7 +568,7 @@ public sealed class DispatchChannelTests
         public bool ExcludeFromIdleTimeout { get; set; }
         public IOpCodeExtractor PacketClassifier => null!;
         public INetworkEndpoint NetworkEndpoint => null!;
-        public IObjectMap<string, object> Attributes => null!;
+        public IObjectMap<AttributeKey, object> Attributes => null!;
         public ConcurrentDictionary<ushort, object> RateLimitCache { get; } = new();
         public Bytes32 Secret { get; set; }
         public PermissionLevel Level { get; set; }

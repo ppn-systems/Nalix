@@ -247,11 +247,13 @@ public sealed class ConnectionHub : IConnectionHub
         /*
          * [Broadcast Logic]
          * To broadcast a message, we first capture a stable snapshot of all 
-         * active connections. This ensures that we don't hold the dictionary 
-         * locks while performing I/O.
+         * active connections using a rented buffer. This ensures that we don't
+         * hold the dictionary locks while performing I/O, and avoids heap
+         * allocations entirely.
          */
-        IConnection[] connections = _registry.CaptureConnectionSnapshot();
-        if (connections.Length == 0)
+        using RentedConnectionSnapshot snapshot = _registry.CaptureConnectionSnapshotRented();
+
+        if (snapshot.IsEmpty)
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
@@ -268,13 +270,13 @@ public sealed class ConnectionHub : IConnectionHub
 
         if (_options.BroadcastBatchSize > 0)
         {
-            await this.BroadcastBatchedAsync(connections, message, sendFunc, cancellationToken)
+            await this.BroadcastBatchedAsync(snapshot, message, sendFunc, cancellationToken)
                       .ConfigureAwait(false);
         }
         else
         {
             await this.BroadcastCoreAsync(
-                connections, message, sendFunc,
+                snapshot, message, sendFunc,
                 predicate: null, cancellationToken,
                 nameof(BroadcastAsync)).ConfigureAwait(false);
         }
@@ -282,11 +284,12 @@ public sealed class ConnectionHub : IConnectionHub
         if (measureLatency)
         {
             string latency = scope.GetElapsedMilliseconds().ToString("0.000", CultureInfo.InvariantCulture);
+            int snapshotCount = snapshot.Count;
             DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Information,
                 new DiagnosticLog(
                     "PERF.NW.BroadcastAsync",
-                    $"total={connections.Length}, latency={latency} ms"));
+                    $"total={snapshotCount}, latency={latency} ms"));
         }
     }
 
@@ -305,14 +308,14 @@ public sealed class ConnectionHub : IConnectionHub
             return;
         }
 
-        IConnection[] connections = _registry.CaptureConnectionSnapshot();
-        if (connections.Length == 0)
+        using RentedConnectionSnapshot snapshot = _registry.CaptureConnectionSnapshotRented();
+        if (snapshot.IsEmpty)
         {
             return;
         }
 
         await this.BroadcastCoreAsync(
-            connections, message, sendFunc,
+            snapshot, message, sendFunc,
             predicate, cancellation,
             nameof(BroadcastWhereAsync)).ConfigureAwait(false);
     }
@@ -617,17 +620,21 @@ public sealed class ConnectionHub : IConnectionHub
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private void DisposeAllConnections()
     {
-        IConnection[] connections = _registry.CaptureConnectionSnapshot();
+        using RentedConnectionSnapshot snapshot = _registry.CaptureConnectionSnapshotRented();
 
-        foreach (IConnection connection in connections)
+        for (int i = 0; i < snapshot.Count; i++)
         {
-            connection.OnCloseEvent -= this.OnClientDisconnected;
+            snapshot[i].OnCloseEvent -= this.OnClientDisconnected;
         }
 
         ParallelOptions parallelOptions = new()
         {
             MaxDegreeOfParallelism = _options.ParallelDisconnectDegree
         };
+
+        // Copy to a local array for Parallel.ForEach (it requires IEnumerable)
+        IConnection[] connections = new IConnection[snapshot.Count];
+        snapshot.Span.CopyTo(connections);
 
         _ = Parallel.ForEach(connections, parallelOptions, connection =>
         {
@@ -651,27 +658,28 @@ public sealed class ConnectionHub : IConnectionHub
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private async Task BroadcastCoreAsync<T>(
-        IConnection[] connections,
+        RentedConnectionSnapshot snapshot,
         T message,
         Func<IConnection, T, Task> sendFunc,
         Func<IConnection, bool>? predicate,
         CancellationToken cancellationToken,
         string operationName) where T : class
     {
-        Task[] tasks = ArrayPool<Task>.Shared.Rent(connections.Length);
-        IConnection[] owners = s_connectionPool.Rent(connections.Length);
+        int connectionCount = snapshot.Count;
+        Task[] tasks = ArrayPool<Task>.Shared.Rent(connectionCount);
+        IConnection[] owners = s_connectionPool.Rent(connectionCount);
         int taskCount = 0;
 
         try
         {
-            for (int i = 0; i < connections.Length; i++)
+            for (int i = 0; i < connectionCount; i++)
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
                     break;
                 }
 
-                IConnection connection = connections[i];
+                IConnection connection = snapshot[i];
                 if (predicate is not null && !predicate(connection))
                 {
                     continue;
@@ -764,11 +772,12 @@ public sealed class ConnectionHub : IConnectionHub
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private async Task BroadcastBatchedAsync<T>(
-        IConnection[] connections,
+        RentedConnectionSnapshot snapshot,
         T message,
         Func<IConnection, T, Task> sendFunc,
         CancellationToken cancellationToken) where T : class
     {
+        int connectionCount = snapshot.Count;
         int batchSize = Math.Max(1, _options.BroadcastBatchSize);
         Task[] tasks = ArrayPool<Task>.Shared.Rent(batchSize);
         IConnection[] owners = s_connectionPool.Rent(batchSize);
@@ -776,14 +785,14 @@ public sealed class ConnectionHub : IConnectionHub
 
         try
         {
-            for (int i = 0; i < connections.Length; i++)
+            for (int i = 0; i < connectionCount; i++)
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
                     break;
                 }
 
-                IConnection connection = connections[i];
+                IConnection connection = snapshot[i];
 
                 try
                 {

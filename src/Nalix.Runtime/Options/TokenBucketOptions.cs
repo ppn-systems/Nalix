@@ -93,6 +93,12 @@ public sealed partial class TokenBucketOptions : ConfigurationLoader, IValidatab
     public int MaxTrackedEndpoints { get; set; } = 100_000;
 
     /// <summary>
+    /// Gets or sets a value indicating whether adaptive rate limiting (based on server load) is enabled.
+    /// </summary>
+    [IniComment("Enable/disable adaptive throttling based on server CPU load (default true)")]
+    public bool AdaptiveThrottlingEnabled { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets the initial number of tokens for new endpoints.
     /// </summary>
     [IniComment("Initial tokens for new endpoints (-1 = full capacity, 0 = empty/cold-start mode)")]

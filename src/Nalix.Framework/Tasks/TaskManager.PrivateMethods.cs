@@ -1094,6 +1094,7 @@ public partial class TaskManager
         }
 
         _currentConcurrencyLimit = newLimit;
+        Volatile.Write(ref _concurrencyLimitRatio, _options.MaxWorkers > 0 ? (double)newLimit / _options.MaxWorkers : 1.0);
         int delta = newLimit - previousLimit;
 
         try
@@ -1143,6 +1144,7 @@ public partial class TaskManager
         {
             // Revert on error
             _currentConcurrencyLimit = previousLimit;
+            Volatile.Write(ref _concurrencyLimitRatio, _options.MaxWorkers > 0 ? (double)previousLimit / _options.MaxWorkers : 1.0);
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
             {

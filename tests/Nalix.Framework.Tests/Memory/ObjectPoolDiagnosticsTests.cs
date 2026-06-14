@@ -130,7 +130,7 @@ public sealed class ObjectPoolDiagnosticsTests
     [Fact]
     public void PerformHealthCheck_LowSampleMisses_AreWarmingNotUnhealthy()
     {
-        ObjectPoolOptions config = new() { EnableDiagnostics = true, EnableObjectTrimming = false };
+        ObjectPoolOptions config = new() { EnableDiagnostics = true, EnableObjectTrimming = false, DefaultPreallocate = 0 };
         using ObjectPoolManager manager = new(config);
         using DiagnosticCollector collector = new(DiagnosticsEvents.Memory.PoolFailure,
             payload => DiagnosticCollector.GetProperty<string>(payload, "Type") == "HealthCheckPoolable");
@@ -181,7 +181,7 @@ public sealed class ObjectPoolDiagnosticsTests
     [Fact]
     public void PerformHealthCheck_PoolFailurePayload_UsesReadableGenericTypeName()
     {
-        ObjectPoolOptions config = new() { EnableDiagnostics = true, EnableObjectTrimming = false };
+        ObjectPoolOptions config = new() { EnableDiagnostics = true, EnableObjectTrimming = false, DefaultPreallocate = 0 };
         using ObjectPoolManager manager = new(config);
         SetDefaultMaxPoolSize(manager, 16);
         using DiagnosticCollector collector = new(DiagnosticsEvents.Memory.PoolFailure,

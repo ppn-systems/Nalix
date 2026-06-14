@@ -131,6 +131,41 @@ internal sealed class ConnectionRegistry
         }
     }
 
+    /// <summary>
+    /// Captures a snapshot of all active connections using a rented buffer from the shared pool.
+    /// The caller must dispose the returned <see cref="RentedConnectionSnapshot"/> to return the buffer.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    public RentedConnectionSnapshot CaptureConnectionSnapshotRented()
+    {
+        int estimatedCount = Math.Max(4, Volatile.Read(ref _count));
+        IConnection[] buffer = s_connectionPool.Rent(estimatedCount);
+
+        int index = 0;
+        foreach (ConcurrentDictionary<ulong, IConnection> shard in _shards)
+        {
+            foreach (KeyValuePair<ulong, IConnection> kvp in shard)
+            {
+                if (index >= buffer.Length)
+                {
+                    IConnection[] newBuffer = s_connectionPool.Rent(buffer.Length * 2);
+                    Array.Copy(buffer, newBuffer, buffer.Length);
+                    s_connectionPool.Return(buffer);
+                    buffer = newBuffer;
+                }
+                buffer[index++] = kvp.Value;
+            }
+        }
+
+        if (index == 0)
+        {
+            s_connectionPool.Return(buffer, clearArray: true);
+            return default;
+        }
+
+        return new RentedConnectionSnapshot(buffer, index);
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public IConnection[] CaptureConnectionSnapshot(INetworkEndpoint networkEndpoint)
     {

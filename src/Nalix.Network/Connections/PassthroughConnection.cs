@@ -67,7 +67,7 @@ public sealed class PassthroughConnection :
     private readonly EndPoint _endPointKey;
 
     private SocketUdpTransport? _udpTransport;
-    private IObjectMap<string, object>? _attributes;
+    private IObjectMap<AttributeKey, object>? _attributes;
     private EventHandler<IConnectEventArgs>? _onCloseEvent;
 
     private int _isDisposed;
@@ -195,7 +195,7 @@ public sealed class PassthroughConnection :
     public INetworkEndpoint NetworkEndpoint { get; }
 
     /// <inheritdoc />
-    public IObjectMap<string, object> Attributes => _attributes ??= ObjectMap<string, object>.Rent();
+    public IObjectMap<AttributeKey, object> Attributes => _attributes ??= ObjectMap<AttributeKey, object>.Rent();
 
     /// <inheritdoc />
     public ConcurrentDictionary<ushort, object> RateLimitCache { get; } = new();

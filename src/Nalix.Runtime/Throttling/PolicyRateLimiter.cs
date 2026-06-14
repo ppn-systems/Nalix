@@ -66,12 +66,15 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
     /// <summary>
     /// A composite endpoint key that isolates token buckets by IP Address, and either Operation Code or a specific Policy ID.
     /// </summary>
-    private sealed class ScopedEndpoint : INetworkEndpoint, IEquatable<ScopedEndpoint>
+    internal sealed class ScopedEndpoint : INetworkEndpoint, IEquatable<ScopedEndpoint>
     {
         private readonly ushort _op;
         private readonly string _ip;
         private readonly string? _policyId;
         private readonly INetworkEndpoint _inner;
+
+        internal TokenBucketLimiter.EndpointState? CachedState;
+        internal int CachedGeneration;
 
         public ScopedEndpoint(ushort op, string? policyId, INetworkEndpoint inner)
         {

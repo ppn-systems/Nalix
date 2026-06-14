@@ -180,12 +180,12 @@ public sealed partial class Connection :
     public INetworkEndpoint NetworkEndpoint { get; }
 
     /// <inheritdoc />
-    public IObjectMap<string, object> Attributes
+    public IObjectMap<AttributeKey, object> Attributes
     {
         get
         {
             ConnectionBacking backing = Volatile.Read(ref _backing) ?? throw new ObjectDisposedException(nameof(Connection));
-            return backing.Attributes ??= ObjectMap<string, object>.Rent();
+            return backing.Attributes ??= ObjectMap<AttributeKey, object>.Rent();
         }
     }
 

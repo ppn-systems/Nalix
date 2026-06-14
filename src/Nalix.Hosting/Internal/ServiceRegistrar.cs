@@ -50,9 +50,10 @@ internal static class ServiceRegistrar
         {
             ISessionFactory? factory = InstanceManager.Instance.GetExistingInstance<ISessionFactory>();
             ISessionStore? store = InstanceManager.Instance.GetExistingInstance<ISessionStore>();
+            ISessionPersistencePolicy? policy = InstanceManager.Instance.GetExistingInstance<ISessionPersistencePolicy>();
 
 #pragma warning disable CA2000 // Dispose objects before losing scope
-            service = new SessionService(factory, store);
+            service = new SessionService(factory, store, policy);
 #pragma warning restore CA2000 // Dispose objects before losing scope
             try
             {
