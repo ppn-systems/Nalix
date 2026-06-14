@@ -11,62 +11,62 @@ public static class ConnectionAttributes
     /// <summary>
     /// Key for the connection hub that owns this connection.
     /// </summary>
-    public const string OwnerHub = "nalix.owner_hub";
+    public static readonly AttributeKey OwnerHub = AttributeKey.FromName("nalix.owner_hub");
 
     /// <summary>
     /// Stores the last TCP send sequence number (for session resume).
     /// </summary>
-    public const string TcpSendSequence = "nalix.tcp.sequence.send";
+    public static readonly AttributeKey TcpSendSequence = AttributeKey.FromName("nalix.tcp.sequence.send");
 
     /// <summary>
     /// Stores the last TCP receive sequence number (for session resume).
     /// </summary>
-    public const string TcpReceiveSequence = "nalix.tcp.sequence.receive";
+    public static readonly AttributeKey TcpReceiveSequence = AttributeKey.FromName("nalix.tcp.sequence.receive");
 
     /// <summary>
     /// Stores the last UDP send sequence number (for session resume).
     /// </summary>
-    public const string UdpSendSequence = "nalix.udp.sequence.send";
+    public static readonly AttributeKey UdpSendSequence = AttributeKey.FromName("nalix.udp.sequence.send");
 
     /// <summary>
     /// Stores the last UDP receive sequence number (for session resume).
     /// </summary>
-    public const string UdpReceiveSequence = "nalix.udp.sequence.receive";
+    public static readonly AttributeKey UdpReceiveSequence = AttributeKey.FromName("nalix.udp.sequence.receive");
 
     /// <summary>
     /// Key for the handshake context state stored during the negotiation process.
     /// </summary>
-    public const string HandshakeState = "nalix.handshake.state";
+    public static readonly AttributeKey HandshakeState = AttributeKey.FromName("nalix.handshake.state");
 
     /// <summary>
     /// Key for the boolean attribute indicating whether a handshake has been successfully established.
     /// </summary>
-    public const string HandshakeEstablished = "nalix.handshake.established";
+    public static readonly AttributeKey HandshakeEstablished = AttributeKey.FromName("nalix.handshake.established");
 
     /// <summary>
     /// Synchronization key used to coordinate anti-spam directive send guards per connection.
     /// </summary>
-    public const string InboundDirectiveGuardLock = "nalix.inbound.directive.guard.lock";
+    public static readonly AttributeKey InboundDirectiveGuardLock = AttributeKey.FromName("nalix.inbound.directive.guard.lock");
 
     /// <summary>
     /// Stores the last monotonic timestamp (ms) when a TIMEOUT directive was sent.
     /// </summary>
-    public const string InboundDirectiveTimeoutLastSentAtMs = "nalix.inbound.directive.timeout.last_sent_at_ms";
+    public static readonly AttributeKey InboundDirectiveTimeoutLastSentAtMs = AttributeKey.FromName("nalix.inbound.directive.timeout.last_sent_at_ms");
 
     /// <summary>
     /// Stores the last monotonic timestamp (ms) when a RATE_LIMITED directive was sent.
     /// Shared by rate-limit and concurrency middleware to avoid duplicate bursts.
     /// </summary>
-    public const string InboundDirectiveRateLimitedLastSentAtMs = "nalix.inbound.directive.rate_limited.last_sent_at_ms";
+    public static readonly AttributeKey InboundDirectiveRateLimitedLastSentAtMs = AttributeKey.FromName("nalix.inbound.directive.rate_limited.last_sent_at_ms");
 
     /// <summary>
     /// Stores the last monotonic timestamp (ms) when an UNAUTHORIZED directive was sent.
     /// </summary>
-    public const string InboundDirectiveUnauthorizedLastSentAtMs = "nalix.inbound.directive.unauthorized.last_sent_at_ms";
+    public static readonly AttributeKey InboundDirectiveUnauthorizedLastSentAtMs = AttributeKey.FromName("nalix.inbound.directive.unauthorized.last_sent_at_ms");
 
     /// <summary>
     /// Stores the last monotonic timestamp (ms) when a control log entry was emitted.
     /// Prevents log flooding from repeated ERROR/FAIL/NOTICE packets.
     /// </summary>
-    public const string InboundControlLogLastSentAtMs = "nalix.inbound.control.log.last_sent_at_ms";
+    public static readonly AttributeKey InboundControlLogLastSentAtMs = AttributeKey.FromName("nalix.inbound.control.log.last_sent_at_ms");
 }

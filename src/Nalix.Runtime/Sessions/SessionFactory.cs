@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Environment.Configuration;
@@ -35,10 +36,10 @@ public sealed class SessionFactory : ISessionFactory
         long now = Clock.UnixMillisecondsNow();
 
         // Rent a new object map for the session snapshot attributes
-        ObjectMap<string, object> attributes = ObjectMap<string, object>.Rent();
+        ObjectMap<AttributeKey, object> attributes = ObjectMap<AttributeKey, object>.Rent();
 
         // Copy existing connection attributes
-        foreach (KeyValuePair<string, object> item in connection.Attributes)
+        foreach (KeyValuePair<AttributeKey, object> item in connection.Attributes)
         {
             attributes[item.Key] = item.Value;
         }

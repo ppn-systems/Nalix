@@ -76,7 +76,7 @@ public partial interface IConnection : IDisposable, IConnectionErrorTracked
     /// Gets a thread-safe extensible attribute dictionary for the connection.
     /// This can be used to store session or user-defined data associated with the connection.
     /// </summary>
-    IObjectMap<string, object> Attributes { get; }
+    IObjectMap<AttributeKey, object> Attributes { get; }
 
     /// <summary>
     /// Gets the encryption key used for securing communication.

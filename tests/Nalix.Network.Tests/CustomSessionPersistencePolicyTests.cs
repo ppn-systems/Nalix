@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Runtime.Sessions;
@@ -18,7 +19,7 @@ public sealed class CustomSessionPersistencePolicyTests
     {
         public bool ShouldPersist(IConnection connection)
         {
-            return connection.Attributes.ContainsKey("should_save");
+            return connection.Attributes.ContainsKey(AttributeKey.FromName("should_save"));
         }
     }
 
@@ -27,7 +28,7 @@ public sealed class CustomSessionPersistencePolicyTests
     {
         // Arrange
         var mockConnection = Substitute.For<IConnection>();
-        var attributes = Nalix.Framework.Memory.Objects.ObjectMap<string, object>.Rent();
+        var attributes = Nalix.Framework.Memory.Objects.ObjectMap<AttributeKey, object>.Rent();
         mockConnection.Attributes.Returns(attributes);
         mockConnection.IsDisposed.Returns(false);
 
@@ -41,7 +42,7 @@ public sealed class CustomSessionPersistencePolicyTests
         report1.Should().Contain("Total Stores Rejected   : 1");
 
         // Act & Assert (Should persist because "should_save" is present)
-        attributes["should_save"] = true;
+        attributes[AttributeKey.FromName("should_save")] = true;
         await service.SaveSessionAsync(mockConnection);
         var report2 = service.GenerateReport();
         report2.Should().Contain("Total Stores Succeeded  : 1");
@@ -54,7 +55,7 @@ public sealed class CustomSessionPersistencePolicyTests
     {
         // Arrange
         var mockConnection = Substitute.For<IConnection>();
-        var attributes = Nalix.Framework.Memory.Objects.ObjectMap<string, object>.Rent();
+        var attributes = Nalix.Framework.Memory.Objects.ObjectMap<AttributeKey, object>.Rent();
         mockConnection.Attributes.Returns(attributes);
 
         var policy = new DefaultSessionPersistencePolicy();
@@ -70,11 +71,11 @@ public sealed class CustomSessionPersistencePolicyTests
     {
         // Arrange
         var mockConnection = Substitute.For<IConnection>();
-        var attributes = Nalix.Framework.Memory.Objects.ObjectMap<string, object>.Rent();
+        var attributes = Nalix.Framework.Memory.Objects.ObjectMap<AttributeKey, object>.Rent();
         attributes[ConnectionAttributes.HandshakeEstablished] = true;
         for (int i = 0; i < 20; i++)
         {
-            attributes[$"key_{i}"] = i;
+            attributes[AttributeKey.FromName($"key_{i}")] = i;
         }
         mockConnection.Attributes.Returns(attributes);
 

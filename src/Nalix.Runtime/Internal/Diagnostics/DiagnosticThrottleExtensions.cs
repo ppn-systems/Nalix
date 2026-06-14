@@ -20,7 +20,7 @@ internal sealed class ThrottleKey
     /// <summary>
     /// The fully-qualified attribute key (<c>"sys.log." + name</c>).
     /// </summary>
-    public string AttributeKey { get; }
+    public AttributeKey AttributeKey { get; }
 
     /// <summary>
     /// Creates a new <see cref="ThrottleKey"/>.
@@ -35,7 +35,7 @@ internal sealed class ThrottleKey
     public ThrottleKey(string name)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
-        this.AttributeKey = string.Concat("sys.log.", name);
+        this.AttributeKey = AttributeKey.FromName(string.Concat("sys.log.", name));
     }
 }
 
@@ -123,7 +123,7 @@ internal static class DiagnosticThrottleExtensions
     {
         suppressed = 0;
 
-        IObjectMap<string, object>? attrs = connection?.Attributes;
+        IObjectMap<AttributeKey, object>? attrs = connection?.Attributes;
         if (attrs is null)
         {
             return true;

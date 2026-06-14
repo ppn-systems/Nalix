@@ -30,7 +30,7 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
 {
     #region Fields
 
-    private const string ThrottleAttributeKey = "sys.log.protocol.process_error";
+    private static readonly AttributeKey ThrottleAttributeKey = AttributeKey.FromName("sys.log.protocol.process_error");
     private static readonly long s_throttleWindowTicks = (long)(TimeSpan.FromSeconds(20).TotalSeconds * Stopwatch.Frequency);
 
     private readonly ILogger? _logger;
@@ -197,7 +197,7 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
 
     private static bool ShouldEmitThrottledLog(IConnection connection)
     {
-        IObjectMap<string, object>? attrs = connection?.Attributes;
+        IObjectMap<AttributeKey, object>? attrs = connection?.Attributes;
         if (attrs is null)
         {
             return true;

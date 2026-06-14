@@ -42,7 +42,7 @@ internal sealed class ConnectionBacking : IPoolable
     public int IsDispatchingClose; // 0=no, 1=yes
     public int PendingProcessCallbacks;
 
-    public IObjectMap<string, object>? Attributes;
+    public IObjectMap<AttributeKey, object>? Attributes;
     public ConcurrentDictionary<ushort, object>? RateLimitCache;
 
     public EventHandler<IConnectEventArgs>? OnCloseEvent;

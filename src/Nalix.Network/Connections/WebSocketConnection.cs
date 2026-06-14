@@ -58,7 +58,7 @@ public sealed class WebSocketConnection :
     private int _pendingProcessCallbacks;
 
     private WebSocketTransport? _tcp;
-    private IObjectMap<string, object>? _attributes;
+    private IObjectMap<AttributeKey, object>? _attributes;
     private ConcurrentDictionary<ushort, object>? _rateLimitCache;
 
     private EventHandler<IConnectEventArgs>? _onCloseEvent;
@@ -130,7 +130,7 @@ public sealed class WebSocketConnection :
     public INetworkEndpoint NetworkEndpoint { get; }
 
     /// <inheritdoc />
-    public IObjectMap<string, object> Attributes => _attributes ??= ObjectMap<string, object>.Rent();
+    public IObjectMap<AttributeKey, object> Attributes => _attributes ??= ObjectMap<AttributeKey, object>.Rent();
 
     /// <inheritdoc />
     public ConcurrentDictionary<ushort, object> RateLimitCache => _rateLimitCache ??= new();

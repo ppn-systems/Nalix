@@ -44,7 +44,7 @@ public sealed class SessionSnapshot
     /// <summary>
     /// Gets or sets the whitelisted connection attributes copied during resume.
     /// </summary>
-    public IObjectMap<string, object>? Attributes { get; set; }
+    public IObjectMap<AttributeKey, object>? Attributes { get; set; }
 
     /// <summary>
     /// Returns the session attributes to the object pool and zeroizes the secret.

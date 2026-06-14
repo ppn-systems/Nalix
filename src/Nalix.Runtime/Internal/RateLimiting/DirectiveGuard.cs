@@ -32,10 +32,9 @@ internal static class DirectiveGuard
     /// <returns>
     /// <c>true</c> if sending is allowed now; otherwise <c>false</c> when suppressed by cooldown.
     /// </returns>
-    public static bool TryAcquire(IConnection connection, string lastSentAtAttributeKey, int? cooldownMs = null)
+    public static bool TryAcquire(IConnection connection, AttributeKey lastSentAtAttributeKey, int? cooldownMs = null)
     {
         ArgumentNullException.ThrowIfNull(connection);
-        ArgumentNullException.ThrowIfNull(lastSentAtAttributeKey);
 
         int resolvedCooldownMs = cooldownMs ?? s_options.DefaultCooldownMs;
         if (resolvedCooldownMs <= 0)
@@ -43,7 +42,7 @@ internal static class DirectiveGuard
             return true;
         }
 
-        IObjectMap<string, object> attributes = connection.Attributes;
+        IObjectMap<AttributeKey, object> attributes = connection.Attributes;
         GuardState state = GET_OR_CREATE_STATE(attributes);
 
         bool lockTaken = false;
@@ -85,7 +84,7 @@ internal static class DirectiveGuard
         public SpinLock SpinLock = new(false);
     }
 
-    private static GuardState GET_OR_CREATE_STATE(IObjectMap<string, object> attributes)
+    private static GuardState GET_OR_CREATE_STATE(IObjectMap<AttributeKey, object> attributes)
     {
         if (attributes.TryGetValue(ConnectionAttributes.InboundDirectiveGuardLock, out object? existing) &&
             existing is GuardState state)
