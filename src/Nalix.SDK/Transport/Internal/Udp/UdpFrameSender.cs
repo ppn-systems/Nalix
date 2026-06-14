@@ -29,6 +29,8 @@ internal sealed class UdpFrameSender : IDisposable
     private readonly Action<Exception> _onError;
     private readonly SemaphoreSlim _sendLock = new(1, 1);
 
+    internal SequenceCounter Sequence => _sequence;
+
     private int _disposed;
 
     public UdpFrameSender(Func<Socket> getSocket, TransportOptions options, SessionState state, Action<Exception> onError)

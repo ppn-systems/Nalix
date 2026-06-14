@@ -130,6 +130,12 @@ public sealed partial class TransportOptions : ConfigurationLoader
     public string? ServerPublicKey { get; set; }
 
     /// <summary>
+    /// Optional callback invoked when a new server public key is pinned (e.g. during TOFU).
+    /// Used to save the key persistently when the default ConfigurationManager is not supported (e.g. WebGL/Browser).
+    /// </summary>
+    public System.Action<string>? OnServerPublicKeyPinned { get; set; }
+
+    /// <summary>
     /// Gets or sets whether the SDK should attempt a session resume before performing a new handshake.
     /// </summary>
     [IniComment("Attempt session resume before doing a fresh handshake")]

@@ -17,12 +17,13 @@ namespace Nalix.SDK.Transport.Internal.Ws;
 
 internal sealed class WsFrameReader : IDisposable
 {
-    private readonly SequenceCounter _sequence;
     private readonly Action<Exception> _onError;
     private readonly Action<IBufferLease> _onMessage;
     private readonly Func<ClientWebSocket> _getSocket;
 
     private readonly SessionState _state;
+    private readonly SequenceCounter _sequence;
+    internal SequenceCounter Sequence => _sequence;
     private readonly TransportOptions _options;
     private readonly WebSocketTransportOptions _webSocketOptions;
 

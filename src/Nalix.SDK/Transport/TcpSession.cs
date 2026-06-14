@@ -289,6 +289,13 @@ public class TcpSession : TransportSession
     public void Send(ReadOnlySpan<byte> data, bool encrypt = true) => _sender.Send(data, encrypt);
 
     /// <inheritdoc/>
+    public override void ResetSequenceCounters()
+    {
+        _sender.Sequence.Reset();
+        _reader.Sequence.Reset();
+    }
+
+    /// <inheritdoc/>
     public override async Task SendAsync(IPacket packet, CancellationToken ct = default)
         => await this.SendAsync(packet, this.State.EncryptionEnabled, ct).ConfigureAwait(false);
 

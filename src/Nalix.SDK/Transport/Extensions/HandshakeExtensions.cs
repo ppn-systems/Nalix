@@ -98,8 +98,20 @@ public static class HandshakeExtensions
             string fetchedKeyHex = keyResponse.PublicKey.ToString();
 
             session.Options.ServerPublicKey = fetchedKeyHex;
-            ConfigurationManager.Instance.UpdateValue<TransportOptions>(nameof(TransportOptions.ServerPublicKey), fetchedKeyHex);
-            ConfigurationManager.Instance.Flush();
+            session.Options.OnServerPublicKeyPinned?.Invoke(fetchedKeyHex);
+
+            if (!OperatingSystem.IsBrowser())
+            {
+                try
+                {
+                    ConfigurationManager.Instance.UpdateValue<TransportOptions>(nameof(TransportOptions.ServerPublicKey), fetchedKeyHex);
+                    ConfigurationManager.Instance.Flush();
+                }
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                {
+                    // Ignore persistence failure on unsupported platforms
+                }
+            }
         }
 
         Bytes32 pinnedServerKey = Bytes32.Parse(session.Options.ServerPublicKey);
