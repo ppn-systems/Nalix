@@ -65,6 +65,7 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
 
     private volatile bool _disposed;
     private volatile int _currentConcurrencyLimit;
+    private double _concurrencyLimitRatio;
     private int _concurrencyDeficiency;
 
     #endregion Fields
@@ -88,6 +89,9 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
             return $"Workers: {runningWorkers} running / {totalWorkers} total | Recurring: {recurring}";
         }
     }
+
+    /// <inheritdoc/>
+    public double ConcurrencyLimitRatio => Volatile.Read(ref _concurrencyLimitRatio);
 
     /// <summary>
     /// Gets the average execution time for worker tasks in milliseconds.
@@ -178,6 +182,7 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
         _pendingWorkersSignal = new SemaphoreSlim(0, int.MaxValue);
         _workerDispatcherCts = new();
         _currentConcurrencyLimit = _options.MaxWorkers;
+        _concurrencyLimitRatio = _options.MaxWorkers > 0 ? 1.0 : 1.0;
         _globalConcurrencyGate = new SemaphoreSlim(_currentConcurrencyLimit, _options.MaxWorkers);
         _workerDispatcherTask = this.WORKER_DISPATCH_LOOP_ASYNC(_workerDispatcherCts.Token);
 

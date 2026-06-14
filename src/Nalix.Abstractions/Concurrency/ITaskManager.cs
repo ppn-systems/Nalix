@@ -25,6 +25,12 @@ public interface ITaskManager : IReportable
     string Title { get; }
 
     /// <summary>
+    /// Gets the current concurrency limit ratio (from 0.0 to 1.0) of the task manager,
+    /// reflecting the system load state.
+    /// </summary>
+    double ConcurrencyLimitRatio { get; }
+
+    /// <summary>
     /// Schedules a recurring job.
     /// </summary>
     /// <param name="name">The name of the recurring job.</param>

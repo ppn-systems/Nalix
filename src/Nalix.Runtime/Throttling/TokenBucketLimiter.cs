@@ -14,6 +14,7 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
+using Nalix.Framework.Injection;
 using Nalix.Runtime.Options;
 
 namespace Nalix.Runtime.Throttling;
@@ -46,6 +47,8 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     private readonly int _cleanupIntervalSec;
     private readonly long _initialBalanceMicro;
     private readonly TokenBucketOptions _options;
+    private readonly ITaskManager? _taskManager;
+    private readonly bool _adaptiveThrottlingEnabled;
 
     private int _totalEndpointCount;
     private int _cleanupShardStart;
@@ -92,7 +95,21 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
             _shards[i] = new Shard();
         }
 
+        _taskManager = InstanceManager.Instance.GetExistingInstance<ITaskManager>();
+        _adaptiveThrottlingEnabled = _options.AdaptiveThrottlingEnabled && _taskManager is not null;
+ 
         this.SCHEDULE_CLEANUP_JOB();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private double GetAdaptiveScale()
+    {
+        if (!_adaptiveThrottlingEnabled)
+        {
+            return 1.0;
+        }
+ 
+        return _taskManager!.ConcurrencyLimitRatio;
     }
 
     /// <summary>
@@ -656,8 +673,10 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         // This prevents time drift and ensures consistent refill intervals
         state.LastRefillSwTicks = now;
 
+        double scale = this.GetAdaptiveScale();
+
         // Check for potential overflow before multiplication
-        if (dt * _refillPerTick >= _capacityMicro)
+        if (dt * _refillPerTick * scale >= _capacityMicro)
         {
             // Extreme case: very long dt or high refill rate -> cap at full
             state.AccumulatedMicro = 0;
@@ -673,7 +692,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         }
 
         // Formula: (dt * refillRate) + accumulated = whole_tokens * frequency + remainder
-        long microToAdd = (long)(dt * _refillPerTick) + state.AccumulatedMicro;
+        long microToAdd = (long)(dt * _refillPerTick * scale) + state.AccumulatedMicro;
 
         if (microToAdd <= 0)
         {
@@ -702,7 +721,9 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
 
         state.LastRefillSwTicks = now;
 
-        if (dt * policy.RefillPerTick >= policy.CapacityMicro)
+        double scale = this.GetAdaptiveScale();
+
+        if (dt * policy.RefillPerTick * scale >= policy.CapacityMicro)
         {
             state.AccumulatedMicro = 0;
             state.MicroBalance = policy.CapacityMicro;
@@ -715,7 +736,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
             return;
         }
 
-        long microToAdd = (long)(dt * policy.RefillPerTick) + state.AccumulatedMicro;
+        long microToAdd = (long)(dt * policy.RefillPerTick * scale) + state.AccumulatedMicro;
 
         if (microToAdd <= 0)
         {
@@ -738,7 +759,9 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int CALCULATE_RETRY_DELAY_MS(long microNeeded)
     {
-        if (_refillPerSecMicro <= 0)
+        double scale = this.GetAdaptiveScale();
+        double refillPerSec = _refillPerSecMicro * scale;
+        if (refillPerSec <= 0)
         {
             return 0; // No refill configured
         }
@@ -756,7 +779,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         }
 
         // Safe calculation with double precision
-        double delayMs = microNeeded * 1000.0 / _refillPerSecMicro;
+        double delayMs = microNeeded * 1000.0 / refillPerSec;
 
         // Clamp to maximum safe value
         if (delayMs >= MaxDelayMs || double.IsInfinity(delayMs) || double.IsNaN(delayMs))
@@ -773,7 +796,9 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int CALCULATE_RETRY_DELAY_MS(long microNeeded, in RateLimitPolicy policy)
     {
-        if (policy.RefillPerSecMicro <= 0 || microNeeded <= 0)
+        double scale = this.GetAdaptiveScale();
+        double refillPerSec = policy.RefillPerSecMicro * scale;
+        if (refillPerSec <= 0 || microNeeded <= 0)
         {
             return 0;
         }
@@ -783,7 +808,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
             return int.MaxValue;
         }
 
-        double delayMs = microNeeded * 1000.0 / policy.RefillPerSecMicro;
+        double delayMs = microNeeded * 1000.0 / refillPerSec;
 
         if (delayMs >= MaxDelayMs || double.IsInfinity(delayMs) || double.IsNaN(delayMs))
         {
