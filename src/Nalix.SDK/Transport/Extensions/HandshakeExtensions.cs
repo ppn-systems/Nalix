@@ -98,7 +98,6 @@ public static class HandshakeExtensions
             string fetchedKeyHex = keyResponse.PublicKey.ToString();
 
             session.Options.ServerPublicKey = fetchedKeyHex;
-            session.Options.OnServerPublicKeyPinned?.Invoke(fetchedKeyHex);
 
             if (!OperatingSystem.IsBrowser())
             {
