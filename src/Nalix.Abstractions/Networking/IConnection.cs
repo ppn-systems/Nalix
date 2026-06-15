@@ -50,7 +50,7 @@ public partial interface IConnection : IDisposable, IConnectionErrorTracked
     /// </summary>
     /// <remarks>
     /// Connections may initially be registered with the idle timeout scheduler regardless of this value.
-    /// When set to <see langword="false"/>, the connection is permanently excluded from automatic
+    /// When set to <see langword="true"/>, the connection is permanently excluded from automatic
     /// idle timeout management.
     ///
     /// Once disabled, idle timeout enforcement cannot be re-enabled for the same connection.
@@ -116,4 +116,11 @@ public partial interface IConnection : IDisposable, IConnectionErrorTracked
     /// Use this method to terminate the connection gracefully.
     /// </remarks>
     void Disconnect(string? reason = null);
+
+    /// <summary>
+    /// Dynamically updates the idle timeout for this connection.
+    /// This is useful for implementing adaptive timeouts during different stages of the protocol (e.g., PoW challenge vs established).
+    /// </summary>
+    /// <param name="newTimeoutMs">The new timeout duration in milliseconds.</param>
+    void UpdateIdleTimeout(int newTimeoutMs);
 }

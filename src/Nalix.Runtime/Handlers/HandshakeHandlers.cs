@@ -41,7 +41,7 @@ public static partial class HandshakeHandlers
     [ReservedOpcodePermitted]
     [PacketEncryption(false)]
     [PacketOpcode(ProtocolOpCode.SESSION_INIT)]
-    [PacketPermission(PermissionLevel.POW_VERIFIED)]
+    [PacketPermission(PermissionLevel.NONE)]
     public static async ValueTask HandleSessionInitAsync(IPacketContext<SessionInit> context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -53,6 +53,26 @@ public static partial class HandshakeHandlers
         {
             await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
             return;
+        }
+
+        if (s_powPolicy != null && s_powPolicy.IsUnderAttack)
+        {
+            if (connection.Level < PermissionLevel.POW_VERIFIED)
+            {
+                // Adaptive Timeout: Expected solve time + 10 seconds network buffer
+                // Time to solve is approximately 2^Difficulty hashes.
+                // Assuming an average client can compute ~500 hashes per millisecond.
+                int adaptiveTimeoutMs = ((1 << s_powPolicy.CurrentDifficulty) / 500) + 5000;
+
+                using PacketScope<Control> error = PacketFactory<Control>.Acquire();
+                error.Value.Initialize(ControlType.ERROR, reasonCode: ProtocolReason.POW_REQUIRED, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+                await context.Sender.SendAsync(error.Value).ConfigureAwait(false);
+
+                connection.UpdateIdleTimeout(adaptiveTimeoutMs);
+
+                // Do NOT disconnect, just return to wait for POW_PROOF.
+                return;
+            }
         }
 
         if (!TryAcquireHandshakeSlot(connection, out object claimToken))
@@ -130,7 +150,7 @@ public static partial class HandshakeHandlers
     /// <inheritdoc/>
     [ReservedOpcodePermitted]
     [PacketEncryption(false)]
-    [PacketPermission(PermissionLevel.POW_VERIFIED)]
+    [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode((ushort)ProtocolOpCode.SESSION_PROOF)]
     public static async ValueTask HandleSessionProofAsync(IPacketContext<SessionProof> context)
     {
@@ -143,6 +163,17 @@ public static partial class HandshakeHandlers
         {
             await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
             return;
+        }
+
+        if (s_powPolicy != null && s_powPolicy.IsUnderAttack)
+        {
+            if (connection.Level < PermissionLevel.POW_VERIFIED)
+            {
+                using Control error = new();
+                error.Initialize(ControlType.ERROR, reasonCode: ProtocolReason.POW_REQUIRED, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+                await context.Sender.SendAsync(error).ConfigureAwait(false);
+                return;
+            }
         }
 
         if (!TryGetState(connection, out HandshakeContext? state) || state is null)
@@ -259,6 +290,9 @@ public static partial class HandshakeHandlers
 
     [Inject]
     private static ISessionService? s_sessionService;
+
+    [Inject]
+    private static IProofOfWorkPolicy? s_powPolicy;
 
     #endregion Fields
 

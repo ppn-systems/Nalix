@@ -64,8 +64,6 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
     private readonly NetworkBanRepository _banRepository;
     private readonly ConcurrentDictionary<SocketEndpoint, ConnectionLimitEntry> _map;
 
-
-
     private int _disposed;
     private int _reloadPending;
     private IRecurringHandle? _saveJob;
@@ -119,6 +117,11 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
             return (byte)(_config.AdaptivePowMinDifficulty + (diffRange * scale));
         }
     }
+
+    /// <summary>
+    /// Indicates whether the server is currently under attack based on the elevated Proof-of-Work difficulty.
+    /// </summary>
+    public bool IsUnderAttack => this.CurrentDifficulty > _config.AdaptivePowMinDifficulty;
 
     /// <summary>Gets the recurring name used for cleanup operations.</summary>
     public static readonly string RecurringName;

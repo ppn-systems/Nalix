@@ -13,4 +13,9 @@ public interface IProofOfWorkPolicy
     /// The difficulty corresponds to the required number of leading zero bits in the hash.
     /// </summary>
     byte CurrentDifficulty { get; }
+
+    /// <summary>
+    /// Indicates whether the server is currently under attack based on the elevated Proof-of-Work difficulty.
+    /// </summary>
+    bool IsUnderAttack { get; }
 }

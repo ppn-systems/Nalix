@@ -122,8 +122,9 @@ internal sealed class TimingWheel : IActivatable
 
     internal interface ITimeoutTrackedConnection : IConnection
     {
-        bool IsRegisteredInWheel { get; set; }
+        int IdleTimeoutMs { get; set; }
         int TimeoutVersion { get; set; }
+        bool IsRegisteredInWheel { get; set; }
         TimeoutTask? TimeoutTask { get; set; }
     }
 
@@ -462,7 +463,7 @@ internal sealed class TimingWheel : IActivatable
                 task.Version = connection.TimeoutVersion;
 
                 long baseTick = Volatile.Read(ref _tick);
-                long ticks = Math.Max(1, _idleTimeoutMs / (long)_tickMs);
+                long ticks = Math.Max(1, connection.IdleTimeoutMs / (long)_tickMs);
 
                 int bucket = _useMask
                     ? (int)((baseTick + ticks) & _mask)
@@ -655,8 +656,9 @@ internal sealed class TimingWheel : IActivatable
                         }
 
                         long idleMs = Clock.UnixMillisecondsNow() - connection.LastPingTime;
+                        int currentTimeoutMs = connection.IdleTimeoutMs;
 
-                        if (idleMs >= _idleTimeoutMs)
+                        if (idleMs >= currentTimeoutMs)
                         {
                             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                             {
@@ -693,7 +695,7 @@ internal sealed class TimingWheel : IActivatable
                             continue;
                         }
 
-                        long remainingMs = _idleTimeoutMs - idleMs;
+                        long remainingMs = currentTimeoutMs - idleMs;
                         long ticksMore = Math.Max(1, remainingMs / _tickMs);
 
                         task.Version = connection.TimeoutVersion;
