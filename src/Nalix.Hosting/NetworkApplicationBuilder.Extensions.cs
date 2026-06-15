@@ -41,6 +41,7 @@ public static class NetworkApplicationBuilderExtensions
         }
 
         _ = builder.AddHandler(typeof(HandshakeHandlers));
+        _ = builder.AddHandler(typeof(SessionRekeyHandlers));
 
         // Resolve certificate path: explicit parameter wins,
         // then ConfigureCertificate() state, then default.

@@ -311,7 +311,8 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
             Tag = attr?.Tag ?? attr?.Group ?? "hosted",
             IdType = (SnowflakeType)(attr?.IdType ?? 1),
             RetainFor = TimeSpan.FromMilliseconds(attr?.RetainForMs ?? 0),
-            Priority = (WorkerPriority)(attr?.Priority ?? 0)
+            Priority = (WorkerPriority)(attr?.Priority ?? 0),
+            ProcessorAffinity = attr?.ProcessorAffinity >= 0 ? attr?.ProcessorAffinity : null
         };
 
         if (attr is not null && attr.GroupConcurrencyLimit > 0)

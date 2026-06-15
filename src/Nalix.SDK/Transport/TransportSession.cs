@@ -109,6 +109,12 @@ public abstract class TransportSession : IDisposable
     public abstract Task SendAsync(ReadOnlyMemory<byte> payload, bool? encrypt = null, CancellationToken ct = default);
 
     /// <summary>
+    /// Resets the sequence counters for both send and receive directions.
+    /// This should be called immediately after a successful key rotation (e.g., SessionRekey).
+    /// </summary>
+    public abstract void ResetSequenceCounters();
+
+    /// <summary>
     /// Releases all resources used by the session.
     /// </summary>
     public void Dispose()

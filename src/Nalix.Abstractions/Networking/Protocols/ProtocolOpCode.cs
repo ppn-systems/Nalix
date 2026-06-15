@@ -56,6 +56,11 @@ public enum ProtocolOpCode : ushort
     /// </summary>
     SYSTEM_DIRECTIVE = 0x0008,
 
+    /// <summary>
+    /// Session rekey packet used to reestablish a session after a disconnect or network interruption.
+    /// </summary>
+    SESSION_REKEY = 0x0009,
+
     #endregion System
 
     #region Extensions

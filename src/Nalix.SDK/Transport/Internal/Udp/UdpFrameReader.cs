@@ -24,6 +24,7 @@ internal sealed class UdpFrameReader : IDisposable
     private readonly SessionState _state;
     private readonly Func<Socket> _getSocket;
     private readonly SequenceCounter _sequence;
+    internal SequenceCounter Sequence => _sequence;
     private readonly TransportOptions _options;
     private readonly Action<Exception> _onError;
     private readonly Action<IBufferLease> _onMessageReceived;

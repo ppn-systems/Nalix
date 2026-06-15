@@ -244,8 +244,15 @@ public class UdpSession : TransportSession
     }
 
     /// <inheritdoc/>
-    public override Task SendAsync(ReadOnlyMemory<byte> payload, bool? encrypt = null, CancellationToken ct = default)
-        => _sender.SendAsync(payload, encrypt, ct);
+    public override async Task SendAsync(ReadOnlyMemory<byte> payload, bool? encrypt = null, CancellationToken ct = default)
+        => await _sender.SendAsync(payload, encrypt, ct).ConfigureAwait(false);
+
+    /// <inheritdoc/>
+    public override void ResetSequenceCounters()
+    {
+        _sender.Sequence.Reset();
+        _reader.Sequence.Reset();
+    }
 
     /// <inheritdoc/>
     protected override void Dispose(bool disposing)

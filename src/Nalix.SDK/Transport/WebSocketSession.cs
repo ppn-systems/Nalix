@@ -245,6 +245,13 @@ public class WebSocketSession : TransportSession
         => await _sender.SendAsync(payload, encrypt, ct).ConfigureAwait(false);
 
     /// <inheritdoc/>
+    public override void ResetSequenceCounters()
+    {
+        _sender.Sequence.Reset();
+        _reader.Sequence.Reset();
+    }
+
+    /// <inheritdoc/>
     protected override void Dispose(bool disposing)
     {
         if (!disposing || Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)

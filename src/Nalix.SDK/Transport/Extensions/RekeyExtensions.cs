@@ -1,0 +1,58 @@
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Primitives;
+using Nalix.Codec.Pooling;
+using Nalix.Codec.ProtocolFrames;
+using Nalix.Environment.Random;
+using Nalix.SDK.Transport.Internal;
+
+namespace Nalix.SDK.Transport.Extensions;
+
+/// <summary>
+/// Provides extension methods for session rekeying (Key Rotation).
+/// </summary>
+public static class RekeyExtensions
+{
+    /// <summary>
+    /// Performs a mid-session key rotation by generating a new 32-byte key, sending it securely via <see cref="SessionRekey"/>,
+    /// and resetting the session's sequence counters to prevent overflow (<see cref="Abstractions.Exceptions.CipherException"/>).
+    /// </summary>
+    /// <param name="session">The transport session.</param>
+    /// <param name="ct">The cancellation token.</param>
+    /// <returns>A task that completes when the key rotation is successfully acknowledged by the server.</returns>
+    public static async ValueTask RekeyAsync(this TransportSession session, CancellationToken ct = default)
+    {
+        Span<byte> keyBuffer = stackalloc byte[Bytes32.Size];
+        Csprng.Fill(keyBuffer);
+        Bytes32 newKey = new(keyBuffer);
+
+        ushort seqId = (ushort)Csprng.GetInt32(1, ushort.MaxValue);
+
+        using PacketScope<SessionRekey> lease = PacketFactory<SessionRekey>.Acquire();
+        SessionRekey rekeyPacket = lease.Value;
+        rekeyPacket.Initialize(newKey);
+        rekeyPacket.SequenceId = seqId;
+
+        // Send the SessionRekey packet and await the CIPHER_UPDATE_ACK from the server.
+        // We use AwaitAsync to ensure the server has processed the new key before we switch our local state.
+        _ = await PacketAwaiter.AwaitAsync<Control>(
+            session,
+            predicate: p => p.Type == ControlType.CIPHER_UPDATE_ACK && p.SequenceId == seqId,
+            sendAsync: async token =>
+            {
+                await session.SendAsync(rekeyPacket, token).ConfigureAwait(false);
+
+                // Immediately switch to the new key and reset sequence counters for outbound frames
+                // so that subsequent frames (including any other concurrent sends) use the new state.
+                session.State.Secret = newKey;
+                session.ResetSequenceCounters();
+            },
+            timeoutMs: session.Options.ConnectTimeoutMillis > 0 ? session.Options.ConnectTimeoutMillis : 5000,
+            ct: ct).ConfigureAwait(false);
+    }
+}

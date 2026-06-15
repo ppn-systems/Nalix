@@ -63,6 +63,12 @@ public sealed class WorkerAttribute : Attribute
     public bool Enabled { get; init; } = true;
 
     /// <summary>
+    /// Preferred CPU core index (0-based) for thread affinity on dedicated threads.
+    /// Default: -1 (no affinity). Only effective when the worker has a dedicated thread.
+    /// </summary>
+    public int ProcessorAffinity { get; init; } = -1;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="WorkerAttribute"/> class.
     /// </summary>
     /// <param name="name">The worker name.</param>

@@ -117,7 +117,19 @@ public sealed class PacketDispatchChannel
 
         Volatile.Write(ref _activeLoops, 0);
 
-        _dispatchLoops = this.Options.Drain.Count == 0 ? Math.Clamp(System.Environment.ProcessorCount, this.Options.Drain.MinDispatchLoops, this.Options.Drain.MaxDispatchLoops) : this.Options.Drain.Count;
+        int[]? affinityCores = ParseProcessorAffinities(this.Options.Drain.DispatchProcessorAffinities);
+
+        if (affinityCores is not null && affinityCores.Length > 0)
+        {
+            _dispatchLoops = affinityCores.Length;
+        }
+        else
+        {
+            _dispatchLoops = this.Options.Drain.Count > 0
+                ? this.Options.Drain.Count
+                : Math.Clamp(System.Environment.ProcessorCount, this.Options.Drain.MinDispatchLoops, this.Options.Drain.MaxDispatchLoops);
+        }
+
         _workerHandle = new IWorkerHandle[_dispatchLoops];
         CancellationToken linkedTokenRef = linkedToken;
 
@@ -134,6 +146,8 @@ public sealed class PacketDispatchChannel
                     // This is now a truly asynchronous worker managed by TaskManager.
                     // By removing the manual OS thread, we reduce context switching and 
                     // allow .NET's thread pool to optimize the execution of the async state machine.
+                    // NOTE: If DispatchProcessorAffinities is configured, this worker will be 
+                    // upgraded to a dedicated OS thread for core pinning.
                     await this.DispatchWorkerLoopAsync(ctx, ct, loopIndex).ConfigureAwait(false);
                 },
                 options: new WorkerOptions
@@ -142,7 +156,9 @@ public sealed class PacketDispatchChannel
                     Tag = TaskNaming.Tags.Net,
                     IdType = SnowflakeType.System,
                     CancellationToken = linkedTokenRef,
-                    Priority = WorkerPriority.HIGH
+                    Priority = WorkerPriority.HIGH,
+                    OSPriority = affinityCores is not null ? ThreadPriority.Normal : null,
+                    ProcessorAffinity = affinityCores?[i % affinityCores.Length]
                 });
         }
 
@@ -421,6 +437,28 @@ public sealed class PacketDispatchChannel
     #endregion IReportable
 
     #region Private Methods
+
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    private static int[]? ParseProcessorAffinities(string? config)
+    {
+        if (string.IsNullOrWhiteSpace(config))
+        {
+            return null;
+        }
+
+        string[] parts = config.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        List<int> parsedCores = new(parts.Length);
+        foreach (string p in parts)
+        {
+            if (int.TryParse(p, out int core) && core >= 0)
+            {
+                parsedCores.Add(core);
+            }
+        }
+
+        return parsedCores.Count > 0 ? [.. parsedCores] : null;
+    }
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]

@@ -114,6 +114,13 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader, IValidat
     public bool DualMode { get; set; } = true;
 
     /// <summary>
+    /// CPU core index (0-based) to pin the TCP dispatch worker thread.
+    /// Leave as -1 for OS default scheduling (no pinning).
+    /// </summary>
+    [IniComment("CPU core index (0-based) to pin the TCP dispatch worker thread (leave as -1 for OS default)")]
+    public int DispatchProcessorAffinity { get; set; } = -1;
+
+    /// <summary>
     /// Maximum accepted connections that may queue in the channel while the consumer
     /// thread is busy.
     /// <para>

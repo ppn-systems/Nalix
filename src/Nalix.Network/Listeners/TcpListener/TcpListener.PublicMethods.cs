@@ -154,6 +154,24 @@ public abstract partial class TcpListenerBase
             }
             _acceptWorkers = acceptWorkers;
 
+            // Wait until at least one accept worker is actually running before returning.
+            // Without this, Activate() returns before any accept loop has started, creating
+            // a race between client connections and server readiness.
+            {
+                SpinWait spin = new();
+                long deadlineMs = System.Environment.TickCount64 + 5000;
+                while (System.Environment.TickCount64 < deadlineMs)
+                {
+                    bool anyRunning = false;
+                    for (int w = 0; w < acceptWorkers.Length; w++)
+                    {
+                        if (acceptWorkers[w].IsRunning) { anyRunning = true; break; }
+                    }
+                    if (anyRunning) break;
+                    spin.SpinOnce();
+                }
+            }
+
             this.START_PROCESS_CHANNEL(linkedToken);
         }
         catch (OperationCanceledException)

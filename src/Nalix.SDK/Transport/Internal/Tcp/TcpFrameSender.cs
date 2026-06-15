@@ -26,6 +26,7 @@ internal sealed class TcpFrameSender : IDisposable
     private readonly Func<Socket> _getSocket;
     private readonly SemaphoreSlim _sendLock;
     private readonly SequenceCounter _sequence;
+    internal SequenceCounter Sequence => _sequence;
     private readonly Action<Exception> _onError;
 
     private readonly SessionState _state;

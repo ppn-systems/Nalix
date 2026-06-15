@@ -78,4 +78,13 @@ public interface IWorkerOptions
     /// If set, the worker will run on a dedicated thread with this priority.
     /// </summary>
     ThreadPriority? OSPriority { get; set; }
+
+    /// <summary>
+    /// Gets the optional preferred CPU core index (0-based) for thread affinity.
+    /// When set along with <see cref="OSPriority"/>, the dedicated worker thread
+    /// will be pinned to this specific logical processor.
+    /// Ignored when the worker runs on the ThreadPool (OSPriority is null).
+    /// If the value is out of range, the system performs a soft fallback (no pinning, no exception).
+    /// </summary>
+    int? ProcessorAffinity { get; set; }
 }
