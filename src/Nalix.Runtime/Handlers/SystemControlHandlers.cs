@@ -104,7 +104,11 @@ public static partial class SystemControlHandlers
     /// </summary>
     private static async ValueTask HandlePowRequestAsync(IPacketContext<Control> context)
     {
-        ArgumentNullException.ThrowIfNull(context);
+        if (!context.IsReliable)
+        {
+            // This is a replayed packet, ignore silently.
+            return;
+        }
 
         byte diff = 12; // Fallback
 
@@ -125,6 +129,12 @@ public static partial class SystemControlHandlers
 
     private static async ValueTask HandleCipherUpdate(IPacketContext<Control> context, Control packet)
     {
+        if (!context.IsReliable)
+        {
+            // This is a replayed packet, ignore silently.
+            return;
+        }
+
         // SEC-40: Validate the enum value to prevent protocol DoS via invalid algorithm state.
         byte rawValue = (byte)packet.Reason;
         if (!Enum.IsDefined(typeof(CipherSuiteType), (CipherSuiteType)rawValue))
@@ -226,12 +236,16 @@ public static partial class SystemControlHandlers
 
     private static async ValueTask HandlePublicKeyRequest(IPacketContext<Control> context, Control packet)
     {
-        IConnection connection = context.Connection;
+        if (!context.IsReliable)
+        {
+            // This is a replayed packet, ignore silently.
+            return;
+        }
 
         // Key exchange must happen BEFORE handshake.
-        if (connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeEstablished))
+        if (context.Connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeEstablished))
         {
-            connection.Disconnect("Key exchange requested after handshake was established (State Violation).");
+            context.Connection.Disconnect("Key exchange requested after handshake was established (State Violation).");
             return;
         }
 

@@ -31,6 +31,12 @@ public static class SessionRekeyHandlers
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        if (!context.IsReliable)
+        {
+            // This is a replayed packet, ignore silently.
+            return;
+        }
+
         IConnection connection = context.Connection;
         SessionRekey packet = context.Packet;
 

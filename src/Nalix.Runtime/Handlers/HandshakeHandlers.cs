@@ -46,6 +46,12 @@ public static partial class HandshakeHandlers
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        if (!context.IsReliable)
+        {
+            // This is a replayed packet, ignore silently.
+            return;
+        }
+
         SessionInit packet = context.Packet;
         IConnection connection = context.Connection;
 
@@ -156,6 +162,12 @@ public static partial class HandshakeHandlers
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        if (!context.IsReliable)
+        {
+            // This is a replayed packet, ignore silently.
+            return;
+        }
+
         SessionProof packet = context.Packet;
         IConnection connection = context.Connection;
 
@@ -169,9 +181,10 @@ public static partial class HandshakeHandlers
         {
             if (connection.Level < PermissionLevel.POW_VERIFIED)
             {
-                using Control error = new();
-                error.Initialize(ControlType.ERROR, reasonCode: ProtocolReason.POW_REQUIRED, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
-                await context.Sender.SendAsync(error).ConfigureAwait(false);
+                using PacketScope<Control> error = PacketFactory<Control>.Acquire();
+
+                error.Value.Initialize(ControlType.ERROR, reasonCode: ProtocolReason.POW_REQUIRED, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+                await context.Sender.SendAsync(error.Value).ConfigureAwait(false);
                 return;
             }
         }

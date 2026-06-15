@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Networking.Packets;
@@ -27,9 +26,15 @@ public static class ProofOfWorkHandlers
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode(ProtocolOpCode.POW_PROOF)]
-    public static ValueTask HandleAsync(IPacketContext<ProofOfWorkProof> context)
+    public static void HandleAsync(IPacketContext<ProofOfWorkProof> context)
     {
         ArgumentNullException.ThrowIfNull(context);
+
+        if (!context.IsReliable)
+        {
+            // This is a replayed packet, ignore silently.
+            return;
+        }
 
         ProofOfWorkProof p = context.Packet;
         long currentTime = System.Environment.TickCount64;
@@ -38,7 +43,7 @@ public static class ProofOfWorkHandlers
         if (currentTime - p.TimestampTicks > 30000 || p.TimestampTicks > currentTime + 5000)
         {
             context.Connection.Disconnect(ProtocolReason.POW_INVALID.ToString());
-            return ValueTask.CompletedTask;
+            return;
         }
 
         Bytes32 mac = p.Mac;
@@ -56,10 +61,10 @@ public static class ProofOfWorkHandlers
             }
 
             context.Connection.Disconnect(ProtocolReason.POW_INVALID.ToString());
-            return ValueTask.CompletedTask;
+            return;
         }
 
         context.Connection.Level = PermissionLevel.POW_VERIFIED;
-        return ValueTask.CompletedTask;
+        return;
     }
 }
