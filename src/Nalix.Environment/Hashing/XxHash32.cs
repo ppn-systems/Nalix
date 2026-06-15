@@ -98,8 +98,7 @@ public static class XxHash32
                 }
             }
 
-            h =
-                BitOperations.RotateLeft(v1, 1) +
+            h = BitOperations.RotateLeft(v1, 1) +
                 BitOperations.RotateLeft(v2, 7) +
                 BitOperations.RotateLeft(v3, 12) +
                 BitOperations.RotateLeft(v4, 18);

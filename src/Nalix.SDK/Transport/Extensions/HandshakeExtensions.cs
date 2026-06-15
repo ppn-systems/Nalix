@@ -91,7 +91,7 @@ public static class HandshakeExtensions
 
             // --- Proof-of-Work Negotiation ---
             using Control powReq = new();
-            powReq.Initialize(ControlType.POW_REQUEST, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+            powReq.Initialize(ControlType.POW_REQUEST, flags: PacketFlags.SYSTEM);
 
             using ProofOfWorkChallenge challenge = await session.RequestAsync<ProofOfWorkChallenge>(
                 powReq,
@@ -107,7 +107,7 @@ public static class HandshakeExtensions
             long solution = ProofOfWorkSolver.SolveChallenge(challenge.Nonce.AsSpan(), challenge.Difficulty, challenge.TimestampTicks);
 
             using ProofOfWorkProof proof = new();
-            proof.Initialize(challenge.Nonce, challenge.Difficulty, challenge.TimestampTicks, challenge.Mac, solution, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+            proof.Initialize(challenge.Nonce, challenge.Difficulty, challenge.TimestampTicks, challenge.Mac, solution, flags: PacketFlags.SYSTEM);
 
             // Pipeline the ProofOfWorkProof. We do not wait for a response; SessionInit will immediately follow.
             await session.SendAsync(proof, ct: ct).ConfigureAwait(false);
@@ -139,7 +139,7 @@ public static class HandshakeExtensions
         if (string.IsNullOrEmpty(session.Options.ServerPublicKey))
         {
             using Control request = new();
-            request.Initialize(ControlType.PUBLIC_KEY_REQUEST, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+            request.Initialize(ControlType.PUBLIC_KEY_REQUEST, flags: PacketFlags.SYSTEM);
 
             using SessionTofu keyResponse = await session.RequestAsync<SessionTofu>(
                 request,

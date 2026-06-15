@@ -43,7 +43,7 @@ public sealed partial class SessionRekey : PacketBase<SessionRekey>, IFixedSizeS
     {
         this.PublicKey = publicKey;
         this.Priority = PacketPriority.HIGH;
-        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
+        this.Flags = PacketFlags.SYSTEM;
     }
 
     /// <inheritdoc/>
@@ -53,7 +53,7 @@ public sealed partial class SessionRekey : PacketBase<SessionRekey>, IFixedSizeS
 
         this.PublicKey = Bytes32.Zero;
         this.Priority = PacketPriority.HIGH;
-        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
+        this.Flags = PacketFlags.SYSTEM;
     }
 
     /// <inheritdoc/>

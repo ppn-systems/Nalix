@@ -307,11 +307,6 @@ public class TcpSession : TransportSession
     {
         ArgumentNullException.ThrowIfNull(packet);
 
-        if (packet is IPacketHeader h)
-        {
-            h.Flags = (h.Flags & ~PacketFlags.UNRELIABLE) | PacketFlags.RELIABLE;
-        }
-
         BufferLease lease = BufferLease.Rent(packet.Length);
         lease.CommitLength(packet.Serialize(lease.SpanFull));
         bool sent = await _sender.SendAsync(lease, encrypt, ct).ConfigureAwait(false);

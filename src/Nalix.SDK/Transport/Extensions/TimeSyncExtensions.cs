@@ -44,12 +44,12 @@ public static class TimeSyncExtensions
     /// <summary>
     /// Creates a new TimeSync frame.
     /// </summary>
-    public static TimeSyncBuilder NewTimeSync(this TransportSession _, ControlType type, bool reliable = true)
+    public static TimeSyncBuilder NewTimeSync(this TransportSession _, ControlType type)
     {
 #pragma warning disable CA2000
         TimeSync t = TimeSync.Create();
 #pragma warning restore CA2000
-        t.Initialize(type, sequenceId: 0, flags: reliable ? PacketFlags.SYSTEM | PacketFlags.RELIABLE : PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
+        t.Initialize(type, sequenceId: 0, flags: PacketFlags.SYSTEM);
         return new TimeSyncBuilder(t);
     }
 

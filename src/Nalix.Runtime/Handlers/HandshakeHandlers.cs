@@ -71,7 +71,7 @@ public static partial class HandshakeHandlers
                 int adaptiveTimeoutMs = ((1 << s_powPolicy.CurrentDifficulty) / 500) + 5000;
 
                 using PacketScope<Control> error = PacketFactory<Control>.Acquire();
-                error.Value.Initialize(ControlType.ERROR, reasonCode: ProtocolReason.POW_REQUIRED, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+                error.Value.Initialize(ControlType.ERROR, reasonCode: ProtocolReason.POW_REQUIRED, flags: PacketFlags.SYSTEM);
                 await context.Sender.SendAsync(error.Value).ConfigureAwait(false);
 
                 connection.UpdateIdleTimeout(adaptiveTimeoutMs);
@@ -148,7 +148,6 @@ public static partial class HandshakeHandlers
 
         reply.Initialize(serverKey.PublicKey, serverNonce, HandshakeX25519.ComputeServerProof(masterSecret, transcriptHash));
         reply.SequenceId = packet.SequenceId;
-        reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
 
         await context.Sender.SendAsync(reply).ConfigureAwait(false);
     }
@@ -183,7 +182,7 @@ public static partial class HandshakeHandlers
             {
                 using PacketScope<Control> error = PacketFactory<Control>.Acquire();
 
-                error.Value.Initialize(ControlType.ERROR, reasonCode: ProtocolReason.POW_REQUIRED, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+                error.Value.Initialize(ControlType.ERROR, reasonCode: ProtocolReason.POW_REQUIRED, flags: PacketFlags.SYSTEM);
                 await context.Sender.SendAsync(error.Value).ConfigureAwait(false);
                 return;
             }
@@ -225,7 +224,6 @@ public static partial class HandshakeHandlers
 
         reply.Initialize(expectedFinish, connection.ID);
         reply.SequenceId = packet.SequenceId;
-        reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
 
         await context.Sender.SendAsync(reply).ConfigureAwait(false);
     }
@@ -359,7 +357,7 @@ public static partial class HandshakeHandlers
         try
         {
             using Control error = new();
-            error.Initialize(ControlType.ERROR, reasonCode: reason, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+            error.Initialize(ControlType.ERROR, reasonCode: reason, flags: PacketFlags.SYSTEM);
 
             await sender.SendAsync(error).ConfigureAwait(false);
         }

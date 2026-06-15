@@ -215,7 +215,7 @@ public static partial class SessionHandlers
             stage: SessionResumeStage.RESPONSE,
             sessionToken: default,
             reason: reason,
-            flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+            flags: PacketFlags.SYSTEM);
 
         try
         {

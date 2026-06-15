@@ -40,6 +40,7 @@ public static class FrameCipher
 
         IBufferLease dest = BufferLease.Rent(FrameTransformer.Offset + FrameTransformer
                                        .GetPlaintextLength(src.Span));
+        dest.IsReliable = src.IsReliable;
         try
         {
             FrameTransformer.Decrypt(src, dest, key, expectedAlgorithm, out seq);
@@ -86,6 +87,7 @@ public static class FrameCipher
         }
 
         IBufferLease localDest = BufferLease.Rent(FrameTransformer.Offset + plaintextLength);
+        localDest.IsReliable = src.IsReliable;
 
         if (!FrameTransformer.TryDecrypt(src, localDest, key, expectedAlgorithm, out seq))
         {
@@ -110,6 +112,7 @@ public static class FrameCipher
 
         IBufferLease dest = BufferLease.Rent(FrameTransformer.Offset + FrameTransformer
                                        .GetMaxCiphertextSize(suite, src.Length - FrameTransformer.Offset));
+        dest.IsReliable = src.IsReliable;
         try
         {
             FrameTransformer.Encrypt(src, dest, key, seq, suite);

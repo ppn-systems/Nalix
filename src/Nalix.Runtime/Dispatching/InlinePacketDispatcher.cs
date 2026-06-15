@@ -93,6 +93,7 @@ public sealed class InlinePacketDispatcher
     private ValueTask ExecutePacketAsync(IConnection connection, IBufferLease lease, CancellationToken ct)
     {
         // 1. Read the packet header directly from the raw span to determine routing
+        bool isReliable = lease.IsReliable;
         ushort opcode = connection.PacketClassifier.Extract(lease.Span);
 
         // 2. Resolve the handler using the parsed opcode
@@ -154,7 +155,7 @@ public sealed class InlinePacketDispatcher
              * 2. If it completes synchronously, we can dispose resources immediately.
              * 3. If it's asynchronous, we hand off to AwaitPacketHandlerCompletionAsync.
              */
-            ValueTask pending = this.Options.ExecuteResolvedHandlerAsync(in handler, packet, connection, ct);
+            ValueTask pending = this.Options.ExecuteResolvedHandlerAsync(in handler, packet, connection, isReliable, ct);
 
             // Fast-path: handler completed synchronously
             if (pending.IsCompletedSuccessfully)
