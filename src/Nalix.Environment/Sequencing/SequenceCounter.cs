@@ -50,12 +50,12 @@ public sealed class SequenceCounter : ISequenceCounter
     {
         ulong state = Interlocked.Add(ref _packedState, 1UL << 32);
         uint seq = (uint)(state >> 32);
-        
+
         if (seq == 0)
         {
             throw new CipherException("Sequence counter overflow. Key rotation is required to prevent nonce reuse.");
         }
-        
+
         return seq;
     }
 
@@ -118,7 +118,10 @@ public sealed class SequenceCounter : ISequenceCounter
         if (window > 0 && current - seq <= window)
         {
             int shift = (int)(current - seq);
-            if (shift >= 32) return false;
+            if (shift >= 32)
+            {
+                return false;
+            }
 
             uint mask = 1U << shift;
             return (bitmap & mask) == 0;
@@ -152,11 +155,17 @@ public sealed class SequenceCounter : ISequenceCounter
             else
             {
                 int shift = (int)(currentSeq - receivedSeq);
-                if (shift >= 32) return; // Outside window, cannot track
-                
+                if (shift >= 32)
+                {
+                    return; // Outside window, cannot track
+                }
+
                 uint mask = 1U << shift;
-                if ((currentBitmap & mask) != 0) return; // Already processed
-                
+                if ((currentBitmap & mask) != 0)
+                {
+                    return; // Already processed
+                }
+
                 uint newBitmap = currentBitmap | mask;
                 newState = ((ulong)currentSeq << 32) | newBitmap;
             }

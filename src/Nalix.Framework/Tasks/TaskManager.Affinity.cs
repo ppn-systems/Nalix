@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Abstractions.Diagnostics;
@@ -26,8 +24,7 @@ public partial class TaskManager
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
             {
                 DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Dispatcher,
-                    new DiagnosticLog("FW.TaskManager:Internal",
-                        $"affinity-skip name={workerName} core={coreIndex} max={processorCount}"));
+                    new DiagnosticLog("FW.TaskManager:Internal", $"affinity-skip name={workerName} core={coreIndex} max={processorCount}"));
             }
             return;
         }
@@ -46,22 +43,20 @@ public partial class TaskManager
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                     {
                         DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed,
-                            new DiagnosticLog("FW.TaskManager:Internal",
-                                $"affinity-failed name={workerName} core={coreIndex} error={error}"));
+                            new DiagnosticLog("FW.TaskManager:Internal", $"affinity-failed name={workerName} core={coreIndex} error={error}"));
                     }
                 }
                 else if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
                 {
                     DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Dispatcher,
-                        new DiagnosticLog("FW.TaskManager:Internal",
-                            $"affinity-set name={workerName} core={coreIndex}"));
+                        new DiagnosticLog("FW.TaskManager:Internal", $"affinity-set name={workerName} core={coreIndex}"));
                 }
             }
             else if (OperatingSystem.IsLinux())
             {
                 // sched_setaffinity expects the mask passed by reference, size in bytes.
                 ulong mask = 1UL << coreIndex;
-                int result = sched_setaffinity(0, (nuint)sizeof(ulong), ref mask);
+                int result = sched_setaffinity(0, sizeof(ulong), ref mask);
 
                 if (result != 0)
                 {
@@ -69,15 +64,13 @@ public partial class TaskManager
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
                     {
                         DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed,
-                            new DiagnosticLog("FW.TaskManager:Internal",
-                                $"affinity-failed name={workerName} core={coreIndex} error={error}"));
+                            new DiagnosticLog("FW.TaskManager:Internal", $"affinity-failed name={workerName} core={coreIndex} error={error}"));
                     }
                 }
                 else if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
                 {
                     DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Dispatcher,
-                        new DiagnosticLog("FW.TaskManager:Internal",
-                            $"affinity-set name={workerName} core={coreIndex}"));
+                        new DiagnosticLog("FW.TaskManager:Internal", $"affinity-set name={workerName} core={coreIndex}"));
                 }
             }
             else
@@ -85,8 +78,7 @@ public partial class TaskManager
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
                 {
                     DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Dispatcher,
-                        new DiagnosticLog("FW.TaskManager:Internal",
-                            $"affinity-skip-os name={workerName} os=unsupported"));
+                        new DiagnosticLog("FW.TaskManager:Internal", $"affinity-skip-os name={workerName} os=unsupported"));
                 }
             }
         }
@@ -95,8 +87,7 @@ public partial class TaskManager
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
             {
                 DiagnosticsEvents.Write(DiagnosticsEvents.Tasks.Failed,
-                    new DiagnosticLog("FW.TaskManager:Internal",
-                        $"affinity-error name={workerName} core={coreIndex}", ex));
+                    new DiagnosticLog("FW.TaskManager:Internal", $"affinity-error name={workerName} core={coreIndex}", ex));
             }
         }
     }

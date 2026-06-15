@@ -190,6 +190,8 @@ internal sealed class FakeSession(bool isConnected) : TransportSession
 
     public void EnqueueNextPacket(IPacket packet) => _catalog.Enqueue(packet);
 
+    public override void ResetSequenceCounters() { }
+
     protected override void Dispose(bool disposing) { }
 }
 
