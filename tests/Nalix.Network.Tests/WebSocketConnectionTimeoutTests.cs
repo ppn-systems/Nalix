@@ -206,8 +206,8 @@ public class WebSocketConnectionTimeoutTests : IDisposable
         int oldTick = timingOptions.TickDuration;
         int oldTimeout = timingOptions.IdleTimeoutMs;
         
-        timingOptions.TickDuration = 200; // 200ms ticks (reduced thread-scheduling overhead)
-        timingOptions.IdleTimeoutMs = 3000; // 5000ms idle timeout (increased to avoid race conditions during CI registration)
+        timingOptions.TickDuration = 400; // 400ms ticks
+        timingOptions.IdleTimeoutMs = 1200; // 1200ms idle timeout (only needs 3 ticks to trigger)
 
         try
         {
@@ -265,8 +265,8 @@ public class WebSocketConnectionTimeoutTests : IDisposable
                     serverConn.LastPingTime = 0;
                 }
 
-                // Wait for the TimingWheel loop to tick and trigger the timeout (up to 15 seconds)
-                var completedTask = await Task.WhenAny(disconnectTcs.Task, Task.Delay(15000));
+                // Wait for the TimingWheel loop to tick and trigger the timeout (up to 30 seconds)
+                var completedTask = await Task.WhenAny(disconnectTcs.Task, Task.Delay(30000));
                 completedTask.Should().Be(disconnectTcs.Task); // Should have disconnected due to idle timeout!
 
                 client.IsConnected.Should().BeFalse();

@@ -37,7 +37,7 @@ public sealed partial class TransportOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Connect attempt timeout in milliseconds (0 = no timeout)")]
     [ValueRange(0, int.MaxValue)]
-    public int ConnectTimeoutMillis { get; set; } = 5000;
+    public int ConnectTimeoutMillis { get; set; } = 30000;
 
     /// <summary>
     /// [Reserved for future use] When true, automatic reconnect is enabled following an unexpected disconnect. Currently not consumed.

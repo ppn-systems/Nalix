@@ -110,7 +110,7 @@ public static class HandshakeExtensions
 
             using SessionTofu keyResponse = await session.RequestAsync<SessionTofu>(
                 request,
-                options: RequestOptions.Default.WithTimeout(5000),
+                options: RequestOptions.Default.WithTimeout(session.Options.ConnectTimeoutMillis),
                 predicate: null,
                 ct: ct).ConfigureAwait(false);
 
@@ -178,7 +178,7 @@ public static class HandshakeExtensions
         {
             using SessionEstablished serverFinish = await session.RequestAsync<SessionEstablished>(
                 clientFinish,
-                options: RequestOptions.Default.WithTimeout(5000),
+                options: RequestOptions.Default.WithTimeout(session.Options.ConnectTimeoutMillis),
                 predicate: null,
                 ct: ct).ConfigureAwait(false);
 
