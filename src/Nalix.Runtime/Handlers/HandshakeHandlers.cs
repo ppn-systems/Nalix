@@ -206,7 +206,11 @@ public static partial class HandshakeHandlers
 
         Bytes32 expectedFinish = HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash);
 
-        connection.Level = PermissionLevel.ESTABLISHED;
+        if (context.Connection.Level < PermissionLevel.ESTABLISHED)
+        {
+            connection.Level = PermissionLevel.ESTABLISHED;
+        }
+
         connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
         if (connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? removedState) && removedState is HandshakeContext contextState)
         {

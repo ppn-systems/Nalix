@@ -144,18 +144,18 @@ public sealed class ConnectionGuardTests
 
         // Use Reflection to retrieve the internal ConnectionLimitEntry to verify state
         var mapField = typeof(ConnectionGuard).GetField("_map", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        var map = (System.Collections.Concurrent.ConcurrentDictionary<Nalix.Network.Internal.Transport.SocketEndpoint, ConnectionGuard.ConnectionLimitEntry>)mapField.GetValue(guard);
+        var map = (System.Collections.Concurrent.ConcurrentDictionary<Nalix.Network.Internal.Transport.SocketEndpoint, ConnectionGuard.ConnectionLimitEntry>)mapField!.GetValue(guard)!;
         var key = Nalix.Network.Internal.Transport.SocketEndpoint.FromIpAddress(endpoint.Address);
         
         map.TryGetValue(key, out var entry).Should().BeTrue();
-        entry.BanCount.Should().Be(1);
+        entry!.BanCount.Should().Be(1);
         long initialBannedUntil = entry.BannedUntilTicks;
 
         // Simulate continuing to spam while banned.
         // We make more attempts to trigger rate limits while already banned.
         // To bypass the window throttling (which limits escalation to once per window),
         // we manually adjust LastBanTimeTicks backward to simulate elapsed window time.
-        entry.LastBanTimeTicks -= TimeSpan.FromSeconds(6).Ticks;
+        entry!.LastBanTimeTicks -= TimeSpan.FromSeconds(6).Ticks;
 
         guard.TryAccept(endpoint).Should().BeFalse();
 

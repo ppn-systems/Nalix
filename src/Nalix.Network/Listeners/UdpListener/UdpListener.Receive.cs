@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -16,6 +17,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Environment.Extensions;
+using Nalix.Environment.Hashing;
 using Nalix.Environment.Memory;
 using Nalix.Framework.Identifiers;
 using Nalix.Network.Connections;
@@ -332,6 +334,53 @@ public abstract partial class UdpListenerBase
             lease.Dispose();
             return;
         }
+
+        // --- 2.5. XxHash32 Integrity Check ---
+        // Verify the datagram signature: XxHash32(SessionToken + Payload + Connection.Secret)
+        if (lease.Length < SessionTokenSize + PacketHeader.Size + 4)
+        {
+            this.Metrics.RECORD_DROP_SHORT();
+            this.LOG_SHORT_PACKET_DROP_HEADER(remoteEndPoint, lease.Length);
+            lease.Dispose();
+            return;
+        }
+
+        uint receivedHash = BinaryPrimitives.ReadUInt32LittleEndian(lease.Span[^4..]);
+        int dataLen = lease.Length - 4;
+
+        if (lease.Capacity >= dataLen + Bytes32.Size)
+        {
+            connection.Secret.AsSpan().CopyTo(lease.SpanFull[dataLen..]);
+            uint computedHash = XxHash32.Compute(lease.SpanFull[..(dataLen + Bytes32.Size)]);
+
+            if (computedHash != receivedHash)
+            {
+                this.Metrics.RECORD_DROP_UNAUTH();
+                lease.Dispose();
+                return;
+            }
+        }
+        else
+        {
+            byte[] temp = BufferLease.ByteArrayPool.Rent(dataLen + Bytes32.Size);
+            lease.Span[..dataLen].CopyTo(temp);
+            connection.Secret.AsSpan().CopyTo(temp.AsSpan(dataLen));
+            uint computedHash = XxHash32.Compute(temp.AsSpan(0, dataLen + Bytes32.Size));
+            BufferLease.ByteArrayPool.Return(temp);
+
+            if (computedHash != receivedHash)
+            {
+                this.Metrics.RECORD_DROP_UNAUTH();
+                lease.Dispose();
+                return;
+            }
+        }
+
+        // Strip the 4-byte MAC from the payload
+        lease.CommitLength(dataLen);
+
+        // Update the payload span reference since the length changed
+        payload = lease.Span[SessionTokenSize..];
 
         // --- 3. Endpoint pinning gate (SEC-30) ---
         if (connection.NetworkEndpoint is null ||

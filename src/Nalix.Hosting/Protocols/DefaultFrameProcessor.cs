@@ -137,6 +137,7 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
             if (!FramePipeline.TryProcessInbound(ref current, args.Connection.Secret.AsSpan(), args.Connection.Algorithm, out seq))
             {
                 args.Connection.IncrementErrorCount();
+
                 if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
                 {
                     _logger.LogTrace("[NW.DefaultFrameProcessor:ProcessFrame] Dropped inbound packet due to decryption or decompression failure.");
