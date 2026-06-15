@@ -9,7 +9,9 @@ using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
+using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Transforms;
+using Nalix.Environment.Hashing;
 using Nalix.Environment.Memory;
 using Nalix.Environment.Sequencing;
 using Nalix.SDK.Options;
@@ -72,11 +74,27 @@ internal sealed class UdpFrameSender : IDisposable
                     $"UDP datagram too large after transformation: {current.Length + ISnowflake.Size} bytes. Max = {_options.MaxUdpDatagramSize}");
             }
 
-            // Envelope: [SessionToken (8 bytes) | Transformed Payload]
-            using BufferLease finalLease = BufferLease.Rent(ISnowflake.Size + current.Length);
+            // Envelope: [SessionToken (8 bytes) | Transformed Payload | XxHash32 Tag (4 bytes)]
+            int dataLen = ISnowflake.Size + current.Length;
+            using BufferLease finalLease = BufferLease.Rent(dataLen + Math.Max(4, Bytes32.Size));
+
+            // 1. Write SessionToken
             BinaryPrimitives.WriteUInt64LittleEndian(finalLease.SpanFull[..ISnowflake.Size], _state.SessionToken);
+
+            // 2. Write Transformed Payload
             current.Span.CopyTo(finalLease.SpanFull[ISnowflake.Size..]);
-            finalLease.CommitLength(ISnowflake.Size + current.Length);
+
+            // 3. Temporarily append Secret for hashing
+            _state.Secret.AsSpan().CopyTo(finalLease.SpanFull[dataLen..]);
+
+            // 4. Compute XxHash32
+            uint hash = XxHash32.Compute(finalLease.SpanFull[..(dataLen + Bytes32.Size)]);
+
+            // 5. Overwrite the start of Secret with the 4-byte Tag
+            BinaryPrimitives.WriteUInt32LittleEndian(finalLease.SpanFull.Slice(dataLen, 4), hash);
+
+            // 6. Commit the final datagram length (Token + Payload + Tag)
+            finalLease.CommitLength(dataLen + 4);
 
             return await this.SendRawAsync(finalLease.Memory, ct).ConfigureAwait(false);
         }

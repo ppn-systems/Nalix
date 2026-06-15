@@ -2,12 +2,15 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Transforms;
+using Nalix.Environment.Hashing;
 using Nalix.Environment.Memory;
 using Nalix.Environment.Sequencing;
 using Nalix.SDK.Options;
@@ -129,6 +132,40 @@ internal sealed class UdpFrameReader : IDisposable
 
         try
         {
+            // 1) Verify XxHash32
+            if (datagram.Length < PacketHeader.Size + 4)
+            {
+                return; // Drop short or spoofed packets
+            }
+
+            uint receivedHash = BinaryPrimitives.ReadUInt32LittleEndian(datagram.Span[^4..]);
+            int dataLen = datagram.Length - 4;
+
+            if (datagram.Capacity >= dataLen + Bytes32.Size)
+            {
+                _state.Secret.AsSpan().CopyTo(datagram.SpanFull[dataLen..]);
+                uint computedHash = XxHash32.Compute(datagram.SpanFull[..(dataLen + Bytes32.Size)]);
+                if (computedHash != receivedHash)
+                {
+                    return; // Drop spoofed packet
+                }
+            }
+            else
+            {
+                byte[] temp = BufferLease.ByteArrayPool.Rent(dataLen + Bytes32.Size);
+                datagram.Span[..dataLen].CopyTo(temp);
+                _state.Secret.AsSpan().CopyTo(temp.AsSpan(dataLen));
+                uint computedHash = XxHash32.Compute(temp.AsSpan(0, dataLen + Bytes32.Size));
+                BufferLease.ByteArrayPool.Return(temp);
+                if (computedHash != receivedHash)
+                {
+                    return; // Drop spoofed packet
+                }
+            }
+
+            // Strip the 4-byte tag from the payload
+            datagram.CommitLength(dataLen);
+
             // 2) Decompress / Decrypt
             FramePipeline.ProcessInbound(ref datagram, _state.Secret.AsSpan(), _options.Algorithm, out seq);
 
