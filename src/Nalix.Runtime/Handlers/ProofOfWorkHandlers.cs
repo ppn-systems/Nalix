@@ -7,6 +7,7 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Codec.Security;
@@ -40,7 +41,10 @@ public static class ProofOfWorkHandlers
             return ValueTask.CompletedTask;
         }
 
-        if (!ProofOfWork.VerifySolution(p.Nonce.AsSpan(), p.Difficulty, p.TimestampTicks, context.Connection.ID, p.Mac.AsSpan(), p.Solution))
+        Bytes32 mac = p.Mac;
+        Bytes32 nonce = p.Nonce;
+
+        if (!ProofOfWork.VerifySolution(nonce.AsSpan(), p.Difficulty, p.TimestampTicks, context.Connection.ID, mac.AsSpan(), p.Solution))
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {

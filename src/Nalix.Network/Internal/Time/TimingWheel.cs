@@ -610,7 +610,6 @@ internal sealed class TimingWheel : IActivatable
                     {
                         TimeoutTask? next = task.Next;
 
-                        // â”€â”€ Defensive null-guard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                         ITimeoutTrackedConnection? connection = task.Conn;
 
                         if (connection is null)
@@ -621,7 +620,6 @@ internal sealed class TimingWheel : IActivatable
                             continue;
                         }
 
-                        // â”€â”€ Stale-task check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                         // If version mismatch or connection is marked as not in wheel, it's stale.
                         if (connection.TimeoutVersion != task.Version || !connection.IsRegisteredInWheel)
                         {
@@ -633,7 +631,6 @@ internal sealed class TimingWheel : IActivatable
                             continue;
                         }
 
-                        // â”€â”€ Rounds remaining â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                         if (task.Rounds > 0)
                         {
                             task.Rounds--;
@@ -647,8 +644,7 @@ internal sealed class TimingWheel : IActivatable
                             continue;
                         }
 
-                        // â”€â”€ Idle-time check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                        if (!connection.ExcludeFromIdleTimeout)
+                        if (connection.ExcludeFromIdleTimeout)
                         {
                             connection.IsRegisteredInWheel = false;
                             connection.TimeoutVersion++;
@@ -658,7 +654,6 @@ internal sealed class TimingWheel : IActivatable
                             continue;
                         }
 
-                        // â”€â”€ Idle-time check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                         long idleMs = Clock.UnixMillisecondsNow() - connection.LastPingTime;
 
                         if (idleMs >= _idleTimeoutMs)
@@ -698,7 +693,6 @@ internal sealed class TimingWheel : IActivatable
                             continue;
                         }
 
-                        // â”€â”€ Re-schedule â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                         long remainingMs = _idleTimeoutMs - idleMs;
                         long ticksMore = Math.Max(1, remainingMs / _tickMs);
 

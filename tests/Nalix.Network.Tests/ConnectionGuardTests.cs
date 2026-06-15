@@ -316,4 +316,59 @@ public sealed class ConnectionGuardTests
             }
         }
     }
+
+    [Fact]
+    public void CurrentDifficulty_WhenAdaptiveModeEnabled_ScalesBasedOnEwmaRate()
+    {
+        ConnectionQuotaOptions options = new()
+        {
+            EnableAdaptiveMode = true,
+            AdaptivePowMinDifficulty = 12,
+            AdaptivePowMaxDifficulty = 24,
+            AdaptivePowStartRate = 10,
+            AdaptivePowMaxRate = 100
+        };
+        using ConnectionGuard guard = new(options);
+
+        // Access internal field _ewmaConnectionRate to simulate rate changes
+        var ewmaField = typeof(ConnectionGuard).GetField("_ewmaConnectionRate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        
+        // Test Min
+        ewmaField!.SetValue(guard, 5.0);
+        guard.CurrentDifficulty.Should().Be(12);
+
+        // Test Max
+        ewmaField.SetValue(guard, 150.0);
+        guard.CurrentDifficulty.Should().Be(24);
+
+        // Test Scaling (Midpoint)
+        ewmaField.SetValue(guard, 55.0); // (55-10)/90 = 45/90 = 0.5. diff = 12 + 0.5*12 = 18
+        guard.CurrentDifficulty.Should().Be(18);
+    }
+
+    [Fact]
+    public void CurrentDifficulty_WhenAdaptiveModeDisabled_ReturnsMinDifficulty()
+    {
+        ConnectionQuotaOptions options = new()
+        {
+            EnableAdaptiveMode = false,
+            AdaptivePowMinDifficulty = 15,
+            AdaptivePowMaxDifficulty = 24
+        };
+        using ConnectionGuard guard = new(options);
+
+        var ewmaField = typeof(ConnectionGuard).GetField("_ewmaConnectionRate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        ewmaField!.SetValue(guard, 200.0); // Rate is high, but adaptive is disabled
+
+        guard.CurrentDifficulty.Should().Be(15);
+    }
+
+    [Fact]
+    public void VerifyPowLogic()
+    {
+        (var nonce, var mac) = Nalix.Codec.Security.ProofOfWork.CreateChallenge(12, 822522449546468353, 189525343);
+        long solution = Nalix.Codec.Security.ProofOfWorkSolver.SolveChallenge(nonce.AsSpan(), 12, 189525343);
+        bool verifyResult = Nalix.Codec.Security.ProofOfWork.VerifySolution(nonce.AsSpan(), 12, 189525343, 822522449546468353, mac.AsSpan(), solution);
+        verifyResult.Should().BeTrue();
+    }
 }

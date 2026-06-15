@@ -115,7 +115,7 @@ public sealed class SequenceCounter : ISequenceCounter
             return true;
         }
 
-        if (window > 0 && current - seq <= window)
+        if (window > 0 && current - seq < window)
         {
             int shift = (int)(current - seq);
             if (shift >= 32)

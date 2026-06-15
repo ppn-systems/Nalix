@@ -33,6 +33,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
         var builder = NetworkApplication.CreateBuilder();
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         builder.UseSecureConnections();
+        builder.UseSystemControl();
 
         using NetworkApplication app = builder.Build();
         await app.ActivateAsync();
@@ -77,6 +78,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
         builder.ConfigureSessionStore(store);
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         builder.UseSecureConnections();
+        builder.UseSystemControl();
         builder.UseSessions();
 
         using NetworkApplication app = builder.Build();

@@ -177,6 +177,18 @@ public sealed partial class InstanceManager
                 _ = _disposables.TryAdd(d, 0);
             }
 
+            if (s_preRegisteredServiceMappings.TryGetValue(type, out System.Collections.Generic.List<Type>? serviceTypes))
+            {
+                lock (serviceTypes)
+                {
+                    for (int i = 0; i < serviceTypes.Count; i++)
+                    {
+                        Type itf = serviceTypes[i];
+                        _instanceCache[itf.TypeHandle] = instance;
+                    }
+                }
+            }
+
             if (instance is IReportable reportable)
             {
                 TRY_AUTO_REGISTER_REPORTABLE(reportable);

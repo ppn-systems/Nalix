@@ -112,7 +112,7 @@ public sealed class WebSocketConnection :
     public bool IsUdpCreated => false; // UDP is not supported over WebSocket
 
     /// <inheritdoc/>
-    public bool ExcludeFromIdleTimeout { get; set; } = true;
+    public bool ExcludeFromIdleTimeout { get; set; }
 
     /// <inheritdoc/>
     public ulong ID { get; }

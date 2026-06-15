@@ -162,7 +162,7 @@ public sealed partial class Connection :
     public bool IsUdpCreated => this.UdpTransport is not null;
 
     /// <inheritdoc/>
-    public bool ExcludeFromIdleTimeout { get; set; } = true;
+    public bool ExcludeFromIdleTimeout { get; set; }
 
     /// <inheritdoc />
     public ulong ID { get; }

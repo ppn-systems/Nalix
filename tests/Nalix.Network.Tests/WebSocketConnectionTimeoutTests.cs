@@ -155,13 +155,8 @@ public class WebSocketConnectionTimeoutTests : IDisposable
             
             conn.Should().BeOfType<WebSocketConnection>();
             var wsConn = (WebSocketConnection)conn;
-            wsConn.ExcludeFromIdleTimeout = true; // WORKAROUND for TimingWheel bug
             
             var timeoutTracked = (TimingWheel.ITimeoutTrackedConnection)wsConn;
-            
-            // Re-register in case it was evicted by the race condition before ExcludeFromIdleTimeout was set
-            var tw = Nalix.Framework.Injection.InstanceManager.Instance.GetExistingInstance<TimingWheel>();
-            if (tw != null) tw.Register(wsConn);
             
             timeoutTracked.IsRegisteredInWheel.Should().BeTrue();
             
@@ -263,19 +258,11 @@ public class WebSocketConnectionTimeoutTests : IDisposable
                 }
                 registered.Should().BeTrue("Connection should be registered in the hub within 10 seconds.");
 
-                // WORKAROUND: TimingWheel has inverted logic `if (!connection.ExcludeFromIdleTimeout)`
-                // that evicts connections that shouldn't be excluded. 
-                // Set it to true so the connection stays in the wheel and is properly checked for timeout.
                 var serverConn = hub.ListConnections().FirstOrDefault() as WebSocketConnection;
                 if (serverConn != null)
                 {
-                    serverConn.ExcludeFromIdleTimeout = true;
                     // Force the idle time to be huge so it times out regardless of shared TimingWheelOptions state
                     serverConn.LastPingTime = 0;
-                    
-                    // Re-register in case the buggy tick evicted it before this workaround executed
-                    var tw = Nalix.Framework.Injection.InstanceManager.Instance.GetExistingInstance<TimingWheel>();
-                    if (tw != null) tw.Register(serverConn);
                 }
 
                 // Wait for the TimingWheel loop to tick and trigger the timeout (up to 15 seconds)
