@@ -64,7 +64,10 @@ public static class ProofOfWorkHandlers
             return;
         }
 
-        context.Connection.Level = PermissionLevel.POW_VERIFIED;
-        return;
+        if (context.Connection.Level < PermissionLevel.POW_VERIFIED)
+        {
+            // Already verified, ignore silently.
+            context.Connection.Level = PermissionLevel.POW_VERIFIED;
+        }
     }
 }
