@@ -72,7 +72,7 @@ public static class SessionRekeyHandlers
         ack.Initialize(
             type: ControlType.CIPHER_UPDATE_ACK,
             sequenceId: packet.SequenceId,
-            flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE,
+            flags: PacketFlags.SYSTEM,
             reasonCode: ProtocolReason.NONE);
 
         await context.Sender.SendAsync(ack).ConfigureAwait(false);

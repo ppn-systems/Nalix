@@ -319,14 +319,6 @@ public abstract partial class UdpListenerBase
 
         ref readonly PacketHeader header = ref payload.AsHeaderRef();
 
-        if ((header.Flags & PacketFlags.UNRELIABLE) == 0)
-        {
-            this.Metrics.RECORD_DROP_SHORT();
-            this.LOG_INVALID_FLAGS_DROP(remoteEndPoint, header.Flags);
-            lease.Dispose();
-            return;
-        }
-
         // ================================================================
         // FAST PATH — Lookup Connection via SessionToken (Snowflake).
         // ================================================================

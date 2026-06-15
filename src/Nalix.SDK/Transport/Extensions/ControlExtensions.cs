@@ -51,25 +51,6 @@ public static class ControlExtensions
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ControlBuilder WithReason(ProtocolReason reason) { c.Reason = reason; return this; }
 
-        /// <summary>Sets the transport reliability.</summary>
-        /// <param name="reliable">True for reliable (TCP), false for unreliable (UDP).</param>
-        /// <returns>The current builder.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ControlBuilder WithReliable(bool reliable)
-        {
-            if (reliable)
-            {
-                c.Flags = (c.Flags & ~PacketFlags.UNRELIABLE) | PacketFlags.RELIABLE;
-            }
-            else
-            {
-                c.Flags = (c.Flags & ~PacketFlags.RELIABLE) | PacketFlags.UNRELIABLE;
-            }
-            return this;
-        }
-
-
-
         /// <summary>Builds and returns the configured <see cref="Control"/> instance.</summary>
         /// <returns>The configured <see cref="Control"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -82,20 +63,19 @@ public static class ControlExtensions
     /// </summary>
     /// <param name="_">The client connection (unused; provided for fluent extension syntax).</param>
     /// <param name="type">The control type.</param>
-    /// <param name="reliable">The transport reliability. Default is <see langword="true"/> (TCP).</param>
     /// <returns>A <see cref="ControlBuilder"/> initialized with the requested type.</returns>
     /// <example>
     /// <code>
     /// Control ping = client.NewControl(opCode, ControlType.PING).WithSeq(123).Build();
     /// </code>
     /// </example>
-    public static ControlBuilder NewControl(this TransportSession _, ControlType type, bool reliable = true)
+    public static ControlBuilder NewControl(this TransportSession _, ControlType type)
     {
 #pragma warning disable CA2000 // Ownership is transferred to ControlBuilder; callers own/dispose the materialized Control returned by Build().
         Control c = Control.Create();
 #pragma warning restore CA2000
         // Initialize already stamps MonoTicks + Timestamp internally.
-        c.Initialize(type, sequenceId: 0, flags: reliable ? PacketFlags.SYSTEM | PacketFlags.RELIABLE : PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, reasonCode: ProtocolReason.NONE);
+        c.Initialize(type, sequenceId: 0, flags: PacketFlags.SYSTEM, reasonCode: ProtocolReason.NONE);
         return new ControlBuilder(c);
     }
 

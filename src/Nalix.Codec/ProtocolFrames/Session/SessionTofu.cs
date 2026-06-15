@@ -44,7 +44,7 @@ public sealed partial class SessionTofu : PacketBase<SessionTofu>, IFixedSizeSer
 
         this.PublicKey = publicKey;
         this.Priority = PacketPriority.HIGH;
-        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
+        this.Flags = PacketFlags.SYSTEM;
     }
 
     /// <inheritdoc/>
@@ -54,7 +54,7 @@ public sealed partial class SessionTofu : PacketBase<SessionTofu>, IFixedSizeSer
 
         this.PublicKey = Bytes32.Zero;
         this.Priority = PacketPriority.HIGH;
-        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
+        this.Flags = PacketFlags.SYSTEM;
     }
 
     /// <inheritdoc/>

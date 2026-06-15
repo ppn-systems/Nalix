@@ -254,7 +254,6 @@ public static partial class SystemControlHandlers
         reply.Initialize(HandshakeHandlers.ServerPublicKey);
 
         // Preserve reliability flag from the request
-        reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
         reply.SequenceId = packet.SequenceId;
 
         await context.Sender.SendAsync(reply).ConfigureAwait(false);

@@ -36,6 +36,7 @@ public static class FrameCompression
 
         IBufferLease dest = BufferLease.Rent(FrameTransformer
                                        .GetDecompressedLength(src.Span[FrameTransformer.Offset..]) + FrameTransformer.Offset);
+        dest.IsReliable = src.IsReliable;
         try
         {
             FrameTransformer.Decompress(src, dest);
@@ -76,6 +77,7 @@ public static class FrameCompression
         }
 
         IBufferLease localDest = BufferLease.Rent(decompressedLength + FrameTransformer.Offset);
+        localDest.IsReliable = src.IsReliable;
 
         if (!FrameTransformer.TryDecompress(src, localDest))
         {
@@ -105,6 +107,7 @@ public static class FrameCompression
 
         IBufferLease dest = BufferLease.Rent(FrameTransformer
                                        .GetMaxCompressedSize(src.Length - FrameTransformer.Offset) + FrameTransformer.Offset);
+        dest.IsReliable = src.IsReliable;
 
         try
         {

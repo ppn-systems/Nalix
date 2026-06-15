@@ -226,11 +226,6 @@ public class UdpSession : TransportSession
     {
         ArgumentNullException.ThrowIfNull(packet);
 
-        if (packet is IPacketHeader h)
-        {
-            h.Flags = (h.Flags & ~PacketFlags.RELIABLE) | PacketFlags.UNRELIABLE;
-        }
-
         using BufferLease lease = BufferLease.Rent(packet.Length);
         int written = packet.Serialize(lease.SpanFull);
         lease.CommitLength(written);

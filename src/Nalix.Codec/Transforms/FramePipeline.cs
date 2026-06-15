@@ -25,8 +25,8 @@ public static class FramePipeline
     /// Mutates the <paramref name="current"/> lease directly via <see langword="ref"/> to optimize performance.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ProcessInbound
-        ([Borrowed] ref IBufferLease current,
+    public static void ProcessInbound(
+        [Borrowed] ref IBufferLease current,
         ReadOnlySpan<byte> secret, CipherSuiteType algorithm, out uint? seq)
     {
         if (!TryProcessInbound(ref current, secret, algorithm, out seq))
@@ -41,8 +41,8 @@ public static class FramePipeline
     /// Mutates the <paramref name="current"/> lease directly via <see langword="ref"/> to optimize performance.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryProcessInbound
-        ([Borrowed] ref IBufferLease current,
+    public static bool TryProcessInbound(
+        [Borrowed] ref IBufferLease current,
         ReadOnlySpan<byte> secret, CipherSuiteType algorithm, out uint? seq)
     {
         if (current is null)
@@ -160,6 +160,7 @@ public static class FramePipeline
 
             // 3. Rent final lease for the fully decompressed packet
             BufferLease finalLease = BufferLease.Rent(FrameTransformer.Offset + decompressedSize);
+            finalLease.IsReliable = current.IsReliable;
 
             Span<byte> destFull = finalLease.SpanFull;
 
@@ -254,6 +255,7 @@ public static class FramePipeline
         // 2. RENT A SINGLE LEASE: capacity = Header + Final Ciphertext + Temp Compressed Data
         int totalRequiredCapacity = FrameTransformer.Offset + maxFinalSize + maxCompSize;
         BufferLease singleLease = BufferLease.Rent(totalRequiredCapacity);
+        singleLease.IsReliable = current.IsReliable;
 
         try
         {
