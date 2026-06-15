@@ -137,6 +137,54 @@ public sealed class HandshakeIntegrationTests : IDisposable
         }
     }
 
+    private sealed class MockUnderAttackPolicy : IProofOfWorkPolicy
+    {
+        public byte CurrentDifficulty => 8; // Small difficulty for fast test
+        public bool IsUnderAttack => true;
+    }
+
+    [Fact]
+    public async Task HandshakeAsync_UnderAttack_CompletesWithPoW()
+    {
+        int port = TestUtils.GetFreePort();
+        var builder = NetworkApplication.CreateBuilder();
+        builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
+        builder.UseSecureConnections();
+        builder.UseSystemControl();
+
+        using NetworkApplication app = builder.Build();
+        await app.ActivateAsync();
+
+        var field = typeof(Nalix.Runtime.Handlers.HandshakeHandlers).GetField("s_powPolicy", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        var oldPolicy = field?.GetValue(null);
+        field?.SetValue(null, new MockUnderAttackPolicy());
+
+        try
+        {
+            using TcpSession session = new(new TransportOptions
+            {
+                Address = "127.0.0.1",
+                Port = (ushort)port,
+                ServerPublicKey = _serverPublicKey.ToString(),
+                ConnectTimeoutMillis = 30000
+            });
+
+            await session.ConnectAsync();
+
+            // Handshake should internally do Optimistic -> receive POW_REQUIRED -> solve PoW -> retry SessionInit -> success.
+            await session.HandshakeAsync();
+
+            Assert.True(session.State.EncryptionEnabled);
+            Assert.NotEqual(Bytes32.Zero, session.State.Secret);
+            Assert.Equal(CipherSuiteType.Chacha20Poly1305, session.Options.Algorithm);
+        }
+        finally
+        {
+            field?.SetValue(null, oldPolicy);
+            await app.DeactivateAsync();
+        }
+    }
+
     public void Dispose() => InstanceManager.Instance.Clear(dispose: false);
 
     private sealed class TrackingSessionStore : ISessionStore

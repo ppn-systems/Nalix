@@ -165,9 +165,17 @@ public abstract partial class TcpListenerBase
                     bool anyRunning = false;
                     for (int w = 0; w < acceptWorkers.Length; w++)
                     {
-                        if (acceptWorkers[w].IsRunning) { anyRunning = true; break; }
+                        if (acceptWorkers[w].IsRunning)
+                        {
+                            anyRunning = true;
+                            break;
+                        }
                     }
-                    if (anyRunning) break;
+                    if (anyRunning)
+                    {
+                        break;
+                    }
+
                     spin.SpinOnce();
                 }
             }
