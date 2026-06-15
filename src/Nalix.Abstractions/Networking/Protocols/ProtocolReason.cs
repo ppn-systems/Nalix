@@ -273,6 +273,16 @@ public enum ProtocolReason : ushort
     /// </summary>
     NONCE_INVALID = 267,
 
+    /// <summary>
+    /// Connection must complete a Proof-of-Work challenge to proceed.
+    /// </summary>
+    POW_REQUIRED = 270,
+
+    /// <summary>
+    /// The submitted Proof-of-Work solution is invalid or expired.
+    /// </summary>
+    POW_INVALID = 271,
+
     #endregion 260–299: Crypto / Integrity
 
     #region 300–349: Service / Infrastructure

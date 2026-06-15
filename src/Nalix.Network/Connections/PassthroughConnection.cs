@@ -14,12 +14,14 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
+using Nalix.Environment.Configuration;
 using Nalix.Environment.Time;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Internal.Transport;
+using Nalix.Network.Options;
 
 #pragma warning disable IDE0060 // Parameters required by IConnection interface
 #pragma warning disable CA1822 // Interface members cannot be static
@@ -60,8 +62,10 @@ public sealed class PassthroughConnection :
 
     #region Fields
 
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    private static readonly ObjectPoolManager s_pool;
+    private static readonly TimingWheel s_timingWheel;
 
+    private static readonly TimingWheelOptions s_timingWheelOptions;
 
     private readonly long _createdAtMs;
     private readonly EndPoint _endPointKey;
@@ -77,6 +81,14 @@ public sealed class PassthroughConnection :
     #endregion Fields
 
     #region Constructor
+
+    static PassthroughConnection()
+    {
+        s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+        s_timingWheel = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
+
+        s_timingWheelOptions = ConfigurationManager.Instance.Get<TimingWheelOptions>();
+    }
 
     /// <summary>
     /// Initializes a new instance of <see cref="PassthroughConnection"/>.
@@ -94,6 +106,7 @@ public sealed class PassthroughConnection :
 
         this.ExcludeFromIdleTimeout = true;
         this.PacketClassifier = packetClassifier;
+        this.IdleTimeoutMs = s_timingWheelOptions.IdleTimeoutMs;
         this.ID = Snowflake.NewId(SnowflakeType.Session).ToUInt64();
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(remoteEndPoint as IPEndPoint);
     }
@@ -226,6 +239,9 @@ public sealed class PassthroughConnection :
     #region ITimeoutTrackedConnection
 
     /// <inheritdoc />
+    public int IdleTimeoutMs { get; set; }
+
+    /// <inheritdoc />
     public int TimeoutVersion { get; set; }
 
     /// <inheritdoc />
@@ -282,6 +298,25 @@ public sealed class PassthroughConnection :
 
     /// <inheritdoc />
     public void Disconnect(string? reason = null) => this.Dispose();
+
+    /// <inheritdoc />
+    public void UpdateIdleTimeout(int newTimeoutMs)
+    {
+        if (newTimeoutMs <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(newTimeoutMs), "Idle timeout must be a positive integer.");
+        }
+
+        if (this.IdleTimeoutMs == newTimeoutMs)
+        {
+            return; // No change needed
+        }
+
+        this.IdleTimeoutMs = newTimeoutMs;
+
+        s_timingWheel.Unregister(this);
+        s_timingWheel.Register(this);
+    }
 
     #endregion IConnection Methods
 

@@ -146,6 +146,34 @@ public sealed partial class ConnectionQuotaOptions : ConfigurationLoader, IValid
     public double AdaptiveTighteningFactor { get; set; } = 0.5;
 
     /// <summary>
+    /// Gets or sets the minimum Proof-of-Work difficulty during normal load.
+    /// </summary>
+    [IniComment("Minimum Proof-of-Work difficulty during normal load (default 12)")]
+    [ValueRange(0, 32)]
+    public byte AdaptivePowMinDifficulty { get; set; } = 12;
+
+    /// <summary>
+    /// Gets or sets the maximum Proof-of-Work difficulty during high load or DDoS.
+    /// </summary>
+    [IniComment("Maximum Proof-of-Work difficulty during high load or DDoS (default 24)")]
+    [ValueRange(0, 32)]
+    public byte AdaptivePowMaxDifficulty { get; set; } = 24;
+
+    /// <summary>
+    /// Gets or sets the connection rate (req/s) at which PoW difficulty begins to increase.
+    /// </summary>
+    [IniComment("Connection rate (req/s) at which PoW difficulty begins to increase (default 10)")]
+    [ValueRange(1, 1_000_000)]
+    public int AdaptivePowStartRate { get; set; } = 10;
+
+    /// <summary>
+    /// Gets or sets the connection rate (req/s) at which PoW difficulty reaches maximum.
+    /// </summary>
+    [IniComment("Connection rate (req/s) at which PoW difficulty reaches maximum (default 100)")]
+    [ValueRange(10, 10_000_000)]
+    public int AdaptivePowMaxRate { get; set; } = 100;
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <exception cref="Abstractions.Exceptions.ValidationException">

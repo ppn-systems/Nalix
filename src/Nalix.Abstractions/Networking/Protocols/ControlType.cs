@@ -89,6 +89,11 @@ public enum ControlType : byte
     PUBLIC_KEY_REQUEST = 0x16,
 
     /// <summary>
+    /// Client requests a Proof-of-Work puzzle to elevate its permission level.
+    /// </summary>
+    POW_REQUEST = 0x17,
+
+    /// <summary>
     /// Reserved for future extension.
     /// </summary>
     RESERVED1 = 0xFE,

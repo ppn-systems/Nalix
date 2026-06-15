@@ -95,6 +95,8 @@ public static class ProtocolStringExtensions
             ProtocolReason.DECRYPTION_FAILED => "Decryption failed.",
             ProtocolReason.REPLAY_DETECTED => "Replay detected.",
             ProtocolReason.NONCE_INVALID => "Nonce invalid or reused.",
+            ProtocolReason.POW_REQUIRED => "Proof of Work required.",
+            ProtocolReason.POW_INVALID => "Proof of Work invalid.",
 
             // 300–349: Service / Infrastructure
             ProtocolReason.SERVER_SHUTDOWN => "Server is shutting down.",

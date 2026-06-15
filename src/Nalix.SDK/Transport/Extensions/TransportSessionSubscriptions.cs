@@ -220,7 +220,6 @@ public static class TransportSessionSubscriptions
                 return;
             }
 
-
             try
             {
                 IPacket p = PacketRegistry.Deserialize(buffer.Span);

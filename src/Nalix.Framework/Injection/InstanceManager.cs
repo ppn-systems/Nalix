@@ -246,7 +246,10 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
         // After finishing all replacements, dispose each distinct previous object exactly once.
         foreach (object prev in prevsToDispose)
         {
-            SAFE_DISPOSE_PREVIOUS(prev, "register-replaced");
+            if (!_instanceCache.Values.Contains(prev))
+            {
+                SAFE_DISPOSE_PREVIOUS(prev, "register-replaced");
+            }
         }
 
         // Track disposable AFTER instance successfully stored.
@@ -284,8 +287,6 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
                         {
                             _ = collectSet.Add(existing);
                         }
-                        // After successful swap, mark slots valid
-                        Volatile.Write(ref s_slotsInvalidated, 0);
                         return;
                     }
 
@@ -300,7 +301,6 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
 
                 if (_instanceCache.TryAdd(handleKey, instanceObj))
                 {
-                    Volatile.Write(ref s_slotsInvalidated, 0);
                     return;
                 }
 
@@ -488,7 +488,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
                 }
             }
 
-            if (instance is IDisposable d)
+            if (instance is IDisposable d && !_instanceCache.Values.Contains(d))
             {
                 _ = _disposables.TryRemove(d, out _);
                 try { d.Dispose(); }
@@ -522,7 +522,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
             if (_signatureInstanceCache.TryRemove(sk, out object? sinst))
             {
                 removedAny = true;
-                if (sinst is IDisposable sd)
+                if (sinst is IDisposable sd && !_instanceCache.Values.Contains(sd) && !_signatureInstanceCache.Values.Contains(sinst))
                 {
                     _ = _disposables.TryRemove(sd, out _);
                     try { sd.Dispose(); }

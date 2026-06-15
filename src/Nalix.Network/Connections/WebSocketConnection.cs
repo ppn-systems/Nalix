@@ -40,9 +40,11 @@ public sealed class WebSocketConnection :
 {
     #region Fields
 
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-    private static readonly ConnectionGuardOptions s_limitOptions = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
-    private static readonly NetworkCallbackOptions s_callbackOptions = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
+    private static readonly ObjectPoolManager s_pool;
+    private static readonly TimingWheel s_timingWheel;
+    private static readonly TimingWheelOptions s_timingWheelOptions;
+    private static readonly ConnectionGuardOptions s_limitOptions;
+    private static readonly NetworkCallbackOptions s_callbackOptions;
 
     private readonly WebSocket _webSocket;
     private readonly SemaphoreSlim _sendLock = new(1, 1);
@@ -72,6 +74,16 @@ public sealed class WebSocketConnection :
 
     #region Constructor
 
+    static WebSocketConnection()
+    {
+        s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+        s_timingWheel = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
+
+        s_limitOptions = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
+        s_timingWheelOptions = ConfigurationManager.Instance.Get<TimingWheelOptions>();
+        s_callbackOptions = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
+    }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="WebSocketConnection"/> class.
     /// </summary>
@@ -89,6 +101,7 @@ public sealed class WebSocketConnection :
 
         this.Secret = Bytes32.Zero;
         this.PacketClassifier = packetClassifier;
+        this.IdleTimeoutMs = s_timingWheelOptions.IdleTimeoutMs;
         this.ID = Snowflake.NewId(SnowflakeType.Session).ToUInt64();
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(remoteEndPoint ?? new IPEndPoint(IPAddress.Loopback, 0));
 
@@ -112,7 +125,7 @@ public sealed class WebSocketConnection :
     public bool IsUdpCreated => false; // UDP is not supported over WebSocket
 
     /// <inheritdoc/>
-    public bool ExcludeFromIdleTimeout { get; set; } = true;
+    public bool ExcludeFromIdleTimeout { get; set; }
 
     /// <inheritdoc/>
     public ulong ID { get; }
@@ -178,6 +191,9 @@ public sealed class WebSocketConnection :
 
     /// <inheritdoc/>
     public Bytes32 Secret { get; set; }
+
+    /// <inheritdoc />
+    public int IdleTimeoutMs { get; set; }
 
     /// <inheritdoc/>
     public int TimeoutVersion { get; set; }
@@ -341,6 +357,25 @@ public sealed class WebSocketConnection :
         {
             this.Disconnect("Exceeded maximum error threshold.");
         }
+    }
+
+    /// <inheritdoc />
+    public void UpdateIdleTimeout(int newTimeoutMs)
+    {
+        if (newTimeoutMs <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(newTimeoutMs), "Idle timeout must be a positive integer.");
+        }
+
+        if (this.IdleTimeoutMs == newTimeoutMs)
+        {
+            return; // No change needed
+        }
+
+        this.IdleTimeoutMs = newTimeoutMs;
+
+        s_timingWheel.Unregister(this);
+        s_timingWheel.Register(this);
     }
 
     #endregion Methods

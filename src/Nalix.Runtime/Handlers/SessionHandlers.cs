@@ -43,8 +43,13 @@ public static partial class SessionHandlers
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        IConnection connection = context.Connection;
+        if (!context.IsReliable)
+        {
+            // This is a replayed packet, ignore silently.
+            return;
+        }
 
+        IConnection connection = context.Connection;
         IConnectionHub? hub = connection.GetHub();
 
         if (hub is null)

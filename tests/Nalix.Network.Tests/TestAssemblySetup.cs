@@ -1,5 +1,8 @@
 using Nalix.Environment.Configuration;
 using Nalix.Network.Options;
+using Xunit;
+
+[assembly: CollectionBehavior(CollectionBehavior.CollectionPerAssembly, MaxParallelThreads = 1)]
 
 namespace Nalix.Network.Tests;
 

@@ -46,8 +46,11 @@ public sealed partial class Connection :
     #region Fields
 
     private static readonly ObjectPoolManager s_pool;
+    private static readonly TimingWheel s_timingWheel;
+
     private static readonly ConnectionGuardOptions s_options;
     private static readonly DatagramGuardOptions s_datagramOptions;
+    private static readonly TimingWheelOptions s_timingWheelOptions;
     private static readonly NetworkCallbackOptions s_callbackOptions;
 
     private ConnectionBacking? _backing;
@@ -65,8 +68,10 @@ public sealed partial class Connection :
 
         s_options = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
         s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+        s_timingWheel = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
         s_datagramOptions = ConfigurationManager.Instance.Get<DatagramGuardOptions>();
         s_callbackOptions = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
+        s_timingWheelOptions = ConfigurationManager.Instance.Get<TimingWheelOptions>();
 
         // Pre-configure pool capacities based on expected usage patterns to minimize resizing during runtime.
         _ = s_pool.SetMaxCapacity<SocketConnection>(s_options.MaxConnections);
@@ -138,6 +143,7 @@ public sealed partial class Connection :
 
         // Use realEndPoint (from PROXY header) instead of socket.RemoteEndPoint (LB IP).
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(realEndPoint);
+        this.IdleTimeoutMs = s_timingWheelOptions.IdleTimeoutMs;
 
         // Initialize the socket connection.
         _backing.Socket = s_pool.Get<SocketConnection>();
@@ -162,7 +168,7 @@ public sealed partial class Connection :
     public bool IsUdpCreated => this.UdpTransport is not null;
 
     /// <inheritdoc/>
-    public bool ExcludeFromIdleTimeout { get; set; } = true;
+    public bool ExcludeFromIdleTimeout { get; set; }
 
     /// <inheritdoc />
     public ulong ID { get; }
@@ -221,6 +227,9 @@ public sealed partial class Connection :
 
     /// <inheritdoc />
     public Bytes32 Secret { get; set; }
+
+    /// <inheritdoc />
+    public int IdleTimeoutMs { get; set; }
 
     /// <inheritdoc />
     public int TimeoutVersion { get; set; }
@@ -451,6 +460,25 @@ public sealed partial class Connection :
         }
 
         this.Dispose();
+    }
+
+    /// <inheritdoc />
+    public void UpdateIdleTimeout(int newTimeoutMs)
+    {
+        if (newTimeoutMs <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(newTimeoutMs), "Idle timeout must be a positive integer.");
+        }
+
+        if (this.IdleTimeoutMs == newTimeoutMs)
+        {
+            return; // No change needed
+        }
+
+        this.IdleTimeoutMs = newTimeoutMs;
+
+        s_timingWheel.Unregister(this);
+        s_timingWheel.Register(this);
     }
 
     #endregion Methods

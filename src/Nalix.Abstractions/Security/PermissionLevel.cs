@@ -15,6 +15,16 @@ public enum PermissionLevel : byte
     NONE = 0,
 
     /// <summary>
+    /// Connection has passed the Proof-of-Work challenge but has not yet completed handshake.
+    /// </summary>
+    POW_VERIFIED = 10,
+
+    /// <summary>
+    /// Secure session has been established.
+    /// </summary>
+    ESTABLISHED = 20,
+
+    /// <summary>
     /// Minimal access for anonymous or guest users.
     /// </summary>
     GUEST = 25,

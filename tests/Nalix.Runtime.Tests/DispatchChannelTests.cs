@@ -587,6 +587,9 @@ public sealed class DispatchChannelTests
         public void Dispose() { }
         public int ErrorCount => 0;
         public void IncrementErrorCount() { }
+
+        public int IdleTimeoutMs { get; set; } = 60000;
+        public void UpdateIdleTimeout(int newTimeoutMs) { this.IdleTimeoutMs = newTimeoutMs; }
     }
 
     #endregion

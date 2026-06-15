@@ -6,12 +6,15 @@ using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Diagnostics;
+using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
+using Nalix.Codec.Security;
 using Nalix.Runtime.Internal.RateLimiting;
 
 namespace Nalix.Runtime.Handlers;
@@ -20,7 +23,7 @@ namespace Nalix.Runtime.Handlers;
 /// Provides handlers for system-level control packets like PING and PONG.
 /// </summary>
 [PacketController("Nalix.Control")]
-public static class SystemControlHandlers
+public static partial class SystemControlHandlers
 {
     /// <summary>
     /// Handles incoming system control packets.
@@ -59,6 +62,9 @@ public static class SystemControlHandlers
             case ControlType.NOTICE:
                 HandleNotice(context.Connection, packet);
                 break;
+            case ControlType.POW_REQUEST:
+                await HandlePowRequestAsync(context).ConfigureAwait(false);
+                break;
             case ControlType.PUBLIC_KEY_REQUEST:
                 await HandlePublicKeyRequest(context, packet).ConfigureAwait(false);
                 break;
@@ -83,10 +89,52 @@ public static class SystemControlHandlers
         }
     }
 
+    #region Fields
+
+    [Inject]
+    private static IProofOfWorkPolicy? s_powPolicy;
+
+    #endregion Fields
+
     #region Private Methods
+
+    /// <summary>
+    /// Handles the incoming POW_REQUEST control packet.
+    /// Note: This method is called directly by SystemControlHandlers, so it does not need a [PacketOpcode] attribute.
+    /// </summary>
+    private static async ValueTask HandlePowRequestAsync(IPacketContext<Control> context)
+    {
+        if (!context.IsReliable)
+        {
+            // This is a replayed packet, ignore silently.
+            return;
+        }
+
+        byte diff = 12; // Fallback
+
+        if (s_powPolicy is not null)
+        {
+            diff = s_powPolicy.CurrentDifficulty;
+        }
+
+        long ts = System.Environment.TickCount64; // Using ticks as simple timestamp
+        (Bytes32 nonce, Bytes32 mac) = ProofOfWork.CreateChallenge(diff, context.Connection.ID, ts);
+
+        using PacketScope<ProofOfWorkChallenge> lease = PacketFactory<ProofOfWorkChallenge>.Acquire();
+        ProofOfWorkChallenge challenge = lease.Value;
+        challenge.Initialize(nonce, diff, ts, mac);
+
+        await context.Sender.SendAsync(challenge).ConfigureAwait(false);
+    }
 
     private static async ValueTask HandleCipherUpdate(IPacketContext<Control> context, Control packet)
     {
+        if (!context.IsReliable)
+        {
+            // This is a replayed packet, ignore silently.
+            return;
+        }
+
         // SEC-40: Validate the enum value to prevent protocol DoS via invalid algorithm state.
         byte rawValue = (byte)packet.Reason;
         if (!Enum.IsDefined(typeof(CipherSuiteType), (CipherSuiteType)rawValue))
@@ -140,9 +188,7 @@ public static class SystemControlHandlers
         {
             DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Information,
-                new DiagnosticLog(
-                    "RT.SystemControlHandlers:HandleAsync",
-                    $"error ep={connection.NetworkEndpoint} reason={packet.Reason}"));
+                new DiagnosticLog("RT.SystemControlHandlers:HandleAsync", $"error ep={connection.NetworkEndpoint} reason={packet.Reason}"));
         }
     }
 
@@ -164,9 +210,7 @@ public static class SystemControlHandlers
         {
             DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Warning,
-                new DiagnosticLog(
-                    "RT.SystemControlHandlers:HandleAsync",
-                    $"fail ep={connection.NetworkEndpoint} reason={packet.Reason}"));
+                new DiagnosticLog("RT.SystemControlHandlers:HandleAsync", $"fail ep={connection.NetworkEndpoint} reason={packet.Reason}"));
         }
     }
 
@@ -186,20 +230,22 @@ public static class SystemControlHandlers
         {
             DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Debug,
-                new DiagnosticLog(
-                    "RT.SystemControlHandlers:HandleAsync",
-                    $"notice ep={connection.NetworkEndpoint} reason={packet.Reason}"));
+                new DiagnosticLog("RT.SystemControlHandlers:HandleAsync", $"notice ep={connection.NetworkEndpoint} reason={packet.Reason}"));
         }
     }
 
     private static async ValueTask HandlePublicKeyRequest(IPacketContext<Control> context, Control packet)
     {
-        IConnection connection = context.Connection;
+        if (!context.IsReliable)
+        {
+            // This is a replayed packet, ignore silently.
+            return;
+        }
 
         // Key exchange must happen BEFORE handshake.
-        if (connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeEstablished))
+        if (context.Connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeEstablished))
         {
-            connection.Disconnect("Key exchange requested after handshake was established (State Violation).");
+            context.Connection.Disconnect("Key exchange requested after handshake was established (State Violation).");
             return;
         }
 

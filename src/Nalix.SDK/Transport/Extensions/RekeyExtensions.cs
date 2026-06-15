@@ -52,7 +52,7 @@ public static class RekeyExtensions
                 session.State.Secret = newKey;
                 session.ResetSequenceCounters();
             },
-            timeoutMs: session.Options.ConnectTimeoutMillis > 0 ? session.Options.ConnectTimeoutMillis : 5000,
+            timeoutMs: session?.Options.ConnectTimeoutMillis > 0 ? session.Options.ConnectTimeoutMillis : 5000,
             ct: ct).ConfigureAwait(false);
     }
 }

@@ -61,11 +61,68 @@ public static class HandshakeExtensions
         using SessionInit clientHello = new();
         clientHello.Initialize(clientKey.PublicKey, clientNonce);
 
-        using SessionChallenge serverHello = await session.RequestAsync<SessionChallenge>(
-            clientHello,
-            options: RequestOptions.Default.WithTimeout(session.Options.ConnectTimeoutMillis),
-            predicate: null,
-            ct: ct).ConfigureAwait(false);
+        TaskCompletionSource<IPacket> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(session.Options.ConnectTimeoutMillis);
+        using CancellationTokenRegistration reg = cts.Token.Register(() => tcs.TrySetCanceled(cts.Token));
+
+#pragma warning disable CS0618
+        IDisposable subChallenge = session.OnOnce<SessionChallenge>(
+            predicate: _ => true,
+            handler: p => tcs.TrySetResult(p),
+            disposeAfter: false);
+
+        IDisposable subControl = session.OnOnce<Control>(
+            predicate: p => p.Type == ControlType.ERROR && p.Reason == ProtocolReason.POW_REQUIRED,
+            handler: p => tcs.TrySetResult(p),
+            disposeAfter: false);
+#pragma warning restore CS0618
+
+        using CompositeSubscription composite = session.Subscribe(subChallenge, subControl);
+
+        await session.SendAsync(clientHello, encrypt: false, ct: ct).ConfigureAwait(false);
+        IPacket response = await tcs.Task.ConfigureAwait(false);
+
+        SessionChallenge serverHello;
+
+        if (response is Control controlPacket)
+        {
+            controlPacket.Dispose();
+
+            // --- Proof-of-Work Negotiation ---
+            using Control powReq = new();
+            powReq.Initialize(ControlType.POW_REQUEST, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+
+            using ProofOfWorkChallenge challenge = await session.RequestAsync<ProofOfWorkChallenge>(
+                powReq,
+                options: RequestOptions.Default.WithTimeout(session.Options.ConnectTimeoutMillis),
+                predicate: null,
+                ct: ct).ConfigureAwait(false);
+
+            if (!challenge.Validate(out string? challengeReason))
+            {
+                throw new NetworkException($"Malformed ProofOfWorkChallenge packet: {challengeReason}");
+            }
+
+            long solution = ProofOfWorkSolver.SolveChallenge(challenge.Nonce.AsSpan(), challenge.Difficulty, challenge.TimestampTicks);
+
+            using ProofOfWorkProof proof = new();
+            proof.Initialize(challenge.Nonce, challenge.Difficulty, challenge.TimestampTicks, challenge.Mac, solution, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+
+            // Pipeline the ProofOfWorkProof. We do not wait for a response; SessionInit will immediately follow.
+            await session.SendAsync(proof, ct: ct).ConfigureAwait(false);
+
+            // Re-send SessionInit and wait for SessionChallenge
+            serverHello = await session.RequestAsync<SessionChallenge>(
+                clientHello,
+                options: RequestOptions.Default.WithTimeout(session.Options.ConnectTimeoutMillis),
+                predicate: null,
+                ct: ct).ConfigureAwait(false);
+        }
+        else
+        {
+            serverHello = (SessionChallenge)response;
+        }
 
         if (!serverHello.Validate(out string? reason))
         {
@@ -86,7 +143,7 @@ public static class HandshakeExtensions
 
             using SessionTofu keyResponse = await session.RequestAsync<SessionTofu>(
                 request,
-                options: RequestOptions.Default.WithTimeout(5000),
+                options: RequestOptions.Default.WithTimeout(session.Options.ConnectTimeoutMillis),
                 predicate: null,
                 ct: ct).ConfigureAwait(false);
 
@@ -154,7 +211,7 @@ public static class HandshakeExtensions
         {
             using SessionEstablished serverFinish = await session.RequestAsync<SessionEstablished>(
                 clientFinish,
-                options: RequestOptions.Default.WithTimeout(5000),
+                options: RequestOptions.Default.WithTimeout(session.Options.ConnectTimeoutMillis),
                 predicate: null,
                 ct: ct).ConfigureAwait(false);
 

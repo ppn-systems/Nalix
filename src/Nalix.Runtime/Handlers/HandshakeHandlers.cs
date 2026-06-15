@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
@@ -39,11 +40,17 @@ public static partial class HandshakeHandlers
     /// <inheritdoc/>
     [ReservedOpcodePermitted]
     [PacketEncryption(false)]
-    [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode(ProtocolOpCode.SESSION_INIT)]
+    [PacketPermission(PermissionLevel.NONE)]
     public static async ValueTask HandleSessionInitAsync(IPacketContext<SessionInit> context)
     {
         ArgumentNullException.ThrowIfNull(context);
+
+        if (!context.IsReliable)
+        {
+            // This is a replayed packet, ignore silently.
+            return;
+        }
 
         SessionInit packet = context.Packet;
         IConnection connection = context.Connection;
@@ -52,6 +59,26 @@ public static partial class HandshakeHandlers
         {
             await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
             return;
+        }
+
+        if (s_powPolicy != null && s_powPolicy.IsUnderAttack)
+        {
+            if (connection.Level < PermissionLevel.POW_VERIFIED)
+            {
+                // Adaptive Timeout: Expected solve time + 10 seconds network buffer
+                // Time to solve is approximately 2^Difficulty hashes.
+                // Assuming an average client can compute ~500 hashes per millisecond.
+                int adaptiveTimeoutMs = ((1 << s_powPolicy.CurrentDifficulty) / 500) + 5000;
+
+                using PacketScope<Control> error = PacketFactory<Control>.Acquire();
+                error.Value.Initialize(ControlType.ERROR, reasonCode: ProtocolReason.POW_REQUIRED, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+                await context.Sender.SendAsync(error.Value).ConfigureAwait(false);
+
+                connection.UpdateIdleTimeout(adaptiveTimeoutMs);
+
+                // Do NOT disconnect, just return to wait for POW_PROOF.
+                return;
+            }
         }
 
         if (!TryAcquireHandshakeSlot(connection, out object claimToken))
@@ -135,6 +162,12 @@ public static partial class HandshakeHandlers
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        if (!context.IsReliable)
+        {
+            // This is a replayed packet, ignore silently.
+            return;
+        }
+
         SessionProof packet = context.Packet;
         IConnection connection = context.Connection;
 
@@ -142,6 +175,18 @@ public static partial class HandshakeHandlers
         {
             await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
             return;
+        }
+
+        if (s_powPolicy != null && s_powPolicy.IsUnderAttack)
+        {
+            if (connection.Level < PermissionLevel.POW_VERIFIED)
+            {
+                using PacketScope<Control> error = PacketFactory<Control>.Acquire();
+
+                error.Value.Initialize(ControlType.ERROR, reasonCode: ProtocolReason.POW_REQUIRED, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+                await context.Sender.SendAsync(error.Value).ConfigureAwait(false);
+                return;
+            }
         }
 
         if (!TryGetState(connection, out HandshakeContext? state) || state is null)
@@ -162,6 +207,7 @@ public static partial class HandshakeHandlers
 
         Bytes32 expectedFinish = HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash);
 
+        connection.Level = PermissionLevel.ESTABLISHED;
         connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
         if (connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? removedState) && removedState is HandshakeContext contextState)
         {
@@ -252,11 +298,14 @@ public static partial class HandshakeHandlers
     /// </summary>
     public static Bytes32 ServerPublicKey => s_serverPublicKey;
 
-    [global::Nalix.Abstractions.Injection.Inject]
+    [Inject]
     private static ObjectPoolManager s_pool = null!;
 
-    [global::Nalix.Abstractions.Injection.Inject]
+    [Inject]
     private static ISessionService? s_sessionService;
+
+    [Inject]
+    private static IProofOfWorkPolicy? s_powPolicy;
 
     #endregion Fields
 
