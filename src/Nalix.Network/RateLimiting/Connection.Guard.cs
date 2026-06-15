@@ -16,6 +16,7 @@ using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Security;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Time;
 using Nalix.Network.Internal.Security;
@@ -34,10 +35,12 @@ namespace Nalix.Network.RateLimiting;
 [Injectable]
 [SkipLocalsInit]
 [DebuggerNonUserCode]
-public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
+[Injectable(typeof(IProofOfWorkPolicy))]
+public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable, IProofOfWorkPolicy
 {
     #region Constants
 
+    private const double EwmaAlpha = 0.3;
     private const int MinReportCapacity = 128;
     private const int MaxReportCapacity = 4096;
 
@@ -83,13 +86,39 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
     private double _ewmaConnectionRate;
     private long _ewmaLastUpdateTicks;
-    private const double EwmaAlpha = 0.3;
 
     private readonly long _banCountDecayWindowTicks;
 
     #endregion Fields
 
     #region Properties
+
+    /// <inheritdoc/>
+    public byte CurrentDifficulty
+    {
+        get
+        {
+            if (!_config.EnableAdaptiveMode)
+            {
+                return _config.AdaptivePowMinDifficulty;
+            }
+
+            double rate = Volatile.Read(ref _ewmaConnectionRate);
+            if (rate <= _config.AdaptivePowStartRate)
+            {
+                return _config.AdaptivePowMinDifficulty;
+            }
+
+            if (rate >= _config.AdaptivePowMaxRate)
+            {
+                return _config.AdaptivePowMaxDifficulty;
+            }
+
+            double scale = (rate - _config.AdaptivePowStartRate) / (_config.AdaptivePowMaxRate - _config.AdaptivePowStartRate);
+            double diffRange = _config.AdaptivePowMaxDifficulty - _config.AdaptivePowMinDifficulty;
+            return (byte)(_config.AdaptivePowMinDifficulty + (diffRange * scale));
+        }
+    }
 
     /// <summary>Gets the recurring name used for cleanup operations.</summary>
     public static readonly string RecurringName;

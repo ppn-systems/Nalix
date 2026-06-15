@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Diagnostics;
+using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
@@ -22,7 +23,7 @@ namespace Nalix.Runtime.Handlers;
 /// Provides handlers for system-level control packets like PING and PONG.
 /// </summary>
 [PacketController("Nalix.Control")]
-public static class SystemControlHandlers
+public static partial class SystemControlHandlers
 {
     /// <summary>
     /// Handles incoming system control packets.
@@ -88,6 +89,13 @@ public static class SystemControlHandlers
         }
     }
 
+    #region Fields
+
+    [Inject]
+    private static IProofOfWorkPolicy? s_powPolicy;
+
+    #endregion Fields
+
     #region Private Methods
 
     /// <summary>
@@ -98,7 +106,13 @@ public static class SystemControlHandlers
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        byte diff = 15; // Default difficulty, can be adjusted dynamically
+        byte diff = 12; // Fallback
+
+        if (s_powPolicy is not null)
+        {
+            diff = s_powPolicy.CurrentDifficulty;
+        }
+
         long ts = System.Environment.TickCount64; // Using ticks as simple timestamp
         (Bytes32 nonce, Bytes32 mac) = ProofOfWork.CreateChallenge(diff, context.Connection.ID, ts);
 

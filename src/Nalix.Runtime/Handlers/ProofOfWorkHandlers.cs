@@ -16,7 +16,7 @@ namespace Nalix.Runtime.Handlers;
 /// <summary>
 /// Provides handlers for Proof-of-Work negotiation and verification.
 /// </summary>
-[PacketController("Nalix.System")]
+[PacketController("Nalix.ProofOfWork")]
 public static class ProofOfWorkHandlers
 {
     /// <summary>

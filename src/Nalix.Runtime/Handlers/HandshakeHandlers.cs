@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
@@ -253,10 +254,10 @@ public static partial class HandshakeHandlers
     /// </summary>
     public static Bytes32 ServerPublicKey => s_serverPublicKey;
 
-    [global::Nalix.Abstractions.Injection.Inject]
+    [Inject]
     private static ObjectPoolManager s_pool = null!;
 
-    [global::Nalix.Abstractions.Injection.Inject]
+    [Inject]
     private static ISessionService? s_sessionService;
 
     #endregion Fields
