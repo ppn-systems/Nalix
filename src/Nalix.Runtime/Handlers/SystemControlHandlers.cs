@@ -9,9 +9,11 @@ using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
+using Nalix.Codec.Security;
 using Nalix.Runtime.Internal.RateLimiting;
 
 namespace Nalix.Runtime.Handlers;
@@ -59,6 +61,9 @@ public static class SystemControlHandlers
             case ControlType.NOTICE:
                 HandleNotice(context.Connection, packet);
                 break;
+            case ControlType.POW_REQUEST:
+                await HandlePowRequestAsync(context).ConfigureAwait(false);
+                break;
             case ControlType.PUBLIC_KEY_REQUEST:
                 await HandlePublicKeyRequest(context, packet).ConfigureAwait(false);
                 break;
@@ -84,6 +89,25 @@ public static class SystemControlHandlers
     }
 
     #region Private Methods
+
+    /// <summary>
+    /// Handles the incoming POW_REQUEST control packet.
+    /// Note: This method is called directly by SystemControlHandlers, so it does not need a [PacketOpcode] attribute.
+    /// </summary>
+    private static async ValueTask HandlePowRequestAsync(IPacketContext<Control> context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        byte diff = 15; // Default difficulty, can be adjusted dynamically
+        long ts = System.Environment.TickCount64; // Using ticks as simple timestamp
+        (Bytes32 nonce, Bytes32 mac) = ProofOfWork.CreateChallenge(diff, context.Connection.ID, ts);
+
+        using PacketScope<ProofOfWorkChallenge> lease = PacketFactory<ProofOfWorkChallenge>.Acquire();
+        ProofOfWorkChallenge challenge = lease.Value;
+        challenge.Initialize(nonce, diff, ts, mac);
+
+        await context.Sender.SendAsync(challenge).ConfigureAwait(false);
+    }
 
     private static async ValueTask HandleCipherUpdate(IPacketContext<Control> context, Control packet)
     {
@@ -140,9 +164,7 @@ public static class SystemControlHandlers
         {
             DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Information,
-                new DiagnosticLog(
-                    "RT.SystemControlHandlers:HandleAsync",
-                    $"error ep={connection.NetworkEndpoint} reason={packet.Reason}"));
+                new DiagnosticLog("RT.SystemControlHandlers:HandleAsync", $"error ep={connection.NetworkEndpoint} reason={packet.Reason}"));
         }
     }
 
@@ -164,9 +186,7 @@ public static class SystemControlHandlers
         {
             DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Warning,
-                new DiagnosticLog(
-                    "RT.SystemControlHandlers:HandleAsync",
-                    $"fail ep={connection.NetworkEndpoint} reason={packet.Reason}"));
+                new DiagnosticLog("RT.SystemControlHandlers:HandleAsync", $"fail ep={connection.NetworkEndpoint} reason={packet.Reason}"));
         }
     }
 
@@ -186,9 +206,7 @@ public static class SystemControlHandlers
         {
             DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Debug,
-                new DiagnosticLog(
-                    "RT.SystemControlHandlers:HandleAsync",
-                    $"notice ep={connection.NetworkEndpoint} reason={packet.Reason}"));
+                new DiagnosticLog("RT.SystemControlHandlers:HandleAsync", $"notice ep={connection.NetworkEndpoint} reason={packet.Reason}"));
         }
     }
 

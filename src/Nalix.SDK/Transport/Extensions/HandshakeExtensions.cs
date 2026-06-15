@@ -58,6 +58,30 @@ public static class HandshakeExtensions
         Csprng.Fill(clientNonceBytes);
         Bytes32 clientNonce = new(clientNonceBytes);
 
+        // --- Proof-of-Work Negotiation ---
+        using Control powReq = new();
+        powReq.Initialize(ControlType.POW_REQUEST, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+
+        using ProofOfWorkChallenge challenge = await session.RequestAsync<ProofOfWorkChallenge>(
+            powReq,
+            options: RequestOptions.Default.WithTimeout(session.Options.ConnectTimeoutMillis),
+            predicate: null,
+            ct: ct).ConfigureAwait(false);
+
+        if (!challenge.Validate(out string? challengeReason))
+        {
+            throw new NetworkException($"Malformed ProofOfWorkChallenge packet: {challengeReason}");
+        }
+
+        long solution = ProofOfWorkSolver.SolveChallenge(challenge.Nonce.AsSpan(), challenge.Difficulty, challenge.TimestampTicks);
+
+        using ProofOfWorkProof proof = new();
+        proof.Initialize(challenge.Nonce, challenge.Difficulty, challenge.TimestampTicks, challenge.Mac, solution, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+
+        // Pipeline the ProofOfWorkProof. We do not wait for a response; SessionInit will immediately follow.
+        await session.SendAsync(proof, ct: ct).ConfigureAwait(false);
+
+
         using SessionInit clientHello = new();
         clientHello.Initialize(clientKey.PublicKey, clientNonce);
 

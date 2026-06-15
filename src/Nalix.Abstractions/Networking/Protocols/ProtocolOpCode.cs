@@ -61,6 +61,16 @@ public enum ProtocolOpCode : ushort
     /// </summary>
     SESSION_REKEY = 0x0009,
 
+    /// <summary>
+    /// Server issues a cryptographic puzzle to the client.
+    /// </summary>
+    POW_CHALLENGE = 0x000A,
+
+    /// <summary>
+    /// Client submits the mathematical proof for the puzzle.
+    /// </summary>
+    POW_PROOF = 0x000B,
+
     #endregion System
 
     #region Extensions

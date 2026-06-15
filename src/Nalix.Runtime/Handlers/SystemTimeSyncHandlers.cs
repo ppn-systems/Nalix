@@ -41,6 +41,7 @@ public static class SystemTimeSyncHandlers
             case ControlType.TIMESYNCREQUEST:
                 await HandleTimeSyncRequest(context, packet).ConfigureAwait(false);
                 break;
+            case ControlType.POW_REQUEST:
             case ControlType.NONE:
             case ControlType.DISCONNECT:
             case ControlType.ERROR:

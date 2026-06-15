@@ -39,8 +39,8 @@ public static partial class HandshakeHandlers
     /// <inheritdoc/>
     [ReservedOpcodePermitted]
     [PacketEncryption(false)]
-    [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode(ProtocolOpCode.SESSION_INIT)]
+    [PacketPermission(PermissionLevel.POW_VERIFIED)]
     public static async ValueTask HandleSessionInitAsync(IPacketContext<SessionInit> context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -129,7 +129,7 @@ public static partial class HandshakeHandlers
     /// <inheritdoc/>
     [ReservedOpcodePermitted]
     [PacketEncryption(false)]
-    [PacketPermission(PermissionLevel.NONE)]
+    [PacketPermission(PermissionLevel.POW_VERIFIED)]
     [PacketOpcode((ushort)ProtocolOpCode.SESSION_PROOF)]
     public static async ValueTask HandleSessionProofAsync(IPacketContext<SessionProof> context)
     {
@@ -162,6 +162,7 @@ public static partial class HandshakeHandlers
 
         Bytes32 expectedFinish = HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash);
 
+        connection.Level = PermissionLevel.ESTABLISHED;
         connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
         if (connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? removedState) && removedState is HandshakeContext contextState)
         {
