@@ -24,6 +24,9 @@ Defines the reserved OpCodes for Nalix system and protocol-level internal packet
 | `SESSION_CHALLENGE` | `0x0006` | Session challenge packet used for cryptographic validation. |
 | `SESSION_ESTABLISHED` | `0x0007` | Session acknowledgement packet indicating that the secure session has been established. |
 | `SYSTEM_DIRECTIVE` | `0x0008` | System directive packet used to send framework-level commands or runtime instructions. |
+| `SESSION_REKEY` | `0x0009` | Mid-session symmetric key rotation to prevent sequence counter overflow and limit cryptographic exposure. |
+| `POW_CHALLENGE` | `0x000A` | Server-issued Proof-of-Work challenge containing nonce, difficulty, timestamp, and HMAC. |
+| `POW_PROOF` | `0x000B` | Client-submitted Proof-of-Work solution containing the computed counter value. |
 | `TUNNEL_REQUEST` | `0x00F3` | Tunnel request packet. |
 | `TUNNEL_PROVIDE_ACK` | `0x00F4` | Tunnel provisioning acknowledgement. |
 | `TUNNEL_CONNECT_ACK` | `0x00F5` | Tunnel connection request acknowledgement. |
@@ -114,6 +117,7 @@ Identifies the kind of control message used by the protocol layer.
 | `CIPHER_UPDATE` | `0x14` | Request cipher suite change. |
 | `CIPHER_UPDATE_ACK` | `0x15` | Acknowledge cipher change. |
 | `PUBLIC_KEY_REQUEST` | `0x16` | Client requests the server's static public key (TOFU). |
+| `POW_REQUEST` | `0x17` | Client requests a Proof-of-Work puzzle to elevate its permission level. |
 | `RESERVED1` | `0xFE` | Reserved for future extension. |
 | `RESERVED2` | `0xFF` | Reserved for future extension. |
 
@@ -199,6 +203,8 @@ Standard reason codes for protocol control messages.
 | `DECRYPTION_FAILED` | `265` | Crypto | Decryption failed. |
 | `REPLAY_DETECTED` | `266` | Crypto | Replay attack detected. |
 | `NONCE_INVALID` | `267` | Crypto | Nonce invalid/reused. |
+| `POW_REQUIRED` | `270` | Crypto | Must complete Proof-of-Work challenge to proceed. |
+| `POW_INVALID` | `271` | Crypto | Submitted Proof-of-Work solution is invalid or expired. |
 | `SERVER_SHUTDOWN` | `300` | Infra | Intentional shutdown. |
 | `SERVICE_UNAVAILABLE` | `301` | Infra | Temporarily unavailable. |
 | `MAINTENANCE` | `302` | Infra | Maintenance ongoing. |

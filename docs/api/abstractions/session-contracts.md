@@ -9,12 +9,14 @@
 - `src/Nalix.Abstractions/Networking/Sessions/ISessionStore.cs`
 - `src/Nalix.Abstractions/Networking/Sessions/SessionEntry.cs`
 - `src/Nalix.Abstractions/Networking/Sessions/SessionSnapshot.cs`
+- `src/Nalix.Abstractions/Networking/Sessions/ISessionPersistencePolicy.cs`
 
 ## Main types
 
 - `ISessionService`
 - `ISessionFactory`
 - `ISessionStore`
+- `ISessionPersistencePolicy`
 - `SessionEntry`
 - `SessionSnapshot`
 
@@ -26,6 +28,7 @@
 | `ISessionFactory` | `CreateSession(...)` |
 | `ISessionStore` | `StoreAsync(...)`, `ConsumeAsync(...)` |
 | `SessionEntry` | `Snapshot`, `ConnectionId`, `Return()` |
+| `ISessionPersistencePolicy` | `ShouldPersist(IConnection)` |
 | `SessionSnapshot` | `SessionToken`, `CreatedAtUnixMilliseconds`, `ExpiresAtUnixMilliseconds`, `Secret`, `Algorithm`, `Level`, `Attributes` |
 
 ## ISessionService
@@ -67,6 +70,12 @@ It is responsible for:
 
 - treating the store as a cache and forgetting that custom implementations (e.g., Redis) **must** implement `ConsumeAsync` atomically to prevent resumption replay exploits
 - forgetting to return the `SessionEntry` resources to the object pool (`entry.Return()`) if a store operation fails or a session expires
+
+## ISessionPersistencePolicy
+
+`ISessionPersistencePolicy` is an optional customization point that determines whether a connection's session should be persisted when the connection is unregistered. The default implementation (`DefaultSessionPersistencePolicy`) checks that the handshake was established and that the connection carries enough attributes to be worth resuming.
+
+Implement this interface to apply custom persistence logic (e.g., only persist sessions for premium users, or skip persistence for certain transport types).
 
 ## SessionEntry
 
