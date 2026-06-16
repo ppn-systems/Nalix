@@ -11,6 +11,8 @@
 - `src/Nalix.Runtime/Sessions/SessionFactory.cs`
 - `src/Nalix.Runtime/Sessions/InMemorySessionStore.cs`
 - `src/Nalix.Runtime/Sessions/SessionPersistenceObserver.cs`
+- `src/Nalix.Abstractions/Networking/Sessions/ISessionPersistencePolicy.cs`
+- `src/Nalix.Runtime/Sessions/DefaultSessionPersistencePolicy.cs`
 
 ## Why These Types Exist
 
