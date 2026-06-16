@@ -49,7 +49,6 @@
 | 🛤️ **Middleware Pipeline** | Built-in authentication, rate limiting, traffic shaping, and audit logging — or write your own. |
 | 📡 **Real-Time Updates** | Instant messaging, state synchronization, and live event broadcasting. |
 | 🛠️ **Extensible** | Attribute-based packet routing, auto-discovered controllers, and fluent builder APIs. |
-| 🧩 **SOLID & DDD** | Clean architecture following SOLID principles and Domain-Driven Design patterns. |
 | 💻 **Modern C#** | Leverages C# 14 features — `Span<T>`, `ref struct`, pattern matching, and more. |
 
 ---
@@ -140,11 +139,13 @@ Build a high-performance network application in minutes:
 ```csharp
 using Nalix.Hosting;
 using Nalix.Network.Options;
+using Nalix.Runtime.Handlers;
+using Nalix.Hosting.Protocols;
 
 // Initialize and configure the application host
 using var host = NetworkApplication.CreateBuilder()
     .ListenTcp<DefaultProtocol>().OnPort(8080).Bind()
-    .ScanHandlers<Program>() // Auto-discovers all custom PacketHandler types in the assembly
+    .MapHandlers<HandshakeHandlers>()
     .Configure<NetworkSocketOptions>(opt => opt.NoDelay = true)
     .Build();
 
