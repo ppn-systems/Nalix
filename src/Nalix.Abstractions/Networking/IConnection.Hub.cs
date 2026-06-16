@@ -3,6 +3,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Nalix.Abstractions.Networking;
 
@@ -62,4 +64,29 @@ public interface IConnectionHub : IReportable, IDisposable
     /// <returns>An enumerable collection of matching active <see cref="IConnection"/> instances.</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="networkEndpoint"/> is null.</exception>
     IReadOnlyCollection<IConnection> ListConnections(INetworkEndpoint networkEndpoint);
+
+    /// <summary>
+    /// Broadcasts a message to all active connections using a generic sender, allowing zero-allocation high-performance loops.
+    /// </summary>
+    /// <typeparam name="TState">The type of the state passed to the sender.</typeparam>
+    /// <typeparam name="TSender">The type of the sender struct implementing <see cref="IConnectionSender{TState}"/>.</typeparam>
+    /// <param name="state">The state to pass to the sender.</param>
+    /// <param name="sender">The sender struct instance.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous broadcast operation.</returns>
+    Task BroadcastAsync<TState, TSender>(TState state, TSender sender, CancellationToken cancellationToken = default)
+        where TSender : struct, IConnectionSender<TState>;
+
+    /// <summary>
+    /// Multicasts a message to a specific collection of connections using a generic sender, allowing zero-allocation high-performance loops.
+    /// </summary>
+    /// <typeparam name="TState">The type of the state passed to the sender.</typeparam>
+    /// <typeparam name="TSender">The type of the sender struct implementing <see cref="IConnectionSender{TState}"/>.</typeparam>
+    /// <param name="connections">The read-only collection of connections to receive the message.</param>
+    /// <param name="state">The state to pass to the sender.</param>
+    /// <param name="sender">The sender struct instance.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous multicast operation.</returns>
+    Task MulticastAsync<TState, TSender>(IReadOnlyCollection<IConnection> connections, TState state, TSender sender, CancellationToken cancellationToken = default)
+        where TSender : struct, IConnectionSender<TState>;
 }
