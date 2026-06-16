@@ -54,6 +54,7 @@ Nalix uses a modular configuration system. Depending on the packages you have in
 | `ConnectionQuotaOptions` | `Nalix.Network` | Per-IP concurrent connection caps and window-based rate limits. | Security |
 | `ConnectionGuardOptions` | `Nalix.Network` | Global connection ceiling, ban duration, packet rate limit, and error thresholds. | Security |
 | `TrustedProxyOptions` | `Nalix.Network` | Trusted reverse proxy / CDN definitions and customized limits. | Security |
+| `ProxyProtocolOptions` | `Nalix.Network` | PROXY Protocol v1/v2 parsing for real client IP behind load balancers. | Security |
 | `DatagramGuardOptions` | `Nalix.Network` | Bounded UDP source-window tracking. | Security / Memory |
 | `ConnectionHubOptions` | `Nalix.Network` | Hub sharding and total capacity. | Concurrency |
 | `TimingWheelOptions` | `Nalix.Network` | Idle cleanup granularity. | CPU Overhead |
