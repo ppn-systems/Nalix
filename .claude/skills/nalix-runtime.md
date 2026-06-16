@@ -70,7 +70,7 @@ Do not hold a `PacketContext` reference after the handler returns — it is retu
 3. Decorate each method: `[PacketOpcode((ushort)OpCode.VALUE)]`, `[PacketPermission(PermissionLevel.X)]`, `[PacketEncryption(true/false)]`
 4. If system/reserved opcode: also add `[ReservedOpcodePermitted]`
 5. If requires auth: `if (context.Connection.Secret.IsZero) { context.Connection.Disconnect("..."); return; }`
-6. Register: `builder.AddHandler<MyHandlers>()`
+6. Register: `builder.MapHandlers<MyHandlers>()`
 
 ### Standard Middleware (Built-in)
 Four middleware types ship with `Nalix.Runtime` and are wired via `ConfigureDispatchOptions`:

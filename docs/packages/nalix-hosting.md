@@ -55,12 +55,12 @@ The builder exposes fluent methods for configuring the server:
 - `ConfigureDispatchOptions(...)`
 - `ConfigureDispatch(...)`
 - `Configure<TOptions>(...)`
-- `AddHandler<THandler>()`
-- `AddHandler(Type controllerType)`
-- `BindTcp<TProtocol>().Bind()`
-- `BindTcp<TProtocol>().OnPort(port).Bind()`
-- `BindUdp<TProtocol>().Bind()`
-- `BindUdp<TProtocol>().WithAuthentication(authen).Bind()`
+- `MapHandlers<THandler>()`
+- `MapHandlers(Type controllerType)`
+- `ListenTcp<TProtocol>().Bind()`
+- `ListenTcp<TProtocol>().OnPort(port).Bind()`
+- `ListenUdp<TProtocol>().Bind()`
+- `ListenUdp<TProtocol>().WithAuthentication(authen).Bind()`
 
 ### `Bootstrap`
 
@@ -78,8 +78,8 @@ var app = NetworkApplication.CreateBuilder()
     {
         options.Port = 57206;
     })
-    .AddHandler<MyHandlers>()
-    .BindTcp<MyProtocol>().Bind()
+    .MapHandlers<MyHandlers>()
+    .ListenTcp<MyProtocol>().Bind()
     .Build();
 
 await app.RunAsync();

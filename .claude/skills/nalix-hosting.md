@@ -22,17 +22,17 @@ Key methods on `INetworkApplicationBuilder`:
 | `ConfigureSessionStore(ISessionStore)` | Override default session store |
 | `ConfigureSessionFactory(ISessionFactory)` | Override default session factory |
 | `ConfigureDispatchOptions(Action<PacketDispatchOptions<IPacket>>)` | Wire middleware, tune dispatch |
-| `AddHandler<THandler>()` | Register a packet controller |
+| `MapHandlers<THandler>()` | Register a packet controller |
 | `ScanHandlers<TMarker>()` | Register all handlers in the assembly containing `TMarker` |
-| `BindTcp<TProtocol>().Bind()` | Bind a TCP listener |
-| `BindUdp<TProtocol>().Bind()` | Bind a UDP listener |
-| `BindWebSocket<TProtocol>().Bind()` | Bind a WebSocket listener |
+| `ListenTcp<TProtocol>().Bind()` | Bind a TCP listener |
+| `ListenUdp<TProtocol>().Bind()` | Bind a UDP listener |
+| `ListenWebSocket<TProtocol>().Bind()` | Bind a WebSocket listener |
 | `Build()` | Produce a `NetworkApplication` |
 
 ### Startup Sequence (Fixed Order)
 1. `Configure<TOptions>()` — config loading/binding
 2. `Configure*()` calls — service wiring (logging, hub, session, pool managers, etc.)
-3. Handler registration via `AddHandler<T>()` / `ScanHandlers<T>()` — opcode-keyed, order does not matter
+3. Handler registration via `MapHandlers<T>()` / `ScanHandlers<T>()` — opcode-keyed, order does not matter
 4. Middleware wiring via `ConfigureDispatchOptions(opts => opts.WithMiddleware(...))` — **execution order = registration order**
 5. `Build()` — finalizes the builder
 6. `await host.ActivateAsync()` or `await host.RunAsync()`
@@ -61,10 +61,10 @@ Key methods on `INetworkApplicationBuilder`:
 ### Bootstrap a new server
 ```csharp
 using var host = NetworkApplication.CreateBuilder()
-    .BindTcp<MyProtocol>().Bind()
+    .ListenTcp<MyProtocol>().Bind()
     .ConfigureLogging(NLogix.Host.Instance)
     .Configure<NetworkSocketOptions>(opt => opt.Port = 8080)
-    .AddHandler<MyPacketHandler>()
+    .MapHandlers<MyPacketHandler>()
     .ScanHandlers<MyMarkerType>()           // scan all handlers in that assembly
     .ConfigureDispatchOptions(opts => {
         opts.WithMiddleware(new AuthMiddleware());       // order = execution order
@@ -77,7 +77,7 @@ await host.RunAsync();                      // ActivateAsync → wait → Deacti
 
 ### Add a custom protocol
 1. Implement `IProtocol` — use `DefaultProtocol` as reference
-2. `builder.BindTcp<MyProtocol>().Bind()` or `builder.BindUdp<MyProtocol>().Bind()`
+2. `builder.ListenTcp<MyProtocol>().Bind()` or `builder.ListenUdp<MyProtocol>().Bind()`
 3. Protocol receives the parsed packet before dispatch — inject pre-processing here if needed
 
 ### Add error/status strings

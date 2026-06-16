@@ -18,14 +18,14 @@ namespace Nalix.Network.Tests;
 
 public sealed class NetworkApplicationBuilderAotTests
 {
-    #region AddHandler registrations
+    #region MapHandlers registrations
 
     [Fact]
     public void AddHandler_Generic_RegistersHandlerDescriptor()
     {
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
 
-        builder.AddHandler<TestAotController>();
+        builder.MapHandlers<TestAotController>();
 
         HostingBuilderContext state = GetState(builder);
         state.Handlers.Should().ContainSingle(h => h.HandlerType == typeof(TestAotController));
@@ -36,7 +36,7 @@ public sealed class NetworkApplicationBuilderAotTests
     {
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
 
-        builder.AddHandler(typeof(TestAotController));
+        builder.MapHandlers(typeof(TestAotController));
 
         HostingBuilderContext state = GetState(builder);
         state.Handlers.Should().ContainSingle(h => h.HandlerType == typeof(TestAotController));
@@ -48,7 +48,7 @@ public sealed class NetworkApplicationBuilderAotTests
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
         var controller = new TestAotController();
 
-        builder.AddHandler(() => controller);
+        builder.MapHandlers(() => controller);
 
         HostingBuilderContext state = GetState(builder);
         state.Handlers.Should().ContainSingle(h => h.HandlerType == typeof(TestAotController));
@@ -59,8 +59,8 @@ public sealed class NetworkApplicationBuilderAotTests
     {
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
 
-        builder.AddHandler<TestAotController>();
-        builder.AddHandler(typeof(TestAotController));
+        builder.MapHandlers<TestAotController>();
+        builder.MapHandlers(typeof(TestAotController));
 
         HostingBuilderContext state = GetState(builder);
         state.Handlers.Should().HaveCount(2);
@@ -71,12 +71,28 @@ public sealed class NetworkApplicationBuilderAotTests
 
     #region CreateProtocol generic instantiation
 
+    private static IProtocol InvokeCreateProtocol<TProtocol>(IPacketDispatch dispatch) where TProtocol : class, IProtocol
+    {
+        MethodInfo method = typeof(NetworkApplicationBuilder)
+            .GetMethod("CreateProtocol", BindingFlags.Static | BindingFlags.NonPublic)!
+            .MakeGenericMethod(typeof(TProtocol));
+        try
+        {
+            return (IProtocol)method.Invoke(null, [dispatch])!;
+        }
+        catch (TargetInvocationException ex) when (ex.InnerException is not null)
+        {
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+            throw; // Unreachable
+        }
+    }
+
     [Fact]
     public void CreateProtocol_WithDispatchConstructor_PassesDispatch()
     {
         var mockDispatch = new StubPacketDispatch();
 
-        IProtocol protocol = NetworkApplicationBuilder.CreateProtocol<TestProtocolWithDispatch>(mockDispatch);
+        IProtocol protocol = InvokeCreateProtocol<TestProtocolWithDispatch>(mockDispatch);
 
         protocol.Should().NotBeNull();
         protocol.Should().BeOfType<TestProtocolWithDispatch>();
@@ -88,7 +104,7 @@ public sealed class NetworkApplicationBuilderAotTests
     {
         var mockDispatch = new StubPacketDispatch();
 
-        IProtocol protocol = NetworkApplicationBuilder.CreateProtocol<TestProtocolNoDispatch>(mockDispatch);
+        IProtocol protocol = InvokeCreateProtocol<TestProtocolNoDispatch>(mockDispatch);
 
         protocol.Should().NotBeNull();
         protocol.Should().BeOfType<TestProtocolNoDispatch>();
@@ -99,7 +115,7 @@ public sealed class NetworkApplicationBuilderAotTests
     public void CreateProtocol_NullDispatch_ThrowsArgumentNullException()
     {
         Assert.Throws<ArgumentNullException>(() =>
-            NetworkApplicationBuilder.CreateProtocol<TestProtocolWithDispatch>(null!));
+            InvokeCreateProtocol<TestProtocolWithDispatch>(null!));
     }
 
     #endregion
@@ -110,7 +126,7 @@ public sealed class NetworkApplicationBuilderAotTests
     public void ResolveHandlerRegistrations_ReturnsOnlyExplicitHandlers()
     {
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
-        builder.AddHandler<TestAotController>();
+        builder.MapHandlers<TestAotController>();
 
         HostingBuilderContext state = GetState(builder);
         IEnumerable<HandlerDescriptor> handlers = InvokeResolveHandlerRegistrations(state);

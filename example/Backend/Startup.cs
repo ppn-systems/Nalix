@@ -312,15 +312,15 @@ internal class Startup
                 _ = o.WithDispatchLoopCount(8);
                 _ = o.WithErrorHandling((ex, cmd) => logger.LogError(ex, "Dispatch error: {Cmd}", cmd));
             })
-            .BindTcp<DefaultProtocol>()
+            .ListenTcp<DefaultProtocol>()
                 .OnPort(ListenPort)
                 .Bind()
 
-            .BindUdp<DefaultProtocol>()
+            .ListenUdp<DefaultProtocol>()
                 .OnPort(ListenPort)
                 .Bind()
 
-            .BindWebSocket<DefaultProtocol>()
+            .ListenWebSocket<DefaultProtocol>()
                 .OnPort(ListenPort + 1)
                 .WithPath("/ws/")
                 .Bind()

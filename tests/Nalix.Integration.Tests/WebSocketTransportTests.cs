@@ -166,7 +166,7 @@ public class WebSocketTransportTests : IDisposable
         builder.UseSecureConnections();
         
         // Bind WebSocket using the fluent API
-        builder.BindWebSocket<IntegrationTestProtocol>()
+        builder.ListenWebSocket<IntegrationTestProtocol>()
                .OnPort(port)
                .WithPath("/ws/")
                .WithFactory(dispatch => new IntegrationTestProtocol());
@@ -253,7 +253,7 @@ public class WebSocketTransportTests : IDisposable
         builder.ConfigureCertificate(_certificatePath);
         builder.UseSecureConnections();
         var protocol = new IntegrationTestProtocol();
-        builder.BindWebSocket<IntegrationTestProtocol>()
+        builder.ListenWebSocket<IntegrationTestProtocol>()
                .OnPort(port)
                .WithPath("/ws/")
                .WithFactory(_ => protocol);
@@ -334,7 +334,7 @@ public class WebSocketTransportTests : IDisposable
         var builder = NetworkApplication.CreateBuilder();
         builder.ConfigureCertificate(_certificatePath);
         builder.UseSecureConnections();
-        builder.BindWebSocket<IntegrationTestProtocol>()
+        builder.ListenWebSocket<IntegrationTestProtocol>()
                .OnPort(port)
                .WithPath("/ws/")
                .WithFactory(_ => new IntegrationTestProtocol());

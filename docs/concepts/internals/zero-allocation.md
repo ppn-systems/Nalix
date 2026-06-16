@@ -241,7 +241,7 @@ using System;
 using Nalix.Hosting;
 
 var app = NetworkApplication.CreateBuilder()
-    .AddHandler<GameHandlers>() // Registers handler for source-generated dispatch
+    .MapHandlers<GameHandlers>() // Registers handler for source-generated dispatch
     .ConfigureDispatchOptions(options => {
         // Scale dispatch loops to the current machine's logical CPU count
         options.WithDispatchLoopCount(Environment.ProcessorCount);

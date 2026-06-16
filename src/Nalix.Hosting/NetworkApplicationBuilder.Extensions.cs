@@ -40,9 +40,9 @@ public static class NetworkApplicationBuilderExtensions
             );
         }
 
-        _ = builder.AddHandler(typeof(HandshakeHandlers));
-        _ = builder.AddHandler(typeof(ProofOfWorkHandlers));
-        _ = builder.AddHandler(typeof(SessionRekeyHandlers));
+        _ = builder.MapHandlers(typeof(HandshakeHandlers));
+        _ = builder.MapHandlers(typeof(ProofOfWorkHandlers));
+        _ = builder.MapHandlers(typeof(SessionRekeyHandlers));
 
         // Resolve certificate path: explicit parameter wins,
         // then ConfigureCertificate() state, then default.
@@ -78,7 +78,7 @@ public static class NetworkApplicationBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        _ = builder.AddHandler(typeof(SessionHandlers));
+        _ = builder.MapHandlers(typeof(SessionHandlers));
 
         ServiceRegistrar.RegisterSessions();
 
@@ -94,7 +94,7 @@ public static class NetworkApplicationBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        _ = builder.AddHandler(typeof(SystemControlHandlers));
+        _ = builder.MapHandlers(typeof(SystemControlHandlers));
 
         return builder;
     }
@@ -108,7 +108,7 @@ public static class NetworkApplicationBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        _ = builder.AddHandler(typeof(SystemTimeSyncHandlers));
+        _ = builder.MapHandlers(typeof(SystemTimeSyncHandlers));
 
         return builder;
     }

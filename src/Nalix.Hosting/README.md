@@ -8,7 +8,7 @@
 
 - **Fluent & Intuitive Builder API**
 - **`DefaultProtocol`** – Zero-boilerplate solution that forwards all packets to the dispatch pipeline
-- **Explicit Handler Registration** via `AddHandler<T>()` (AOT-safe, no assembly scanning)
+- **Explicit Handler Registration** via `MapHandlers<T>()` (AOT-safe, no assembly scanning)
 - **Full TCP + UDP Support** – Bind multiple listeners easily
 - **Deep Integration** with `Microsoft.Extensions.Logging`, `InstanceManager`, and Configuration system
 - **Robust Lifecycle Management** – `ActivateAsync` / `DeactivateAsync` / `RunAsync` with graceful shutdown
@@ -28,10 +28,10 @@ Using DefaultProtocol (Recommended for most cases).
 using Nalix.Hosting;
 
 using var app = NetworkApplication.CreateBuilder()
-    .BindTcp<DefaultProtocol>()
+    .ListenTcp<DefaultProtocol>()
         .OnPort(8080)
         .Bind()
-    .AddHandler<MyPacketController>()  // Register handlers explicitly (AOT-safe)
+    .MapHandlers<MyPacketController>()  // Register handlers explicitly (AOT-safe)
     .Build();
 
 await app.RunAsync();
@@ -51,7 +51,7 @@ using Nalix.Framework.Injection;
 var builder = NetworkApplication.CreateBuilder();
 
 // 1. Bind TCP listeners and assign ports
-builder.BindTcp<DefaultProtocol>()
+builder.ListenTcp<DefaultProtocol>()
     .OnPort(57200)
     .Bind();
 
@@ -67,7 +67,7 @@ builder.Configure<NetworkSocketOptions>(options =>
 InstanceManager.Instance.Register<IMyDatabase>(new MyDatabase());
 
 // 4. Register custom PacketController handlers explicitly (AOT-safe)
-builder.AddHandler<MyPacketController>();
+builder.MapHandlers<MyPacketController>();
 
 // Build and run the server application host
 using var host = builder.Build();

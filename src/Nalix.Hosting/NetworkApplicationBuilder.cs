@@ -188,8 +188,10 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
     #endregion Configuration Methods
 
+    #region APIs
+
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddHandler<
+    public INetworkApplicationBuilder MapHandlers<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods)] THandler>()
         where THandler : class
     {
@@ -203,7 +205,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddHandler<
+    public INetworkApplicationBuilder MapHandlers<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] THandler>(Func<THandler> factory) where THandler : class
     {
         ArgumentNullException.ThrowIfNull(factory);
@@ -216,7 +218,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddHandler(
+    public INetworkApplicationBuilder MapHandlers(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods)] Type controllerType)
     {
         ArgumentNullException.ThrowIfNull(controllerType);
@@ -230,7 +232,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
     /// <inheritdoc />
     /// <inheritdoc />
-    public IProtocolBindingBuilder BindTcp<
+    public IProtocolBindingBuilder ListenTcp<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol
     {
@@ -248,7 +250,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public IProtocolBindingBuilder BindUdp<
+    public IProtocolBindingBuilder ListenUdp<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol
     {
@@ -267,7 +269,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public IWebSocketBindingBuilder BindWebSocket<
+    public IWebSocketBindingBuilder ListenWebSocket<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol
     {
@@ -413,6 +415,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         }
     }
 
+    #endregion APIs
+
     #region Factory Methods
 
     /// <summary>
@@ -423,7 +427,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     /// <typeparam name="TProtocol">The protocol type to instantiate.</typeparam>
     /// <param name="dispatch">The packet dispatch instance to inject if the protocol supports it.</param>
     /// <returns>A new protocol instance.</returns>
-    internal static IProtocol CreateProtocol<
+    private static IProtocol CreateProtocol<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>(
         IPacketDispatch dispatch)
         where TProtocol : class, IProtocol
@@ -451,7 +455,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2072",
         Justification = "HandlerDescriptor.HandlerType carries DynamicallyAccessedMembers(PublicMethods) on its record parameter. " +
             "The trimmer cannot always propagate DAM through record property getters.")]
-    internal static IPacketDispatch CreatePacketDispatch(HostingBuilderContext state)
+    private static IPacketDispatch CreatePacketDispatch(HostingBuilderContext state)
     {
         ArgumentNullException.ThrowIfNull(state);
 
@@ -480,7 +484,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     // AOT-safe: assembly scanning (Assembly.GetTypes) has been removed.
-    // Handlers are registered explicitly via AddHandler<T>() / AddHandler(Type)
+    // Handlers are registered explicitly via MapHandlers<T>() / MapHandlers(Type)
     // or discovered at compile time via source-generated PacketHandlerRegistry.
     private static IEnumerable<HandlerDescriptor> ResolveHandlerRegistrations(HostingBuilderContext state) => state.Handlers;
 
@@ -492,5 +496,5 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         }
     }
 
-    #endregion
+    #endregion Factory Methods
 }

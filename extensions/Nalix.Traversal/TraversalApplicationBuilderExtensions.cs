@@ -38,7 +38,7 @@ public static class TraversalApplicationBuilderExtensions
         });
 
         // Bind UdpPassthroughListener for Reflector using the native builder API
-        _ = builder.BindUdp<ReflectorProtocol>()
+        _ = builder.ListenUdp<ReflectorProtocol>()
                    .WithMode(Abstractions.Networking.OperatingMode.Passthrough)
                    .WithFactory(_ => new ReflectorProtocol(manager))
                    .OnPort(ConfigurationManager.Instance.Get<ReflectorOptions>().Port)

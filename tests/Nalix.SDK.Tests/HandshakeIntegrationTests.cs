@@ -31,7 +31,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
     {
         int port = TestUtils.GetFreePort();
         var builder = NetworkApplication.CreateBuilder();
-        builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
+        builder.ListenTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         builder.UseSecureConnections();
         builder.UseSystemControl();
 
@@ -76,7 +76,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
         });
         TrackingSessionStore store = new();
         builder.ConfigureSessionStore(store);
-        builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
+        builder.ListenTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         builder.UseSecureConnections();
         builder.UseSystemControl();
         builder.UseSessions();
@@ -148,7 +148,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
     {
         int port = TestUtils.GetFreePort();
         var builder = NetworkApplication.CreateBuilder();
-        builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
+        builder.ListenTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         builder.UseSecureConnections();
         builder.UseSystemControl();
 

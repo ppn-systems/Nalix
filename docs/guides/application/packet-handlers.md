@@ -141,8 +141,8 @@ using Nalix.Abstractions.Networking.Packets;
 
 var app = NetworkApplication.CreateBuilder()
     // 1. Register Handlers
-    .AddHandler<GameHandlers>()   // Explicit registration
-    .AddHandler<ChatHandlers>()   // Another explicit registration
+    .MapHandlers<GameHandlers>()   // Explicit registration
+    .MapHandlers<ChatHandlers>()   // Another explicit registration
 
     // 2. Register Middleware
     .ConfigureDispatchOptions(options =>

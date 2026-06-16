@@ -1303,7 +1303,7 @@ public static class Setup
         var builder = new NetworkApplicationBuilder();
         builder.ConfigureBufferPoolManager(new BufferPoolManager());
         builder.ConfigureConnectionHub(new ConnectionHub());
-        builder.BindTcp<DefaultProtocol>();
+        builder.ListenTcp<DefaultProtocol>();
         _ = builder.Build();
     }
 }
@@ -1330,7 +1330,7 @@ public static class Setup
         _ = new NetworkApplicationBuilder()
             .ConfigureBufferPoolManager(new BufferPoolManager())
             .ConfigureConnectionHub(new ConnectionHub())
-            .BindTcp<DefaultProtocol>()
+            .ListenTcp<DefaultProtocol>()
             .Bind()
             .Build();
     }
@@ -1354,7 +1354,7 @@ public static class Setup
     public static void Configure()
     {
         _ = new NetworkApplicationBuilder()
-            .BindUdp<DummyProtocol>().OnPort(9000).Bind()
+            .ListenUdp<DummyProtocol>().OnPort(9000).Bind()
             .Build();
     }
 }
@@ -1376,7 +1376,7 @@ public static class Setup
 {
     public static void Configure()
     {
-        _ = new NetworkApplicationBuilder().AddHandler<IHandler>();
+        _ = new NetworkApplicationBuilder().MapHandlers<IHandler>();
     }
 }
 """;

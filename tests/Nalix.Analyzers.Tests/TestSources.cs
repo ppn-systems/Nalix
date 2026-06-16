@@ -249,9 +249,9 @@ namespace Nalix.Hosting
     {
         public NetworkApplicationBuilder ConfigureBufferPoolManager(object? manager = null) => this;
         public NetworkApplicationBuilder ConfigureConnectionHub(object? hub = null) => this;
-        public IProtocolBindingBuilder BindTcp<T>() => new StubBindingBuilder(this);
-        public IProtocolBindingBuilder BindUdp<T>() => new StubBindingBuilder(this);
-        public NetworkApplicationBuilder AddHandler<THandler>() => this;
+        public IProtocolBindingBuilder ListenTcp<T>() => new StubBindingBuilder(this);
+        public IProtocolBindingBuilder ListenUdp<T>() => new StubBindingBuilder(this);
+        public NetworkApplicationBuilder MapHandlers<THandler>() => this;
         public NetworkApplicationBuilder AddMetadataProvider<TProvider>() => this;
         public object Build() => new();
 

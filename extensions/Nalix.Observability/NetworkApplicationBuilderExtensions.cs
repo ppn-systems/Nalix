@@ -19,8 +19,8 @@ public static class ObservabilityNetworkApplicationBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        _ = builder.AddHandler<ObservabilityAccessHandlers>();
-        _ = builder.AddHandler<RuntimeObservationHandlers>();
+        _ = builder.MapHandlers<ObservabilityAccessHandlers>();
+        _ = builder.MapHandlers<RuntimeObservationHandlers>();
 
         return builder;
     }

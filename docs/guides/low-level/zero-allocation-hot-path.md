@@ -83,7 +83,7 @@ using Nalix.Hosting;
 
 var app = NetworkApplication.CreateBuilder()
     // 1. Register Handlers (invokers generated at build time by PacketHandlerGenerator)
-    .AddHandler<GameController>()
+    .MapHandlers<GameController>()
 
     .Build(); // Lookups are frozen at startup
 ```

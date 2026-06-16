@@ -70,9 +70,9 @@ public sealed class NetworkApplicationIntegrationTests
         builder.UseSecureConnections(certPath);
 
         // Listen on loopback with our test protocol
-        builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
+        builder.ListenTcp<IntegrationTestProtocol>().OnPort((ushort)port);
 
-        builder.AddHandler<IntegrationTestController>();
+        builder.MapHandlers<IntegrationTestController>();
 
         using NetworkApplication app = builder.Build();
 

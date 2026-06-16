@@ -71,7 +71,7 @@ using NetworkApplication app = NetworkApplication.CreateBuilder()
     {
         _ = options.WithMiddleware(new SessionAuthorizationMiddleware());
     })
-    .BindTcp<MyProtocol>().Bind()
+    .ListenTcp<MyProtocol>().Bind()
     .Build();
 ```
 

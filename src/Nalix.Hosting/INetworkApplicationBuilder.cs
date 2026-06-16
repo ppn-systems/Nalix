@@ -110,7 +110,7 @@ public interface INetworkApplicationBuilder
     /// </summary>
     /// <typeparam name="THandler">The packet controller type to register.</typeparam>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddHandler<
+    INetworkApplicationBuilder MapHandlers<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods)] THandler>()
         where THandler : class;
 
@@ -120,14 +120,14 @@ public interface INetworkApplicationBuilder
     /// <typeparam name="THandler">The packet controller type to register.</typeparam>
     /// <param name="factory">The factory used to create controller instances.</param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] THandler>(Func<THandler> factory) where THandler : class;
+    INetworkApplicationBuilder MapHandlers<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] THandler>(Func<THandler> factory) where THandler : class;
 
     /// <summary>
     /// Adds a packet controller type directly (primarily for static classes).
     /// </summary>
     /// <param name="controllerType">The type of the controller to register.</param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddHandler(
+    INetworkApplicationBuilder MapHandlers(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods)] Type controllerType);
 
 
@@ -137,7 +137,7 @@ public interface INetworkApplicationBuilder
     /// </summary>
     /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
     /// <returns>A fluent builder to configure the binding.</returns>
-    IProtocolBindingBuilder BindTcp<
+    IProtocolBindingBuilder ListenTcp<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol;
 
@@ -146,7 +146,7 @@ public interface INetworkApplicationBuilder
     /// </summary>
     /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
     /// <returns>A fluent builder to configure the binding.</returns>
-    IProtocolBindingBuilder BindUdp<
+    IProtocolBindingBuilder ListenUdp<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol;
 
@@ -155,7 +155,7 @@ public interface INetworkApplicationBuilder
     /// </summary>
     /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
     /// <returns>A fluent builder to configure the WebSocket binding.</returns>
-    IWebSocketBindingBuilder BindWebSocket<
+    IWebSocketBindingBuilder ListenWebSocket<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol;
 }
