@@ -313,10 +313,10 @@ public sealed partial class NalixUsageAnalyzer
             return;
         }
 
-        bool hasConnectionHub = ContainsInvocation(invocation.Instance, "ConfigureConnectionHub");
-        bool hasBufferPoolManager = ContainsInvocation(invocation.Instance, "ConfigureBufferPoolManager");
-        bool hasTcpBinding = ContainsInvocation(invocation.Instance, "BindTcp");
-        bool hasUdpBinding = ContainsInvocation(invocation.Instance, "BindUdp");
+        bool hasConnectionHub = ContainsInvocation(invocation.Instance, "UseConnectionHub");
+        bool hasBufferPoolManager = ContainsInvocation(invocation.Instance, "UseBufferPoolManager");
+        bool hasTcpBinding = ContainsInvocation(invocation.Instance, "ListenTcp");
+        bool hasUdpBinding = ContainsInvocation(invocation.Instance, "ListenUdp");
 
         if (!hasBufferPoolManager)
         {

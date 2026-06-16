@@ -1301,8 +1301,8 @@ public static class Setup
     public static void Configure()
     {
         var builder = new NetworkApplicationBuilder();
-        builder.ConfigureBufferPoolManager(new BufferPoolManager());
-        builder.ConfigureConnectionHub(new ConnectionHub());
+        builder.UseBufferPoolManager(new BufferPoolManager());
+        builder.UseConnectionHub(new ConnectionHub());
         builder.ListenTcp<DefaultProtocol>();
         _ = builder.Build();
     }
@@ -1328,8 +1328,8 @@ public static class Setup
     public static void Configure()
     {
         _ = new NetworkApplicationBuilder()
-            .ConfigureBufferPoolManager(new BufferPoolManager())
-            .ConfigureConnectionHub(new ConnectionHub())
+            .UseBufferPoolManager(new BufferPoolManager())
+            .UseConnectionHub(new ConnectionHub())
             .ListenTcp<DefaultProtocol>()
             .Bind()
             .Build();

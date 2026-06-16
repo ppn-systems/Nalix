@@ -36,62 +36,6 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder Configure<TOptions>(Action<TOptions> configure) where TOptions : ConfigurationLoader, new();
 
     /// <summary>
-    /// Sets the logger instance used by the hosted Nalix runtime.
-    /// </summary>
-    /// <param name="logger">The logger to register into the Nalix runtime.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureLogging(ILogger logger);
-
-    /// <summary>
-    /// Sets the <see cref="IConnectionHub"/> instance used by the hosted Nalix runtime.
-    /// </summary>
-    /// <param name="connectionHub">The connection hub to register into the Nalix runtime.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureConnectionHub(IConnectionHub connectionHub);
-
-    /// <summary>
-    /// Sets the <see cref="ISessionService"/> instance used by the hosted Nalix runtime.
-    /// </summary>
-    /// <param name="sessionService">The session service to register.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureSessionService(ISessionService sessionService);
-
-    /// <summary>
-    /// Sets the <see cref="ISessionStore"/> instance used by the default session service.
-    /// </summary>
-    /// <param name="sessionStore">The session store to register.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureSessionStore(ISessionStore sessionStore);
-
-    /// <summary>
-    /// Sets the <see cref="ISessionFactory"/> instance used by the default session service.
-    /// </summary>
-    /// <param name="sessionFactory">The session factory to register.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureSessionFactory(ISessionFactory sessionFactory);
-
-    /// <summary>
-    /// Explicitly registers a <see cref="IBufferPoolManager"/> instance to be used by the application.
-    /// </summary>
-    /// <param name="manager">The manager instance to use.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureBufferPoolManager(IBufferPoolManager manager);
-
-    /// <summary>
-    /// Explicitly registers a <see cref="ObjectPoolManager"/> instance to be used by the application.
-    /// </summary>
-    /// <param name="manager">The manager instance to use.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureObjectPoolManager(IObjectPoolManager manager);
-
-    /// <summary>
-    /// Configures the server identity certificate path.
-    /// </summary>
-    /// <param name="certificatePath">The absolute path to the certificate file.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureCertificate(string certificatePath);
-
-    /// <summary>
     /// Configures the options for the packet dispatcher.
     /// </summary>
     /// <param name="configure">The callback used to configure dispatcher options.</param>
@@ -104,6 +48,35 @@ public interface INetworkApplicationBuilder
     /// <param name="factory">A factory delegate that receives the compiled dispatch options configuration and returns an <see cref="IPacketDispatch"/>.</param>
     /// <returns>The current builder instance.</returns>
     INetworkApplicationBuilder ConfigureDispatch(Func<Action<PacketDispatchOptions<IPacket>>, IPacketDispatch> factory);
+
+    /// <summary>
+    /// Sets the logger instance used by the hosted Nalix runtime.
+    /// </summary>
+    /// <param name="logger">The logger to register into the Nalix runtime.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder UseLogger(ILogger logger);
+
+    /// <summary>
+    /// Sets the <see cref="IConnectionHub"/> instance used by the hosted Nalix runtime.
+    /// </summary>
+    /// <param name="connectionHub">The connection hub to register into the Nalix runtime.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder UseConnectionHub(IConnectionHub connectionHub);
+
+
+    /// <summary>
+    /// Explicitly registers a <see cref="IBufferPoolManager"/> instance to be used by the application.
+    /// </summary>
+    /// <param name="manager">The manager instance to use.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder UseBufferPoolManager(IBufferPoolManager manager);
+
+    /// <summary>
+    /// Explicitly registers a <see cref="ObjectPoolManager"/> instance to be used by the application.
+    /// </summary>
+    /// <param name="manager">The manager instance to use.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder UseObjectPoolManager(IObjectPoolManager manager);
 
     /// <summary>
     /// Adds a packet controller type using the default Nalix activator.
@@ -129,8 +102,6 @@ public interface INetworkApplicationBuilder
     /// <returns>The current builder instance.</returns>
     INetworkApplicationBuilder MapHandlers(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods)] Type controllerType);
-
-
 
     /// <summary>
     /// Binds a TCP protocol using a fluent builder for port and factory configuration.

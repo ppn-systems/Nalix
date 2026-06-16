@@ -25,8 +25,7 @@ public static class NetworkApplicationBuilderExtensions
     /// <param name="certificatePath">
     /// Optional explicit path to the server certificate file.
     /// When <see langword="null"/>, falls back to the path configured via
-    /// <see cref="INetworkApplicationBuilder.ConfigureCertificate"/> or the
-    /// default certificate location.
+    /// /// default certificate location.
     /// </param>
     /// <returns>The current builder instance.</returns>
     public static INetworkApplicationBuilder UseSecureConnections(this INetworkApplicationBuilder builder, string? certificatePath = null)
@@ -44,18 +43,9 @@ public static class NetworkApplicationBuilderExtensions
         _ = builder.MapHandlers(typeof(ProofOfWorkHandlers));
         _ = builder.MapHandlers(typeof(SessionRekeyHandlers));
 
-        // Resolve certificate path: explicit parameter wins,
-        // then ConfigureCertificate() state, then default.
-        string? resolvedPath = certificatePath;
-
-        if (resolvedPath is null && builder is NetworkApplicationBuilder concrete)
+        if (certificatePath is not null)
         {
-            resolvedPath = concrete._state.IdentityCertificatePath;
-        }
-
-        if (resolvedPath is not null)
-        {
-            HandshakeHandlers.SetCertificatePath(resolvedPath);
+            HandshakeHandlers.SetCertificatePath(certificatePath);
         }
         else
         {

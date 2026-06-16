@@ -63,20 +63,15 @@ internal sealed class HostingBuilderContext
     public ILogger Logger { get; set; } = NullLogger.Instance;
 
     /// <summary>
-    /// Gets or sets the optional path to the server identity certificate.
-    /// </summary>
-    public string? IdentityCertificatePath { get; set; }
-
-    /// <summary>
     /// Indicates whether the user has explicitly configured a custom
-    /// <see cref="IConnectionHub"/> via <c>ConfigureConnectionHub</c>.
+    /// <see cref="IConnectionHub"/> via <c>UseConnectionHub</c>.
     /// When <c>true</c>, the host will not create a default hub.
     /// </summary>
     public bool HasCustomConnectionHub { get; set; }
 
     /// <summary>
     /// Indicates whether the user has explicitly configured a custom
-    /// <see cref="Nalix.Framework.Memory.Buffers.BufferPoolManager"/> via <c>ConfigureBufferPoolManager</c>.
+    /// <see cref="Nalix.Framework.Memory.Buffers.BufferPoolManager"/> via <c>UseBufferPoolManager</c>.
     /// When <c>true</c>, the host will not create a default manager.
     /// </summary>
     public bool HasCustomBufferPoolManager { get; set; }

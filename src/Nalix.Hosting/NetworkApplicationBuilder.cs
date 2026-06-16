@@ -68,7 +68,24 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureLogging(ILogger logger)
+    public INetworkApplicationBuilder ConfigureDispatchOptions(Action<PacketDispatchOptions<IPacket>> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        _state.PacketDispatchOptionsConfigurators.Add(configure);
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder ConfigureDispatch(Func<Action<PacketDispatchOptions<IPacket>>, IPacketDispatch> factory)
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+        _state.CustomDispatchFactory = factory;
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder UseLogger(ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(logger);
 
@@ -81,8 +98,12 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         return this;
     }
 
+    #endregion Configuration Methods
+
+    #region APIs Using Registered Services
+
     /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureConnectionHub(IConnectionHub connectionHub)
+    public INetworkApplicationBuilder UseConnectionHub(IConnectionHub connectionHub)
     {
         ArgumentNullException.ThrowIfNull(connectionHub);
 
@@ -98,7 +119,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureSessionService(ISessionService sessionService)
+    public INetworkApplicationBuilder UseSessionService(ISessionService sessionService)
     {
         ArgumentNullException.ThrowIfNull(sessionService);
         InstanceManager.Instance.Register<ISessionService>(sessionService);
@@ -106,7 +127,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureSessionStore(ISessionStore sessionStore)
+    public INetworkApplicationBuilder UseSessionStore(ISessionStore sessionStore)
     {
         ArgumentNullException.ThrowIfNull(sessionStore);
         InstanceManager.Instance.Register<ISessionStore>(sessionStore);
@@ -114,7 +135,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureSessionFactory(ISessionFactory sessionFactory)
+    public INetworkApplicationBuilder UseSessionFactory(ISessionFactory sessionFactory)
     {
         ArgumentNullException.ThrowIfNull(sessionFactory);
         InstanceManager.Instance.Register<ISessionFactory>(sessionFactory);
@@ -123,7 +144,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureBufferPoolManager(IBufferPoolManager manager)
+    public INetworkApplicationBuilder UseBufferPoolManager(IBufferPoolManager manager)
     {
         ArgumentNullException.ThrowIfNull(manager);
 
@@ -145,7 +166,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     /// </summary>
     /// <param name="manager">The manager instance to use.</param>
     /// <returns>The current builder instance.</returns>
-    public INetworkApplicationBuilder ConfigureObjectPoolManager(IObjectPoolManager manager)
+    public INetworkApplicationBuilder UseObjectPoolManager(IObjectPoolManager manager)
     {
         ArgumentNullException.ThrowIfNull(manager);
         InstanceManager.Instance.Register<IObjectPoolManager>(manager);
@@ -161,32 +182,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         return this;
     }
 
-    /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureCertificate(string certificatePath)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(certificatePath);
-        _state.IdentityCertificatePath = certificatePath;
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureDispatchOptions(Action<PacketDispatchOptions<IPacket>> configure)
-    {
-        ArgumentNullException.ThrowIfNull(configure);
-
-        _state.PacketDispatchOptionsConfigurators.Add(configure);
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureDispatch(Func<Action<PacketDispatchOptions<IPacket>>, IPacketDispatch> factory)
-    {
-        ArgumentNullException.ThrowIfNull(factory);
-        _state.CustomDispatchFactory = factory;
-        return this;
-    }
-
-    #endregion Configuration Methods
+    #endregion APIs Using Registered Services
 
     #region APIs
 
@@ -306,7 +302,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             serverFactories.Add(dispatch =>
             {
                 IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()
-                    ?? throw new InvalidOperationException("IConnectionHub is not registered. Call ConfigureConnectionHub or ensure Build() is invoked.");
+                    ?? throw new InvalidOperationException("IConnectionHub is not registered. Call UseConnectionHub or ensure Build() is invoked.");
 
                 IProtocol protocol = registration.Factory(dispatch);
 
@@ -332,7 +328,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             serverFactories.Add(dispatch =>
             {
                 IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()
-                    ?? throw new InvalidOperationException("IConnectionHub is not registered. Call ConfigureConnectionHub or ensure Build() is invoked.");
+                    ?? throw new InvalidOperationException("IConnectionHub is not registered. Call UseConnectionHub or ensure Build() is invoked.");
                 IProtocol protocol = registration.Factory(dispatch);
 
                 ushort? port = registration.Port;
@@ -382,7 +378,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             serverFactories.Add(dispatch =>
             {
                 IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()
-                    ?? throw new InvalidOperationException("IConnectionHub is not registered. Call ConfigureConnectionHub or ensure Build() is invoked.");
+                    ?? throw new InvalidOperationException("IConnectionHub is not registered. Call UseConnectionHub or ensure Build() is invoked.");
                 IProtocol protocol = registration.Factory(dispatch);
 
                 ushort? port = registration.Port;

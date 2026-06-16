@@ -41,10 +41,10 @@ internal class Startup
             .UseObservability()
             .UseSystemControl()
             .UseSecureConnections()
-            .ConfigureLogging(logger)
-            .ConfigureConnectionHub(hub)
-            .ConfigureBufferPoolManager(bufferPool)
-            .ConfigureObjectPoolManager(objectPool)
+            .UseLogger(logger)
+            .UseConnectionHub(hub)
+            .UseBufferPoolManager(bufferPool)
+            .UseObjectPoolManager(objectPool)
             .Configure<BufferOptions>(o =>
             {
                 o.TotalBuffers = 20_000;

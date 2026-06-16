@@ -352,7 +352,7 @@ internal static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor NetworkHostingMissingBufferPoolManager = new(
         id: "NALIX040",
         title: "NetworkApplicationBuilder should configure BufferPoolManager",
-        messageFormat: "NetworkApplicationBuilder.Build() is called without ConfigureBufferPoolManager(...); configuring a BufferPoolManager can improve network allocation performance",
+        messageFormat: "NetworkApplicationBuilder.Build() is called without UseBufferPoolManager(...); configuring a BufferPoolManager can improve network allocation performance",
         category: "Performance",
         defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true,
@@ -361,7 +361,7 @@ internal static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor NetworkHostingMissingConnectionHub = new(
         id: "NALIX041",
         title: "NetworkApplicationBuilder should configure ConnectionHub",
-        messageFormat: "NetworkApplicationBuilder.Build() is called without ConfigureConnectionHub(...); configuring a ConnectionHub makes host wiring explicit",
+        messageFormat: "NetworkApplicationBuilder.Build() is called without UseConnectionHub(...); configuring a ConnectionHub makes host wiring explicit",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true,
@@ -388,7 +388,7 @@ internal static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor NetworkHostingMissingTcpBinding = new(
         id: "NALIX044",
         title: "NetworkApplicationBuilder should configure a TCP binding",
-        messageFormat: "NetworkApplicationBuilder.Build() is called without BindTcp(...); a host without TCP bindings may be incomplete",
+        messageFormat: "NetworkApplicationBuilder.Build() is called without ListenTcp(...); a host without TCP bindings may be incomplete",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true,
@@ -397,7 +397,7 @@ internal static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor NetworkHostingUdpWithoutTcpBinding = new(
         id: "NALIX045",
         title: "NetworkApplicationBuilder should configure TCP before UDP",
-        messageFormat: "NetworkApplicationBuilder.Build() configures UDP bindings without any BindTcp(...); UDP bindings are expected to run alongside TCP in this host setup",
+        messageFormat: "NetworkApplicationBuilder.Build() configures UDP bindings without any ListenTcp(...); UDP bindings are expected to run alongside TCP in this host setup",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true,

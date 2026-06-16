@@ -75,7 +75,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
             opt.MinAttributesForPersistence = 0;
         });
         TrackingSessionStore store = new();
-        builder.ConfigureSessionStore(store);
+        builder.UseSessionStore(store);
         builder.ListenTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         builder.UseSecureConnections();
         builder.UseSystemControl();

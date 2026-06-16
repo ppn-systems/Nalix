@@ -72,8 +72,7 @@ public sealed class RuntimeObservationWebSocketIntegrationTests : IDisposable
 
         var builder = NetworkApplication.CreateBuilder();
 
-        builder.ConfigureCertificate(_certificatePath);
-        builder.UseSecureConnections();
+        builder.UseSecureConnections(_certificatePath);
         builder.UseSystemControl();
         builder.UseTimeSync();
         builder.UseSessions();

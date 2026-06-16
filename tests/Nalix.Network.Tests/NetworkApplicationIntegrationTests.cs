@@ -66,7 +66,7 @@ public sealed class NetworkApplicationIntegrationTests
             .Build();
 
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
-        builder.ConfigureLogging(logger);
+        builder.UseLogger(logger);
         builder.UseSecureConnections(certPath);
 
         // Listen on loopback with our test protocol
