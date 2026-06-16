@@ -58,7 +58,7 @@ public sealed class DefaultProtocol : Protocol
     }
 
     /// <inheritdoc />
-    public override void ProcessMessage(object? sender, IConnectEventArgs args)
+    public override void ProcessMessage(object? sender, IConnectionEventArgs args)
     {
         ArgumentNullException.ThrowIfNull(args);
 

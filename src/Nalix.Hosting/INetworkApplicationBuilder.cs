@@ -63,7 +63,6 @@ public interface INetworkApplicationBuilder
     /// <returns>The current builder instance.</returns>
     INetworkApplicationBuilder UseConnectionHub(IConnectionHub connectionHub);
 
-
     /// <summary>
     /// Explicitly registers a <see cref="IBufferPoolManager"/> instance to be used by the application.
     /// </summary>

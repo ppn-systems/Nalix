@@ -37,7 +37,7 @@ public abstract partial class Protocol
     /// This method is called automatically by <see cref="PostProcessMessage"/>.
     /// </summary>
     /// <param name="args">Event arguments containing connection and processing details.</param>
-    protected virtual void OnPostProcess(IConnectEventArgs args)
+    protected virtual void OnPostProcess(IConnectionEventArgs args)
     {
     }
 

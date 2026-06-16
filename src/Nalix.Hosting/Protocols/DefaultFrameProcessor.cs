@@ -90,7 +90,7 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
     /// <exception cref="SerializationFailureException">Thrown when deserialization fails.</exception>
     /// <exception cref="Exception">Unhandled exceptions are logged and reported to connection error handler.</exception>
     [DebuggerStepThrough]
-    public void ProcessFrame(object? sender, IConnectEventArgs args)
+    public void ProcessFrame(object? sender, IConnectionEventArgs args)
     {
         ArgumentNullException.ThrowIfNull(args);
 

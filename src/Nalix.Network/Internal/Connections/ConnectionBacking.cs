@@ -45,9 +45,9 @@ internal sealed class ConnectionBacking : IPoolable
     public IObjectMap<AttributeKey, object>? Attributes;
     public ConcurrentDictionary<ushort, object>? RateLimitCache;
 
-    public EventHandler<IConnectEventArgs>? OnCloseEvent;
-    public EventHandler<IConnectEventArgs>? OnProcessEvent;
-    public EventHandler<IConnectEventArgs>? OnPostProcessEvent;
+    public EventHandler<IConnectionEventArgs>? OnCloseEvent;
+    public EventHandler<IConnectionEventArgs>? OnProcessEvent;
+    public EventHandler<IConnectionEventArgs>? OnPostProcessEvent;
 
     public ConnectionBacking()
     {

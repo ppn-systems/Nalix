@@ -10,7 +10,7 @@ namespace Nalix.Abstractions.Networking;
 /// <summary>
 /// Represents connection events and provides event data.
 /// </summary>
-public interface IConnectEventArgs : IDisposable
+public interface IConnectionEventArgs : IDisposable
 {
     /// <summary>
     /// The connection related to the event.

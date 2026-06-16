@@ -183,9 +183,9 @@ internal static class AsyncCallback
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Invoke(
-        EventHandler<IConnectEventArgs>? callback,
+        EventHandler<IConnectionEventArgs>? callback,
         object? sender,
-        IConnectEventArgs args,
+        IConnectionEventArgs args,
         CallbackLane lane,
         bool releasePendingPacketOnCompletion = false)
     {
@@ -234,9 +234,9 @@ internal static class AsyncCallback
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool InvokeHighPriority(
-        EventHandler<IConnectEventArgs>? callback,
+        EventHandler<IConnectionEventArgs>? callback,
         object? sender,
-        IConnectEventArgs args)
+        IConnectionEventArgs args)
     {
         if (callback is null)
         {
@@ -276,9 +276,9 @@ internal static class AsyncCallback
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool QUEUE(
         Action<object> invoker,
-        EventHandler<IConnectEventArgs> callback,
+        EventHandler<IConnectionEventArgs> callback,
         object? sender,
-        IConnectEventArgs args,
+        IConnectionEventArgs args,
         bool isHigh,
         bool releasePendingPacketOnCompletion,
         CallbackLane lane)
@@ -319,7 +319,7 @@ internal static class AsyncCallback
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static bool QUEUE_SAFE(Action<object> invoker, PooledConnectEventContext wrapper, IConnectEventArgs args, bool preferLocal)
+    private static bool QUEUE_SAFE(Action<object> invoker, PooledConnectEventContext wrapper, IConnectionEventArgs args, bool preferLocal)
     {
         try
         {
@@ -452,7 +452,7 @@ internal static class AsyncCallback
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static INetworkEndpoint? GET_ENDPOINT_SAFE(IConnectEventArgs? args)
+    private static INetworkEndpoint? GET_ENDPOINT_SAFE(IConnectionEventArgs? args)
     {
         if (args is null)
         {
@@ -464,7 +464,7 @@ internal static class AsyncCallback
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void LOG_THROTTLED_WARN_SAFE(IConnectEventArgs? args, ref long ticks, ref long suppressedCount, string eventName)
+    private static void LOG_THROTTLED_WARN_SAFE(IConnectionEventArgs? args, ref long ticks, ref long suppressedCount, string eventName)
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
         {
@@ -480,7 +480,7 @@ internal static class AsyncCallback
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void LOG_THROTTLED_ERROR_SAFE(IConnectEventArgs? args, ref long ticks, ref long suppressedCount, string eventName, Exception? ex = null)
+    private static void LOG_THROTTLED_ERROR_SAFE(IConnectionEventArgs? args, ref long ticks, ref long suppressedCount, string eventName, Exception? ex = null)
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
         {
@@ -497,7 +497,7 @@ internal static class AsyncCallback
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void EXECUTE_AND_RETURN(PooledConnectEventContext w)
     {
-        IConnectEventArgs? args = w.Args;
+        IConnectionEventArgs? args = w.Args;
 
         long startMonoTicks = Clock.MonoTicksNow();
         try

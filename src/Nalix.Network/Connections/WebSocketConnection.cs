@@ -63,9 +63,9 @@ public sealed class WebSocketConnection :
     private IObjectMap<AttributeKey, object>? _attributes;
     private ConcurrentDictionary<ushort, object>? _rateLimitCache;
 
-    private EventHandler<IConnectEventArgs>? _onCloseEvent;
-    private EventHandler<IConnectEventArgs>? _onProcessEvent;
-    private EventHandler<IConnectEventArgs>? _onPostProcessEvent;
+    private EventHandler<IConnectionEventArgs>? _onCloseEvent;
+    private EventHandler<IConnectionEventArgs>? _onProcessEvent;
+    private EventHandler<IConnectionEventArgs>? _onPostProcessEvent;
 
     internal LocalPool<ConnectionEventArgs> _argsPool;
     internal LocalPool<PooledConnectEventContext> _contextPool;
@@ -212,21 +212,21 @@ public sealed class WebSocketConnection :
     #region Events
 
     /// <inheritdoc/>
-    public event EventHandler<IConnectEventArgs> OnCloseEvent
+    public event EventHandler<IConnectionEventArgs> ConnectionClosed
     {
         add => _onCloseEvent += value;
         remove => _onCloseEvent -= value;
     }
 
     /// <inheritdoc/>
-    public event EventHandler<IConnectEventArgs> OnProcessEvent
+    public event EventHandler<IConnectionEventArgs> MessageProcessing
     {
         add => _onProcessEvent += value;
         remove => _onProcessEvent -= value;
     }
 
     /// <inheritdoc/>
-    public event EventHandler<IConnectEventArgs> OnPostProcessEvent
+    public event EventHandler<IConnectionEventArgs> MessageProcessed
     {
         add => _onPostProcessEvent += value;
         remove => _onPostProcessEvent -= value;
@@ -288,7 +288,7 @@ public sealed class WebSocketConnection :
         }
     }
 
-    private static void OnProcessEventBridge(object? sender, IConnectEventArgs e)
+    private static void OnProcessEventBridge(object? sender, IConnectionEventArgs e)
     {
         if (e is null)
         {
@@ -311,7 +311,7 @@ public sealed class WebSocketConnection :
         }
     }
 
-    private static void OnPostProcessEventBridge(object? sender, IConnectEventArgs e)
+    private static void OnPostProcessEventBridge(object? sender, IConnectionEventArgs e)
     {
         if (e is null)
         {

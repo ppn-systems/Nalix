@@ -362,7 +362,7 @@ public sealed partial class Connection :
 
     /// <inheritdoc />
 
-    public event EventHandler<IConnectEventArgs> OnCloseEvent
+    public event EventHandler<IConnectionEventArgs> ConnectionClosed
     {
         add
         {
@@ -377,7 +377,7 @@ public sealed partial class Connection :
     }
 
     /// <inheritdoc />
-    public event EventHandler<IConnectEventArgs> OnProcessEvent
+    public event EventHandler<IConnectionEventArgs> MessageProcessing
     {
         add
         {
@@ -392,7 +392,7 @@ public sealed partial class Connection :
     }
 
     /// <inheritdoc />
-    public event EventHandler<IConnectEventArgs> OnPostProcessEvent
+    public event EventHandler<IConnectionEventArgs> MessageProcessed
     {
         add
         {
@@ -519,7 +519,7 @@ public sealed partial class Connection :
                             Delegate[] handlers = backing.OnCloseEvent.GetInvocationList();
                             for (int i = 0; i < handlers.Length; i++)
                             {
-                                EventHandler<IConnectEventArgs> handler = (EventHandler<IConnectEventArgs>)handlers[i];
+                                EventHandler<IConnectionEventArgs> handler = (EventHandler<IConnectionEventArgs>)handlers[i];
                                 try
                                 {
                                     handler(this, args);
@@ -799,7 +799,7 @@ public sealed partial class Connection :
     #region Event Bridges
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private void OnCloseEventBridge(object? sender, IConnectEventArgs e)
+    private void OnCloseEventBridge(object? sender, IConnectionEventArgs e)
     {
         ConnectionBacking? backing = Volatile.Read(ref _backing);
         if (backing == null || Interlocked.Exchange(ref backing.CloseSignaled, 1) != 0)
@@ -816,7 +816,7 @@ public sealed partial class Connection :
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private static void OnProcessEventBridge(object? sender, IConnectEventArgs e)
+    private static void OnProcessEventBridge(object? sender, IConnectionEventArgs e)
     {
         if (e is null)
         {
@@ -833,7 +833,7 @@ public sealed partial class Connection :
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void SAFE_PROCESS_EVENT_BRIDGE(Connection self, IConnectEventArgs e)
+    private static void SAFE_PROCESS_EVENT_BRIDGE(Connection self, IConnectionEventArgs e)
     {
         try
         {
@@ -847,7 +847,7 @@ public sealed partial class Connection :
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private static void OnPostProcessEventBridge(object? sender, IConnectEventArgs e)
+    private static void OnPostProcessEventBridge(object? sender, IConnectionEventArgs e)
     {
         if (e is null)
         {
@@ -864,7 +864,7 @@ public sealed partial class Connection :
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void SAFE_POST_PROCESS_EVENT_BRIDGE(Connection self, IConnectEventArgs e)
+    private static void SAFE_POST_PROCESS_EVENT_BRIDGE(Connection self, IConnectionEventArgs e)
     {
         try
         {
@@ -878,7 +878,7 @@ public sealed partial class Connection :
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private static void OnCloseEventDispatchBridge(object? sender, IConnectEventArgs e)
+    private static void OnCloseEventDispatchBridge(object? sender, IConnectionEventArgs e)
     {
         if (e is null || sender is not Connection self)
         {
@@ -890,7 +890,7 @@ public sealed partial class Connection :
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void SAFE_CLOSE_EVENT_DISPATCH_BRIDGE(Connection self, IConnectEventArgs e)
+    private static void SAFE_CLOSE_EVENT_DISPATCH_BRIDGE(Connection self, IConnectionEventArgs e)
     {
         try
         {
@@ -906,7 +906,7 @@ public sealed partial class Connection :
                 Delegate[] handlers = backing.OnCloseEvent.GetInvocationList();
                 for (int i = 0; i < handlers.Length; i++)
                 {
-                    EventHandler<IConnectEventArgs> handler = (EventHandler<IConnectEventArgs>)handlers[i];
+                    EventHandler<IConnectionEventArgs> handler = (EventHandler<IConnectionEventArgs>)handlers[i];
                     try
                     {
                         handler(self, e);

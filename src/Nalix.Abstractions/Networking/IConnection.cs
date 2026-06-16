@@ -96,17 +96,17 @@ public partial interface IConnection : IDisposable, IConnectionErrorTracked
     /// <summary>
     /// Occurs when the connection is closed.
     /// </summary>
-    event EventHandler<IConnectEventArgs> OnCloseEvent;
-
-    /// <summary>
-    /// Occurs when data is received and processed.
-    /// </summary>
-    event EventHandler<IConnectEventArgs> OnProcessEvent;
+    event EventHandler<IConnectionEventArgs> ConnectionClosed;
 
     /// <summary>
     /// Occurs after data has been successfully processed.
     /// </summary>
-    event EventHandler<IConnectEventArgs> OnPostProcessEvent;
+    event EventHandler<IConnectionEventArgs> MessageProcessed;
+
+    /// <summary>
+    /// Occurs when data is received and processed.
+    /// </summary>
+    event EventHandler<IConnectionEventArgs> MessageProcessing;
 
     /// <summary>
     /// Disconnects the connection safely with an optional reason.

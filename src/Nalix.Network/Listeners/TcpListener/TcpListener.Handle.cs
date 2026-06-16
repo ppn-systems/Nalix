@@ -74,7 +74,7 @@ public abstract partial class TcpListenerBase
     }
 
     /// <summary>
-    /// Handles the <see cref="IConnection.OnCloseEvent"/> event raised when a client connection
+    /// Handles the <see cref="IConnection.ConnectionClosed"/> event raised when a client connection
     /// is closed, either by the remote peer or by the server.
     /// </summary>
     /// <param name="sender">
@@ -90,12 +90,12 @@ public abstract partial class TcpListenerBase
     /// <see cref="Connection.Dispose"/> to prevent memory leaks and duplicate callbacks.
     /// </para>
     /// <para>
-    /// If <paramref name="args"/> or its <see cref="IConnectEventArgs.Connection"/> is
+    /// If <paramref name="args"/> or its <see cref="IConnectionEventArgs.Connection"/> is
     /// <see langword="null"/>, this method returns immediately without performing any action.
     /// </para>
     /// </remarks>
     [DebuggerStepThrough]
-    protected void HandleConnectionClose(object? sender, IConnectEventArgs args)
+    protected void HandleConnectionClose(object? sender, IConnectionEventArgs args)
     {
         if (args?.Connection == null)
         {
@@ -103,12 +103,12 @@ public abstract partial class TcpListenerBase
         }
 
         // De-subscribe to prevent memory leaks
-        args.Connection.OnCloseEvent -= this.HandleConnectionClose;
-        args.Connection.OnCloseEvent -= _limiter.OnConnectionClosed;
+        args.Connection.ConnectionClosed -= this.HandleConnectionClose;
+        args.Connection.ConnectionClosed -= _limiter.OnConnectionClosed;
 
         // Keep unwiring post-process as before (if you subscribed it).
-        args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage;
-        args.Connection.OnProcessEvent -= _protocol.FrameProcessor.ProcessFrame;
+        args.Connection.MessageProcessed -= _protocol.PostProcessMessage;
+        args.Connection.MessageProcessing -= _protocol.FrameProcessor.ProcessFrame;
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
@@ -191,17 +191,17 @@ public abstract partial class TcpListenerBase
             // Subscribe lifecycle events.
             // WHY subscribe to _limiter.OnConnectionClosed:
             //      When connection close -> limit, the counter must be reduced -> allow a new connection.
-            connection.OnCloseEvent += this.HandleConnectionClose;
-            connection.OnCloseEvent += _limiter.OnConnectionClosed;
+            connection.ConnectionClosed += this.HandleConnectionClose;
+            connection.ConnectionClosed += _limiter.OnConnectionClosed;
             eventsHooked = true;
 
             // Keep post-process as you already have (optional).
             // If your PostProcessMessage should run after app protocol, leaving it subscribed is OK
             // as long as it depends on the same args lifecycle rules.
-            connection.OnPostProcessEvent += _protocol.PostProcessMessage;
+            connection.MessageProcessed += _protocol.PostProcessMessage;
 
             // Wire the internal listener method to handle the shared pipeline before routing.
-            connection.OnProcessEvent += _protocol.FrameProcessor.ProcessFrame;
+            connection.MessageProcessing += _protocol.FrameProcessor.ProcessFrame;
 
             if (_config.EnableTimeout)
             {
@@ -263,12 +263,12 @@ public abstract partial class TcpListenerBase
             }
             connection = new(socket, _protocol.OpCodeExtractor, endpoint);
 
-            connection.OnCloseEvent += this.HandleConnectionClose;
-            connection.OnCloseEvent += _limiter.OnConnectionClosed;
+            connection.ConnectionClosed += this.HandleConnectionClose;
+            connection.ConnectionClosed += _limiter.OnConnectionClosed;
             eventsHooked = true;
 
-            connection.OnPostProcessEvent += _protocol.PostProcessMessage;
-            connection.OnProcessEvent += _protocol.FrameProcessor.ProcessFrame;
+            connection.MessageProcessed += _protocol.PostProcessMessage;
+            connection.MessageProcessing += _protocol.FrameProcessor.ProcessFrame;
 
             if (_config.EnableTimeout)
             {

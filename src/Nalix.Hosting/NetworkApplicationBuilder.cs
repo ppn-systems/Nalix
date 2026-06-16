@@ -10,7 +10,6 @@ using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Codec.DataFrames;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Configuration.Binding;
@@ -84,6 +83,10 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         return this;
     }
 
+    #endregion Configuration Methods
+
+    #region APIs Using Registered Services
+
     /// <inheritdoc />
     public INetworkApplicationBuilder UseLogger(ILogger logger)
     {
@@ -97,10 +100,6 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
         return this;
     }
-
-    #endregion Configuration Methods
-
-    #region APIs Using Registered Services
 
     /// <inheritdoc />
     public INetworkApplicationBuilder UseConnectionHub(IConnectionHub connectionHub)
@@ -117,31 +116,6 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
         return this;
     }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder UseSessionService(ISessionService sessionService)
-    {
-        ArgumentNullException.ThrowIfNull(sessionService);
-        InstanceManager.Instance.Register<ISessionService>(sessionService);
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder UseSessionStore(ISessionStore sessionStore)
-    {
-        ArgumentNullException.ThrowIfNull(sessionStore);
-        InstanceManager.Instance.Register<ISessionStore>(sessionStore);
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder UseSessionFactory(ISessionFactory sessionFactory)
-    {
-        ArgumentNullException.ThrowIfNull(sessionFactory);
-        InstanceManager.Instance.Register<ISessionFactory>(sessionFactory);
-        return this;
-    }
-
 
     /// <inheritdoc />
     public INetworkApplicationBuilder UseBufferPoolManager(IBufferPoolManager manager)

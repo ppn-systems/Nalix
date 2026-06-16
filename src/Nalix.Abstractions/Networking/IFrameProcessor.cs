@@ -17,5 +17,5 @@ public interface IFrameProcessor
     /// <param name="args">
     /// The connection event arguments.
     /// </param>
-    void ProcessFrame(object? sender, IConnectEventArgs args);
+    void ProcessFrame(object? sender, IConnectionEventArgs args);
 }

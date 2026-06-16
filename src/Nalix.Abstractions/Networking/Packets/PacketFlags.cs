@@ -3,8 +3,6 @@
 
 #pragma warning disable CA1711
 
-using System;
-
 namespace Nalix.Abstractions.Networking.Packets;
 
 /// <summary>
@@ -41,26 +39,26 @@ public enum PacketFlags : byte
     /// </summary>
     FRAGMENTED = 1 << 3,
 
-    /// <summary>
-    /// The packet is sent over a reliable transport protocol (typically TCP).
-    /// Guarantees delivery and ordering without the need for manual retries.
-    /// </summary>
-    [Obsolete("The RELIABLE flag is deprecated. Use transport-level reliability guarantees instead.")]
-    RELIABLE = 1 << 4,
+    ///// <summary>
+    ///// The packet is sent over a reliable transport protocol (typically TCP).
+    ///// Guarantees delivery and ordering without the need for manual retries.
+    ///// </summary>
+    //[Obsolete("The RELIABLE flag is deprecated. Use transport-level reliability guarantees instead.")]
+    //RELIABLE = 1 << 4,
 
-    /// <summary>
-    /// The packet is sent over an unreliable transport protocol (typically UDP).
-    /// Best suited for real-time data where occasional loss is acceptable.
-    /// </summary>
-    [Obsolete("The UNRELIABLE flag is deprecated. Use transport-level reliability guarantees instead.")]
-    UNRELIABLE = 1 << 5,
+    ///// <summary>
+    ///// The packet is sent over an unreliable transport protocol (typically UDP).
+    ///// Best suited for real-time data where occasional loss is acceptable.
+    ///// </summary>
+    //[Obsolete("The UNRELIABLE flag is deprecated. Use transport-level reliability guarantees instead.")]
+    //UNRELIABLE = 1 << 5,
 
-    /// <summary>
-    /// The packet has been acknowledged by the receiver.
-    /// Often used to stop retransmissions or mark successful delivery.
-    /// </summary>
-    [Obsolete("The ACKNOWLEDGED flag is deprecated. Use transport-level acknowledgements instead.")]
-    ACKNOWLEDGED = 1 << 6,
+    ///// <summary>
+    ///// The packet has been acknowledged by the receiver.
+    ///// Often used to stop retransmissions or mark successful delivery.
+    ///// </summary>
+    //[Obsolete("The ACKNOWLEDGED flag is deprecated. Use transport-level acknowledgements instead.")]
+    //ACKNOWLEDGED = 1 << 6,
 
     /// <summary>
     /// The packet is a system-level message that does not contain user data.

@@ -491,7 +491,7 @@ public sealed class ConnectionHub : IConnectionHub
 
         ulong connectionKey = connection.ID;
 
-        connection.OnCloseEvent += this.OnClientDisconnected;
+        connection.ConnectionClosed += this.OnClientDisconnected;
         connection.Attributes[ConnectionAttributes.OwnerHub] = this;
 
         bool added = false;
@@ -532,7 +532,7 @@ public sealed class ConnectionHub : IConnectionHub
         {
             if (!added)
             {
-                connection.OnCloseEvent -= this.OnClientDisconnected;
+                connection.ConnectionClosed -= this.OnClientDisconnected;
                 _ = connection.Attributes.Remove(ConnectionAttributes.OwnerHub);
             }
         }
@@ -562,7 +562,7 @@ public sealed class ConnectionHub : IConnectionHub
         TimingScope scope = measureLatency ? TimingScope.Start() : default;
 
         IConnection removedConnection = existing ?? connection;
-        removedConnection.OnCloseEvent -= this.OnClientDisconnected;
+        removedConnection.ConnectionClosed -= this.OnClientDisconnected;
 
         try
         {
@@ -624,7 +624,7 @@ public sealed class ConnectionHub : IConnectionHub
 
         for (int i = 0; i < snapshot.Count; i++)
         {
-            snapshot[i].OnCloseEvent -= this.OnClientDisconnected;
+            snapshot[i].ConnectionClosed -= this.OnClientDisconnected;
         }
 
         ParallelOptions parallelOptions = new()
@@ -870,7 +870,7 @@ public sealed class ConnectionHub : IConnectionHub
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void OnClientDisconnected(object? sender, IConnectEventArgs args)
+    private void OnClientDisconnected(object? sender, IConnectionEventArgs args)
     {
         if (args is null)
         {
