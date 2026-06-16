@@ -20,6 +20,8 @@ namespace Nalix.Network.Connections;
 
 public sealed partial class ConnectionHub
 {
+    #region Public API
+
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public async Task BroadcastAsync<TState, TSender>(TState state, TSender sender, CancellationToken cancellationToken = default)
@@ -55,37 +57,11 @@ public sealed partial class ConnectionHub
                 return;
             }
 
-            try
-            {
-                await Task.WhenAll(tasks.AsSpan(0, taskCount)).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-                {
-                    DiagnosticsEvents.Write(
-                        DiagnosticsEvents.Internal.Debug,
-                        new DiagnosticLog("NW.ConnectionHub:BroadcastAsync", "broadcast-cancel"));
-                }
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-            {
-                LogGenericFailures(tasks, owners, taskCount, "BroadcastAsync");
-            }
+            await AwaitTasksAsync(tasks, owners, taskCount, cancellationToken, nameof(BroadcastAsync)).ConfigureAwait(false);
         }
         finally
         {
-            if (tasks is not null)
-            {
-                Array.Clear(tasks, 0, taskCount);
-                ArrayPool<Task>.Shared.Return(tasks);
-            }
-
-            if (owners is not null)
-            {
-                Array.Clear(owners, 0, taskCount);
-                ArrayPool<IConnection>.Shared.Return(owners);
-            }
+            ReturnArrays(ref tasks, ref owners);
         }
     }
 
@@ -138,37 +114,11 @@ public sealed partial class ConnectionHub
                 return;
             }
 
-            try
-            {
-                await Task.WhenAll(tasks.AsSpan(0, taskCount)).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-                {
-                    DiagnosticsEvents.Write(
-                        DiagnosticsEvents.Internal.Debug,
-                        new DiagnosticLog("NW.ConnectionHub:MulticastAsync", "multicast-cancel"));
-                }
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-            {
-                LogGenericFailures(tasks, owners, taskCount, "MulticastAsync");
-            }
+            await AwaitTasksAsync(tasks, owners, taskCount, cancellationToken, nameof(MulticastAsync)).ConfigureAwait(false);
         }
         finally
         {
-            if (tasks is not null)
-            {
-                Array.Clear(tasks, 0, taskCount);
-                ArrayPool<Task>.Shared.Return(tasks);
-            }
-
-            if (owners is not null)
-            {
-                Array.Clear(owners, 0, taskCount);
-                ArrayPool<IConnection>.Shared.Return(owners);
-            }
+            ReturnArrays(ref tasks, ref owners);
         }
     }
 
@@ -273,6 +223,9 @@ public sealed partial class ConnectionHub
             nameof(BroadcastWhereAsync)).ConfigureAwait(false);
     }
 
+    #endregion Public API
+
+    #region Private Helpers
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void QueueSendGeneric<TState, TSender>(
@@ -300,7 +253,7 @@ public sealed partial class ConnectionHub
             }
 
             tasks ??= ArrayPool<Task>.Shared.Rent(connectionCount);
-            owners ??= ArrayPool<IConnection>.Shared.Rent(connectionCount);
+            owners ??= s_connectionPool.Rent(connectionCount);
 
             tasks[taskCount] = sendTask.AsTask();
             owners[taskCount] = connection;
@@ -344,7 +297,6 @@ public sealed partial class ConnectionHub
         }
     }
 
-
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private async Task BroadcastCoreAsync(
         RentedConnectionSnapshot snapshot,
@@ -355,8 +307,8 @@ public sealed partial class ConnectionHub
         string operationName)
     {
         int connectionCount = snapshot.Count;
-        Task[] tasks = ArrayPool<Task>.Shared.Rent(connectionCount);
-        IConnection[] owners = s_connectionPool.Rent(connectionCount);
+        Task[]? tasks = ArrayPool<Task>.Shared.Rent(connectionCount);
+        IConnection[]? owners = s_connectionPool.Rent(connectionCount);
         int taskCount = 0;
 
         try
@@ -406,30 +358,11 @@ public sealed partial class ConnectionHub
                 return;
             }
 
-            try
-            {
-                await Task.WhenAll(MemoryExtensions.AsSpan(tasks, 0, taskCount)).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-                {
-                    DiagnosticsEvents.Write(
-                        DiagnosticsEvents.Internal.Debug,
-                        new DiagnosticLog("NW.ConnectionHub:BroadcastAsync", $"broadcast-cancel op={operationName}"));
-                }
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-            {
-                LogGenericFailures(tasks, owners, taskCount, operationName);
-            }
+            await AwaitTasksAsync(tasks, owners, taskCount, cancellationToken, operationName).ConfigureAwait(false);
         }
         finally
         {
-            Array.Clear(tasks, 0, taskCount);
-            Array.Clear(owners, 0, taskCount);
-            ArrayPool<Task>.Shared.Return(tasks, clearArray: true);
-            s_connectionPool.Return(owners, clearArray: true);
+            ReturnArrays(ref tasks, ref owners);
         }
     }
 
@@ -443,8 +376,8 @@ public sealed partial class ConnectionHub
     {
         int connectionCount = snapshot.Count;
         int batchSize = Math.Max(1, _options.BroadcastBatchSize);
-        Task[] tasks = ArrayPool<Task>.Shared.Rent(batchSize);
-        IConnection[] owners = s_connectionPool.Rent(batchSize);
+        Task[]? tasks = ArrayPool<Task>.Shared.Rent(batchSize);
+        IConnection[]? owners = s_connectionPool.Rent(batchSize);
         int taskCount = 0;
 
         try
@@ -489,7 +422,7 @@ public sealed partial class ConnectionHub
                     continue;
                 }
 
-                await this.AwaitBatchAsync(tasks, owners, taskCount, cancellationToken,
+                await AwaitTasksAsync(tasks, owners, taskCount, cancellationToken,
                               nameof(BroadcastBatchedAsync)).ConfigureAwait(false);
                 Array.Clear(tasks, 0, taskCount);
                 Array.Clear(owners, 0, taskCount);
@@ -498,21 +431,18 @@ public sealed partial class ConnectionHub
 
             if (taskCount > 0)
             {
-                await this.AwaitBatchAsync(tasks, owners, taskCount, cancellationToken,
+                await AwaitTasksAsync(tasks, owners, taskCount, cancellationToken,
                               nameof(BroadcastBatchedAsync)).ConfigureAwait(false);
             }
         }
         finally
         {
-            Array.Clear(tasks, 0, taskCount);
-            Array.Clear(owners, 0, taskCount);
-            ArrayPool<Task>.Shared.Return(tasks, clearArray: true);
-            s_connectionPool.Return(owners, clearArray: true);
+            ReturnArrays(ref tasks, ref owners);
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private async Task AwaitBatchAsync(
+    private static async Task AwaitTasksAsync(
         Task[] tasks,
         IConnection[] owners,
         int taskCount,
@@ -537,4 +467,22 @@ public sealed partial class ConnectionHub
             LogGenericFailures(tasks, owners, taskCount, operationName);
         }
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ReturnArrays(ref Task[]? tasks, ref IConnection[]? owners)
+    {
+        if (tasks is not null)
+        {
+            ArrayPool<Task>.Shared.Return(tasks, clearArray: true);
+            tasks = null;
+        }
+
+        if (owners is not null)
+        {
+            s_connectionPool.Return(owners, clearArray: true);
+            owners = null;
+        }
+    }
+
+    #endregion Private Helpers
 }
