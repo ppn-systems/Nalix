@@ -36,9 +36,9 @@ namespace Nalix.Abstractions.Networking.Packets
     public interface IPacketRegistry { }
     public interface IPacketDeserializer<TPacket> where TPacket : IPacket { }
     public sealed class PacketOpcodeAttribute : Attribute { public PacketOpcodeAttribute(ushort opcode) { } }
-    public sealed class PacketControllerAttribute : Attribute
+    public sealed class PacketHandlerAttribute : Attribute
     {
-        public PacketControllerAttribute(string? name = null) { }
+        public PacketHandlerAttribute(string? name = null) { }
     }
     public enum PacketFlags : ushort { None = 0 }
     public enum PacketPriority : byte { Normal = 0 }

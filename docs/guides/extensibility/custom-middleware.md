@@ -80,7 +80,7 @@ using NetworkApplication app = NetworkApplication.CreateBuilder()
 The middleware will now automatically enforce permissions based on the attributes applied to your handler methods.
 
 ```csharp
-[PacketController("SecureHandlers")]
+[PacketHandler("SecureHandlers")]
 public sealed class SecureHandlers
 {
     [PacketOpcode(0x1201)]

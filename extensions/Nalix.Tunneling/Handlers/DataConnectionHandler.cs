@@ -12,7 +12,7 @@ namespace Nalix.Tunneling.Handlers;
 /// <summary>
 /// Handles the TunnelReady packet from the Provider's Data Connection.
 /// </summary>
-[PacketController("Nalix.Tunneling")]
+[PacketHandler("Nalix.Tunneling")]
 public sealed class DataConnectionHandler
 {
     private readonly ILogger _logger;

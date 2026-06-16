@@ -37,7 +37,7 @@ public sealed partial class TunnelProvideAck : PacketBase<TunnelProvideAck>, IFi
     {
         base.ResetForPool();
         this.Priority = PacketPriority.HIGH;
-        this.Flags = PacketFlags.RELIABLE;
+        this.Flags = PacketFlags.NONE;
         this.Success = false;
         this.Reason = 0;
     }

@@ -21,7 +21,7 @@ public sealed class NetworkApplicationBuilderAotTests
     #region MapHandlers registrations
 
     [Fact]
-    public void AddHandler_Generic_RegistersHandlerDescriptor()
+    public void MapHandlers_Generic_RegistersHandlerDescriptor()
     {
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
 
@@ -32,7 +32,7 @@ public sealed class NetworkApplicationBuilderAotTests
     }
 
     [Fact]
-    public void AddHandler_Type_RegistersHandlerDescriptor()
+    public void MapHandlers_Type_RegistersHandlerDescriptor()
     {
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
 
@@ -43,7 +43,7 @@ public sealed class NetworkApplicationBuilderAotTests
     }
 
     [Fact]
-    public void AddHandler_Factory_RegistersHandlerDescriptor()
+    public void MapHandlers_Factory_RegistersHandlerDescriptor()
     {
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
         var controller = new TestAotController();
@@ -55,7 +55,7 @@ public sealed class NetworkApplicationBuilderAotTests
     }
 
     [Fact]
-    public void AddHandler_DuplicateType_DoesNotThrow()
+    public void MapHandlers_DuplicateType_DoesNotThrow()
     {
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
 
@@ -176,7 +176,7 @@ public sealed class NetworkApplicationBuilderAotTests
             ReceivedDispatch = dispatch;
         }
 
-        public override void ProcessMessage(object? sender, IConnectEventArgs args) { }
+        public override void ProcessMessage(object? sender, IConnectionEventArgs args) { }
     }
 
     [Nalix.Abstractions.Injection.Injectable]
@@ -191,7 +191,7 @@ public sealed class NetworkApplicationBuilderAotTests
             WasParameterlessCtorCalled = true;
         }
 
-        public override void ProcessMessage(object? sender, IConnectEventArgs args) { }
+        public override void ProcessMessage(object? sender, IConnectionEventArgs args) { }
     }
 
     private sealed class StubPacketDispatch : IPacketDispatch
@@ -204,7 +204,7 @@ public sealed class NetworkApplicationBuilderAotTests
         public void WriteReportData(Utf8JsonWriter writer) { }
     }
 
-    [PacketController("AotTest")]
+    [PacketHandler("AotTest")]
     internal sealed class TestAotController { }
 
     #endregion

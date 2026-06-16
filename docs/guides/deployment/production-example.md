@@ -70,7 +70,7 @@ The builder auto-registers the built-in handshake, session, and system-control h
 ### Handler
 
 ```csharp
-[PacketController("DataHandlers")]
+[PacketHandler("DataHandlers")]
 public sealed class DataHandlers
 {
     private readonly ILogger _logger;

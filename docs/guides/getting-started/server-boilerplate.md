@@ -70,7 +70,7 @@ Handlers are where your application logic lives. Use `IPacketContext<T>` to acce
 ```csharp
 using Nalix.Abstractions.Networking.Packets;
 
-[PacketController("SystemHandlers")]
+[PacketHandler("SystemHandlers")]
 public sealed class MyPingHandler
 {
     [PacketOpcode(0x1001)]

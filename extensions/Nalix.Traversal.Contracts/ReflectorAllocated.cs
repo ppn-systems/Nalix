@@ -44,7 +44,7 @@ public sealed partial class ReflectorAllocated : PacketBase<ReflectorAllocated>,
         base.ResetForPool();
 
         this.Priority = PacketPriority.HIGH;
-        this.Flags = PacketFlags.RELIABLE;
+        this.Flags = PacketFlags.NONE;
         this.ReflectorToken = 0;
         this.Success = false;
     }

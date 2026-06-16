@@ -578,9 +578,9 @@ public sealed class DispatchChannelTests
         public IConnection.ITransport UDP => null!;
 
 #pragma warning disable CS0067
-        public event EventHandler<IConnectEventArgs>? OnCloseEvent;
-        public event EventHandler<IConnectEventArgs>? OnProcessEvent;
-        public event EventHandler<IConnectEventArgs>? OnPostProcessEvent;
+        public event EventHandler<IConnectionEventArgs>? ConnectionClosed;
+        public event EventHandler<IConnectionEventArgs>? MessageProcessing;
+        public event EventHandler<IConnectionEventArgs>? MessageProcessed;
 #pragma warning restore CS0067
 
         public void Disconnect(string? reason = null) { }

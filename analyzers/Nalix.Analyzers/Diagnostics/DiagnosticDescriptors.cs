@@ -10,7 +10,7 @@ internal static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor DuplicateControllerOpcode = new(
         id: "NALIX001",
         title: "Packet controller contains duplicate PacketOpcode",
-        messageFormat: "Handler method '{0}' uses PacketOpcode 0x{1:X4}, which is already used by another handler in the same [PacketController]",
+        messageFormat: "Handler method '{0}' uses PacketOpcode 0x{1:X4}, which is already used by another handler in the same [PacketHandler]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
@@ -19,7 +19,7 @@ internal static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor ControllerMethodRequiresOpcode = new(
         id: "NALIX002",
         title: "Packet controller handler should declare PacketOpcode",
-        messageFormat: "Handler method '{0}' in a [PacketController] matches Nalix handler patterns and should be annotated with [PacketOpcode(...)]",
+        messageFormat: "Handler method '{0}' in a [PacketHandler] matches Nalix handler patterns and should be annotated with [PacketOpcode(...)]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
@@ -70,14 +70,14 @@ internal static class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "Nalix network buffer middleware ordering uses MiddlewareOrderAttribute only.");
 
-    public static readonly DiagnosticDescriptor ControllerMissingPacketControllerAttribute = new(
+    public static readonly DiagnosticDescriptor ControllerMissingPacketHandlerAttribute = new(
         id: "NALIX008",
-        title: "Registered handler controller is missing PacketController",
-        messageFormat: "Controller type '{0}' is registered with WithHandler, but it is missing [PacketController]",
+        title: "Registered handler controller is missing PacketHandler",
+        messageFormat: "Controller type '{0}' is registered with WithHandler, but it is missing [PacketHandler]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Nalix requires PacketControllerAttribute on controller types registered through PacketDispatchOptions.WithHandler.");
+        description: "Nalix requires PacketHandlerAttribute on controller types registered through PacketDispatchOptions.WithHandler.");
 
     public static readonly DiagnosticDescriptor PacketRegistryPacketMissingDeserializer = new(
         id: "NALIX009",
@@ -370,7 +370,7 @@ internal static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor NetworkHostingHandlerTypeInvalid = new(
         id: "NALIX042",
         title: "NetworkApplicationBuilder handler type is not constructible",
-        messageFormat: "AddHandler<{0}>() expects a concrete, non-abstract, non-open-generic class type",
+        messageFormat: "MapHandlers<{0}>() expects a concrete, non-abstract, non-open-generic class type",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
@@ -433,11 +433,11 @@ internal static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor PacketOpcodeOnNonControllerType = new(
         id: "NALIX050",
         title: "PacketOpcode is declared on a non-controller type",
-        messageFormat: "Method '{0}' declares [PacketOpcode], but containing type '{1}' is missing [PacketController]",
+        messageFormat: "Method '{0}' declares [PacketOpcode], but containing type '{1}' is missing [PacketHandler]",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true,
-        description: "PacketOpcode handlers are expected to be declared inside PacketController types.");
+        description: "PacketOpcode handlers are expected to be declared inside PacketHandler types.");
 
     public static readonly DiagnosticDescriptor FixedSizeSerializableHasDynamicMember = new(
         id: "NALIX051",
@@ -457,14 +457,14 @@ internal static class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "Nalix packet discovery and registry binding expect a ReadOnlySpan<byte> Deserialize entry point.");
 
-    public static readonly DiagnosticDescriptor DuplicatePacketControllerName = new(
+    public static readonly DiagnosticDescriptor DuplicatePacketHandlerName = new(
         id: "NALIX054",
-        title: "PacketController name is duplicated",
-        messageFormat: "PacketController name '{0}' is used by both '{1}' and '{2}'",
+        title: "PacketHandler name is duplicated",
+        messageFormat: "PacketHandler name '{0}' is used by both '{1}' and '{2}'",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true,
-        description: "Duplicate PacketController names reduce routing and diagnostics clarity.");
+        description: "Duplicate PacketHandler names reduce routing and diagnostics clarity.");
 
     public static readonly DiagnosticDescriptor RedundantPacketContextPacketCast = new(
         id: "NALIX055",

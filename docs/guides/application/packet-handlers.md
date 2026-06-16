@@ -4,7 +4,7 @@ Packet Handlers are the primary extension point for application logic in Nalix. 
 
 ## 1. Core Pattern
 
-A Nalix handler is a simple class annotated with `[PacketController]`. Methods within that class annotated with `[PacketOpcode]` are registered as individual packet handlers.
+A Nalix handler is a simple class annotated with `[PacketHandler]`. Methods within that class annotated with `[PacketOpcode]` are registered as individual packet handlers.
 
 ### Basic Pattern (Single Response)
 
@@ -19,7 +19,7 @@ using Nalix.Abstractions.Networking.Packets;
 
 namespace MyServer.Handlers;
 
-[PacketController("CoreLogic")]
+[PacketHandler("CoreLogic")]
 public sealed class GameHandlers
 {
     [PacketOpcode(PingRequest.OpCodeValue)]
@@ -45,7 +45,7 @@ using Nalix.Abstractions.Networking.Packets;
 
 namespace MyServer.Handlers;
 
-[PacketController("AdvancedLogic")]
+[PacketHandler("AdvancedLogic")]
 public sealed class ChatHandlers
 {
     [PacketOpcode(ChatMessage.OpCodeValue)]

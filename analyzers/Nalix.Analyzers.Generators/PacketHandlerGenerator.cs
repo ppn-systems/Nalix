@@ -481,7 +481,7 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
             return null;
         }
 
-        if (!symbol.GetAttributes().Any(static attr => attr.AttributeClass?.ToDisplayString() == KnownNames.PacketControllerAttributeMetadataName))
+        if (!symbol.GetAttributes().Any(static attr => attr.AttributeClass?.ToDisplayString() == KnownNames.PacketHandlerAttributeMetadataName))
         {
             return null;
         }

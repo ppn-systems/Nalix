@@ -485,7 +485,7 @@ public abstract partial class UdpListenerBase
     private static readonly EventHandler<IConnectionEventArgs> s_onProcessFrameBridge = OnProcessFrameBridge;
 
     /// <summary>
-    /// Align with TCP's OnProcessEventBridge: ensures disposal after the pipeline.
+    /// Align with TCP's MessageProcessingBridge: ensures disposal after the pipeline.
     /// </summary>
     private static void OnProcessFrameBridge(object? sender, IConnectionEventArgs e)
     {

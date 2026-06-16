@@ -56,7 +56,7 @@ public sealed class ConnectionGuardTests
         guard.TryAccept(endpoint).Should().BeFalse();
 
         // Simulate connection closed
-        IConnectEventArgs args = Substitute.For<IConnectEventArgs>();
+        IConnectionEventArgs args = Substitute.For<IConnectionEventArgs>();
         args.Connection.NetworkEndpoint.Address.Returns(endpoint.Address.ToString());
         args.Connection.NetworkEndpoint.Returns(Nalix.Network.Internal.Transport.SocketEndpoint.FromIpAddress(endpoint.Address));
 
@@ -85,7 +85,7 @@ public sealed class ConnectionGuardTests
         guard.TryAccept(endpoint).Should().BeFalse();
 
         // Even if we release one, it should still be banned
-        IConnectEventArgs args = Substitute.For<IConnectEventArgs>();
+        IConnectionEventArgs args = Substitute.For<IConnectionEventArgs>();
         args.Connection.NetworkEndpoint.Returns(Nalix.Network.Internal.Transport.SocketEndpoint.FromIpAddress(endpoint.Address));
         guard.OnConnectionClosed(null, args);
 
@@ -115,7 +115,7 @@ public sealed class ConnectionGuardTests
         guard.TryAccept(endpoint).Should().BeFalse();
 
         // Release the 1st connection
-        IConnectEventArgs args = Substitute.For<IConnectEventArgs>();
+        IConnectionEventArgs args = Substitute.For<IConnectionEventArgs>();
         args.Connection.NetworkEndpoint.Returns(Nalix.Network.Internal.Transport.SocketEndpoint.FromIpAddress(endpoint.Address));
         guard.OnConnectionClosed(null, args);
 

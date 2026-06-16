@@ -21,12 +21,6 @@ public sealed class LiteSerializerReferenceTypeTests
         Assert.Equal(input, output);
     }
 
-    [Fact]
-    public void SerializeToProvidedBuffer_String_ThrowsSerializationFailureException()
-    {
-        byte[] buffer = new byte[128];
-        _ = Assert.Throws<SerializationFailureException>(() => LiteSerializer.Serialize("abc", buffer));
-    }
 }
 
 

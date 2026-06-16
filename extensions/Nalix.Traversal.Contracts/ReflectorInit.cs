@@ -38,7 +38,7 @@ public sealed partial class ReflectorInit : PacketBase<ReflectorInit>, IFixedSiz
         base.ResetForPool();
 
         this.Priority = PacketPriority.HIGH;
-        this.Flags = PacketFlags.RELIABLE;
+        this.Flags = PacketFlags.NONE;
         this.TargetPeerId = 0;
     }
 }

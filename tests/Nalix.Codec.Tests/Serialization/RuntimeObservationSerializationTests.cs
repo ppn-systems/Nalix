@@ -106,7 +106,7 @@ public sealed class RuntimeObservationSerializationTests
     public void Control_Should_Roundtrip_For_Comparison()
     {
         using Control source = Control.Create();
-        source.Initialize(ControlType.PING, sequenceId: 42, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE, reasonCode: ProtocolReason.NONE);
+        source.Initialize(ControlType.PING, sequenceId: 42, flags: PacketFlags.SYSTEM, reasonCode: ProtocolReason.NONE);
 
         byte[] bytes = source.Serialize();
         Assert.True(bytes.Length > 0);
@@ -420,7 +420,7 @@ public sealed class RuntimeObservationSerializationTests
     {
         // Control is fixed-size; always works.
         using Control control = Control.Create();
-        control.Initialize(ControlType.PING, sequenceId: 1, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE, reasonCode: ProtocolReason.NONE);
+        control.Initialize(ControlType.PING, sequenceId: 1, flags: PacketFlags.SYSTEM, reasonCode: ProtocolReason.NONE);
 
         byte[] controlBytes = control.Serialize();
         Assert.Equal(control.Length, controlBytes.Length);

@@ -125,7 +125,7 @@ public sealed class PacketTransformTests
         src.CommitLength(FrameTransformer.Offset + originalPayload.Length);
 
         src.Span[..FrameTransformer.Offset].Clear();
-        src.Span.AsHeaderRef() = new PacketHeader { Flags = PacketFlags.RELIABLE };
+        src.Span.AsHeaderRef() = new PacketHeader { Flags = PacketFlags.NONE };
         originalPayload.CopyTo(src.Span[FrameTransformer.Offset..]);
 
         IBufferLease outbound = src;
@@ -141,7 +141,7 @@ public sealed class PacketTransformTests
         using IBufferLease transformed = outbound;
 
         PacketFlags transformedFlags = transformed.Span.AsHeaderRef().Flags;
-        Assert.True(transformedFlags.HasFlag(PacketFlags.RELIABLE));
+        Assert.True(transformedFlags.HasFlag(PacketFlags.NONE));
         Assert.True(transformedFlags.HasFlag(PacketFlags.COMPRESSED));
         Assert.True(transformedFlags.HasFlag(PacketFlags.ENCRYPTED));
 
@@ -151,7 +151,7 @@ public sealed class PacketTransformTests
         using IBufferLease restored = inbound;
 
         PacketFlags restoredFlags = restored.Span.AsHeaderRef().Flags;
-        Assert.True(restoredFlags.HasFlag(PacketFlags.RELIABLE));
+        Assert.True(restoredFlags.HasFlag(PacketFlags.NONE));
         Assert.False(restoredFlags.HasFlag(PacketFlags.COMPRESSED));
         Assert.False(restoredFlags.HasFlag(PacketFlags.ENCRYPTED));
         Assert.Equal(src.Length, restored.Length);

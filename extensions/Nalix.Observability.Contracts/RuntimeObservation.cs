@@ -88,7 +88,7 @@ public sealed partial class RuntimeObservation : PacketBase<RuntimeObservation>,
         RuntimeObservationTarget target,
         ProtocolReason reason = ProtocolReason.NONE,
         ReadOnlyMemory<byte> ObservationData = default,
-        PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
+        PacketFlags flags = PacketFlags.SYSTEM)
     {
 
         this.Priority = PacketPriority.HIGH;
@@ -107,7 +107,7 @@ public sealed partial class RuntimeObservation : PacketBase<RuntimeObservation>,
         base.ResetForPool();
 
         this.Priority = PacketPriority.HIGH;
-        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
+        this.Flags = PacketFlags.SYSTEM;
         this.Stage = RuntimeObservationStage.NONE;
         this.Target = RuntimeObservationTarget.NONE;
         this.Reason = ProtocolReason.NONE;

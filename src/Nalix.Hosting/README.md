@@ -31,7 +31,7 @@ using var app = NetworkApplication.CreateBuilder()
     .ListenTcp<DefaultProtocol>()
         .OnPort(8080)
         .Bind()
-    .MapHandlers<MyPacketController>()  // Register handlers explicitly (AOT-safe)
+    .MapHandlers<MyPacketHandler>()  // Register handlers explicitly (AOT-safe)
     .Build();
 
 await app.RunAsync();
@@ -66,8 +66,8 @@ builder.Configure<NetworkSocketOptions>(options =>
 // 3. Register custom application services in the InstanceManager container
 InstanceManager.Instance.Register<IMyDatabase>(new MyDatabase());
 
-// 4. Register custom PacketController handlers explicitly (AOT-safe)
-builder.MapHandlers<MyPacketController>();
+// 4. Register custom PacketHandler handlers explicitly (AOT-safe)
+builder.MapHandlers<MyPacketHandler>();
 
 // Build and run the server application host
 using var host = builder.Build();

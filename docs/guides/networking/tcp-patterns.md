@@ -58,7 +58,7 @@ InstanceManager.Instance.Register<ILogger>(logger);
 ### 2. Create handler
 
 ```csharp
-[PacketController("SamplePingHandlers")]
+[PacketHandler("SamplePingHandlers")]
 public sealed class SamplePingHandlers
 {
     [PacketOpcode(0x1001)]

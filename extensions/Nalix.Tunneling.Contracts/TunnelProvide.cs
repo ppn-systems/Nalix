@@ -34,7 +34,7 @@ public sealed partial class TunnelProvide : PacketBase<TunnelProvide>, IFixedSiz
         base.ResetForPool();
 
         this.Priority = PacketPriority.HIGH;
-        this.Flags = PacketFlags.RELIABLE;
+        this.Flags = PacketFlags.NONE;
         this.ChannelId = 0;
     }
 }

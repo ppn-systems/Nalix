@@ -119,7 +119,7 @@ The server requires a **Handler** for logic and a **Protocol** bridge to the net
     using Contracts;
     using Nalix.Abstractions.Networking.Packets;
 
-    [PacketController("PingHandler")]
+    [PacketHandler("PingHandler")]
     public sealed class PingHandler
     {
         [PacketOpcode(PingRequest.OpCodeValue)]

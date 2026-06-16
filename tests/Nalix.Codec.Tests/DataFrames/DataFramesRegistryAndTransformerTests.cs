@@ -16,7 +16,7 @@ public sealed partial class DataFramesPublicApiTests
     public void DeserializeWhenRegisteredPacketBytesAreProvidedReturnsExpectedPacket()
     {
         Control packet = new();
-        packet.Initialize(ControlType.PONG, 88, PacketFlags.RELIABLE, ProtocolReason.NONE);
+        packet.Initialize(ControlType.PONG, 88, PacketFlags.NONE, ProtocolReason.NONE);
         byte[] bytes = packet.Serialize();
 
         IPacket deserialized = PacketRegistry.Deserialize(bytes);

@@ -15,7 +15,7 @@ namespace Nalix.Traversal.Handlers;
 /// <summary>
 /// Handles ReflectorInits from clients to establish a new Reflector Session.
 /// </summary>
-[PacketController("Nalix.Traversal")]
+[PacketHandler("Nalix.Traversal")]
 public sealed class ReflectorInitHandler
 {
     private readonly ReflectorManager _manager;

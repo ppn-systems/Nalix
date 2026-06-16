@@ -72,7 +72,7 @@ public sealed class PassthroughConnection :
 
     private SocketUdpTransport? _udpTransport;
     private IObjectMap<AttributeKey, object>? _attributes;
-    private EventHandler<IConnectionEventArgs>? _onCloseEvent;
+    private EventHandler<IConnectionEventArgs>? _ConnectionClosed;
 
     private int _isDisposed;
     private long _lastPingTime;
@@ -325,8 +325,8 @@ public sealed class PassthroughConnection :
     /// <inheritdoc />
     public event EventHandler<IConnectionEventArgs>? ConnectionClosed
     {
-        add => _onCloseEvent += value;
-        remove => _onCloseEvent -= value;
+        add => _ConnectionClosed += value;
+        remove => _ConnectionClosed -= value;
     }
 
     /// <inheritdoc />
@@ -347,17 +347,17 @@ public sealed class PassthroughConnection :
             return;
         }
 
-        // Fire OnCloseEvent so TimingWheel and ConnectionGuard can clean up.
+        // Fire ConnectionClosed so TimingWheel and ConnectionGuard can clean up.
         try
         {
-            if (_onCloseEvent != null)
+            if (_ConnectionClosed != null)
             {
                 ConnectionEventArgs args = new();
                 args.Initialize(this);
 
                 try
                 {
-                    Delegate[] handlers = _onCloseEvent.GetInvocationList();
+                    Delegate[] handlers = _ConnectionClosed.GetInvocationList();
                     for (int i = 0; i < handlers.Length; i++)
                     {
                         EventHandler<IConnectionEventArgs> handler = (EventHandler<IConnectionEventArgs>)handlers[i];

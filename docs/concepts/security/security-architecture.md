@@ -81,7 +81,7 @@ Security requirements are declared directly on handler methods using attributes:
 using System.Threading.Tasks;
 using Nalix.Abstractions.Networking.Packets;
 
-[PacketController("AccountHandlers")]
+[PacketHandler("AccountHandlers")]
 public sealed class AccountHandlers
 {
     [PacketOpcode(0x2001)]

@@ -35,7 +35,7 @@ public sealed partial class TunnelReady : PacketBase<TunnelReady>, IFixedSizeSer
         base.ResetForPool();
 
         this.Priority = PacketPriority.HIGH;
-        this.Flags = PacketFlags.RELIABLE;
+        this.Flags = PacketFlags.NONE;
         this.Token = default;
     }
 }

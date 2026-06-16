@@ -17,7 +17,7 @@ namespace Nalix.Traversal.Handlers;
 /// Handles peer signaling for NAT traversal.
 /// Forwards STUN discovered IP/Port information between peers over TCP.
 /// </summary>
-[PacketController("Nalix.Traversal")]
+[PacketHandler("Nalix.Traversal")]
 public sealed class PeerSignalHandler
 {
     /// <summary>

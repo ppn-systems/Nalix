@@ -109,7 +109,7 @@ public sealed class PacketRegistryTests : IDisposable
             reason: ProtocolReason.NONE,
             action: ProtocolAdvice.RETRY,
             sequenceId: 123,
-            flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE,
+            flags: PacketFlags.SYSTEM,
             controlFlags: ControlFlags.NONE,
             arg0: 0xDEAD,
             arg1: 0xBEEF,

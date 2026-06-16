@@ -329,7 +329,7 @@ public static class DispatchSetup
     }
 
     [Fact]
-    public async Task HandlerControllerMissingPacketControllerAttribute_ReportsNalix008()
+    public async Task HandlerControllerMissingPacketHandlerAttribute_ReportsNalix008()
     {
         const string source = """
 namespace Demo;
@@ -409,7 +409,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 
-[PacketController]
+[PacketHandler]
 public sealed class DemoController
 {
     [PacketOpcode(0x000A)]
@@ -468,7 +468,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 
-[PacketController]
+[PacketHandler]
 public sealed class DemoController
 {
     [PacketOpcode(0x1201)]
@@ -498,7 +498,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 
-[PacketController]
+[PacketHandler]
 public sealed class DemoController
 {
     public void Handle(DemoPacket packet, IConnection connection) { }
@@ -523,7 +523,7 @@ namespace Demo;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 
-[PacketController]
+[PacketHandler]
 public sealed class DemoController
 {
     [PacketOpcode(0x1202)]
@@ -896,14 +896,14 @@ public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
     public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
 }
 
-[PacketController]
+[PacketHandler]
 public sealed class ControllerA
 {
     [PacketOpcode(0x1234)]
     public void Handle(DemoPacket packet, IConnection connection) { }
 }
 
-[PacketController]
+[PacketHandler]
 public sealed class ControllerB
 {
     [PacketOpcode(0x1234)]
@@ -932,7 +932,7 @@ public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
     public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
 }
 
-[PacketController]
+[PacketHandler]
 public sealed class ControllerA
 {
     [PacketOpcode(0x1240)]
@@ -962,7 +962,7 @@ public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
     public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
 }
 
-[PacketController]
+[PacketHandler]
 public sealed class ControllerA
 {
     /// <summary>Handles packet opcode 0x8888.</summary>
@@ -1029,7 +1029,7 @@ public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
     public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
 }
 
-[PacketController]
+[PacketHandler]
 public sealed class ControllerA
 {
     [PacketOpcode(0x1242)]
@@ -1061,7 +1061,7 @@ public sealed class FixedType : IFixedSizeSerializable
     }
 
     [Fact]
-    public async Task DuplicatePacketControllerName_ReportsNalix054()
+    public async Task DuplicatePacketHandlerName_ReportsNalix054()
     {
         const string source = """
 namespace Demo;
@@ -1076,14 +1076,14 @@ public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
     public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
 }
 
-[PacketController("dup")]
+[PacketHandler("dup")]
 public sealed class ControllerA
 {
     [PacketOpcode(0x1243)]
     public void Handle(DemoPacket packet, IConnection connection) { }
 }
 
-[PacketController("dup")]
+[PacketHandler("dup")]
 public sealed class ControllerB
 {
     [PacketOpcode(0x1244)]
@@ -1110,7 +1110,7 @@ public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
     public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
 }
 
-[PacketController]
+[PacketHandler]
 public sealed class ControllerA
 {
     [PacketOpcode(0x1245)]
@@ -1140,7 +1140,7 @@ public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
     public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
 }
 
-[PacketController]
+[PacketHandler]
 public sealed class ControllerA
 {
     [PacketOpcode(0x1246)]
@@ -1204,7 +1204,7 @@ public sealed class OtherPacket : PacketBase<OtherPacket>, IPacketStaticOpcode
     public static new OtherPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<OtherPacket>.Deserialize(buffer);
 }
 
-[PacketController]
+[PacketHandler]
 public sealed class DemoController
 {
     [PacketOpcode(0x1250)]
@@ -1247,7 +1247,7 @@ public sealed class OtherPacket : PacketBase<OtherPacket>, IPacketStaticOpcode
     public static new OtherPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<OtherPacket>.Deserialize(buffer);
 }
 
-[PacketController]
+[PacketHandler]
 public sealed class DemoController
 {
     [PacketOpcode(0x1251)]
@@ -1364,7 +1364,7 @@ public static class Setup
     }
 
     [Fact]
-    public async Task AddHandlerWithInvalidType_ReportsNalix042()
+    public async Task MapHandlersWithInvalidType_ReportsNalix042()
     {
         const string source = """
 namespace Demo;

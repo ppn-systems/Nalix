@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 
-[PacketController]
+[PacketHandler]
 public sealed class ExampleController
 {
     public Task Handle(LoginPacket packet, IConnection connection)
@@ -41,7 +41,7 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 
-[PacketController]
+[PacketHandler]
 public sealed class ExampleController
 {
     [PacketOpcode(0x0000)]
@@ -67,7 +67,7 @@ public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
     }
 
     [Fact]
-    public async Task MissingPacketController_ProducesCodeFix()
+    public async Task MissingPacketHandler_ProducesCodeFix()
     {
         const string source = """
 namespace Demo;
@@ -101,7 +101,7 @@ namespace Demo;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
-[PacketController]
+[PacketHandler]
 public sealed class ExampleController
 {
     [PacketOpcode(1)]
@@ -124,13 +124,13 @@ public sealed class Example
 }
 """;
 
-        await Verifier<PacketControllerCodeFixProvider>.VerifyCodeFixAsync(
+        await Verifier<PacketHandlerCodeFixProvider>.VerifyCodeFixAsync(
             source,
             fixedSource,
             "NALIX008",
             actionIndex: 0,
-            expectedTitle: "Add [PacketController]",
-            expectedEquivalenceKey: "Nalix.PacketController.Add");
+            expectedTitle: "Add [PacketHandler]",
+            expectedEquivalenceKey: "Nalix.PacketHandler.Add");
     }
 
     [Fact]

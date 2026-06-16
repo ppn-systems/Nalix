@@ -11,7 +11,7 @@ namespace Nalix.Tunneling.Handlers;
 /// <summary>
 /// Handles the TunnelProvide packet from the Provider.
 /// </summary>
-[PacketController("Nalix.Tunneling")]
+[PacketHandler("Nalix.Tunneling")]
 public sealed class ProviderHandler
 {
     private readonly ILogger? _logger;

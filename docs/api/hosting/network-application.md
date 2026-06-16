@@ -8,7 +8,7 @@ While you can instantiate listeners and protocols manually, the `NetworkApplicat
 
 - **Unified Lifecycle**: Ensures that the memory pool, handler registry, dispatcher, and listeners are activated and deactivated in the correct order.
 - **Automatic Service Injection**: Automatically registers critical shared services (Logger, ConnectionHub, BufferPool) into the `InstanceManager`.
-- **Handler Discovery**: Registers `[PacketController]` classes for source-generated dispatch. The `PacketHandlerGenerator` produces zero-allocation invokers at compile time, eliminating runtime reflection.
+- **Handler Discovery**: Registers `[PacketHandler]` classes for source-generated dispatch. The `PacketHandlerGenerator` produces zero-allocation invokers at compile time, eliminating runtime reflection.
 - **Coexistence**: Easily manages multiple listeners (e.g., TCP and UDP) within the same application process.
 
 The public API surface revolves around two main types:

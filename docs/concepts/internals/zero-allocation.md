@@ -69,7 +69,7 @@ public sealed class HighFreqUpdate : PacketBase<HighFreqUpdate>
 
 ## 2. Source-Generated Handler Execution
 
-Nalix does not use reflection at runtime. The `PacketHandlerGenerator` source generator scans `[PacketController]` classes at compile time and emits zero-allocation invoker delegates.
+Nalix does not use reflection at runtime. The `PacketHandlerGenerator` source generator scans `[PacketHandler]` classes at compile time and emits zero-allocation invoker delegates.
 
 ### Behind the Scenes
 
@@ -322,7 +322,7 @@ dotnet-counters monitor -p <PID> --counters Nalix.Framework,System.Runtime[alloc
 - [x] Use `struct` or pooled `class` for packets.
 - [x] Use `IPacketContext<T>` to leverage frame-level pooling.
 - [x] Use `ReadOnlyMemory<byte>` handlers for zero-deserialization bypass.
-- [x] Annotate controllers with `[PacketController]`.
+- [x] Annotate controllers with `[PacketHandler]`.
 - [x] Use `[PacketOpcode]` for zero-reflection routing.
 - [x] Use SIMD primitives (`Bytes32`) for security checks.
 - [x] Return `ValueTask` from handlers.

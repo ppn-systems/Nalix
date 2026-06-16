@@ -144,7 +144,7 @@ public sealed partial class NalixUsageAnalyzer
         public static SymbolSet? Create(Compilation compilation)
         {
             INamedTypeSymbol? packetOpcodeAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.Networking.Packets.PacketOpcodeAttribute");
-            INamedTypeSymbol? controllerAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.Networking.Packets.PacketControllerAttribute");
+            INamedTypeSymbol? controllerAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.Networking.Packets.PacketHandlerAttribute");
             INamedTypeSymbol? packetInterface = compilation.GetTypeByMetadataName("Nalix.Abstractions.Networking.Packets.IPacket");
             INamedTypeSymbol? packetBaseType = compilation.GetTypeByMetadataName("Nalix.Codec.DataFrames.PacketBase`1");
             INamedTypeSymbol? serializePackableAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.Serialization.SerializePackableAttribute");

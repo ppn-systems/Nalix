@@ -38,7 +38,7 @@ public class WebSocketTransportTests : IDisposable
         {
             private readonly IntegrationTestProtocol _protocol;
             public WebTestFrameProcessor(IntegrationTestProtocol protocol) => _protocol = protocol;
-            public void ProcessFrame(object? sender, IConnectEventArgs args) => _protocol.ProcessMessage(sender, args);
+            public void ProcessFrame(object? sender, IConnectionEventArgs args) => _protocol.ProcessMessage(sender, args);
         }
 
         private sealed class StubOpCodeExtractor : Nalix.Abstractions.Networking.Protocols.IOpCodeExtractor
@@ -56,7 +56,7 @@ public class WebSocketTransportTests : IDisposable
             this.SetConnectionAcceptance(true);
         }
 
-        public override void ProcessMessage(object? sender, IConnectEventArgs args)
+        public override void ProcessMessage(object? sender, IConnectionEventArgs args)
         {
             Interlocked.Increment(ref ProcessedCount);
             // Echo the payload back exactly as received

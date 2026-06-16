@@ -87,7 +87,7 @@ namespace Nalix.Abstractions.Networking.Packets;
 /// <example>
 /// Example of a valid controller with the required handler methods:
 /// <code>
-/// [PacketController(name: "ExampleController", isActive: true, version: "1.1")]
+/// [PacketHandler(name: "ExampleController", isActive: true, version: "1.1")]
 /// public class ExampleController
 /// {
 ///     // A handler with 2 parameters
@@ -120,7 +120,7 @@ namespace Nalix.Abstractions.Networking.Packets;
 /// Defaults to <c>"1.0"</c>.
 /// </param>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-public sealed class PacketControllerAttribute(
+public sealed class PacketHandlerAttribute(
     string name = "None",
     bool isActive = true,
     string version = "1.0") : Attribute

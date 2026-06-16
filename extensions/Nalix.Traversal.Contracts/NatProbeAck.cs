@@ -40,6 +40,6 @@ public sealed partial class NatProbeAck : PacketBase<NatProbeAck>, IFixedSizeSer
 
         this.PeerId = 0;
         this.Priority = PacketPriority.HIGH;
-        this.Flags = PacketFlags.UNRELIABLE;
+        this.Flags = PacketFlags.NONE;
     }
 }

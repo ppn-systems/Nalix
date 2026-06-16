@@ -235,7 +235,7 @@ public sealed class ExtensionsCoverageTests
         PacketHeader header = new()
         {
             OpCode = 0x7788,
-            Flags = PacketFlags.RELIABLE,
+            Flags = PacketFlags.NONE,
             Priority = PacketPriority.HIGH,
             SequenceId = 0x1234
         };

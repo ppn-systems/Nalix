@@ -1,6 +1,6 @@
 # Packet Handler Generator
 
-The `PacketHandlerGenerator` is a Roslyn incremental source generator that produces zero-allocation dispatch compilers for classes annotated with `[PacketController]`. It replaces the runtime reflection-based handler compilation model with compile-time code generation.
+The `PacketHandlerGenerator` is a Roslyn incremental source generator that produces zero-allocation dispatch compilers for classes annotated with `[PacketHandler]`. It replaces the runtime reflection-based handler compilation model with compile-time code generation.
 
 ## Source Mapping
 
@@ -10,7 +10,7 @@ The `PacketHandlerGenerator` is a Roslyn incremental source generator that produ
 
 At compile time, the generator:
 
-1. Scans all classes annotated with `[PacketController]` across the compilation.
+1. Scans all classes annotated with `[PacketHandler]` across the compilation.
 2. For each controller, inspects methods annotated with `[PacketOpcode]`.
 3. Emits an `IPacketHandlerCompiler` implementation that registers each handler via `IPacketHandlerBuilder<TPacket>.RegisterHandler(...)`.
 4. Emits a `[ModuleInitializer]` that registers the compiler with `PacketHandlerRegistry.Register(...)` at assembly load time.
@@ -20,7 +20,7 @@ At compile time, the generator:
 For a controller like:
 
 ```csharp
-[PacketController("SampleHandlers")]
+[PacketHandler("SampleHandlers")]
 public sealed class SampleHandlers
 {
     [PacketOpcode(0x1001)]

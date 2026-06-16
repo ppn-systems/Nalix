@@ -67,7 +67,7 @@ public sealed partial class PeerSignal : PacketBase<PeerSignal>, IFixedSizeSeria
         this.AddressHigh = 0;
         this.TargetPeerId = 0;
         this.Type = SignalType.Request;
-        this.Flags = PacketFlags.RELIABLE;
+        this.Flags = PacketFlags.NONE;
         this.Priority = PacketPriority.NONE;
 
     }

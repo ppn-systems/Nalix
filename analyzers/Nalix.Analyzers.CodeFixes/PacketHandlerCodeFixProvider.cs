@@ -16,11 +16,11 @@ using Microsoft.CodeAnalysis.Editing;
 
 namespace Nalix.Analyzers.CodeFixes;
 
-[ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(PacketControllerCodeFixProvider)), Shared]
-public sealed class PacketControllerCodeFixProvider : CodeFixProvider
+[ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(PacketHandlerCodeFixProvider)), Shared]
+public sealed class PacketHandlerCodeFixProvider : CodeFixProvider
 {
-    private const string Title = "Add [PacketController]";
-    private const string EquivalenceKey = "Nalix.PacketController.Add";
+    private const string Title = "Add [PacketHandler]";
+    private const string EquivalenceKey = "Nalix.PacketHandler.Add";
 
     public override ImmutableArray<string> FixableDiagnosticIds => ["NALIX008"];
 
@@ -59,17 +59,17 @@ public sealed class PacketControllerCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 title: Title,
-                createChangedDocument: cancellationToken => AddPacketControllerAsync(context.Document, targetType, cancellationToken),
+                createChangedDocument: cancellationToken => AddPacketHandlerAsync(context.Document, targetType, cancellationToken),
                 equivalenceKey: EquivalenceKey),
             diagnostic);
     }
 
-    private static async Task<Document> AddPacketControllerAsync(Document document, TypeDeclarationSyntax typeDeclaration, CancellationToken cancellationToken)
+    private static async Task<Document> AddPacketHandlerAsync(Document document, TypeDeclarationSyntax typeDeclaration, CancellationToken cancellationToken)
     {
         DocumentEditor editor = await DocumentEditor.CreateAsync(document, cancellationToken).ConfigureAwait(false);
         AttributeListSyntax attributeList = SyntaxFactory.AttributeList(
             SyntaxFactory.SingletonSeparatedList(
-                SyntaxFactory.Attribute(SyntaxFactory.IdentifierName("PacketController"))));
+                SyntaxFactory.Attribute(SyntaxFactory.IdentifierName("PacketHandler"))));
 
         editor.ReplaceNode(typeDeclaration, typeDeclaration.AddAttributeLists(attributeList));
         return editor.GetChangedDocument();

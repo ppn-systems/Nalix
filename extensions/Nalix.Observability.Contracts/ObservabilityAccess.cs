@@ -71,7 +71,7 @@ public sealed partial class ObservabilityAccess : PacketBase<ObservabilityAccess
         ProtocolReason reason = ProtocolReason.NONE,
         PermissionLevel AccessLevel = PermissionLevel.NONE,
         Bytes32 accessKey = default,
-        PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
+        PacketFlags flags = PacketFlags.SYSTEM)
     {
 
         this.Priority = PacketPriority.URGENT;
@@ -90,7 +90,7 @@ public sealed partial class ObservabilityAccess : PacketBase<ObservabilityAccess
         base.ResetForPool();
 
         this.Priority = PacketPriority.URGENT;
-        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
+        this.Flags = PacketFlags.SYSTEM;
         this.Stage = ObservabilityAccessStage.NONE;
         this.Reason = ProtocolReason.NONE;
         this.AccessLevel = PermissionLevel.NONE;

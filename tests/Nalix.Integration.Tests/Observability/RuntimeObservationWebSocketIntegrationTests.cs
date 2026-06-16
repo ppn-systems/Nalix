@@ -343,7 +343,7 @@ public sealed class RuntimeObservationWebSocketIntegrationTests : IDisposable
             this.KeepConnectionOpen = true;
         }
 
-        public override void ProcessMessage(object? sender, IConnectEventArgs args)
+        public override void ProcessMessage(object? sender, IConnectionEventArgs args)
         {
             if (args.Lease is null)
             {

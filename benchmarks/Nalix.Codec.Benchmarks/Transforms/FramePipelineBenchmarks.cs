@@ -44,7 +44,7 @@ public class FramePipelineBenchmarks
         var lease = BufferLease.Rent(FrameTransformer.Offset + PayloadSize);
         lease.CommitLength(FrameTransformer.Offset + PayloadSize);
         lease.Span[..FrameTransformer.Offset].Clear();
-        lease.Span.AsHeaderRef() = new PacketHeader { Flags = PacketFlags.RELIABLE };
+        lease.Span.AsHeaderRef() = new PacketHeader { Flags = PacketFlags.NONE };
         _payload.CopyTo(lease.Span[FrameTransformer.Offset..]);
         return lease;
     }

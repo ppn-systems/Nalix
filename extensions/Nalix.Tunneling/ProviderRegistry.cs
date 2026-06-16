@@ -31,7 +31,7 @@ public sealed class ProviderRegistry
         if (_providers.TryAdd(channelId, (connection, sender)))
         {
             // Bind lifecycle: remove from registry when connection closes in O(1) time
-            connection.OnCloseEvent += (s, e) =>
+            connection.ConnectionClosed += (s, e) =>
             {
                 if (_providers.TryGetValue(channelId, out (IConnection Connection, IPacketSender Sender) existing) && existing.Connection == e.Connection)
                 {

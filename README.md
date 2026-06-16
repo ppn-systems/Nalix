@@ -144,7 +144,7 @@ using Nalix.Network.Options;
 // Initialize and configure the application host
 using var host = NetworkApplication.CreateBuilder()
     .ListenTcp<DefaultProtocol>().OnPort(8080).Bind()
-    .ScanHandlers<Program>() // Auto-discovers all custom PacketController types in the assembly
+    .ScanHandlers<Program>() // Auto-discovers all custom PacketHandler types in the assembly
     .Configure<NetworkSocketOptions>(opt => opt.NoDelay = true)
     .Build();
 
