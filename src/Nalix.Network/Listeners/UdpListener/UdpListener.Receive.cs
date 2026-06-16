@@ -14,7 +14,6 @@ using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
-using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Environment.Extensions;
 using Nalix.Environment.Hashing;
@@ -554,15 +553,6 @@ public abstract partial class UdpListenerBase
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
             DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"short-packet-drop header remote-end-point={remoteEndPoint} payload-length={payloadLength}"));
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void LOG_INVALID_FLAGS_DROP(EndPoint remoteEndPoint, PacketFlags flags)
-    {
-        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
-        {
-            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.UdpListenerBase:Internal", $"invalid-flags-drop remote-end-point={remoteEndPoint} header-flags={flags}"));
         }
     }
 

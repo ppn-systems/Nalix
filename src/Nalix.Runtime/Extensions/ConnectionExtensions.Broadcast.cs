@@ -20,58 +20,8 @@ namespace Nalix.Runtime.Extensions;
 /// <summary>
 /// Provides extension methods for <see cref="IConnectionHub"/> to support packet-based broadcast and multicast.
 /// </summary>
-public static class ConnectionHubExtensions
+public static partial class ConnectionExtensions
 {
-    private static readonly CompressionOptions s_options = ConfigurationManager.Instance.Get<CompressionOptions>();
-
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types")]
-    private readonly struct BroadcastState
-    {
-        public readonly IBufferLease RawLease;
-        public readonly NetworkTransport Transport;
-        public readonly bool EnableEncrypt;
-        public readonly bool EnableCompress;
-        public readonly int MinSizeToCompress;
-
-        public BroadcastState(
-            IBufferLease rawLease,
-            NetworkTransport transport,
-            bool enableEncrypt,
-            bool enableCompress,
-            int minSizeToCompress)
-        {
-            RawLease = rawLease;
-            Transport = transport;
-            EnableEncrypt = enableEncrypt;
-            EnableCompress = enableCompress;
-            MinSizeToCompress = minSizeToCompress;
-        }
-    }
-
-    private readonly struct PacketSenderAction : IConnectionSender<BroadcastState>
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ValueTask SendAsync(IConnection connection, ref BroadcastState state, CancellationToken ct)
-        {
-            IConnection.ITransport? targetTransport =
-                state.Transport == NetworkTransport.UDP ? connection.UDP : connection.TCP;
-
-            if (targetTransport is null)
-            {
-                return default;
-            }
-
-            return PacketPipeline.ProcessAndSendAsync(
-                connection,
-                targetTransport,
-                state.RawLease,
-                state.EnableEncrypt,
-                state.EnableCompress,
-                state.MinSizeToCompress,
-                ct);
-        }
-    }
-
     /// <summary>
     /// Broadcasts a packet to all active connections.
     /// The packet is serialized once, and the compression/encryption pipeline is applied per-connection.
@@ -181,4 +131,62 @@ public static class ConnectionHubExtensions
             rawLease.Dispose();
         }
     }
+
+    #region Options
+
+    private static readonly CompressionOptions s_options = ConfigurationManager.Instance.Get<CompressionOptions>();
+
+    #endregion Options
+
+    #region Nested Types
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types")]
+    private readonly struct BroadcastState
+    {
+        public readonly IBufferLease RawLease;
+        public readonly NetworkTransport Transport;
+        public readonly bool EnableEncrypt;
+        public readonly bool EnableCompress;
+        public readonly int MinSizeToCompress;
+
+        public BroadcastState(
+            IBufferLease rawLease,
+            NetworkTransport transport,
+            bool enableEncrypt,
+            bool enableCompress,
+            int minSizeToCompress)
+        {
+            RawLease = rawLease;
+            Transport = transport;
+            EnableEncrypt = enableEncrypt;
+            EnableCompress = enableCompress;
+            MinSizeToCompress = minSizeToCompress;
+        }
+    }
+
+    private readonly struct PacketSenderAction : IConnectionSender<BroadcastState>
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ValueTask SendAsync(IConnection connection, ref BroadcastState state, CancellationToken ct)
+        {
+            IConnection.ITransport? targetTransport =
+                state.Transport == NetworkTransport.UDP ? connection.UDP : connection.TCP;
+
+            if (targetTransport is null)
+            {
+                return default;
+            }
+
+            return PacketPipeline.ProcessAndSendAsync(
+                connection,
+                targetTransport,
+                state.RawLease,
+                state.EnableEncrypt,
+                state.EnableCompress,
+                state.MinSizeToCompress,
+                ct);
+        }
+    }
+
+    #endregion Nested Types
 }

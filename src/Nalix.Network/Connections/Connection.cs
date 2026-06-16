@@ -338,8 +338,12 @@ public sealed partial class Connection :
             return;
         }
 
-        var backing = Volatile.Read(ref _backing);
-        if (backing != null) Interlocked.Increment(ref backing.PendingProcessCallbacks);
+        ConnectionBacking? backing = Volatile.Read(ref _backing);
+        if (backing != null)
+        {
+            Interlocked.Increment(ref backing.PendingProcessCallbacks);
+        }
+
         args.Initialize(lease, this);
 
         if (!Internal.Transport.AsyncCallback.Invoke(MessageProcessingBridge, this, args, CallbackLane.Process, releasePendingPacketOnCompletion: true))
