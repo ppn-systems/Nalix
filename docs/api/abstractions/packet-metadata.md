@@ -31,7 +31,6 @@ flowchart LR
 | `permission` | `PacketPermissionAttribute?` | Required permission level. |
 | `encryption` | `PacketEncryptionAttribute?` | Encryption requirement. |
 | `rateLimit` | `PacketRateLimitAttribute?` | Per-connection rate limit. |
-| `concurrencyLimit` | `PacketConcurrencyLimitAttribute?` | Parallel execution cap. |
 | `transport` | `PacketTransportAttribute?` | Preferred transport (TCP/UDP). |
 | `customAttributes` | `IReadOnlyDictionary<Type, Attribute>?` | Additional custom attributes. |
 

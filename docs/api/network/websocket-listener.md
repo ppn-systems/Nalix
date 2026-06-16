@@ -70,7 +70,7 @@ public abstract class WebSocketListenerBase : IListener, IDisposable
 * `public void Deactivate(CancellationToken cancellationToken = default)`  
   Stops the listener, closes open sockets, and cancels background tasks.
 
-* `public abstract void ProcessFrame(object? sender, IConnectEventArgs args)`  
+* `public abstract void ProcessFrame(object? sender, IConnectionEventArgs args)`  
   Must be implemented by subclasses to process inbound connection events (e.g. framing, sequence verification).
 
 * `public string GenerateReport()`  
@@ -90,7 +90,7 @@ public abstract class WebSocketListenerBase : IListener, IDisposable
 * `protected async Task AcceptConnectionsAsync(IWorkerContext ctx, CancellationToken cancellationToken)`  
   Worker loop accepting incoming connection upgrades.
 
-* `protected void HandleConnectionClose(object? sender, IConnectEventArgs args)`  
+* `protected void HandleConnectionClose(object? sender, IConnectionEventArgs args)`  
   Cleans up connection event subscriptions on disconnect.
 
 ## Usage Example
@@ -110,7 +110,7 @@ public sealed class CustomWebSocketListener : WebSocketListenerBase
     {
     }
 
-    public override void ProcessFrame(object? sender, IConnectEventArgs args)
+    public override void ProcessFrame(object? sender, IConnectionEventArgs args)
     {
         // Decode inbound data lease, perform protocol parsing, etc.
         var lease = args.Lease;

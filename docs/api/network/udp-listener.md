@@ -103,7 +103,7 @@ Once authenticated, the UDP payload follows a standardized processing pipeline:
 3. **Async Dispatch**: The payload is wrapped into `ConnectionEventArgs` and forwarded through `AsyncCallback.Invoke(...)`.
 4. **Processing**: `ProcessFrame(...)` applies `FramePipeline.ProcessInbound(...)`.
 5. **Protocol Delivery**: The resolved `IProtocol` receives the clean payload via `ProcessMessage(...)`.
-6. **Automatic Disposal**: The `IConnectEventArgs` (carrying the lease) is automatically disposed and returned to its pool via an internal **Event Bridge** once processing is complete.
+6. **Automatic Disposal**: The `IConnectionEventArgs` (carrying the lease) is automatically disposed and returned to its pool via an internal **Event Bridge** once processing is complete.
 
 ## 4. Public API Surface
 
