@@ -58,6 +58,8 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
                     $"deny op=0x{context.Attributes.PacketOpcode.OpCode:X4} need={needLevel} have={context.Connection.Level}"));
         }
 
+        context.Connection.IncrementErrorCount();
+
         if (!DirectiveGuard.TryAcquire(
             context.Connection,
             ConnectionAttributes.InboundDirectiveUnauthorizedLastSentAtMs))
