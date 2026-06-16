@@ -97,7 +97,7 @@ public sealed class SampleProtocol : Protocol
         _logger = logger;
     }
 
-    public override void ProcessMessage(object? sender, IConnectEventArgs args)
+    public override void ProcessMessage(object? sender, IConnectionEventArgs args)
         => _dispatch.HandlePacket(args.Lease, args.Connection);
 
     protected override void OnConnectionError(IConnection connection, Exception ex)

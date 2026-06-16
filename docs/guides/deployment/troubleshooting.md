@@ -24,7 +24,7 @@ Use it after the basic server shape exists and the runtime still is not behaving
 Use this exact pattern first:
 
 ```csharp
-public override void ProcessMessage(object? sender, IConnectEventArgs args)
+public override void ProcessMessage(object? sender, IConnectionEventArgs args)
     => _dispatch.HandlePacket(args.Lease, args.Connection);
 ```
 
@@ -85,7 +85,7 @@ public override void ProcessMessage(object? sender, IConnectEventArgs args)
 
 - bound per-connection queue size
 - lower abusive connection pressure with `ConnectionGuard`
-- add packet-level throttling or concurrency middleware
+- add packet-level rate-limiting middleware
 
 ## 5. Middleware runs, but custom metadata is missing
 
@@ -151,7 +151,7 @@ When you are debugging, these usually give the fastest signal:
 - `connectionHub.GenerateReport()`
 - `connectionGuard.GenerateReport()`
 - `packetDispatchChannel.GenerateReport()`
-- `concurrencyGate.GenerateReport()`
+- `tokenBucketLimiter.GenerateReport()`
 
 ## Recommended Next Pages
 

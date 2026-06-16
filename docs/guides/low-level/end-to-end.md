@@ -63,7 +63,7 @@ public sealed class SampleProtocol : Protocol
 
     public SampleProtocol(PacketDispatchChannel dispatch) => _dispatch = dispatch;
 
-    public override void ProcessMessage(object? sender, IConnectEventArgs args)
+    public override void ProcessMessage(object? sender, IConnectionEventArgs args)
         => _dispatch.HandlePacket(args.Lease, args.Connection);
 }
 ```

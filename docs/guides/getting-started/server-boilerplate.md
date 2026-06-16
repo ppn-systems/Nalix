@@ -92,10 +92,9 @@ builder.ConfigureDispatchOptions(options =>
 {
     options
         // Add security layers
-        .WithMiddleware(new ConcurrencyMiddleware())
         .WithMiddleware(new RateLimitMiddleware())
         // Handle global failures
-        .WithErrorHandling((ex, opcode) => 
+        .WithErrorHandling((ex, opcode) =>
         {
              Console.WriteLine($"Error in opcode 0x{opcode:X4}: {ex.Message}");
         });
@@ -146,7 +145,7 @@ dispatch.Dispose();
 ## Best Practices Checklist
 
 - [x] **Contracts**: Keep packet POCOs in a separate project shared with the client.
-- [x] **Logging**: Always use `NLogix` or a production-ready `ILogger`.
+- [x] **Logging**: Always use a production-ready `ILogger`.
 - [x] **Validation**: Call `.Validate()` on all Options objects before booting.
 - [x] **Protocols**: Use `ValidateConnection(...)`, `IsAccepting`, and `SetConnectionAcceptance(bool)` intentionally. `DefaultProtocol` already enables acceptance for the common dispatch-forwarding path.
 

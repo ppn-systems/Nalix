@@ -115,7 +115,7 @@ using var app = NetworkApplication.CreateBuilder()
     .MapHandlers<DataHandlers>()
     // 3. Configure Dispatch Middleware
     .ConfigureDispatchOptions(dispatch => {
-        dispatch.WithMiddleware(new ConcurrencyMiddleware())
+        dispatch.WithMiddleware(new RateLimitMiddleware())
                 .WithErrorHandling((ex, cmd) => logger.Error("Unhandled!", ex));
     })
     // 4. Bind Transport
@@ -130,7 +130,7 @@ public sealed class ProductionProtocol : Protocol
 
     public ProductionProtocol(IPacketDispatch dispatch) => _dispatch = dispatch;
 
-    public override void ProcessMessage(object? sender, IConnectEventArgs args)
+    public override void ProcessMessage(object? sender, IConnectionEventArgs args)
         => _dispatch.HandlePacket(args.Lease, args.Connection);
 }
 ```
@@ -163,7 +163,7 @@ Console.WriteLine($"Server said: {response.Message}");
 
 ## 5. Production Checklist
 
-- [ ] **Logging**: Ensure `NLogix` is configured with a high-performance sink (e.g., `BatchConsoleLogTarget`).
+- [ ] **Logging**: Ensure `ILogger` is configured with a production-ready sink.
 - [ ] **Timeouts**: Set `TimeoutMs` on all client calls via `RequestOptions`.
 - [ ] **Backpressure**: Configure `NetworkSocketOptions.Backlog` and `DispatchOptions` (`MaxPerConnectionQueue`, `DropPolicy`).
 - [ ] **Health Checks**: Use listener / hub / dispatch reports to monitor live sessions.

@@ -126,7 +126,7 @@ public sealed class ServerProtocol : Protocol
         this.IsAccepting = true;
     }
 
-    public override void ProcessMessage(object? sender, IConnectEventArgs args)
+    public override void ProcessMessage(object? sender, IConnectionEventArgs args)
         => _dispatch.HandlePacket(args.Lease, args.Connection);
 }
 ```

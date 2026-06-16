@@ -11,7 +11,7 @@
 Nalix resolves handler metadata (opcode, timeout, permission, encryption, rate limit,
 concurrency limit, transport preference) at compile time using the `PacketHandlerGenerator`
 source generator. The generator reads the attributes on your handler methods and produces a
-`PacketMetadata` struct directly — no runtime builder or provider registration is needed.
+`PacketMetadata` struct directly â€” no runtime builder or provider registration is needed.
 
 ### How it works
 
