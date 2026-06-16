@@ -125,7 +125,6 @@ Nalix is composed of several modular packages — install only what you need.
 
 | Package | Description |
 | :--- | :--- |
-| **[Nalix.Logging](src/Nalix.Logging)** | Lightweight asynchronous logging for debugging and diagnostics. |
 | **[Nalix.SDK](src/Nalix.SDK)** | Client-side SDK: transport sessions, request/response patterns, and encryption. |
 | **[Nalix.Analyzers](src/Nalix.Analyzers)** | Roslyn analyzers and code fixes to enforce Nalix best practices. |
 | **[Nalix.Analyzers.Generators](src/Nalix.Analyzers.Generators)** | Source generators and analyzers. |
@@ -163,15 +162,12 @@ await host.RunAsync();
 # Core server setup
 dotnet add package Nalix.Network.Hosting
 
-# Optional: structured logging
-dotnet add package Nalix.Logging
-
 # Optional: client SDK
 dotnet add package Nalix.SDK
 
 # Optional: Roslyn analyzers
 # Optional: Roslyn analyzers generators
-dotnet add package Nalix.Abstractions 
+dotnet add package Nalix.Abstractions
 ```
 
 ---

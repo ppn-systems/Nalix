@@ -274,6 +274,8 @@ nav:
         - Key Exchange: api/security/key-exchange.md
         - Handshake Protocol: api/security/handshake.md
         - Session Resume: api/security/session-resume.md
+        - Session Rekey: api/security/session-rekey.md
+        - Proof-of-Work: api/security/proof-of-work.md
         - Permission Levels: api/security/permission-level.md
       - Runtime:
         - Overview: api/runtime/index.md
@@ -289,7 +291,6 @@ nav:
         - Middleware:
           - Overview: api/runtime/middleware/index.md
           - Pipeline: api/runtime/middleware/pipeline.md
-          - Concurrency Gate: api/runtime/middleware/concurrency-gate.md
           - Policy Rate Limiter: api/runtime/middleware/policy-rate-limiter.md
           - Token Bucket Limiter: api/runtime/middleware/token-bucket-limiter.md
           - Permission Middleware: api/runtime/middleware/permission-middleware.md
