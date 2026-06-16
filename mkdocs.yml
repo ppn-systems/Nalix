@@ -347,6 +347,7 @@ nav:
           - Connection Ban Store: api/options/network/connection-ban-store-options.md
           - Connection Blacklist Store: api/options/network/connection-blacklist-store-options.md
           - Trusted Proxy: api/options/network/trusted-proxy-options.md
+          - Proxy Protocol: api/options/network/proxy-protocol-options.md
           - Connection Hub: api/options/network/connection-hub-options.md
           - WebSocket Transport: api/options/network/websocket-options.md
           - Datagram Guard: api/options/network/datagram-guard-options.md
