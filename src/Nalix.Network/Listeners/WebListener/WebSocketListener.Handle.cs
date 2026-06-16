@@ -42,17 +42,17 @@ public abstract partial class WebSocketListenerBase
     /// <param name="sender">The sender.</param>
     /// <param name="args">The event arguments.</param>
     [DebuggerStepThrough]
-    protected void HandleConnectionClose(object? sender, IConnectEventArgs args)
+    protected void HandleConnectionClose(object? sender, IConnectionEventArgs args)
     {
         if (args?.Connection == null)
         {
             return;
         }
 
-        args.Connection.OnCloseEvent -= this.HandleConnectionClose;
-        args.Connection.OnCloseEvent -= _limiter.OnConnectionClosed;
-        args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage;
-        args.Connection.OnProcessEvent -= _protocol.FrameProcessor.ProcessFrame;
+        args.Connection.ConnectionClosed -= this.HandleConnectionClose;
+        args.Connection.ConnectionClosed -= _limiter.OnConnectionClosed;
+        args.Connection.MessageProcessed -= _protocol.PostProcessMessage;
+        args.Connection.MessageProcessing -= _protocol.FrameProcessor.ProcessFrame;
 
         args.Connection.Dispose();
     }
@@ -396,19 +396,19 @@ public abstract partial class WebSocketListenerBase
     private void InitializeConnection(WebSocketConnection connection)
     {
         // Subscribe to lifecycle events.
-        connection.OnCloseEvent += this.HandleConnectionClose;
+        connection.ConnectionClosed += this.HandleConnectionClose;
 
         // WHY subscribe to _limiter.OnConnectionClosed:
         // When the connection closes, the limiter's active connection counter for this IP 
         // must be decremented so the client can connect again in the future.
-        connection.OnCloseEvent += _limiter.OnConnectionClosed;
+        connection.ConnectionClosed += _limiter.OnConnectionClosed;
 
         // Keep post-process as you already have.
         // If your PostProcessMessage should run after app protocol, leaving it subscribed is OK.
-        connection.OnPostProcessEvent += _protocol.PostProcessMessage;
+        connection.MessageProcessed += _protocol.PostProcessMessage;
 
         // Wire the internal listener method to handle the shared pipeline before routing.
-        connection.OnProcessEvent += _protocol.FrameProcessor.ProcessFrame;
+        connection.MessageProcessing += _protocol.FrameProcessor.ProcessFrame;
 
         if (_config.EnableTimeout)
         {

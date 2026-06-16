@@ -51,9 +51,9 @@ public class PolicyRateLimiterBenchmarks
         public CipherSuiteType Algorithm { get; set; }
 
 #pragma warning disable CS0067 // Event is never used
-        public event EventHandler<IConnectEventArgs>? OnCloseEvent;
-        public event EventHandler<IConnectEventArgs>? OnProcessEvent;
-        public event EventHandler<IConnectEventArgs>? OnPostProcessEvent;
+        public event EventHandler<IConnectionEventArgs>? ConnectionClosed;
+        public event EventHandler<IConnectionEventArgs>? MessageProcessing;
+        public event EventHandler<IConnectionEventArgs>? MessageProcessed;
 #pragma warning restore CS0067
 
         public void Disconnect(string? reason = null) { }

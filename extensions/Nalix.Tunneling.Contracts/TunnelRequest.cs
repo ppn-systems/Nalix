@@ -34,7 +34,7 @@ public sealed partial class TunnelRequest : PacketBase<TunnelRequest>, IFixedSiz
     {
         base.ResetForPool();
         this.Priority = PacketPriority.HIGH;
-        this.Flags = PacketFlags.RELIABLE;
+        this.Flags = PacketFlags.NONE;
         this.Token = default;
     }
 }

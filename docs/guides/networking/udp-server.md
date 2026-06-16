@@ -51,7 +51,7 @@ Use it to:
     If you are using `NetworkApplication` (Hosting layer), you don't need to subclass `UdpListenerBase` just for authentication. Provide a predicate while configuring the builder, before `Build()`:
     ```csharp
     using var app = NetworkApplication.CreateBuilder()
-        .BindUdp<MyProtocol>().WithAuthentication((connection, endpoint, payload) =>
+        .ListenUdp<MyProtocol>().WithAuthentication((connection, endpoint, payload) =>
             connection.Level >= PermissionLevel.USER).Bind()
         .Build();
     ```

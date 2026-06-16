@@ -338,11 +338,15 @@ public sealed partial class Connection :
             return;
         }
 
-        var backing = Volatile.Read(ref _backing);
-        if (backing != null) Interlocked.Increment(ref backing.PendingProcessCallbacks);
+        ConnectionBacking? backing = Volatile.Read(ref _backing);
+        if (backing != null)
+        {
+            Interlocked.Increment(ref backing.PendingProcessCallbacks);
+        }
+
         args.Initialize(lease, this);
 
-        if (!Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, CallbackLane.Process, releasePendingPacketOnCompletion: true))
+        if (!Internal.Transport.AsyncCallback.Invoke(MessageProcessingBridge, this, args, CallbackLane.Process, releasePendingPacketOnCompletion: true))
         {
             ((IPooledConnectContextPool)this).ReleasePendingPacket();
             _ = args.ExchangeLease(null);
@@ -362,47 +366,47 @@ public sealed partial class Connection :
 
     /// <inheritdoc />
 
-    public event EventHandler<IConnectEventArgs> OnCloseEvent
+    public event EventHandler<IConnectionEventArgs> ConnectionClosed
     {
         add
         {
             ConnectionBacking? backing = Volatile.Read(ref _backing);
-            _ = backing?.OnCloseEvent += value;
+            _ = backing?.ConnectionClosed += value;
         }
         remove
         {
             ConnectionBacking? backing = Volatile.Read(ref _backing);
-            _ = backing?.OnCloseEvent -= value;
+            _ = backing?.ConnectionClosed -= value;
         }
     }
 
     /// <inheritdoc />
-    public event EventHandler<IConnectEventArgs> OnProcessEvent
+    public event EventHandler<IConnectionEventArgs> MessageProcessed
     {
         add
         {
             ConnectionBacking? backing = Volatile.Read(ref _backing);
-            _ = backing?.OnProcessEvent += value;
+            _ = backing?.MessageProcessed += value;
         }
         remove
         {
             ConnectionBacking? backing = Volatile.Read(ref _backing);
-            _ = backing?.OnProcessEvent -= value;
+            _ = backing?.MessageProcessed -= value;
         }
     }
 
     /// <inheritdoc />
-    public event EventHandler<IConnectEventArgs> OnPostProcessEvent
+    public event EventHandler<IConnectionEventArgs> MessageProcessing
     {
         add
         {
             ConnectionBacking? backing = Volatile.Read(ref _backing);
-            _ = backing?.OnPostProcessEvent += value;
+            _ = backing?.MessageProcessing += value;
         }
         remove
         {
             ConnectionBacking? backing = Volatile.Read(ref _backing);
-            _ = backing?.OnPostProcessEvent -= value;
+            _ = backing?.MessageProcessing -= value;
         }
     }
 
@@ -509,17 +513,17 @@ public sealed partial class Connection :
                 if (Interlocked.Exchange(ref backing.CloseSignaled, 1) == 0)
                 {
                     signaledHere = true;
-                    if (backing.OnCloseEvent != null)
+                    if (backing.ConnectionClosed != null)
                     {
                         ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
                         args.Initialize(this);
 
                         try
                         {
-                            Delegate[] handlers = backing.OnCloseEvent.GetInvocationList();
+                            Delegate[] handlers = backing.ConnectionClosed.GetInvocationList();
                             for (int i = 0; i < handlers.Length; i++)
                             {
-                                EventHandler<IConnectEventArgs> handler = (EventHandler<IConnectEventArgs>)handlers[i];
+                                EventHandler<IConnectionEventArgs> handler = (EventHandler<IConnectionEventArgs>)handlers[i];
                                 try
                                 {
                                     handler(this, args);
@@ -759,7 +763,7 @@ public sealed partial class Connection :
         ConnectionEventArgs args = this.AcquireEventArgs();
         args.Initialize(lease, this);
 
-        if (!Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, CallbackLane.Process, releasePendingPacketOnCompletion: true))
+        if (!Internal.Transport.AsyncCallback.Invoke(MessageProcessingBridge, this, args, CallbackLane.Process, releasePendingPacketOnCompletion: true))
         {
             _ = Interlocked.Decrement(ref backing.PendingProcessCallbacks);
             _ = args.ExchangeLease(null);
@@ -776,7 +780,7 @@ public sealed partial class Connection :
         ConnectionEventArgs args = this.AcquireEventArgs();
         args.Initialize(this);
 
-        if (!Internal.Transport.AsyncCallback.Invoke(OnPostProcessEventBridge, this, args, CallbackLane.Post))
+        if (!Internal.Transport.AsyncCallback.Invoke(MessageProcessedBridge, this, args, CallbackLane.Post))
         {
             args.Dispose();
         }
@@ -788,7 +792,7 @@ public sealed partial class Connection :
         ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
         args.Initialize(this);
 
-        if (!Internal.Transport.AsyncCallback.InvokeHighPriority(this.OnCloseEventBridge, this, args))
+        if (!Internal.Transport.AsyncCallback.InvokeHighPriority(this.ConnectionClosedBridge, this, args))
         {
             args.Dispose();
         }
@@ -799,7 +803,7 @@ public sealed partial class Connection :
     #region Event Bridges
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private void OnCloseEventBridge(object? sender, IConnectEventArgs e)
+    private void ConnectionClosedBridge(object? sender, IConnectionEventArgs e)
     {
         ConnectionBacking? backing = Volatile.Read(ref _backing);
         if (backing == null || Interlocked.Exchange(ref backing.CloseSignaled, 1) != 0)
@@ -809,14 +813,14 @@ public sealed partial class Connection :
         }
 
         // Close events bypass backpressure because cleanup must never be delayed.
-        if (!Internal.Transport.AsyncCallback.InvokeHighPriority(OnCloseEventDispatchBridge, this, e))
+        if (!Internal.Transport.AsyncCallback.InvokeHighPriority(ConnectionClosedDispatchBridge, this, e))
         {
             e.Dispose();
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private static void OnProcessEventBridge(object? sender, IConnectEventArgs e)
+    private static void MessageProcessingBridge(object? sender, IConnectionEventArgs e)
     {
         if (e is null)
         {
@@ -833,12 +837,12 @@ public sealed partial class Connection :
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void SAFE_PROCESS_EVENT_BRIDGE(Connection self, IConnectEventArgs e)
+    private static void SAFE_PROCESS_EVENT_BRIDGE(Connection self, IConnectionEventArgs e)
     {
         try
         {
             ConnectionBacking? backing = Volatile.Read(ref self._backing);
-            backing?.OnProcessEvent?.Invoke(self, e);
+            backing?.MessageProcessing?.Invoke(self, e);
         }
         finally
         {
@@ -847,7 +851,7 @@ public sealed partial class Connection :
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private static void OnPostProcessEventBridge(object? sender, IConnectEventArgs e)
+    private static void MessageProcessedBridge(object? sender, IConnectionEventArgs e)
     {
         if (e is null)
         {
@@ -864,12 +868,12 @@ public sealed partial class Connection :
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void SAFE_POST_PROCESS_EVENT_BRIDGE(Connection self, IConnectEventArgs e)
+    private static void SAFE_POST_PROCESS_EVENT_BRIDGE(Connection self, IConnectionEventArgs e)
     {
         try
         {
             ConnectionBacking? backing = Volatile.Read(ref self._backing);
-            backing?.OnPostProcessEvent?.Invoke(self, e);
+            backing?.MessageProcessed?.Invoke(self, e);
         }
         finally
         {
@@ -878,7 +882,7 @@ public sealed partial class Connection :
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private static void OnCloseEventDispatchBridge(object? sender, IConnectEventArgs e)
+    private static void ConnectionClosedDispatchBridge(object? sender, IConnectionEventArgs e)
     {
         if (e is null || sender is not Connection self)
         {
@@ -890,7 +894,7 @@ public sealed partial class Connection :
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void SAFE_CLOSE_EVENT_DISPATCH_BRIDGE(Connection self, IConnectEventArgs e)
+    private static void SAFE_CLOSE_EVENT_DISPATCH_BRIDGE(Connection self, IConnectionEventArgs e)
     {
         try
         {
@@ -901,12 +905,12 @@ public sealed partial class Connection :
             }
 
             _ = Interlocked.Exchange(ref backing.IsDispatchingClose, 1);
-            if (backing.OnCloseEvent != null)
+            if (backing.ConnectionClosed != null)
             {
-                Delegate[] handlers = backing.OnCloseEvent.GetInvocationList();
+                Delegate[] handlers = backing.ConnectionClosed.GetInvocationList();
                 for (int i = 0; i < handlers.Length; i++)
                 {
-                    EventHandler<IConnectEventArgs> handler = (EventHandler<IConnectEventArgs>)handlers[i];
+                    EventHandler<IConnectionEventArgs> handler = (EventHandler<IConnectionEventArgs>)handlers[i];
                     try
                     {
                         handler(self, e);

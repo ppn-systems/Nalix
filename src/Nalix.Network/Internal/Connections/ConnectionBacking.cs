@@ -45,9 +45,9 @@ internal sealed class ConnectionBacking : IPoolable
     public IObjectMap<AttributeKey, object>? Attributes;
     public ConcurrentDictionary<ushort, object>? RateLimitCache;
 
-    public EventHandler<IConnectEventArgs>? OnCloseEvent;
-    public EventHandler<IConnectEventArgs>? OnProcessEvent;
-    public EventHandler<IConnectEventArgs>? OnPostProcessEvent;
+    public EventHandler<IConnectionEventArgs>? ConnectionClosed;
+    public EventHandler<IConnectionEventArgs>? MessageProcessing;
+    public EventHandler<IConnectionEventArgs>? MessageProcessed;
 
     public ConnectionBacking()
     {
@@ -81,9 +81,9 @@ internal sealed class ConnectionBacking : IPoolable
         Attributes = null;
         RateLimitCache?.Clear();
 
-        OnCloseEvent = null;
-        OnProcessEvent = null;
-        OnPostProcessEvent = null;
+        ConnectionClosed = null;
+        MessageProcessing = null;
+        MessageProcessed = null;
 
         ArgsPool.Destroy();
         ContextPool.Destroy();

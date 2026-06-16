@@ -37,9 +37,9 @@ using var app = NetworkApplication.CreateBuilder()
     // 2.5. Configure Zero-Allocation Buffer Pooling
     .ConfigureBufferPoolManager(new BufferPoolManager())
     // Register your logic controllers
-    .AddHandler<MyPingHandler>()
+    .MapHandlers<MyPingHandler>()
     // Attach the transport protocol
-    .BindTcp<MyProtocol>().Bind()
+    .ListenTcp<MyProtocol>().Bind()
     .Build();
 
 // 3. Start the event loops
@@ -60,7 +60,7 @@ The protocol translates raw frames into clean objects. Keep this thin; its only 
 !!! tip "Built-in Option"
     For 99% of use cases, you can skip writing a custom protocol class and use `DefaultProtocol` from the `Nalix.Hosting` namespace:
     ```csharp
-    builder.BindTcp<DefaultProtocol>().Bind();
+    builder.ListenTcp<DefaultProtocol>().Bind();
     ```
 
 ### The Handler (Business Logic)
@@ -70,7 +70,7 @@ Handlers are where your application logic lives. Use `IPacketContext<T>` to acce
 ```csharp
 using Nalix.Abstractions.Networking.Packets;
 
-[PacketController("SystemHandlers")]
+[PacketHandler("SystemHandlers")]
 public sealed class MyPingHandler
 {
     [PacketOpcode(0x1001)]

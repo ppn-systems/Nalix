@@ -70,7 +70,7 @@ The builder auto-registers the built-in handshake, session, and system-control h
 ### Handler
 
 ```csharp
-[PacketController("DataHandlers")]
+[PacketHandler("DataHandlers")]
 public sealed class DataHandlers
 {
     private readonly ILogger _logger;
@@ -112,14 +112,14 @@ using var app = NetworkApplication.CreateBuilder()
         opt.Backlog = 1024;
     })
     // 2. Add Handlers (resolved via InstanceManager)
-    .AddHandler<DataHandlers>()
+    .MapHandlers<DataHandlers>()
     // 3. Configure Dispatch Middleware
     .ConfigureDispatchOptions(dispatch => {
         dispatch.WithMiddleware(new ConcurrencyMiddleware())
                 .WithErrorHandling((ex, cmd) => logger.Error("Unhandled!", ex));
     })
     // 4. Bind Transport
-    .BindTcp<ProductionProtocol>().Bind()
+    .ListenTcp<ProductionProtocol>().Bind()
     .Build();
 
 await app.RunAsync();

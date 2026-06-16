@@ -110,7 +110,7 @@ public sealed class PooledConnectEventContextTests
         public void ReleasePendingPacket() { }
     }
 
-    private sealed class FakeConnectEventArgs : IConnectEventArgs
+    private sealed class FakeConnectEventArgs : IConnectionEventArgs
     {
         public IConnection Connection => null!;
         public INetworkEndpoint? NetworkEndpoint => null;

@@ -8,7 +8,7 @@
 | :--- | :--- | :--- |
 | ⚡ **Packet Dispatch** | Shard-aware Weighted Round-Robin execution loops decoupling packet handling from network socket threads. | `PacketDispatchChannel`, `PacketContext` |
 | 🛤️ **Middleware Pipeline** | Highly performant inbound and outbound packet interceptor chain with custom ordering. | `MiddlewarePipeline`, `IPacketMiddleware` |
-| 🎯 **Controllers** | Attribute-based compile-time generated routing routes via static controllers. | `[PacketController]`, `[PacketOpcode]` |
+| 🎯 **Controllers** | Attribute-based compile-time generated routing routes via static controllers. | `[PacketHandler]`, `[PacketOpcode]` |
 | 💾 **Session Tracking** | Thread-safe, high-speed in-memory session persistence, factories, and observers. | `SessionService`, `InMemorySessionStore` |
 | 🚦 **Traffic Throttling** | Low-overhead request rate limiters and concurrent execution gate filters. | `ConcurrencyGate`, `TokenBucketLimiter` |
 
@@ -53,7 +53,7 @@ public class MyLoggingMiddleware<T> : IPacketMiddleware<T> where T : IPacket
 
 ## Quick Example: Packet Controller
 
-Nalix uses compile-time source generation to discover and compile routing paths for your packets. To handle incoming packets, decorate your controllers with the `[PacketController]` attribute and define static methods annotated with `[PacketOpcode]`:
+Nalix uses compile-time source generation to discover and compile routing paths for your packets. To handle incoming packets, decorate your controllers with the `[PacketHandler]` attribute and define static methods annotated with `[PacketOpcode]`:
 
 ```csharp
 using System;
@@ -61,7 +61,7 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 
-[PacketController("Chat")]
+[PacketHandler("Chat")]
 public sealed class ChatController
 {
     [PacketOpcode(201)] // Handles ChatMessage packets (Opcode = 201)

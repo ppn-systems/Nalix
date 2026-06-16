@@ -10,7 +10,7 @@ Nalix is composed of focused packages that can be used together or independently
 
 | Package | Purpose | Key Types |
 | :--- | :--- | :--- |
-| :fontawesome-solid-cube: [**Nalix.Abstractions**](./nalix-abstractions.md) | Base contracts, packet attributes, and core networking abstractions | `IPacket`, `IConnection`, `PacketOpcodeAttribute`, `PacketControllerAttribute`, `NetworkTransport` |
+| :fontawesome-solid-cube: [**Nalix.Abstractions**](./nalix-abstractions.md) | Base contracts, packet attributes, and core networking abstractions | `IPacket`, `IConnection`, `PacketOpcodeAttribute`, `PacketHandlerAttribute`, `NetworkTransport` |
 | :fontawesome-solid-leaf: [**Nalix.Environment**](./nalix-environment.md) | Configuration, environment IO, buffer leasing, and core memory types | `ConfigurationManager`, `BufferLease`, `DataReader`, `DataWriter`, `Clock` |
 | :fontawesome-solid-code: [**Nalix.Codec**](./nalix-codec.md) | Serialization, frames, transforms, and compression | `LiteSerializer`, `LZ4Codec`, `FrameCipher`, `PacketRegistry`, `FrameCompression` |
 | :fontawesome-solid-box-open: [**Nalix.Framework**](./nalix-framework.md) | Shared runtime services, instance registration, scheduling, and identifiers | `InstanceManager`, `TaskManager`, `Snowflake`, `TimingScope` |

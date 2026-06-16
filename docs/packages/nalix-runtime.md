@@ -111,7 +111,7 @@ The runtime includes advanced throttling and protection primitives used by the m
 
 Handler methods are registered during `Build()`:
 
-- The `PacketHandlerGenerator` source generator scans `[PacketController]` classes at compile time and emits zero-allocation invoker delegates
+- The `PacketHandlerGenerator` source generator scans `[PacketHandler]` classes at compile time and emits zero-allocation invoker delegates
 - Methods annotated with `[PacketOpcode]` are matched to packet types
 - Handler metadata (permissions, timeouts, rate limits) is resolved at compile time and stored in `PacketMetadata`
 
@@ -130,7 +130,7 @@ In the current source, `src/Nalix.Runtime/Handlers/SessionHandlers.cs` validates
 Attribute-based routing maps opcodes to handler methods:
 
 ```csharp
-[PacketController("AccountHandlers")]
+[PacketHandler("AccountHandlers")]
 public sealed class AccountHandlers
 {
     [PacketOpcode(0x2001)]

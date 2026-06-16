@@ -4,7 +4,7 @@ The WebSocket binding system allows developers to host high-performance WebSocke
 
 ## Overview
 
-The hosting layer wraps `WebSocketListenerBase` initialization behind the builder pattern. To configure and attach a WebSocket server endpoint to the host, you use the `BindWebSocket<TProtocol>()` method on `INetworkApplicationBuilder`, configure options fluently via `IWebSocketBindingBuilder`, and trigger `Bind()`.
+The hosting layer wraps `WebSocketListenerBase` initialization behind the builder pattern. To configure and attach a WebSocket server endpoint to the host, you use the `ListenWebSocket<TProtocol>()` method on `INetworkApplicationBuilder`, configure options fluently via `IWebSocketBindingBuilder`, and trigger `Bind()`.
 
 ## API Reference
 
@@ -22,7 +22,7 @@ public interface INetworkApplicationBuilder
     /// </summary>
     /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
     /// <returns>A fluent builder to configure the WebSocket binding.</returns>
-    IWebSocketBindingBuilder BindWebSocket<TProtocol>() where TProtocol : class, IProtocol;
+    IWebSocketBindingBuilder ListenWebSocket<TProtocol>() where TProtocol : class, IProtocol;
 }
 ```
 
@@ -80,7 +80,7 @@ public class Program
         builder.ConfigureLogging(logger);
 
         // Bind our CustomProtocol to a WebSocket endpoint
-        builder.BindWebSocket<CustomProtocol>()
+        builder.ListenWebSocket<CustomProtocol>()
                .OnPort(8080)
                .WithPath("/ws")
                .Bind();

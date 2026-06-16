@@ -41,10 +41,10 @@ internal class Startup
             .UseObservability()
             .UseSystemControl()
             .UseSecureConnections()
-            .ConfigureLogging(logger)
-            .ConfigureConnectionHub(hub)
-            .ConfigureBufferPoolManager(bufferPool)
-            .ConfigureObjectPoolManager(objectPool)
+            .UseLogger(logger)
+            .UseConnectionHub(hub)
+            .UseBufferPoolManager(bufferPool)
+            .UseObjectPoolManager(objectPool)
             .Configure<BufferOptions>(o =>
             {
                 o.TotalBuffers = 20_000;
@@ -312,15 +312,15 @@ internal class Startup
                 _ = o.WithDispatchLoopCount(8);
                 _ = o.WithErrorHandling((ex, cmd) => logger.LogError(ex, "Dispatch error: {Cmd}", cmd));
             })
-            .BindTcp<DefaultProtocol>()
+            .ListenTcp<DefaultProtocol>()
                 .OnPort(ListenPort)
                 .Bind()
 
-            .BindUdp<DefaultProtocol>()
+            .ListenUdp<DefaultProtocol>()
                 .OnPort(ListenPort)
                 .Bind()
 
-            .BindWebSocket<DefaultProtocol>()
+            .ListenWebSocket<DefaultProtocol>()
                 .OnPort(ListenPort + 1)
                 .WithPath("/ws/")
                 .Bind()

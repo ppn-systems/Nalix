@@ -20,7 +20,7 @@ namespace Nalix.Observability;
 /// <summary>
 /// Handles telemetry observation packets and returns serialized diagnostic reports.
 /// </summary>
-[PacketController("Nalix.RuntimeObservation")]
+[PacketHandler("Nalix.RuntimeObservation")]
 public sealed class RuntimeObservationHandlers
 {
     /// <summary>

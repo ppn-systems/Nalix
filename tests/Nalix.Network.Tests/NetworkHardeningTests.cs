@@ -30,7 +30,7 @@ public sealed class NetworkHardeningTests
         Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
         Int32 closeCount = 0;
 
-        connection.OnCloseEvent += (_, _) => closeCount++;
+        connection.ConnectionClosed += (_, _) => closeCount++;
 
         connection.Dispose();
         connection.Dispose();

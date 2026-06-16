@@ -17,7 +17,7 @@ namespace Nalix.Runtime.Extensions;
 /// <summary>
 /// Provides extension methods for the <see cref="IConnection"/> interface to support connection management operations.
 /// </summary>
-public static class ConnectionExtensions
+public static partial class ConnectionExtensions
 {
     /// <summary>
     /// Gets the connection hub that owns this connection from its attributes.
@@ -42,12 +42,7 @@ public static class ConnectionExtensions
     /// <param name="options">Optional directive metadata and payload arguments.</param>
     /// <returns>A task representing the asynchronous send operation.</returns>
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    public static async Task SendAsync(
-        this IPacketSender sender,
-        ControlType controlType,
-        ProtocolReason reason,
-        ProtocolAdvice action,
-        ControlDirectiveOptions options = default)
+    public static async Task SendAsync(this IPacketSender sender, ControlType controlType, ProtocolReason reason, ProtocolAdvice action, ControlDirectiveOptions options = default)
     {
         ArgumentNullException.ThrowIfNull(sender);
 
@@ -75,12 +70,7 @@ public static class ConnectionExtensions
     /// <param name="enableEncrypt">Whether to encrypt the packet (defaults to true).</param>
     /// <param name="ct">The cancellation token.</param>
     /// <returns>A task representing the asynchronous send operation.</returns>
-    public static ValueTask SendAsync<TPacket>(
-        this IConnection connection,
-        TPacket packet,
-        NetworkTransport transport = NetworkTransport.TCP,
-        bool enableEncrypt = true,
-        CancellationToken ct = default)
+    public static ValueTask SendAsync<TPacket>(this IConnection connection, TPacket packet, NetworkTransport transport = NetworkTransport.TCP, bool enableEncrypt = true, CancellationToken ct = default)
         where TPacket : IPacket
     {
         ArgumentNullException.ThrowIfNull(connection);

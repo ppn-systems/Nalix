@@ -16,7 +16,7 @@ namespace Nalix.Observability;
 /// <summary>
 /// Handles authentication and administrative access requests for observability.
 /// </summary>
-[PacketController("Nalix.ObservabilityAccess")]
+[PacketHandler("Nalix.ObservabilityAccess")]
 public sealed class ObservabilityAccessHandlers
 {
     /// <summary>

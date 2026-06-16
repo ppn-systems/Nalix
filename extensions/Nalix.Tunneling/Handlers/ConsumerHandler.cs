@@ -13,7 +13,7 @@ namespace Nalix.Tunneling.Handlers;
 /// <summary>
 /// Handles the TunnelConnect packet from the Consumer.
 /// </summary>
-[PacketController("Nalix.Tunneling")]
+[PacketHandler("Nalix.Tunneling")]
 public sealed class ConsumerHandler
 {
     private readonly ILogger _logger;

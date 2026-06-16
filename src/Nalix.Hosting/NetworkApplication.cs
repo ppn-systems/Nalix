@@ -83,7 +83,7 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
         NetworkApplicationBuilder builder = CreateBuilder();
 
         // Default TCP binding with DefaultProtocol
-        IProtocolBindingBuilder tcpBuilder = builder.BindTcp<DefaultProtocol>();
+        IProtocolBindingBuilder tcpBuilder = builder.ListenTcp<DefaultProtocol>();
 
         if (port.HasValue)
         {
@@ -94,7 +94,7 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
 
         // Note: Assembly scanning has been removed for Native AOT compatibility.
         // Handlers are discovered via source-generated PacketHandlerRegistry
-        // or registered explicitly via AddHandler<T>().
+        // or registered explicitly via MapHandlers<T>().
 
         return builder.Build();
     }

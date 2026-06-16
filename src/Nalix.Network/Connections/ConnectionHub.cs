@@ -36,7 +36,7 @@ namespace Nalix.Network.Connections;
 [SkipLocalsInit]
 [DebuggerNonUserCode]
 [DebuggerDisplay("ConnectionHub (Count={_count})")]
-public sealed class ConnectionHub : IConnectionHub
+public sealed partial class ConnectionHub : IConnectionHub
 {
     #region Fields
 
@@ -222,104 +222,6 @@ public sealed class ConnectionHub : IConnectionHub
         return _registry.CaptureConnectionSnapshot(networkEndpoint);
     }
 
-    /// <summary>
-    /// Broadcasts a message to all active connections.
-    /// </summary>
-    /// <typeparam name="T">The type of the message to broadcast.</typeparam>
-    /// <param name="message">The message to broadcast.</param>
-    /// <param name="sendFunc">The function to send the message to a connection.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A task representing the asynchronous broadcast operation.</returns>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown if <paramref name="message"/> or <paramref name="sendFunc"/> is null.</exception>
-    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    [SuppressMessage("Performance", "CA1873:Avoid potentially expensive logging", Justification = "<Pending>")]
-    public async Task BroadcastAsync<T>(
-        T message,
-        Func<IConnection, T, Task> sendFunc,
-        CancellationToken cancellationToken = default) where T : class
-    {
-        if (message is null || sendFunc is null || _disposed)
-        {
-            return;
-        }
-
-        /*
-         * [Broadcast Logic]
-         * To broadcast a message, we first capture a stable snapshot of all 
-         * active connections using a rented buffer. This ensures that we don't
-         * hold the dictionary locks while performing I/O, and avoids heap
-         * allocations entirely.
-         */
-        using RentedConnectionSnapshot snapshot = _registry.CaptureConnectionSnapshotRented();
-
-        if (snapshot.IsEmpty)
-        {
-            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
-            {
-                DiagnosticsEvents.Write(
-                    DiagnosticsEvents.Internal.Trace,
-                    new DiagnosticLog("NW.ConnectionHub:BroadcastAsync", "broadcast-skip total=0"));
-            }
-
-            return;
-        }
-
-        bool measureLatency = _options.IsEnableLatency && DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information);
-        TimingScope scope = measureLatency ? TimingScope.Start() : default;
-
-        if (_options.BroadcastBatchSize > 0)
-        {
-            await this.BroadcastBatchedAsync(snapshot, message, sendFunc, cancellationToken)
-                      .ConfigureAwait(false);
-        }
-        else
-        {
-            await this.BroadcastCoreAsync(
-                snapshot, message, sendFunc,
-                predicate: null, cancellationToken,
-                nameof(BroadcastAsync)).ConfigureAwait(false);
-        }
-
-        if (measureLatency)
-        {
-            string latency = scope.GetElapsedMilliseconds().ToString("0.000", CultureInfo.InvariantCulture);
-            int snapshotCount = snapshot.Count;
-            DiagnosticsEvents.Write(
-                DiagnosticsEvents.Internal.Information,
-                new DiagnosticLog(
-                    "PERF.NW.BroadcastAsync",
-                    $"total={snapshotCount}, latency={latency} ms"));
-        }
-    }
-
-    /// <summary>
-    /// Broadcasts a message to connections matching the given predicate.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    public async Task BroadcastWhereAsync<T>(
-        T message,
-        Func<IConnection, T, Task> sendFunc,
-        Func<IConnection, bool> predicate,
-        CancellationToken cancellation = default) where T : class
-    {
-        if (message is null || sendFunc is null || _disposed)
-        {
-            return;
-        }
-
-        using RentedConnectionSnapshot snapshot = _registry.CaptureConnectionSnapshotRented();
-        if (snapshot.IsEmpty)
-        {
-            return;
-        }
-
-        await this.BroadcastCoreAsync(
-            snapshot, message, sendFunc,
-            predicate, cancellation,
-            nameof(BroadcastWhereAsync)).ConfigureAwait(false);
-    }
-
     /// <inheritdoc />
     /// <summary>
     /// Releases all resources used by the <see cref="ConnectionHub"/> and closes all connections.
@@ -491,7 +393,7 @@ public sealed class ConnectionHub : IConnectionHub
 
         ulong connectionKey = connection.ID;
 
-        connection.OnCloseEvent += this.OnClientDisconnected;
+        connection.ConnectionClosed += this.OnClientDisconnected;
         connection.Attributes[ConnectionAttributes.OwnerHub] = this;
 
         bool added = false;
@@ -532,7 +434,7 @@ public sealed class ConnectionHub : IConnectionHub
         {
             if (!added)
             {
-                connection.OnCloseEvent -= this.OnClientDisconnected;
+                connection.ConnectionClosed -= this.OnClientDisconnected;
                 _ = connection.Attributes.Remove(ConnectionAttributes.OwnerHub);
             }
         }
@@ -562,7 +464,7 @@ public sealed class ConnectionHub : IConnectionHub
         TimingScope scope = measureLatency ? TimingScope.Start() : default;
 
         IConnection removedConnection = existing ?? connection;
-        removedConnection.OnCloseEvent -= this.OnClientDisconnected;
+        removedConnection.ConnectionClosed -= this.OnClientDisconnected;
 
         try
         {
@@ -624,7 +526,7 @@ public sealed class ConnectionHub : IConnectionHub
 
         for (int i = 0; i < snapshot.Count; i++)
         {
-            snapshot[i].OnCloseEvent -= this.OnClientDisconnected;
+            snapshot[i].ConnectionClosed -= this.OnClientDisconnected;
         }
 
         ParallelOptions parallelOptions = new()
@@ -656,221 +558,9 @@ public sealed class ConnectionHub : IConnectionHub
         _registry.Clear();
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private async Task BroadcastCoreAsync<T>(
-        RentedConnectionSnapshot snapshot,
-        T message,
-        Func<IConnection, T, Task> sendFunc,
-        Func<IConnection, bool>? predicate,
-        CancellationToken cancellationToken,
-        string operationName) where T : class
-    {
-        int connectionCount = snapshot.Count;
-        Task[] tasks = ArrayPool<Task>.Shared.Rent(connectionCount);
-        IConnection[] owners = s_connectionPool.Rent(connectionCount);
-        int taskCount = 0;
-
-        try
-        {
-            for (int i = 0; i < connectionCount; i++)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    break;
-                }
-
-                IConnection connection = snapshot[i];
-                if (predicate is not null && !predicate(connection))
-                {
-                    continue;
-                }
-
-                try
-                {
-                    Task sendTask = sendFunc(connection, message);
-                    if (!sendTask.IsCompletedSuccessfully)
-                    {
-                        tasks[taskCount] = sendTask;
-                        owners[taskCount] = connection;
-                        taskCount++;
-                    }
-                }
-                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-                {
-                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                    {
-                        DiagnosticsEvents.Write(
-                            DiagnosticsEvents.Internal.Error,
-                            new DiagnosticLog("NW.ConnectionHub:BroadcastAsync", $"send-failure op={operationName} id={connection.ID:X16}", ex));
-                    }
-                }
-            }
-
-            if (taskCount == 0)
-            {
-                return;
-            }
-
-            try
-            {
-                await Task.WhenAll(MemoryExtensions.AsSpan(tasks, 0, taskCount)).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-                {
-                    DiagnosticsEvents.Write(
-                        DiagnosticsEvents.Internal.Debug,
-                        new DiagnosticLog("NW.ConnectionHub:BroadcastAsync", $"broadcast-cancel op={operationName}"));
-                }
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-            {
-                this.LogBroadcastFailures(tasks, owners, taskCount, operationName);
-            }
-        }
-        finally
-        {
-            Array.Clear(tasks, 0, taskCount);
-            Array.Clear(owners, 0, taskCount);
-            ArrayPool<Task>.Shared.Return(tasks, clearArray: true);
-            s_connectionPool.Return(owners, clearArray: true);
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void LogBroadcastFailures(
-        Task[] tasks,
-        IConnection[] owners,
-        int taskCount,
-        string operationName)
-    {
-        for (int i = 0; i < taskCount; i++)
-        {
-            Task task = tasks[i];
-            if (!task.IsFaulted)
-            {
-                continue;
-            }
-
-            Exception? exception = task.Exception?.GetBaseException();
-            if (exception is null)
-            {
-                continue;
-            }
-
-            IConnection owner = owners[i];
-            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-            {
-                DiagnosticsEvents.Write(
-                    DiagnosticsEvents.Internal.Error,
-                    new DiagnosticLog("NW.ConnectionHub:BroadcastAsync", $"send-failure op={operationName} id={owner.ID:X16}", exception));
-            }
-        }
-    }
-
-    [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private async Task BroadcastBatchedAsync<T>(
-        RentedConnectionSnapshot snapshot,
-        T message,
-        Func<IConnection, T, Task> sendFunc,
-        CancellationToken cancellationToken) where T : class
-    {
-        int connectionCount = snapshot.Count;
-        int batchSize = Math.Max(1, _options.BroadcastBatchSize);
-        Task[] tasks = ArrayPool<Task>.Shared.Rent(batchSize);
-        IConnection[] owners = s_connectionPool.Rent(batchSize);
-        int taskCount = 0;
-
-        try
-        {
-            for (int i = 0; i < connectionCount; i++)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    break;
-                }
-
-                IConnection connection = snapshot[i];
-
-                try
-                {
-                    Task sendTask = sendFunc(connection, message);
-                    if (!sendTask.IsCompletedSuccessfully)
-                    {
-                        tasks[taskCount] = sendTask;
-                        owners[taskCount] = connection;
-                        taskCount++;
-                    }
-                }
-                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-                {
-                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                    {
-                        DiagnosticsEvents.Write(
-                            DiagnosticsEvents.Internal.Error,
-                            new DiagnosticLog("NW.ConnectionHub:BroadcastAsync", $"send-failure id={connection.ID}", ex));
-                    }
-                }
-
-                if (taskCount < batchSize)
-                {
-                    continue;
-                }
-
-                await this.AwaitBatchAsync(tasks, owners, taskCount, cancellationToken,
-                              nameof(BroadcastBatchedAsync)).ConfigureAwait(false);
-                Array.Clear(tasks, 0, taskCount);
-                Array.Clear(owners, 0, taskCount);
-                taskCount = 0;
-            }
-
-            if (taskCount > 0)
-            {
-                await this.AwaitBatchAsync(tasks, owners, taskCount, cancellationToken,
-                              nameof(BroadcastBatchedAsync)).ConfigureAwait(false);
-            }
-        }
-        finally
-        {
-            Array.Clear(tasks, 0, taskCount);
-            Array.Clear(owners, 0, taskCount);
-            ArrayPool<Task>.Shared.Return(tasks, clearArray: true);
-            s_connectionPool.Return(owners, clearArray: true);
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private async Task AwaitBatchAsync(
-        Task[] tasks,
-        IConnection[] owners,
-        int taskCount,
-        CancellationToken cancellationToken,
-        string operationName)
-    {
-        try
-        {
-            await Task.WhenAll(MemoryExtensions.AsSpan(tasks, 0, taskCount)).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-            {
-                DiagnosticsEvents.Write(
-                    DiagnosticsEvents.Internal.Debug,
-                    new DiagnosticLog("NW.ConnectionHub:BroadcastAsync", $"broadcast-cancel op={operationName}"));
-            }
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            this.LogBroadcastFailures(tasks, owners, taskCount, operationName);
-        }
-    }
-
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void OnClientDisconnected(object? sender, IConnectEventArgs args)
+    private void OnClientDisconnected(object? sender, IConnectionEventArgs args)
     {
         if (args is null)
         {

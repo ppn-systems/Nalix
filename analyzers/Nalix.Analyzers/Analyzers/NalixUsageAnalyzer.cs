@@ -30,7 +30,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.HandlerPacketTypeMismatch,
             DiagnosticDescriptors.MiddlewareTypeMismatch,
             DiagnosticDescriptors.BufferMiddlewareShouldNotUseStageAttribute,
-            DiagnosticDescriptors.ControllerMissingPacketControllerAttribute,
+            DiagnosticDescriptors.ControllerMissingPacketHandlerAttribute,
             DiagnosticDescriptors.PacketRegistryPacketMissingDeserializer,
             DiagnosticDescriptors.PacketBaseSelfTypeMismatch,
             DiagnosticDescriptors.PacketDeserializerSelfTypeMismatch,
@@ -73,7 +73,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.PacketOpcodeOnNonControllerType,
             DiagnosticDescriptors.FixedSizeSerializableHasDynamicMember,
             DiagnosticDescriptors.PacketDeserializeSpanOverloadMissing,
-            DiagnosticDescriptors.DuplicatePacketControllerName,
+            DiagnosticDescriptors.DuplicatePacketHandlerName,
             DiagnosticDescriptors.RedundantPacketContextPacketCast,
             DiagnosticDescriptors.MiddlewareRegistrationNullLiteral,
             DiagnosticDescriptors.RequestOptionsInfiniteTimeoutWithRetry,
@@ -570,7 +570,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         ConcurrentDictionary<string, INamedTypeSymbol> controllerNames)
     {
         string ns = typeSymbol.ContainingNamespace.ToDisplayString();
-        string controllerName = GetPacketControllerName(typeSymbol, symbols.ControllerAttribute) ?? typeSymbol.Name;
+        string controllerName = GetPacketHandlerName(typeSymbol, symbols.ControllerAttribute) ?? typeSymbol.Name;
         string controllerKey = $"{ns}.{controllerName}";
 
         INamedTypeSymbol existing = controllerNames.GetOrAdd(controllerKey, typeSymbol);
@@ -578,7 +578,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         {
             Report(
                 context,
-                DiagnosticDescriptors.DuplicatePacketControllerName,
+                DiagnosticDescriptors.DuplicatePacketHandlerName,
                 typeSymbol,
                 controllerName,
                 existing.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
@@ -889,7 +889,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    private static string? GetPacketControllerName(INamedTypeSymbol typeSymbol, INamedTypeSymbol? controllerAttributeSymbol)
+    private static string? GetPacketHandlerName(INamedTypeSymbol typeSymbol, INamedTypeSymbol? controllerAttributeSymbol)
     {
         AttributeData? attribute = typeSymbol.GetAttributes()
             .FirstOrDefault(a => IsSymbol(a.AttributeClass, controllerAttributeSymbol));

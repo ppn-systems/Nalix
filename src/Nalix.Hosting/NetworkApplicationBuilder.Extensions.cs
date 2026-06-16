@@ -2,11 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Abstractions.Security;
 using Nalix.Framework.Injection;
 using Nalix.Hosting.Internal;
 using Nalix.Runtime.Handlers;
 using Nalix.Runtime.Security;
+using Nalix.Runtime.Sessions;
 
 namespace Nalix.Hosting;
 
@@ -24,9 +26,7 @@ public static class NetworkApplicationBuilderExtensions
     /// <param name="builder">The application builder.</param>
     /// <param name="certificatePath">
     /// Optional explicit path to the server certificate file.
-    /// When <see langword="null"/>, falls back to the path configured via
-    /// <see cref="INetworkApplicationBuilder.ConfigureCertificate"/> or the
-    /// default certificate location.
+    /// When <see langword="null"/>, falls back to the default certificate location.
     /// </param>
     /// <returns>The current builder instance.</returns>
     public static INetworkApplicationBuilder UseSecureConnections(this INetworkApplicationBuilder builder, string? certificatePath = null)
@@ -40,22 +40,13 @@ public static class NetworkApplicationBuilderExtensions
             );
         }
 
-        _ = builder.AddHandler(typeof(HandshakeHandlers));
-        _ = builder.AddHandler(typeof(ProofOfWorkHandlers));
-        _ = builder.AddHandler(typeof(SessionRekeyHandlers));
+        _ = builder.MapHandlers(typeof(HandshakeHandlers));
+        _ = builder.MapHandlers(typeof(ProofOfWorkHandlers));
+        _ = builder.MapHandlers(typeof(SessionRekeyHandlers));
 
-        // Resolve certificate path: explicit parameter wins,
-        // then ConfigureCertificate() state, then default.
-        string? resolvedPath = certificatePath;
-
-        if (resolvedPath is null && builder is NetworkApplicationBuilder concrete)
+        if (certificatePath is not null)
         {
-            resolvedPath = concrete._state.IdentityCertificatePath;
-        }
-
-        if (resolvedPath is not null)
-        {
-            HandshakeHandlers.SetCertificatePath(resolvedPath);
+            HandshakeHandlers.SetCertificatePath(certificatePath);
         }
         else
         {
@@ -78,10 +69,52 @@ public static class NetworkApplicationBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        _ = builder.AddHandler(typeof(SessionHandlers));
+        _ = builder.MapHandlers(typeof(SessionHandlers));
 
         ServiceRegistrar.RegisterSessions();
 
+        return builder;
+    }
+
+    /// <summary>
+    /// Sets the <see cref="ISessionService"/> instance used by the hosted Nalix runtime.
+    /// </summary>
+    /// <param name="builder">The application builder.</param>
+    /// <param name="sessionService">The session service to register.</param>
+    /// <returns>The current builder instance.</returns>
+    public static INetworkApplicationBuilder UseSessionService(this INetworkApplicationBuilder builder, SessionService sessionService)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(sessionService);
+        InstanceManager.Instance.Register<ISessionService>(sessionService);
+        return builder;
+    }
+
+    /// <summary>
+    /// Sets the <see cref="ISessionStore"/> instance used by the default session service.
+    /// </summary>
+    /// <param name="builder">The application builder.</param>
+    /// <param name="sessionStore">The session store to register.</param>
+    /// <returns>The current builder instance.</returns>
+    public static INetworkApplicationBuilder UseSessionStore(this INetworkApplicationBuilder builder, ISessionStore sessionStore)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(sessionStore);
+        InstanceManager.Instance.Register<ISessionStore>(sessionStore);
+        return builder;
+    }
+
+    /// <summary>
+    /// Sets the <see cref="ISessionFactory"/> instance used by the default session service.
+    /// </summary>
+    /// <param name="builder">The application builder.</param>
+    /// <param name="sessionFactory">The session factory to register.</param>
+    /// <returns>The current builder instance.</returns>
+    public static INetworkApplicationBuilder UseSessionFactory(this INetworkApplicationBuilder builder, ISessionFactory sessionFactory)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(sessionFactory);
+        InstanceManager.Instance.Register<ISessionFactory>(sessionFactory);
         return builder;
     }
 
@@ -94,7 +127,7 @@ public static class NetworkApplicationBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        _ = builder.AddHandler(typeof(SystemControlHandlers));
+        _ = builder.MapHandlers(typeof(SystemControlHandlers));
 
         return builder;
     }
@@ -108,7 +141,7 @@ public static class NetworkApplicationBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        _ = builder.AddHandler(typeof(SystemTimeSyncHandlers));
+        _ = builder.MapHandlers(typeof(SystemTimeSyncHandlers));
 
         return builder;
     }

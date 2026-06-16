@@ -58,7 +58,7 @@
 
 ### Add a new listener
 1. Implement `IListener`
-2. Register via `builder.BindTcp<TProtocol>()` or `builder.BindUdp<TProtocol>()`
+2. Register via `builder.ListenTcp<TProtocol>()` or `builder.ListenUdp<TProtocol>()`
 3. Wire to a dispatcher — each listener can bind to a specific dispatch channel
 
 ---

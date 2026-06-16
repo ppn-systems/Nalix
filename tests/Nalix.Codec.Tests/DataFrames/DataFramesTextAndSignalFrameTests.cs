@@ -14,7 +14,7 @@ public sealed partial class DataFramesPublicApiTests
     {
         Control packet = new();
 
-        packet.Initialize(ControlType.PING, 42, PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, ProtocolReason.TIMEOUT);
+        packet.Initialize(ControlType.PING, 42, PacketFlags.SYSTEM, ProtocolReason.TIMEOUT);
         PacketHeader h = packet.Header;
         h.OpCode = 123;
         packet.Header = h;
@@ -23,7 +23,7 @@ public sealed partial class DataFramesPublicApiTests
         Assert.Equal(ControlType.PING, packet.Type);
         Assert.Equal(42u, packet.Header.SequenceId);
         Assert.Equal(ProtocolReason.TIMEOUT, packet.Reason);
-        Assert.True(packet.Header.Flags.HasFlag(PacketFlags.UNRELIABLE));
+        Assert.True(packet.Header.Flags.HasFlag(PacketFlags.NONE));
         Assert.Equal(PacketPriority.HIGH, packet.Header.Priority);
     }
 
@@ -31,7 +31,7 @@ public sealed partial class DataFramesPublicApiTests
     public void ResetForPoolWhenControlPacketWasInitializedRestoresControlDefaults()
     {
         Control packet = new();
-        packet.Initialize(ControlType.ERROR, 7, PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, ProtocolReason.INTERNAL_ERROR);
+        packet.Initialize(ControlType.ERROR, 7, PacketFlags.SYSTEM, ProtocolReason.INTERNAL_ERROR);
         PacketHeader h2 = packet.Header;
         h2.OpCode = 555;
         packet.Header = h2;
@@ -73,7 +73,7 @@ public sealed partial class DataFramesPublicApiTests
             reason: ProtocolReason.REDIRECT,
             action: ProtocolAdvice.RECONNECT,
             sequenceId: 99,
-            flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE,
+            flags: PacketFlags.SYSTEM,
             controlFlags: ControlFlags.HAS_REDIRECT | ControlFlags.IS_TRANSIENT,
             arg0: 1000,
             arg1: 2000,
@@ -92,7 +92,7 @@ public sealed partial class DataFramesPublicApiTests
         Assert.Equal(2000u, packet.Arg1);
         Assert.Equal((ushort)33, packet.Arg2);
         Assert.Equal(PacketPriority.HIGH, packet.Header.Priority);
-        Assert.True(packet.Header.Flags.HasFlag(PacketFlags.RELIABLE));
+        Assert.True(packet.Header.Flags.HasFlag(PacketFlags.NONE));
     }
 
 
@@ -101,7 +101,7 @@ public sealed partial class DataFramesPublicApiTests
     public void ControlFixedSizeMatchesComputedLengthAndSerializedBytes()
     {
         Control packet = new();
-        packet.Initialize(ControlType.PING, 42, PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, ProtocolReason.TIMEOUT);
+        packet.Initialize(ControlType.PING, 42, PacketFlags.SYSTEM, ProtocolReason.TIMEOUT);
         PacketHeader h4 = packet.Header;
         h4.OpCode = 123;
         packet.Header = h4;
@@ -147,7 +147,7 @@ public sealed partial class DataFramesPublicApiTests
             0UL,
             ProtocolReason.NONE,
             Bytes32.Zero,
-            PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
+            PacketFlags.SYSTEM);
 
         byte[] bytes = original.Serialize();
         SessionResume deserialized = SessionResume.Deserialize(bytes);
@@ -170,7 +170,7 @@ public sealed partial class DataFramesPublicApiTests
             0UL,
             ProtocolReason.TIMEOUT,
             Bytes32.Zero,
-            PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
+            PacketFlags.SYSTEM);
         PacketHeader h = packet.Header;
         h.Flags = PacketFlags.SYSTEM;
         packet.Header = h;
@@ -193,7 +193,7 @@ public sealed partial class DataFramesPublicApiTests
         byte[] directiveBytes = CreateDirectivePacket().Serialize();
 
         SessionResume resume = new();
-        resume.Initialize(SessionResumeStage.REQUEST, 0UL, ProtocolReason.NONE, Bytes32.Zero, PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+        resume.Initialize(SessionResumeStage.REQUEST, 0UL, ProtocolReason.NONE, Bytes32.Zero, PacketFlags.SYSTEM);
         byte[] sessionResumeBytes = resume.Serialize();
 
         Control control = Control.Deserialize(controlBytes.AsSpan());
@@ -227,7 +227,7 @@ public sealed partial class DataFramesPublicApiTests
             0UL,
             ProtocolReason.NONE,
             Bytes32.Zero,
-            PacketFlags.SYSTEM | PacketFlags.RELIABLE);
+            PacketFlags.SYSTEM);
 
         byte[] bytes = packet.Serialize();
 

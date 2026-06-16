@@ -43,12 +43,12 @@ public sealed class ReflectorSession
         this.Bucket = new TokenBucket(capacity, fillRate);
 
         // Hook up event to clean up session when the TCP connection dies
-        _requester.OnCloseEvent += this.OnConnectionClosed;
+        _requester.ConnectionClosed += this.OnConnectionClosed;
     }
 
-    public void OnConnectionClosed(object? sender, IConnectEventArgs args) => _manager.RemoveSession(this.Token);
+    public void OnConnectionClosed(object? sender, IConnectionEventArgs args) => _manager.RemoveSession(this.Token);
 
-    public void Dispose() => _requester.OnCloseEvent -= this.OnConnectionClosed;
+    public void Dispose() => _requester.ConnectionClosed -= this.OnConnectionClosed;
 }
 
 /// <summary>

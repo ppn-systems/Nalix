@@ -35,7 +35,7 @@ public sealed partial class NalixUsageAnalyzer
             {
                 AnalyzeNetworkApplicationBuildInvocation(context, invocation);
             }
-            else if (targetMethod.Name == "AddHandler" && targetMethod.TypeArguments.Length == 1)
+            else if (targetMethod.Name == "MapHandlers" && targetMethod.TypeArguments.Length == 1)
             {
                 AnalyzeNetworkApplicationTypeRegistration(context, invocation, targetMethod.TypeArguments[0], DiagnosticDescriptors.NetworkHostingHandlerTypeInvalid);
             }
@@ -313,10 +313,10 @@ public sealed partial class NalixUsageAnalyzer
             return;
         }
 
-        bool hasConnectionHub = ContainsInvocation(invocation.Instance, "ConfigureConnectionHub");
-        bool hasBufferPoolManager = ContainsInvocation(invocation.Instance, "ConfigureBufferPoolManager");
-        bool hasTcpBinding = ContainsInvocation(invocation.Instance, "BindTcp");
-        bool hasUdpBinding = ContainsInvocation(invocation.Instance, "BindUdp");
+        bool hasConnectionHub = ContainsInvocation(invocation.Instance, "UseConnectionHub");
+        bool hasBufferPoolManager = ContainsInvocation(invocation.Instance, "UseBufferPoolManager");
+        bool hasTcpBinding = ContainsInvocation(invocation.Instance, "ListenTcp");
+        bool hasUdpBinding = ContainsInvocation(invocation.Instance, "ListenUdp");
 
         if (!hasBufferPoolManager)
         {
@@ -468,7 +468,7 @@ public sealed partial class NalixUsageAnalyzer
 
         if (!HasAttribute(controllerType, symbols.ControllerAttribute))
         {
-            Report(context, DiagnosticDescriptors.ControllerMissingPacketControllerAttribute, invocation.Syntax.GetLocation(), controllerType.Name);
+            Report(context, DiagnosticDescriptors.ControllerMissingPacketHandlerAttribute, invocation.Syntax.GetLocation(), controllerType.Name);
             return;
         }
 

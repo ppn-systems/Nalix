@@ -11,7 +11,7 @@
 ## Rules
 
 ### Handler Shape
-- Handler class: `sealed` + `[PacketController("Namespace")]`
+- Handler class: `sealed` + `[PacketHandler("Namespace")]`
 - Handler method: **must be `static async ValueTask`** — instance methods are not resolved by `PacketDispatcherBase`
 - Every method requires: `[PacketOpcode(ushort)]`, `[PacketPermission(PermissionLevel)]`, `[PacketEncryption(bool)]`
 - Pre-auth guard: check `connection.Secret.IsZero` before processing — true = not yet authenticated → disconnect
@@ -65,12 +65,12 @@ Do not hold a `PacketContext` reference after the handler returns — it is retu
 ## Checklists
 
 ### Add a new handler
-1. `public sealed class MyHandlers` decorated with `[PacketController("Nalix.YourArea")]`
+1. `public sealed class MyHandlers` decorated with `[PacketHandler("Nalix.YourArea")]`
 2. Each method: `public static async ValueTask HandleAsync(IPacketContext<TPacket> context)`
 3. Decorate each method: `[PacketOpcode((ushort)OpCode.VALUE)]`, `[PacketPermission(PermissionLevel.X)]`, `[PacketEncryption(true/false)]`
 4. If system/reserved opcode: also add `[ReservedOpcodePermitted]`
 5. If requires auth: `if (context.Connection.Secret.IsZero) { context.Connection.Disconnect("..."); return; }`
-6. Register: `builder.AddHandler<MyHandlers>()`
+6. Register: `builder.MapHandlers<MyHandlers>()`
 
 ### Standard Middleware (Built-in)
 Four middleware types ship with `Nalix.Runtime` and are wired via `ConfigureDispatchOptions`:

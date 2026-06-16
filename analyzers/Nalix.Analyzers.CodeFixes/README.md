@@ -9,7 +9,7 @@
 | Code Fix Provider | Diagnostic ID | Automated Quick-Fix Action |
 | :--- | :--- | :--- |
 | **`PacketOpcodeCodeFixProvider`** | `NALIX002` | Resolves invalid or duplicate packet opcodes by suggesting distinct identifiers. |
-| **`PacketControllerCodeFixProvider`** | `NALIX008` | Injects or corrects missing controller attribute declarations on message handling classes. |
+| **`PacketHandlerCodeFixProvider`** | `NALIX008` | Injects or corrects missing controller attribute declarations on message handling classes. |
 | **`PacketRegistryDeserializerCodeFixProvider`** | `NALIX009` | Repairs incorrect deserializer factory registrations inside custom packet registries. |
 | **`PacketSelfTypeCodeFixProvider`** | `NALIX010`, `NALIX011` | Automatically corrects self-referential generic type mismatches on `PacketBase<T>` inheritance. |
 | **`PacketDeserializeCodeFixProvider`** | `NALIX012`, `NALIX052` | Generates boilerplate deserialization override methods for packet types. |

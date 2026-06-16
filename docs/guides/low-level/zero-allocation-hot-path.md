@@ -83,7 +83,7 @@ using Nalix.Hosting;
 
 var app = NetworkApplication.CreateBuilder()
     // 1. Register Handlers (invokers generated at build time by PacketHandlerGenerator)
-    .AddHandler<GameController>()
+    .MapHandlers<GameController>()
 
     .Build(); // Lookups are frozen at startup
 ```
@@ -104,7 +104,7 @@ var channel = new PacketDispatchChannel(options =>
 
 ## 3. Source-Generated Handler Execution
 
-Nalix does not use reflection at runtime. The `PacketHandlerGenerator` source generator scans `[PacketController]` classes at compile time and emits zero-allocation invoker delegates.
+Nalix does not use reflection at runtime. The `PacketHandlerGenerator` source generator scans `[PacketHandler]` classes at compile time and emits zero-allocation invoker delegates.
 
 ### Behind the Scenes
 
@@ -406,7 +406,7 @@ dotnet-counters monitor -p <PID> --counters Nalix.Framework,System.Runtime[alloc
 ## Summary Checklist
 
 - [x] Use `struct` or pooled `class` for packets.
-- [x] Annotate controllers with `[PacketController]`.
+- [x] Annotate controllers with `[PacketHandler]`.
 - [x] Configure `BufferPoolManager` in the Hosting Builder.
 - [x] Use `[PacketOpcode]` for zero-reflection routing.
 - [x] Return `ValueTask` from handlers.

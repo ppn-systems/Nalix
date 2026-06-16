@@ -8,9 +8,7 @@ using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Abstractions.Exceptions;
-using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Internal;
-using Nalix.Codec.Serialization.Internal;
 using Nalix.Codec.Serialization.Internal.Types;
 using Nalix.Environment.Memory;
 
@@ -75,49 +73,13 @@ public static class LiteSerializer
             return array;
         }
 
-        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
+        TypeKind kind = TypeMetadata.TryGetFixedSize<T>(out int fixSize);
 
-        if (kind is TypeKind.UnmanagedSZArray)
+        if (kind is TypeKind.FixedSizeSerializable or TypeKind.None)
         {
-            /*
-             * [Optimization: Unmanaged Arrays]
-             * For arrays of unmanaged types (e.g. byte[], int[]), we write:
-             * [4-byte length][Bulk data copy]
-             * This avoids per-element overhead and uses bulk Memory Copy.
-             */
-            if (value is null)
-            {
-                return SerializerBounds.NullArrayMarker.ToArray();
-            }
-
-            Array array = (Array)(object)value;
-            int length = array.Length;
-            if (length is 0)
-            {
-                return SerializerBounds.EmptyArrayMarker.ToArray();
-            }
-
-            long dataSizeLong = (long)size * length;
-            if (dataSizeLong > int.MaxValue - 4)
-            {
-                Throw.Overflow();
-            }
-
-            int dataSize = (int)dataSizeLong;
-            byte[] buffer = GC.AllocateUninitializedArray<byte>(dataSize + 4);
-            ref byte ptr = ref MemoryMarshal.GetArrayDataReference(buffer);
-
-            Unsafe.WriteUnaligned(ref ptr, length);
-            Unsafe.CopyBlockUnaligned(
-                ref Unsafe.Add(ref ptr, 4),
-                ref MemoryMarshal.GetArrayDataReference(array), (uint)dataSize);
-
-            return buffer;
-        }
-        else if (kind is TypeKind.FixedSizeSerializable)
-        {
+            int capacity = kind is TypeKind.FixedSizeSerializable ? fixSize : 2048;
             IFormatter<T> formatter = ResolveRootFormatter<T>(value);
-            DataWriter writer = new(2048);
+            DataWriter writer = new(capacity);
 
             try
             {
@@ -129,25 +91,8 @@ public static class LiteSerializer
                 writer.Dispose();
             }
         }
-        else if (kind is TypeKind.None)
-        {
-            IFormatter<T> formatter = ResolveRootFormatter<T>(value);
-            DataWriter writer = new(2048);
 
-            try
-            {
-                formatter.Serialize(ref writer, value);
-                return writer.ToArray();
-            }
-            finally
-            {
-                writer.Dispose();
-            }
-        }
-        else
-        {
-            throw new SerializationFailureException($"TYPE {typeof(T).FullName} is not serializable.");
-        }
+        throw new SerializationFailureException($"TYPE {typeof(T).FullName} is not serializable.");
     }
 
     /// <summary>
@@ -191,33 +136,7 @@ public static class LiteSerializer
         }
 
         // Reference or Nullable/Complex types
-        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int fixedSize);
-
-        if (kind is TypeKind.FixedSizeSerializable)
-        {
-            int required = fixedSize;
-
-            if (buffer.Length < required)
-            {
-                Throw.BufferTooSmall();
-            }
-
-            IFormatter<T> formatter = ResolveRootFormatter<T>(value);
-            DataWriter writer = new(buffer);
-            try
-            {
-                formatter.Serialize(ref writer, value);
-
-                return writer.WrittenCount;
-            }
-            finally
-            {
-                writer.Dispose();
-            }
-        }
-
-        throw new SerializationFailureException(
-            $"Array-based serialization is not supported for type {typeof(T)}. Use Serialize<T>(in T) to get byte[] instead.");
+        return Serialize(value, buffer.AsSpan());
     }
 
     /// <summary>
@@ -260,64 +179,7 @@ public static class LiteSerializer
             return size;
         }
 
-        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int fixedSize);
-
-        // ── Case 2: Unmanaged single-dimensional array ────────────────────────────
-        // T is something like int[], byte[], float[].
-        // Layout: [4-byte length prefix][element data...]
-        // Special cases: null  -> NullArrayMarker  [255,255,255,255]
-        //                empty -> EmptyArrayMarker [0,0,0,0]
-        if (kind is TypeKind.UnmanagedSZArray)
-        {
-            if (value is null)
-            {
-                // Write null-array marker (4 bytes: 0xFF 0xFF 0xFF 0xFF)
-                if (buffer.Length < 4)
-                {
-                    Throw.BufferTooSmall();
-                }
-
-                SerializerBounds.NullArrayMarker.CopyTo(buffer);
-                return 4;
-            }
-
-            Array array = (Array)(object)value;
-            int length = array.Length;
-
-            if (length == 0)
-            {
-                // Write empty-array marker (4 bytes: 0x00 0x00 0x00 0x00)
-                if (buffer.Length < 4)
-                {
-                    Throw.BufferTooSmall();
-                }
-
-                SerializerBounds.EmptyArrayMarker.CopyTo(buffer);
-                return 4;
-            }
-
-            long dataSizeLong = (long)fixedSize * length;
-            if (buffer.Length < dataSizeLong + 4)
-            {
-                Throw.BufferTooSmall();
-            }
-
-            int dataSize = (int)dataSizeLong;
-            int totalSize = dataSize + 4; // Safe now because of the check above
-
-            // Write the element count as a 4-byte little-endian prefix
-            Unsafe.WriteUnaligned(
-                ref MemoryMarshal.GetReference(buffer), length);
-
-            // Bulk-copy all element bytes directly into the span (after the prefix)
-            Unsafe.CopyBlockUnaligned(
-                ref Unsafe.Add(
-                    ref MemoryMarshal.GetReference(buffer), 4),
-                ref MemoryMarshal.GetArrayDataReference(array),
-                (uint)dataSize);
-
-            return totalSize;
-        }
+        TypeKind kind = TypeMetadata.TryGetFixedSize<T>(out int fixedSize);
 
         // ── Case 3: Fixed-size serializable (implements IFixedSizeSerializable) ───
         // T declares a compile-time-known byte size via IFixedSizeSerializable.Size.
@@ -397,18 +259,8 @@ public static class LiteSerializer
             Throw.EmptyBuffer();
         }
 
-        IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
-        IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable;
-
         DataReader reader = new(buffer);
-        if (value is not null && fillable is not null)
-        {
-            fillable.Fill(ref reader, value);
-        }
-        else
-        {
-            value = formatter.Deserialize(ref reader);
-        }
+        DeserializeInternal(ref reader, ref value);
 
         return reader.BytesRead;
     }
@@ -546,74 +398,6 @@ public static class LiteSerializer
             return TypeMetadata.SizeOf<T>();
         }
 
-        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
-
-        if (kind is TypeKind.UnmanagedSZArray)
-        {
-            if (IsNullArrayMarker(buffer))
-            {
-                value = (T)(object)null!;
-                return 4;
-            }
-
-            _ = typeof(T).GetElementType()
-                ?? throw new SerializationFailureException(
-                    $"TYPE '{typeof(T)}' is expected to be an array, but element type could not be resolved."
-                );
-
-            if (IsEmptyArrayMarker(buffer))
-            {
-                value = (T)(object)CreateArray<T>(0);
-                return 4;
-            }
-
-            if (buffer.Length < 4)
-            {
-                Throw.EndOfStream();
-            }
-
-            int length = Unsafe.ReadUnaligned<int>(
-                ref MemoryMarshal.GetReference(buffer));
-
-            if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
-            {
-                throw new SerializationFailureException(
-                    $"Array length {length} is out of allowed range [0, {SerializationStaticOptions.Instance.MaxArrayLength}] for type '{typeof(T)}'. (Config: Serialization.MaxArrayLength)");
-            }
-
-            // Calculate total data size and verify the buffer has enough bytes 
-            // BEFORE attempting any heap allocation to prevent OOM/DoS.
-            long dataSizeLong = (long)size * length;
-            if (buffer.Length < dataSizeLong + 4)
-            {
-                Throw.EndOfStream();
-            }
-
-            int dataSize = (int)dataSizeLong;
-
-            // Allocation: Using GC.AllocateUninitializedArray is safer and faster for large blocks
-            // as it avoids the zero-fill overhead (which can be a DoS vector for large MaxArray).
-            Array arr;
-            if (typeof(T) == typeof(byte[]))
-            {
-                arr = GC.AllocateUninitializedArray<byte>(length);
-            }
-            else
-            {
-                arr = CreateArray<T>(length);
-            }
-
-            ref byte dest = ref MemoryMarshal.GetArrayDataReference(arr);
-
-            Unsafe.CopyBlockUnaligned(
-                ref dest,
-                ref Unsafe.Add(
-                ref MemoryMarshal.GetReference(buffer), 4), (uint)dataSize);
-
-            value = (T)(object)arr;
-            return dataSize + 4;
-        }
-
         IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
         IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable;
 
@@ -628,123 +412,6 @@ public static class LiteSerializer
         }
 
         return reader.BytesRead;
-    }
-
-    /// <summary>
-    /// Attempts to deserialize an object from a read-only span of bytes without throwing exceptions.
-    /// </summary>
-    /// <typeparam name="T">The type of object to deserialize.</typeparam>
-    /// <param name="buffer">The span containing serialized data.</param>
-    /// <param name="value">The reference to the object where deserialized data will be stored.</param>
-    /// <param name="bytesRead">The number of bytes read during deserialization.</param>
-    /// <returns>True if deserialization succeeded, otherwise false.</returns>
-    [Pure]
-    [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    public static bool TryDeserialize<[
-        DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ReadOnlySpan<byte> buffer, ref T value, out int bytesRead)
-    {
-        bytesRead = 0;
-
-        if (buffer.IsEmpty)
-        {
-            return false;
-        }
-
-        if (TypeMetadata.IsUnmanaged<T>())
-        {
-            if (buffer.Length < TypeMetadata.SizeOf<T>())
-            {
-                return false;
-            }
-            value = Unsafe.ReadUnaligned<T>(
-                ref MemoryMarshal.GetReference(buffer));
-
-            bytesRead = TypeMetadata.SizeOf<T>();
-            return true;
-        }
-
-        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
-
-        if (kind is TypeKind.UnmanagedSZArray)
-        {
-            if (IsNullArrayMarker(buffer))
-            {
-                value = (T)(object)null!;
-                bytesRead = 4;
-                return true;
-            }
-
-            if (IsEmptyArrayMarker(buffer))
-            {
-                value = (T)(object)CreateArray<T>(0);
-                bytesRead = 4;
-                return true;
-            }
-
-            if (buffer.Length < 4)
-            {
-                return false;
-            }
-
-            int length = Unsafe.ReadUnaligned<int>(
-                ref MemoryMarshal.GetReference(buffer));
-
-            if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
-            {
-                return false;
-            }
-
-            long dataSizeLong = (long)size * length;
-            if (buffer.Length < dataSizeLong + 4)
-            {
-                return false;
-            }
-
-            int dataSize = (int)dataSizeLong;
-
-            Array arr;
-            if (typeof(T) == typeof(byte[]))
-            {
-                arr = GC.AllocateUninitializedArray<byte>(length);
-            }
-            else
-            {
-                arr = CreateArray<T>(length);
-            }
-
-            ref byte dest = ref MemoryMarshal.GetArrayDataReference(arr);
-
-            Unsafe.CopyBlockUnaligned(
-                ref dest,
-                ref Unsafe.Add(
-                ref MemoryMarshal.GetReference(buffer), 4), (uint)dataSize);
-
-            value = (T)(object)arr;
-            bytesRead = dataSize + 4;
-            return true;
-        }
-
-        IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
-        IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable;
-
-        DataReader reader = new(buffer);
-        if (value is not null && fillable is not null)
-        {
-            fillable.Fill(ref reader, value);
-        }
-        else
-        {
-            value = formatter.Deserialize(ref reader);
-        }
-
-        if (reader.IsFailed)
-        {
-            return false;
-        }
-
-        bytesRead = reader.BytesRead;
-        return true;
     }
 
     /// <summary>
@@ -785,73 +452,6 @@ public static class LiteSerializer
                 ref MemoryMarshal.GetReference(buffer));
         }
 
-        TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
-
-        if (kind is TypeKind.UnmanagedSZArray)
-        {
-            if (IsNullArrayMarker(buffer))
-            {
-                value = 4;
-                return default;
-            }
-
-            _ = typeof(T).GetElementType()
-                ?? throw new SerializationFailureException(
-                    $"TYPE '{typeof(T)}' is expected to be an array, but element type could not be resolved."
-                );
-
-            if (IsEmptyArrayMarker(buffer))
-            {
-                value = 4;
-                return (T)(object)CreateArray<T>(0);
-            }
-
-            if (buffer.Length < 4)
-            {
-                Throw.EndOfStream();
-            }
-
-            int length = Unsafe.ReadUnaligned<int>(
-                ref MemoryMarshal.GetReference(buffer));
-
-            if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
-            {
-                throw new SerializationFailureException(
-                    $"Array length {length} is out of allowed range [0, {SerializationStaticOptions.Instance.MaxArrayLength}] for type '{typeof(T)}'. (Config: Serialization.MaxArrayLength)");
-            }
-
-            // Safety check: Ensure the buffer actually contains the promised data size
-            // BEFORE we allocate memory on the heap.
-            long dataSizeLong = (long)size * length;
-            if (buffer.Length < dataSizeLong + 4)
-            {
-                Throw.EndOfStream();
-            }
-
-            int dataSize = (int)dataSizeLong;
-
-            // Allocation: Using uninitialized arrays to avoid zero-filling overhead.
-            Array arr;
-            if (typeof(T) == typeof(byte[]))
-            {
-                arr = GC.AllocateUninitializedArray<byte>(length);
-            }
-            else
-            {
-                arr = CreateArray<T>(length);
-            }
-
-            ref byte dest = ref MemoryMarshal.GetArrayDataReference(arr);
-
-            Unsafe.CopyBlockUnaligned(
-                ref dest,
-                ref Unsafe.Add(
-                ref MemoryMarshal.GetReference(buffer), 4), (uint)dataSize);
-
-            value = dataSize + 4;
-            return (T)(object)arr;
-        }
-
         IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
         DataReader reader = new(buffer);
         T result = formatter.Deserialize(ref reader);
@@ -861,7 +461,7 @@ public static class LiteSerializer
 
     #endregion APIs
 
-    #region Fill API (Object Reuse / Pooling Path for Low-Latency TCP)
+    #region Fill API
 
     /// <summary>
     /// Fills an existing instance from a byte array using in-place deserialization (object reuse path).
@@ -936,54 +536,86 @@ public static class LiteSerializer
         return reader.BytesRead;
     }
 
-    #endregion Fill API (Object Reuse / Pooling Path for Low-Latency TCP)
+    #endregion Fill API
+
+    #region Internal APIs
+
+    /// <summary>
+    /// Attempts to deserialize an object from a read-only span of bytes without throwing exceptions.
+    /// </summary>
+    /// <typeparam name="T">The type of object to deserialize.</typeparam>
+    /// <param name="buffer">The span containing serialized data.</param>
+    /// <param name="value">The reference to the object where deserialized data will be stored.</param>
+    /// <param name="bytesRead">The number of bytes read during deserialization.</param>
+    /// <returns>True if deserialization succeeded, otherwise false.</returns>
+    [Pure]
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    internal static bool TryDeserialize<[
+        DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ReadOnlySpan<byte> buffer, ref T value, out int bytesRead)
+    {
+        bytesRead = 0;
+
+        if (buffer.IsEmpty)
+        {
+            return false;
+        }
+
+        if (TypeMetadata.IsUnmanaged<T>())
+        {
+            if (buffer.Length < TypeMetadata.SizeOf<T>())
+            {
+                return false;
+            }
+            value = Unsafe.ReadUnaligned<T>(
+                ref MemoryMarshal.GetReference(buffer));
+
+            bytesRead = TypeMetadata.SizeOf<T>();
+            return true;
+        }
+
+        IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
+        IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable;
+
+        DataReader reader = new(buffer);
+        if (value is not null && fillable is not null)
+        {
+            fillable.Fill(ref reader, value);
+        }
+        else
+        {
+            value = formatter.Deserialize(ref reader);
+        }
+
+        if (reader.IsFailed)
+        {
+            return false;
+        }
+
+        bytesRead = reader.BytesRead;
+        return true;
+    }
+
+    #endregion Internal APIs
 
     #region Private Methods
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsNullArrayMarker(ReadOnlySpan<byte> buffer) =>
-        buffer.Length >= 4 && Unsafe.ReadUnaligned<int>(ref MemoryMarshal.GetReference(buffer)) == SerializerBounds.Null;
+    private static void DeserializeInternal<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ref DataReader reader, ref T value)
+    {
+        IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
+        IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsEmptyArrayMarker(ReadOnlySpan<byte> buffer) =>
-        buffer.Length >= 4 && Unsafe.ReadUnaligned<int>(ref MemoryMarshal.GetReference(buffer)) == 0;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("AOT", "IL3050",
-        Justification = "Array.CreateInstance fallback is only reached for uncommon array element types. " +
-            "All standard unmanaged element types are handled by the type switch above with GC.AllocateUninitializedArray<T>.")]
-    private static Array CreateArray<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(int length)
-        => typeof(T) switch
+        if (value is not null && fillable is not null)
         {
-            Type t when t == typeof(char[]) => GC.AllocateUninitializedArray<char>(length),
-            Type t when t == typeof(byte[]) => GC.AllocateUninitializedArray<byte>(length),
-            Type t when t == typeof(sbyte[]) => GC.AllocateUninitializedArray<sbyte>(length),
-            Type t when t == typeof(short[]) => GC.AllocateUninitializedArray<short>(length),
-            Type t when t == typeof(int[]) => GC.AllocateUninitializedArray<int>(length),
-            Type t when t == typeof(long[]) => GC.AllocateUninitializedArray<long>(length),
-            Type t when t == typeof(ushort[]) => GC.AllocateUninitializedArray<ushort>(length),
-            Type t when t == typeof(uint[]) => GC.AllocateUninitializedArray<uint>(length),
-            Type t when t == typeof(ulong[]) => GC.AllocateUninitializedArray<ulong>(length),
-            Type t when t == typeof(float[]) => GC.AllocateUninitializedArray<float>(length),
-            Type t when t == typeof(double[]) => GC.AllocateUninitializedArray<double>(length),
-            Type t when t == typeof(bool[]) => GC.AllocateUninitializedArray<bool>(length),
-            Type t when t == typeof(decimal[]) => GC.AllocateUninitializedArray<decimal>(length),
-            Type t when t == typeof(Guid[]) => GC.AllocateUninitializedArray<Guid>(length),
-            Type t when t == typeof(DateOnly[]) => GC.AllocateUninitializedArray<DateOnly>(length),
-            Type t when t == typeof(DateTime[]) => GC.AllocateUninitializedArray<DateTime>(length),
-            Type t when t == typeof(TimeSpan[]) => GC.AllocateUninitializedArray<TimeSpan>(length),
-            Type t when t == typeof(TimeOnly[]) => GC.AllocateUninitializedArray<TimeOnly>(length),
-            Type t when t == typeof(DateTimeOffset[]) => GC.AllocateUninitializedArray<DateTimeOffset>(length),
-            _ => Array.CreateInstance(typeof(T).GetElementType()
-                ?? throw new SerializationFailureException($"Type '{typeof(T).FullName}' is not an array."), length)
-        };
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool UsesFormatterReader<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
-        => !TypeMetadata.IsUnmanaged<T>() &&
-           TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out _) is not TypeKind.UnmanagedSZArray;
+            fillable.Fill(ref reader, value);
+        }
+        else
+        {
+            value = formatter.Deserialize(ref reader);
+        }
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T> ResolveRootFormatter<
@@ -1005,9 +637,12 @@ public static class LiteSerializer
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool UsesFormatterReader<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>() => !TypeMetadata.IsUnmanaged<T>();
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T> ResolveRootFormatterForRead<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
-        => RootFormatterCache<T>.Formatter;
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>() => RootFormatterCache<T>.Formatter;
 
     private static class RootFormatterCache<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>

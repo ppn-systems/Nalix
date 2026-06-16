@@ -21,14 +21,14 @@ These contracts keep SDK and server code aligned. They cover both built-in packe
 
 - `IPacket` — Base interface for all Nalix packets.
 - `IConnection` — Abstraction for a network connection (TCP/UDP).
-- `PacketControllerAttribute` — Marks a class as a packet handler collection.
+- `PacketHandlerAttribute` — Marks a class as a packet handler collection.
 - `PacketOpcodeAttribute` — Binds a handler method to a specific opcode.
 - `PacketTransportAttribute` — Specifies the required transport for a packet.
 
 ### Quick example
 
 ```csharp
-[PacketController("SamplePingHandlers")]
+[PacketHandler("SamplePingHandlers")]
 public class SamplePingHandlers
 {
     [PacketOpcode(1)]

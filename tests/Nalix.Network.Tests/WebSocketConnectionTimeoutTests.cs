@@ -37,7 +37,7 @@ public class WebSocketConnectionTimeoutTests : IDisposable
     {
         private sealed class NoOpFrameProcessor : IFrameProcessor
         {
-            public void ProcessFrame(object? sender, IConnectEventArgs args) { }
+            public void ProcessFrame(object? sender, IConnectionEventArgs args) { }
         }
 
         private sealed class StubOpCodeExtractor : Nalix.Abstractions.Networking.Protocols.IOpCodeExtractor
@@ -54,7 +54,7 @@ public class WebSocketConnectionTimeoutTests : IDisposable
             this.SetConnectionAcceptance(true);
         }
 
-        public override void ProcessMessage(object? sender, IConnectEventArgs args)
+        public override void ProcessMessage(object? sender, IConnectionEventArgs args)
         {
             if (args.Lease != null && args.Lease.Length > 0)
             {

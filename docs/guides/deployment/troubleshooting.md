@@ -96,7 +96,7 @@ public override void ProcessMessage(object? sender, IConnectEventArgs args)
 **Check first**
 
 - the handler method is decorated with the custom attribute
-- the `[PacketController]` class containing the handler is registered with `AddHandler<T>()`
+- the `[PacketHandler]` class containing the handler is registered with `MapHandlers<T>()`
 - the `PacketHandlerGenerator` source generator ran successfully at build time
 
 Custom attributes on handler methods are collected by the source generator at compile time and stored in `PacketMetadata.CustomAttributes`. If the generator did not process the controller, the attribute will not be available at runtime.

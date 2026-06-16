@@ -427,7 +427,7 @@ internal sealed class TimingWheel : IActivatable
     /// <param name="connection">The connection to monitor.</param>
     /// <remarks>
     /// If the connection is already registered the call is a no-op.
-    /// The method subscribes to <see cref="IConnection.OnCloseEvent"/> once so that
+    /// The method subscribes to <see cref="IConnection.ConnectionClosed"/> once so that
     /// the connection is automatically unregistered when it closes.
     /// </remarks>
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -471,7 +471,7 @@ internal sealed class TimingWheel : IActivatable
 
                 task.Rounds = (int)((ticks - 1) / _wheelSize);
 
-                connection.OnCloseEvent += this.OnConnectionClosed;
+                connection.ConnectionClosed += this.OnConnectionClosed;
                 subscribed = true;
 
                 _wheel[bucket].Enqueue(task);
@@ -489,7 +489,7 @@ internal sealed class TimingWheel : IActivatable
 
                 if (subscribed)
                 {
-                    connection.OnCloseEvent -= this.OnConnectionClosed;
+                    connection.ConnectionClosed -= this.OnConnectionClosed;
                 }
 
                 connection.IsRegisteredInWheel = false;
@@ -527,7 +527,7 @@ internal sealed class TimingWheel : IActivatable
             {
                 connection.IsRegisteredInWheel = false;
                 connection.TimeoutVersion++;
-                connection.OnCloseEvent -= this.OnConnectionClosed;
+                connection.ConnectionClosed -= this.OnConnectionClosed;
 
                 if (connection.TimeoutTask is TimeoutTask task)
                 {
@@ -734,7 +734,7 @@ internal sealed class TimingWheel : IActivatable
     #region Helpers
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void OnConnectionClosed(object? sender, IConnectEventArgs args)
+    private void OnConnectionClosed(object? sender, IConnectionEventArgs args)
     {
         if (args?.Connection is ITimeoutTrackedConnection conn)
         {

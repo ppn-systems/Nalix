@@ -25,13 +25,13 @@ public sealed class ReflectorProtocol : IProtocol, IFrameProcessor, IOpCodeExtra
     public ReflectorProtocol(ReflectorManager manager) => _manager = manager ?? throw new ArgumentNullException(nameof(manager));
 
     /// <inheritdoc/>
-    public void ProcessMessage(object? sender, IConnectEventArgs args)
+    public void ProcessMessage(object? sender, IConnectionEventArgs args)
     {
         // Not used, handled in ProcessFrame
     }
 
     /// <inheritdoc/>
-    public void PostProcessMessage(object? sender, IConnectEventArgs args)
+    public void PostProcessMessage(object? sender, IConnectionEventArgs args)
     {
         // Not used
     }
@@ -43,7 +43,7 @@ public sealed class ReflectorProtocol : IProtocol, IFrameProcessor, IOpCodeExtra
     }
 
     /// <inheritdoc/>
-    public void ProcessFrame(object? sender, IConnectEventArgs args)
+    public void ProcessFrame(object? sender, IConnectionEventArgs args)
     {
         if (args?.Lease is not { } lease)
         {

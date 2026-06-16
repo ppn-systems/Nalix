@@ -133,7 +133,7 @@ public class IntegrationTestProtocol : Protocol
         this.SetConnectionAcceptance(true);
     }
 
-    public override void ProcessMessage(object? sender, IConnectEventArgs args)
+    public override void ProcessMessage(object? sender, IConnectionEventArgs args)
     {
         if (args.Lease is IBufferLease lease)
         {

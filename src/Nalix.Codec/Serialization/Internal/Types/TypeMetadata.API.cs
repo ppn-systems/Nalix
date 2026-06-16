@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -84,14 +83,9 @@ internal static partial class TypeMetadata
     /// <returns>The corresponding <see cref="TypeKind"/> value.</returns>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TypeKind TryGetFixedOrUnmanagedSize<[DynamicallyAccessedMembers(PropertyAccess)] T>(out int size)
+    public static TypeKind TryGetFixedSize<[DynamicallyAccessedMembers(PropertyAccess)] T>(out int size)
     {
-        if (Cache<T>.IsUnmanagedSZArray)
-        {
-            size = Cache<T>.UnmanagedSZArrayElementSize;
-            return TypeKind.UnmanagedSZArray;
-        }
-        else if (Cache<T>.IsFixedSizeSerializable)
+        if (Cache<T>.IsFixedSizeSerializable)
         {
             size = Cache<T>.SerializableFixedSize;
             return TypeKind.FixedSizeSerializable;
@@ -100,28 +94,4 @@ internal static partial class TypeMetadata
         size = 0;
         return TypeKind.None;
     }
-
-    #region Private Methods
-
-    public static void RecursiveWarmupFields(
-        [DynamicallyAccessedMembers(
-            DynamicallyAccessedMemberTypes.PublicFields |
-            DynamicallyAccessedMemberTypes.NonPublicFields)] Type type,
-        HashSet<Type>? visited = null)
-    {
-        // Walk the transitive closure of field types so formatter registration can be
-        // preheated without revisiting the same type over and over.
-        visited ??= [];
-        if (!visited.Add(type))
-        {
-            return;
-        }
-
-        // The formatter constructor that calls into this method is already building the
-        // root formatter. Re-entering FormatterProvider.Get<T>() for that same root type
-        // would instantiate the formatter again and recurse forever for value types such
-        // as Snowflake. Only dependency types should be proactively warmed here.
-    }
-
-    #endregion Private Method
 }

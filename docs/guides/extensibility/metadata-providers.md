@@ -1,4 +1,4 @@
-﻿# Custom Metadata Providers
+# Custom Metadata Providers
 
 !!! danger "Deprecated"
     The runtime metadata provider extensibility model (`IPacketMetadataProvider`,
@@ -11,13 +11,13 @@
 Nalix resolves handler metadata (opcode, timeout, permission, encryption, rate limit,
 concurrency limit, transport preference) at compile time using the `PacketHandlerGenerator`
 source generator. The generator reads the attributes on your handler methods and produces a
-`PacketMetadata` struct directly — no runtime builder or provider registration is needed.
+`PacketMetadata` struct directly � no runtime builder or provider registration is needed.
 
 ### How it works
 
 1. You annotate handler methods with built-in attributes (`[PacketOpcode]`,
    `[PacketPermission]`, `[PacketEncryption]`, etc.).
-2. The `PacketHandlerGenerator` scans all `[PacketController]` classes at compile time.
+2. The `PacketHandlerGenerator` scans all `[PacketHandler]` classes at compile time.
 3. For each handler method, the generator emits code that constructs a `PacketMetadata`
    instance from the declared attributes.
 4. At runtime, `PacketHandlerRegistry` registers the generated handlers without reflection.
@@ -41,7 +41,7 @@ public sealed class PacketTenantAttribute : Attribute
 Apply the attribute on a handler method:
 
 ```csharp
-[PacketController("SampleInvoiceHandlers")]
+[PacketHandler("SampleInvoiceHandlers")]
 public sealed class SampleInvoiceHandlers
 {
     [PacketOpcode(0x2201)]

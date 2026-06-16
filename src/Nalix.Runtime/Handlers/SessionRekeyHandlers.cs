@@ -15,7 +15,7 @@ namespace Nalix.Runtime.Handlers;
 /// <summary>
 /// Handles session rekey packets to perform symmetric key rotation mid-session and prevent sequence counter overflows.
 /// </summary>
-[PacketController("Nalix.Session.Rekey")]
+[PacketHandler("Nalix.Session.Rekey")]
 public static class SessionRekeyHandlers
 {
     /// <summary>

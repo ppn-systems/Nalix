@@ -72,8 +72,7 @@ public sealed class RuntimeObservationWebSocketIntegrationTests : IDisposable
 
         var builder = NetworkApplication.CreateBuilder();
 
-        builder.ConfigureCertificate(_certificatePath);
-        builder.UseSecureConnections();
+        builder.UseSecureConnections(_certificatePath);
         builder.UseSystemControl();
         builder.UseTimeSync();
         builder.UseSessions();
@@ -91,7 +90,7 @@ public sealed class RuntimeObservationWebSocketIntegrationTests : IDisposable
             options.WithMiddleware(new BoundaryTrackingMiddleware(counters));
         });
 
-        builder.BindWebSocket<DefaultProtocol>()
+        builder.ListenWebSocket<DefaultProtocol>()
                .OnPort(port)
                .WithPath("/ws/")
                .WithFactory(dispatch => new InstrumentedProtocol(dispatch, counters));
@@ -344,7 +343,7 @@ public sealed class RuntimeObservationWebSocketIntegrationTests : IDisposable
             this.KeepConnectionOpen = true;
         }
 
-        public override void ProcessMessage(object? sender, IConnectEventArgs args)
+        public override void ProcessMessage(object? sender, IConnectionEventArgs args)
         {
             if (args.Lease is null)
             {

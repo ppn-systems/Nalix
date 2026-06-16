@@ -15,7 +15,7 @@ public sealed class CustomControllerAnalyzerTests
 namespace Demo;
 using Nalix.Abstractions.Networking.Packets;
 
-[PacketController]
+[PacketHandler]
 public sealed class MyController
 {
     [PacketOpcode(0x0001)]
@@ -40,7 +40,7 @@ public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 namespace Demo;
 using Nalix.Abstractions.Networking.Packets;
 
-[PacketController]
+[PacketHandler]
 public sealed class Controller1
 {
     [PacketOpcode(0x0200)]
@@ -57,7 +57,7 @@ public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 namespace Demo;
 using Nalix.Abstractions.Networking.Packets;
 
-[PacketController]
+[PacketHandler]
 public sealed class Controller2
 {
     [PacketOpcode(0x0200)]
@@ -77,7 +77,7 @@ public sealed class Controller2
 namespace Demo;
 using Nalix.Abstractions.Networking.Packets;
 
-[PacketController]
+[PacketHandler]
 public sealed class MyController
 {
     [PacketOpcode(0x0150)]
@@ -100,7 +100,7 @@ public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 namespace Demo;
 using Nalix.Abstractions.Networking.Packets;
 
-[PacketController]
+[PacketHandler]
 public sealed class MyController
 {
     [PacketOpcode(0x0200)]
@@ -128,7 +128,7 @@ public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 namespace Demo;
 using Nalix.Abstractions.Networking.Packets;
 
-[PacketController]
+[PacketHandler]
 public sealed class MyController
 {
     /// <summary>

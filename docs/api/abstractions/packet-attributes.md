@@ -1,4 +1,4 @@
-﻿# Packet Attributes
+# Packet Attributes
 
 Nalix uses packet attributes to declare handler routing and execution policy.
 
@@ -18,7 +18,7 @@ Precise attribute docs reduce handler-registration errors and avoid policy misun
 
 ## Source Mapping
 
-- `src/Nalix.Abstractions/Networking/Packets/PacketControllerAttribute.cs`
+- `src/Nalix.Abstractions/Networking/Packets/PacketHandlerAttribute.cs`
 - `src/Nalix.Abstractions/Networking/Packets/PacketOpcodeAttribute.cs`
 - `src/Nalix.Abstractions/Networking/Packets/PacketPermissionAttribute.cs`
 - `src/Nalix.Abstractions/Networking/Packets/PacketRateLimitAttribute.cs`
@@ -32,7 +32,7 @@ Precise attribute docs reduce handler-registration errors and avoid policy misun
 
 | Attribute | Scope | Purpose |
 | --- | --- | --- |
-| `PacketControllerAttribute` | Class | Marks a controller class for packet handlers. Defaults: `Name = "None"`, `IsActive = true`, `Version = "1.0"`. |
+| `PacketHandlerAttribute` | Class | Marks a controller class for packet handlers. Defaults: `Name = "None"`, `IsActive = true`, `Version = "1.0"`. |
 | `PacketOpcodeAttribute` | Method | Binds a handler to an opcode. |
 | `PacketPermissionAttribute` | Method | Declares the minimum `PermissionLevel` required to run. Defaults to `USER`. |
 | `PacketRateLimitAttribute` | Method | Declares requests-per-second and burst values. |
@@ -52,7 +52,7 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 
-[PacketController("SecureChat", version: "1.2")]
+[PacketHandler("SecureChat", version: "1.2")]
 public sealed class SecureChatController
 {
     [PacketOpcode(0x3001)]

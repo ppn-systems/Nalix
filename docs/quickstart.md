@@ -119,7 +119,7 @@ The server requires a **Handler** for logic and a **Protocol** bridge to the net
     using Contracts;
     using Nalix.Abstractions.Networking.Packets;
 
-    [PacketController("PingHandler")]
+    [PacketHandler("PingHandler")]
     public sealed class PingHandler
     {
         [PacketOpcode(PingRequest.OpCodeValue)]
@@ -155,7 +155,7 @@ The server requires a **Handler** for logic and a **Protocol** bridge to the net
     ```
 
     !!! tip
-        If you don't need custom protocol logic, you can use the built-in `DefaultProtocol` from the `Nalix.Hosting` namespace instead of creating your own class: `.BindTcp<DefaultProtocol>().Bind()`
+        If you don't need custom protocol logic, you can use the built-in `DefaultProtocol` from the `Nalix.Hosting` namespace instead of creating your own class: `.ListenTcp<DefaultProtocol>().Bind()`
 
 === "Program.cs"
 
@@ -164,9 +164,9 @@ The server requires a **Handler** for logic and a **Protocol** bridge to the net
     using Nalix.Network.Options;
 
     using var app = NetworkApplication.CreateBuilder()
-        .AddHandler<PingHandler>()
+        .MapHandlers<PingHandler>()
         .Configure<NetworkSocketOptions>(opt => opt.Port = 5000)
-        .BindTcp<DefaultProtocol>().Bind()
+        .ListenTcp<DefaultProtocol>().Bind()
         .Build();
 
     await app.RunAsync();

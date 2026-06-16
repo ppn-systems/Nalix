@@ -12,7 +12,7 @@ The source of truth is `analyzers/Nalix.Analyzers/Diagnostics/DiagnosticDescript
 | `NALIX003` | Packet controller handler has unsupported signature | Warning | Usage | Handler signatures must match the forms supported by the source-generated invoker (`PacketHandlerGenerator`). |
 | `NALIX004` | PacketContext<`T`> does not match dispatch packet type | Warning | Usage | `PacketContext<T>` should use the dispatcher packet type. |
 | `NALIX005` | Registered controller handler packet type does not match dispatcher type | Warning | Usage | Registered controllers should contain handlers compatible with `PacketDispatchOptions<TPacket>`. |
-| `NALIX008` | Registered handler controller is missing PacketController | Warning | Usage | Types registered through `WithHandler` should declare `[PacketController]`. |
+| `NALIX008` | Registered handler controller is missing PacketHandler | Warning | Usage | Types registered through `WithHandler` should declare `[PacketHandler]`. |
 | `NALIX009` | Registered packet type is missing static Deserialize | Warning | Usage | Packet registry binding expects `IPacketDeserializer<T>` / static deserialize support. |
 | `NALIX010` | PacketBase<`TSelf`> should use the containing packet type | Warning | Usage | `PacketBase<TSelf>` should use the packet's own type as `TSelf`. |
 | `NALIX011` | IPacketDeserializer<`T`> should use the containing packet type | Warning | Usage | Packet deserializer contracts should target the containing packet type. |
@@ -21,9 +21,9 @@ The source of truth is `analyzers/Nalix.Analyzers/Diagnostics/DiagnosticDescript
 | `NALIX018` | Registered packet type must be concrete | Warning | Usage | Packet registry entries should be concrete, non-abstract, non-generic packet types. |
 | `NALIX047` | Dispatch loop count is out of supported range | Warning | Usage | `WithDispatchLoopCount` expects `1..64`. |
 | `NALIX048` | Packet controller handler return type is unsupported | Warning | Usage | Handler returns must be supported by Nalix return handlers. |
-| `NALIX050` | PacketOpcode is declared on a non-controller type | Info | Usage | `[PacketOpcode]` handlers are expected inside `[PacketController]` types. |
+| `NALIX050` | PacketOpcode is declared on a non-controller type | Info | Usage | `[PacketOpcode]` handlers are expected inside `[PacketHandler]` types. |
 | `NALIX052` | Packet Deserialize overload should include ReadOnlySpan<`byte`> | Warning | Usage | Packet discovery expects a `ReadOnlySpan<byte>` deserialize overload. |
-| `NALIX054` | PacketController name is duplicated | Info | Usage | Duplicate controller names reduce routing and diagnostic clarity. |
+| `NALIX054` | PacketHandler name is duplicated | Info | Usage | Duplicate controller names reduce routing and diagnostic clarity. |
 | `NALIX055` | Redundant cast on PacketContext<`T`>.Packet | Info | Usage | `PacketContext<T>.Packet` is already strongly typed. |
 | `NALIX056` | Middleware registration uses null | Warning | Usage | Middleware registration methods require non-null middleware instances. |
 | `NALIX058` | Packet handler method should not be generic | Warning | Usage | Generic packet handler methods can lead to ambiguous or unsupported binding. |

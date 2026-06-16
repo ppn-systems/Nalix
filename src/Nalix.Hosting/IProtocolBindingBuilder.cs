@@ -44,7 +44,7 @@ public interface IProtocolBindingBuilder
 
     /// <summary>
     /// Adds a custom authentication predicate for UDP datagrams.
-    /// Only applicable when binding via <see cref="INetworkApplicationBuilder.BindUdp{TProtocol}()"/>.
+    /// Only applicable when binding via <see cref="INetworkApplicationBuilder.ListenUdp{TProtocol}()"/>.
     /// </summary>
     /// <param name="authen">The authentication predicate.</param>
     /// <returns>The current builder instance.</returns>

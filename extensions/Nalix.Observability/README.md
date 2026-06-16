@@ -14,9 +14,9 @@ using Nalix.Hosting;
 using Nalix.Observability.Handlers;
 
 NetworkApplication host = NetworkApplication.CreateBuilder()
-    .AddHandler<ObservabilityAccessHandlers>()
-    .AddHandler<RuntimeObservationHandlers>()
-    .BindWebSocket<DefaultProtocol>()
+    .MapHandlers<ObservabilityAccessHandlers>()
+    .MapHandlers<RuntimeObservationHandlers>()
+    .ListenWebSocket<DefaultProtocol>()
         .OnPort(57207)
         .WithPath("/ws/")
         .Bind()

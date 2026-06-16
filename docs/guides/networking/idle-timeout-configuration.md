@@ -87,7 +87,7 @@ var host = NetworkApplication.CreateBuilder()
         options.IdleTimeoutMs = 30_000; // Disconnect after 30 seconds of silence
         options.TickDuration = 1000;    // Check once per second
     })
-    .BindTcp<MyProtocol>().Bind()
+    .ListenTcp<MyProtocol>().Bind()
     .Build();
 
 await host.RunAsync();

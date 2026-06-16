@@ -160,7 +160,7 @@ internal static class Verifier<TCodeFix>
         string[] requiredMetadataNames =
         [
             "Nalix.Abstractions.Networking.Packets.PacketOpcodeAttribute",
-            "Nalix.Abstractions.Networking.Packets.PacketControllerAttribute",
+            "Nalix.Abstractions.Networking.Packets.PacketHandlerAttribute",
             "Nalix.Abstractions.Networking.Packets.IPacket",
             "Nalix.Codec.DataFrames.PacketBase`1",
             "Nalix.Abstractions.Serialization.SerializeHeaderAttribute",

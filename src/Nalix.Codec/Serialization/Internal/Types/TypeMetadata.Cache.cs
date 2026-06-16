@@ -35,12 +35,10 @@ internal static partial class TypeMetadata
         public static bool IsUnmanaged;
         public static bool IsNullable;
         public static bool IsReference;
-        public static bool IsUnmanagedSZArray;
         public static bool IsFixedSizeSerializable;
         public static bool IsCompositeSerializable;
 
         public static int SerializableFixedSize;
-        public static int UnmanagedSZArrayElementSize;
 
         static Cache()
         {
@@ -52,16 +50,7 @@ internal static partial class TypeMetadata
                 IsNullable = Nullable.GetUnderlyingType(type) != null;
                 IsUnmanaged = !RuntimeHelpers.IsReferenceOrContainsReferences<T>();
 
-                if (type.IsSZArray)
-                {
-                    Type? elementType = type.GetElementType();
-                    if (elementType != null && !IsReferenceOrContainsReferences(elementType))
-                    {
-                        IsUnmanagedSZArray = true;
-                        UnmanagedSZArrayElementSize = UnsafeSizeOf(elementType);
-                    }
-                }
-                else if (typeof(IFixedSizeSerializable).IsAssignableFrom(type))
+                if (typeof(IFixedSizeSerializable).IsAssignableFrom(type))
                 {
                     PropertyInfo? prop = type.GetProperty(nameof(IFixedSizeSerializable.Size), Flags);
 
@@ -74,7 +63,6 @@ internal static partial class TypeMetadata
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                IsUnmanagedSZArray = false;
                 IsFixedSizeSerializable = false;
                 IsCompositeSerializable = false;
             }

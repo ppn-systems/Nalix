@@ -97,6 +97,7 @@ internal static class ServiceRegistrar
         try
         {
             InstanceManager.Instance.Register<IConnectionHub>(hub);
+            InstanceManager.Instance.Register<IConnectionBroadcaster>(hub);
         }
         catch
         {

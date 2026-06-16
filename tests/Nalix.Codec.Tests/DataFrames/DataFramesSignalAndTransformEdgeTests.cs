@@ -68,7 +68,6 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         Assert.Equal(SessionResumeStage.REQUEST, packet.Stage);
         Assert.Equal(ProtocolReason.NONE, packet.Reason);
         Assert.True(packet.Proof.IsZero);
-        Assert.False(packet.Header.Flags.HasFlag(PacketFlags.RELIABLE));
         Assert.Equal(PacketPriority.URGENT, packet.Header.Priority);
     }
 
@@ -76,7 +75,7 @@ public sealed class DataFramesSignalAndTransformEdgeTests
     public void ControlInitializeOverloadWithoutOpcodeUpdatesCoreProperties()
     {
         Control packet = new();
-        packet.Initialize(ControlType.PING, sequenceId: 44, flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, reasonCode: ProtocolReason.TIMEOUT);
+        packet.Initialize(ControlType.PING, sequenceId: 44, flags: PacketFlags.SYSTEM, reasonCode: ProtocolReason.TIMEOUT);
 
         Assert.Equal(ControlType.PING, packet.Type);
         Assert.Equal(44u, packet.Header.SequenceId);
@@ -94,7 +93,6 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         Assert.Equal(ProtocolReason.THROTTLED, packet.Reason);
         Assert.Equal(ProtocolAdvice.SLOW_DOWN, packet.Action);
         Assert.Equal(ControlFlags.SLOW_DOWN, packet.Control);
-        Assert.False(packet.Header.Flags.HasFlag(PacketFlags.RELIABLE));
         Assert.Equal(PacketPriority.HIGH, packet.Header.Priority);
     }
 

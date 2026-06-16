@@ -4,16 +4,13 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Options;
-using Nalix.Codec.Transforms;
 using Nalix.Environment.Configuration;
-using Nalix.Environment.Hashing;
 using Nalix.Environment.Memory;
+using Nalix.Runtime.Internal.Pipelines;
 
 #if DEBUG
 using Nalix.Abstractions.Diagnostics;
@@ -118,61 +115,19 @@ public sealed class PacketSender : IPacketSender
 
         // Serialize into a pooled buffer first so the subsequent compression/encryption
         // branches can reuse the same payload without reserializing the packet.
-        BufferLease rawLease = BufferLease.Rent(packetLength);
+        BufferLease rawLease = PacketPipeline.Serialize(packet);
 
         try
         {
-            int written = packet.Serialize(rawLease.SpanFull);
-            rawLease.CommitLength(written);
-
-            IBufferLease current = rawLease;
-            uint? sequenceToUse = needEncrypt ? transport.NextSendSequence() : null;
-
-            // FramePipeline mutates `current` and properly cleans up older leases.
-            FramePipeline.ProcessOutbound(
-                ref current,
+            await PacketPipeline.ProcessAndSendAsync(
+                connection,
+                transport,
+                rawLease,
+                needEncrypt,
                 s_options.Enabled,
                 s_options.MinSizeToCompress,
-                needEncrypt,
-                connection.Secret.AsSpan(),
-                sequenceToUse,
-                connection.Algorithm);
-
-            try
-            {
-                if (transport == connection.UDP)
-                {
-                    int dataLen = current.Length;
-                    BufferLease signedLease = BufferLease.Rent(dataLen + Math.Max(4, Bytes32.Size));
-                    try
-                    {
-                        current.Span.CopyTo(signedLease.SpanFull);
-                        connection.Secret.AsSpan().CopyTo(signedLease.SpanFull[dataLen..]);
-                        uint hash = XxHash32.Compute(signedLease.SpanFull[..(dataLen + Bytes32.Size)]);
-                        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(signedLease.SpanFull.Slice(dataLen, 4), hash);
-                        signedLease.CommitLength(dataLen + 4);
-
-                        await transport.SendAsync(signedLease.Memory, ct).ConfigureAwait(false);
-                    }
-                    finally
-                    {
-                        signedLease.Dispose();
-                    }
-                }
-                else
-                {
-                    await transport.SendAsync(current.Memory, ct).ConfigureAwait(false);
-                }
-            }
-            finally
-            {
-                // Only dispose `current` if it was replaced. 
-                // `rawLease` itself will be disposed in the outer finally.
-                if (current != rawLease)
-                {
-                    current.Dispose();
-                }
-            }
+                ct,
+                cloneLease: false).ConfigureAwait(false);
         }
         finally
         {

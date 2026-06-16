@@ -184,7 +184,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         if (!PacketHandlerRegistry.TryBuildHandlers<TPacket>(controllerType, this, () => factory()))
         {
-            throw new InternalErrorException($"Controller '{controllerType.Name}' was not processed by the Source Generator. Ensure it is marked with [PacketController].");
+            throw new InternalErrorException($"Controller '{controllerType.Name}' was not processed by the Source Generator. Ensure it is marked with [PacketHandler].");
         }
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
@@ -223,7 +223,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         if (!PacketHandlerRegistry.TryBuildHandlers<TPacket>(controllerType, this, factory))
         {
-            throw new InternalErrorException($"Controller '{controllerType.Name}' was not processed by the Source Generator. Ensure it is marked with [PacketController].");
+            throw new InternalErrorException($"Controller '{controllerType.Name}' was not processed by the Source Generator. Ensure it is marked with [PacketHandler].");
         }
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))

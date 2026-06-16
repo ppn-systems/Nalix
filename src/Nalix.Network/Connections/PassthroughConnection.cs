@@ -72,7 +72,7 @@ public sealed class PassthroughConnection :
 
     private SocketUdpTransport? _udpTransport;
     private IObjectMap<AttributeKey, object>? _attributes;
-    private EventHandler<IConnectEventArgs>? _onCloseEvent;
+    private EventHandler<IConnectionEventArgs>? _connectionClosed;
 
     private int _isDisposed;
     private long _lastPingTime;
@@ -323,17 +323,17 @@ public sealed class PassthroughConnection :
     #region Events
 
     /// <inheritdoc />
-    public event EventHandler<IConnectEventArgs>? OnCloseEvent
+    public event EventHandler<IConnectionEventArgs>? ConnectionClosed
     {
-        add => _onCloseEvent += value;
-        remove => _onCloseEvent -= value;
+        add => _connectionClosed += value;
+        remove => _connectionClosed -= value;
     }
 
     /// <inheritdoc />
-    public event EventHandler<IConnectEventArgs>? OnProcessEvent { add { } remove { } }
+    public event EventHandler<IConnectionEventArgs>? MessageProcessed { add { } remove { } }
 
     /// <inheritdoc />
-    public event EventHandler<IConnectEventArgs>? OnPostProcessEvent { add { } remove { } }
+    public event EventHandler<IConnectionEventArgs>? MessageProcessing { add { } remove { } }
 
     #endregion Events
 
@@ -347,20 +347,20 @@ public sealed class PassthroughConnection :
             return;
         }
 
-        // Fire OnCloseEvent so TimingWheel and ConnectionGuard can clean up.
+        // Fire ConnectionClosed so TimingWheel and ConnectionGuard can clean up.
         try
         {
-            if (_onCloseEvent != null)
+            if (_connectionClosed != null)
             {
                 ConnectionEventArgs args = new();
                 args.Initialize(this);
 
                 try
                 {
-                    Delegate[] handlers = _onCloseEvent.GetInvocationList();
+                    Delegate[] handlers = _connectionClosed.GetInvocationList();
                     for (int i = 0; i < handlers.Length; i++)
                     {
-                        EventHandler<IConnectEventArgs> handler = (EventHandler<IConnectEventArgs>)handlers[i];
+                        EventHandler<IConnectionEventArgs> handler = (EventHandler<IConnectionEventArgs>)handlers[i];
                         try
                         {
                             handler(this, args);

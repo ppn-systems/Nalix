@@ -56,7 +56,7 @@ public sealed class SocketConnectionFragmentationTests
         TransportAsyncCallback.ResetStatistics();
 
         TaskCompletionSource<int> processObserved = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        connection.OnProcessEvent += (_, args) =>
+        connection.MessageProcessing += (_, args) =>
         {
             try
             {
@@ -85,7 +85,7 @@ public sealed class SocketConnectionFragmentationTests
         TransportAsyncCallback.ResetStatistics();
 
         TaskCompletionSource<byte[]> processObserved = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        connection.OnProcessEvent += (_, args) =>
+        connection.MessageProcessing += (_, args) =>
         {
             try
             {

@@ -36,7 +36,7 @@ public sealed class TunnelSessionRegistry
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "DisposeAsync is called in the finally block; ownership is transferred from TryRemove.")]
     [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "async void event handler must never throw — any exception would crash the process.")]
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Event handler signature")]
-    public async void OnConnectionClosed(object? sender, IConnectEventArgs args)
+    public async void OnConnectionClosed(object? sender, IConnectionEventArgs args)
     {
         try
         {

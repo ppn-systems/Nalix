@@ -40,7 +40,7 @@ public sealed partial class NatProbe : PacketBase<NatProbe>, IFixedSizeSerializa
 
         this.PeerId = 0;
         this.Priority = PacketPriority.HIGH;
-        this.Flags = PacketFlags.UNRELIABLE;
+        this.Flags = PacketFlags.NONE;
     }
 }
 

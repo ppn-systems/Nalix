@@ -10,7 +10,6 @@ using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Codec.DataFrames;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Configuration.Binding;
@@ -68,7 +67,28 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureLogging(ILogger logger)
+    public INetworkApplicationBuilder ConfigureDispatchOptions(Action<PacketDispatchOptions<IPacket>> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        _state.PacketDispatchOptionsConfigurators.Add(configure);
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder ConfigureDispatch(Func<Action<PacketDispatchOptions<IPacket>>, IPacketDispatch> factory)
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+        _state.CustomDispatchFactory = factory;
+        return this;
+    }
+
+    #endregion Configuration Methods
+
+    #region APIs Using Registered Services
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder UseLogger(ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(logger);
 
@@ -82,7 +102,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureConnectionHub(IConnectionHub connectionHub)
+    public INetworkApplicationBuilder UseConnectionHub(IConnectionHub connectionHub)
     {
         ArgumentNullException.ThrowIfNull(connectionHub);
 
@@ -98,32 +118,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureSessionService(ISessionService sessionService)
-    {
-        ArgumentNullException.ThrowIfNull(sessionService);
-        InstanceManager.Instance.Register<ISessionService>(sessionService);
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureSessionStore(ISessionStore sessionStore)
-    {
-        ArgumentNullException.ThrowIfNull(sessionStore);
-        InstanceManager.Instance.Register<ISessionStore>(sessionStore);
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureSessionFactory(ISessionFactory sessionFactory)
-    {
-        ArgumentNullException.ThrowIfNull(sessionFactory);
-        InstanceManager.Instance.Register<ISessionFactory>(sessionFactory);
-        return this;
-    }
-
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureBufferPoolManager(IBufferPoolManager manager)
+    public INetworkApplicationBuilder UseBufferPoolManager(IBufferPoolManager manager)
     {
         ArgumentNullException.ThrowIfNull(manager);
 
@@ -145,7 +140,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     /// </summary>
     /// <param name="manager">The manager instance to use.</param>
     /// <returns>The current builder instance.</returns>
-    public INetworkApplicationBuilder ConfigureObjectPoolManager(IObjectPoolManager manager)
+    public INetworkApplicationBuilder UseObjectPoolManager(IObjectPoolManager manager)
     {
         ArgumentNullException.ThrowIfNull(manager);
         InstanceManager.Instance.Register<IObjectPoolManager>(manager);
@@ -161,35 +156,12 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         return this;
     }
 
-    /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureCertificate(string certificatePath)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(certificatePath);
-        _state.IdentityCertificatePath = certificatePath;
-        return this;
-    }
+    #endregion APIs Using Registered Services
+
+    #region APIs
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureDispatchOptions(Action<PacketDispatchOptions<IPacket>> configure)
-    {
-        ArgumentNullException.ThrowIfNull(configure);
-
-        _state.PacketDispatchOptionsConfigurators.Add(configure);
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureDispatch(Func<Action<PacketDispatchOptions<IPacket>>, IPacketDispatch> factory)
-    {
-        ArgumentNullException.ThrowIfNull(factory);
-        _state.CustomDispatchFactory = factory;
-        return this;
-    }
-
-    #endregion Configuration Methods
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder AddHandler<
+    public INetworkApplicationBuilder MapHandlers<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods)] THandler>()
         where THandler : class
     {
@@ -203,7 +175,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddHandler<
+    public INetworkApplicationBuilder MapHandlers<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] THandler>(Func<THandler> factory) where THandler : class
     {
         ArgumentNullException.ThrowIfNull(factory);
@@ -216,7 +188,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddHandler(
+    public INetworkApplicationBuilder MapHandlers(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods)] Type controllerType)
     {
         ArgumentNullException.ThrowIfNull(controllerType);
@@ -230,7 +202,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
     /// <inheritdoc />
     /// <inheritdoc />
-    public IProtocolBindingBuilder BindTcp<
+    public IProtocolBindingBuilder ListenTcp<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol
     {
@@ -248,7 +220,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public IProtocolBindingBuilder BindUdp<
+    public IProtocolBindingBuilder ListenUdp<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol
     {
@@ -267,7 +239,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public IWebSocketBindingBuilder BindWebSocket<
+    public IWebSocketBindingBuilder ListenWebSocket<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol
     {
@@ -304,7 +276,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             serverFactories.Add(dispatch =>
             {
                 IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()
-                    ?? throw new InvalidOperationException("IConnectionHub is not registered. Call ConfigureConnectionHub or ensure Build() is invoked.");
+                    ?? throw new InvalidOperationException("IConnectionHub is not registered. Call UseConnectionHub or ensure Build() is invoked.");
 
                 IProtocol protocol = registration.Factory(dispatch);
 
@@ -330,7 +302,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             serverFactories.Add(dispatch =>
             {
                 IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()
-                    ?? throw new InvalidOperationException("IConnectionHub is not registered. Call ConfigureConnectionHub or ensure Build() is invoked.");
+                    ?? throw new InvalidOperationException("IConnectionHub is not registered. Call UseConnectionHub or ensure Build() is invoked.");
                 IProtocol protocol = registration.Factory(dispatch);
 
                 ushort? port = registration.Port;
@@ -380,7 +352,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             serverFactories.Add(dispatch =>
             {
                 IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()
-                    ?? throw new InvalidOperationException("IConnectionHub is not registered. Call ConfigureConnectionHub or ensure Build() is invoked.");
+                    ?? throw new InvalidOperationException("IConnectionHub is not registered. Call UseConnectionHub or ensure Build() is invoked.");
                 IProtocol protocol = registration.Factory(dispatch);
 
                 ushort? port = registration.Port;
@@ -413,6 +385,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         }
     }
 
+    #endregion APIs
+
     #region Factory Methods
 
     /// <summary>
@@ -423,7 +397,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     /// <typeparam name="TProtocol">The protocol type to instantiate.</typeparam>
     /// <param name="dispatch">The packet dispatch instance to inject if the protocol supports it.</param>
     /// <returns>A new protocol instance.</returns>
-    internal static IProtocol CreateProtocol<
+    private static IProtocol CreateProtocol<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>(
         IPacketDispatch dispatch)
         where TProtocol : class, IProtocol
@@ -451,7 +425,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2072",
         Justification = "HandlerDescriptor.HandlerType carries DynamicallyAccessedMembers(PublicMethods) on its record parameter. " +
             "The trimmer cannot always propagate DAM through record property getters.")]
-    internal static IPacketDispatch CreatePacketDispatch(HostingBuilderContext state)
+    private static IPacketDispatch CreatePacketDispatch(HostingBuilderContext state)
     {
         ArgumentNullException.ThrowIfNull(state);
 
@@ -480,7 +454,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     // AOT-safe: assembly scanning (Assembly.GetTypes) has been removed.
-    // Handlers are registered explicitly via AddHandler<T>() / AddHandler(Type)
+    // Handlers are registered explicitly via MapHandlers<T>() / MapHandlers(Type)
     // or discovered at compile time via source-generated PacketHandlerRegistry.
     private static IEnumerable<HandlerDescriptor> ResolveHandlerRegistrations(HostingBuilderContext state) => state.Handlers;
 
@@ -492,5 +466,5 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         }
     }
 
-    #endregion
+    #endregion Factory Methods
 }

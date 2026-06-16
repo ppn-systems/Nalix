@@ -49,7 +49,7 @@ public sealed class AsyncCallbackDispatchTests
         using Connection connection = new(serverSocket, s_testOpCodeExtractor);
 
         TaskCompletionSource processObserved = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        connection.OnProcessEvent += (_, e) =>
+        connection.MessageProcessing += (_, e) =>
         {
             if (e is null)
             {
@@ -102,7 +102,7 @@ public sealed class AsyncCallbackDispatchTests
         using Connection connection = new(serverSocket, s_testOpCodeExtractor);
 
         TaskCompletionSource postObserved = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        connection.OnPostProcessEvent += (_, _) => postObserved.TrySetResult();
+        connection.MessageProcessed += (_, _) => postObserved.TrySetResult();
 
         TransportAsyncCallback.ResetStatistics();
 

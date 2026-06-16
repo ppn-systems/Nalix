@@ -66,13 +66,13 @@ public sealed class NetworkApplicationIntegrationTests
             .Build();
 
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
-        builder.ConfigureLogging(logger);
+        builder.UseLogger(logger);
         builder.UseSecureConnections(certPath);
 
         // Listen on loopback with our test protocol
-        builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
+        builder.ListenTcp<IntegrationTestProtocol>().OnPort((ushort)port);
 
-        builder.AddHandler<IntegrationTestController>();
+        builder.MapHandlers<IntegrationTestController>();
 
         using NetworkApplication app = builder.Build();
 
@@ -163,7 +163,7 @@ public sealed class IntegrationTestProtocol : Protocol
         this.SetConnectionAcceptance(true);
     }
 
-    public override void ProcessMessage(object? sender, IConnectEventArgs args)
+    public override void ProcessMessage(object? sender, IConnectionEventArgs args)
     {
         // For testing, we assume the payload is a valid packet frame
         // and we push it to the dispatcher.
@@ -180,7 +180,7 @@ public sealed class IntegrationTestProtocol : Protocol
     }
 }
 
-[PacketController("IntegrationTest")]
+[PacketHandler("IntegrationTest")]
 [Nalix.Abstractions.Injection.Injectable]
 public sealed class IntegrationTestController
 {

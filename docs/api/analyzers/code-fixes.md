@@ -1,4 +1,4 @@
-﻿# Nalix.Analyzers Code Fixes
+# Nalix.Analyzers Code Fixes
 
 `Nalix.Analyzers.CodeFixes` provides the Roslyn fixes that complement the diagnostics in `Nalix.Analyzers`.
 
@@ -12,7 +12,7 @@ Use this page when you want a quick sense of what the analyzer can usually fix f
 - `analyzers/Nalix.Analyzers.CodeFixes/GenericPacketHandlerCodeFixProvider.cs`
 - `analyzers/Nalix.Analyzers.CodeFixes/MiddlewareCodeFixProvider.cs`
 - `analyzers/Nalix.Analyzers.CodeFixes/NullMiddlewareCodeFixProvider.cs`
-- `analyzers/Nalix.Analyzers.CodeFixes/PacketControllerCodeFixProvider.cs`
+- `analyzers/Nalix.Analyzers.CodeFixes/PacketHandlerCodeFixProvider.cs`
 - `analyzers/Nalix.Analyzers.CodeFixes/PacketDeserializeCodeFixProvider.cs`
 - `analyzers/Nalix.Analyzers.CodeFixes/PacketOpcodeCodeFixProvider.cs`
 - `analyzers/Nalix.Analyzers.CodeFixes/PacketRegistryDeserializerCodeFixProvider.cs`
@@ -31,7 +31,7 @@ Use this page when you want a quick sense of what the analyzer can usually fix f
 - `GenericPacketHandlerCodeFixProvider`
 - `MiddlewareCodeFixProvider`
 - `NullMiddlewareCodeFixProvider`
-- `PacketControllerCodeFixProvider`
+- `PacketHandlerCodeFixProvider`
 - `PacketDeserializeCodeFixProvider`
 - `PacketOpcodeCodeFixProvider`
 - `PacketRegistryDeserializerCodeFixProvider`
@@ -64,7 +64,7 @@ The available fixes currently cover these common workflows:
 
 ### Packet and controller fixes
 
-- `PacketControllerCodeFixProvider`
+- `PacketHandlerCodeFixProvider`
 - `PacketOpcodeCodeFixProvider`
 - `PacketDeserializeCodeFixProvider`
 - `PacketRegistryDeserializerCodeFixProvider`

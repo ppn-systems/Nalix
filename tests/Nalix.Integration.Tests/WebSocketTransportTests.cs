@@ -38,7 +38,7 @@ public class WebSocketTransportTests : IDisposable
         {
             private readonly IntegrationTestProtocol _protocol;
             public WebTestFrameProcessor(IntegrationTestProtocol protocol) => _protocol = protocol;
-            public void ProcessFrame(object? sender, IConnectEventArgs args) => _protocol.ProcessMessage(sender, args);
+            public void ProcessFrame(object? sender, IConnectionEventArgs args) => _protocol.ProcessMessage(sender, args);
         }
 
         private sealed class StubOpCodeExtractor : Nalix.Abstractions.Networking.Protocols.IOpCodeExtractor
@@ -56,7 +56,7 @@ public class WebSocketTransportTests : IDisposable
             this.SetConnectionAcceptance(true);
         }
 
-        public override void ProcessMessage(object? sender, IConnectEventArgs args)
+        public override void ProcessMessage(object? sender, IConnectionEventArgs args)
         {
             Interlocked.Increment(ref ProcessedCount);
             // Echo the payload back exactly as received
@@ -162,11 +162,10 @@ public class WebSocketTransportTests : IDisposable
         EnsureCertificate();
 
         var builder = NetworkApplication.CreateBuilder();
-        builder.ConfigureCertificate(_certificatePath);
-        builder.UseSecureConnections();
+        builder.UseSecureConnections(_certificatePath);
         
         // Bind WebSocket using the fluent API
-        builder.BindWebSocket<IntegrationTestProtocol>()
+        builder.ListenWebSocket<IntegrationTestProtocol>()
                .OnPort(port)
                .WithPath("/ws/")
                .WithFactory(dispatch => new IntegrationTestProtocol());
@@ -250,10 +249,9 @@ public class WebSocketTransportTests : IDisposable
         EnsureCertificate();
 
         var builder = NetworkApplication.CreateBuilder();
-        builder.ConfigureCertificate(_certificatePath);
-        builder.UseSecureConnections();
+        builder.UseSecureConnections(_certificatePath);
         var protocol = new IntegrationTestProtocol();
-        builder.BindWebSocket<IntegrationTestProtocol>()
+        builder.ListenWebSocket<IntegrationTestProtocol>()
                .OnPort(port)
                .WithPath("/ws/")
                .WithFactory(_ => protocol);
@@ -332,9 +330,8 @@ public class WebSocketTransportTests : IDisposable
         EnsureCertificate();
 
         var builder = NetworkApplication.CreateBuilder();
-        builder.ConfigureCertificate(_certificatePath);
-        builder.UseSecureConnections();
-        builder.BindWebSocket<IntegrationTestProtocol>()
+        builder.UseSecureConnections(_certificatePath);
+        builder.ListenWebSocket<IntegrationTestProtocol>()
                .OnPort(port)
                .WithPath("/ws/")
                .WithFactory(_ => new IntegrationTestProtocol());

@@ -35,12 +35,12 @@ internal sealed class PooledConnectEventContext : IPoolable
     /// <summary>
     /// The event arguments captured for this callback invocation.
     /// </summary>
-    public IConnectEventArgs Args = default!;
+    public IConnectionEventArgs Args = default!;
 
     /// <summary>
     /// The callback delegate that will be invoked by the dispatcher.
     /// </summary>
-    public EventHandler<IConnectEventArgs>? Callback;
+    public EventHandler<IConnectionEventArgs>? Callback;
 
     /// <summary>
     /// Indicates whether completing this callback should release one per-connection
@@ -67,9 +67,9 @@ internal sealed class PooledConnectEventContext : IPoolable
     /// </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Initialize(
-        EventHandler<IConnectEventArgs> callback,
+        EventHandler<IConnectionEventArgs> callback,
         object? sender,
-        IConnectEventArgs args,
+        IConnectionEventArgs args,
         bool releasePendingPacketOnCompletion = false)
     {
         Args = args;

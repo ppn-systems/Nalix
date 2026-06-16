@@ -18,8 +18,8 @@ var builder = NetworkApplication.CreateBuilder();
 
 builder.ConfigureCertificate("path/to/certificate.private")
        .Configure<NetworkSocketOptions>(options => options.Port = 8080)
-       .AddHandler<MyHandlers>()
-       .BindTcp<MyProtocol>()
+       .MapHandlers<MyHandlers>()
+       .ListenTcp<MyProtocol>()
        .Bind();
 
 var app = builder.Build();
@@ -42,7 +42,7 @@ While you can use the low-level `Nalix.Network` APIs directly, the Hosting model
 
 - **Fluent Setup**: Listener binding, packet discovery, and dispatch configuration live in one builder.
 - **Configuration**: Strongly-typed options are applied through `Configure<TOptions>(...)`.
-- **Explicit Registration**: Handlers are registered with `AddHandler<THandler>()` for source-generated dispatch.
+- **Explicit Registration**: Handlers are registered with `MapHandlers<THandler>()` for source-generated dispatch.
 - **Logging**: Integrated logging via `ILogger` abstractions.
 
 ## Related Topics

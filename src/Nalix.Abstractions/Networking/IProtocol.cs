@@ -50,7 +50,7 @@ public interface IProtocol : IDisposable, IReportable
     /// <exception cref="System.InvalidOperationException">
     /// Thrown if the frame is missing required information or protocol invariants are violated.
     /// </exception>
-    void ProcessMessage(object? sender, IConnectEventArgs args);
+    void ProcessMessage(object? sender, IConnectionEventArgs args);
 
     /// <summary>
     /// Executes after a message from the connection has been processed.
@@ -59,7 +59,7 @@ public interface IProtocol : IDisposable, IReportable
     /// <param name="sender">The source of the event triggering the post-processing.</param>
     /// <param name="args">The event arguments containing connection and message data.</param>
     /// <exception cref="ArgumentNullException">Thrown when args is null.</exception>
-    void PostProcessMessage(object? sender, IConnectEventArgs args);
+    void PostProcessMessage(object? sender, IConnectionEventArgs args);
 
     /// <summary>
     /// Handles a new connection when it is accepted.

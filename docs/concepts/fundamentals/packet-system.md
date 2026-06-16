@@ -231,7 +231,7 @@ When using `Nalix.Hosting`, the framework automatically discovers and registers 
 using Nalix.Hosting;
 
 var app = NetworkApplication.CreateBuilder()
-    .AddHandler<PingHandler>()
+    .MapHandlers<PingHandler>()
     .Build(); // PacketRegistry.Build() is called internally
 ```
 

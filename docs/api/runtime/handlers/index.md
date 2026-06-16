@@ -69,7 +69,7 @@ Handles global **Control Signaling** (`ProtocolOpCode.CONTROL`).
 To implement a custom handler, use the following pattern:
 
 ```csharp
-[PacketController("MyModule")]
+[PacketHandler("MyModule")]
 public class MyController 
 {
     [PacketOpcode(0x1000)]
@@ -83,7 +83,7 @@ public class MyController
 
 ### Key Attributes
 
-- `[PacketController(string tag)]`: Identifies a class as a candidate for source-generation by `PacketHandlerGenerator`.
+- `[PacketHandler(string tag)]`: Identifies a class as a candidate for source-generation by `PacketHandlerGenerator`.
 - `[PacketOpcode(ushort opcode)]`: Maps a specific opcode to a method.
 - `[PacketEncryption(bool, CipherSuiteType)]`: Overrides the default security requirement and algorithm for this handler.
 - `[PacketPermission(PermissionLevel)]`: Enforces specific access levels before execution starts. Defaults to `PermissionLevel.USER`.

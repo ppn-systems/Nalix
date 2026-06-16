@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Nalix.Abstractions.Primitives;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Codec.Tests")]
@@ -20,8 +21,7 @@ internal static partial class TypeMetadata
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static bool IsReferenceOrContainsReferences(Type type)
-        => IsReferenceOrContainsReferencesFallback(type, []);
+    private static bool IsReferenceOrContainsReferences(Type type) => IsReferenceOrContainsReferencesFallback(type, []);
 
     [StackTraceHidden]
     [DebuggerStepThrough]
@@ -41,6 +41,8 @@ internal static partial class TypeMetadata
             TypeCode.Object when type == typeof(TimeOnly) => 8,
             TypeCode.Object when type == typeof(DateOnly) => 4,
             TypeCode.Object when type == typeof(DateTimeOffset) => 16,
+            TypeCode.Object when type == typeof(Bytes32) => Bytes32.Size,
+            TypeCode.Object when type == typeof(PacketHeader) => PacketHeader.Size,
             _ when type.IsEnum => UnsafeSizeOf(Enum.GetUnderlyingType(type)),
             _ => IntPtr.Size
         };

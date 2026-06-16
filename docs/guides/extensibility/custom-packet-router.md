@@ -122,8 +122,8 @@ Inject your custom router into the protocol during the application bootstrapping
 var builder = NetworkApplication.CreateBuilder();
 
 // The builder provides the default PacketDispatchChannel (shard-aware engine)
-// as the 'dispatch' argument in the BindTcp/BindUdp factory.
-builder.BindTcp<GameProtocol>().WithFactory(dispatch => 
+// as the 'dispatch' argument in the ListenTcp/ListenUdp factory.
+builder.ListenTcp<GameProtocol>().WithFactory(dispatch => 
 {
     // Wrap the default shard engine with our custom UserBasedRouter
     var userRouter = new UserBasedRouter(dispatch);

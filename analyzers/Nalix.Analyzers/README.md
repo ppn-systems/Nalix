@@ -10,7 +10,7 @@
 | :--- | :--- | :--- |
 | ⚡ **Performance Auditing** | Identifies heap allocations (`new` keywords) and boxing in performance-critical message routing pathways. | Hot Path Methods |
 | 📦 **Serialization Safety** | Enforces `SerializeOrder` uniqueness, explicit layout boundaries, and header region integrity. | [SerializePackable] Types |
-| 🛡️ **Opcode Integrity** | Prevents duplicate routing opcodes globally or locally and flags system-reserved opcode range usage. | [PacketController] Handlers |
+| 🛡️ **Opcode Integrity** | Prevents duplicate routing opcodes globally or locally and flags system-reserved opcode range usage. | [PacketHandler] Handlers |
 | 💧 **Resource Leak Prevention** | Tracks the lifecycle of pooled `IBufferLease` leases to prevent memory leakage or double disposals. | IBufferLease variables |
 
 ---
@@ -24,7 +24,7 @@ The analyzer defines a rich catalog of diagnostic checks across four main catego
 | **`NALIX001`** | Duplicate Controller Opcode | **Warning** | Routing | Multiple handler methods inside the same controller share a duplicate `PacketOpcode`. |
 | **`NALIX002`** | Missing Handler Opcode | **Warning** | Routing | A method matches handler signature patterns but is missing a `[PacketOpcode]` annotation. |
 | **`NALIX003`** | Invalid Handler Signature | **Warning** | Routing | A controller method has a signature that is not compatible with the source-generated handler invoker (`PacketHandlerGenerator`). |
-| **`NALIX008`** | Missing Controller Attribute | **Warning** | Routing | A type registered as a dispatch handler is missing the `[PacketController]` attribute. |
+| **`NALIX008`** | Missing Controller Attribute | **Warning** | Routing | A type registered as a dispatch handler is missing the `[PacketHandler]` attribute. |
 | **`NALIX009`** | Missing Static Deserialize | **Warning** | Serialization | A packet type is registered in the registry but is missing a `public static T Deserialize(ReadOnlySpan<byte>)` method. |
 | **`NALIX010`** | Generic Self-Type Mismatch | **Warning** | Type Safety | A packet class inherits from `PacketBase<TSelf>` but fails to use itself as the `TSelf` argument. |
 | **`NALIX013`** | Missing SerializeOrder | **Warning** | Serialization | A type declares `SerializeLayout.Explicit` but a serializable property has no `[SerializeOrder]` or `[SerializeIgnore]`. |

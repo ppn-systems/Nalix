@@ -23,8 +23,8 @@ namespace Nalix.Hosting.Protocols;
 /// <para>Usage with the hosting builder:</para>
 /// <code>
 /// using var app = NetworkApplication.CreateBuilder()
-///     .BindTcp&lt;DefaultProtocol&gt;().Bind()
-///     .AddHandler&lt;MyHandler&gt;()
+///     .ListenTcp&lt;DefaultProtocol&gt;().Bind()
+///     .MapHandlers&lt;MyHandler&gt;()
 ///     .Build();
 /// </code>
 /// </remarks>
@@ -58,7 +58,7 @@ public sealed class DefaultProtocol : Protocol
     }
 
     /// <inheritdoc />
-    public override void ProcessMessage(object? sender, IConnectEventArgs args)
+    public override void ProcessMessage(object? sender, IConnectionEventArgs args)
     {
         ArgumentNullException.ThrowIfNull(args);
 

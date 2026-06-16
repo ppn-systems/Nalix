@@ -36,9 +36,9 @@ namespace Nalix.Abstractions.Networking.Packets
     public interface IPacketRegistry { }
     public interface IPacketDeserializer<TPacket> where TPacket : IPacket { }
     public sealed class PacketOpcodeAttribute : Attribute { public PacketOpcodeAttribute(ushort opcode) { } }
-    public sealed class PacketControllerAttribute : Attribute
+    public sealed class PacketHandlerAttribute : Attribute
     {
-        public PacketControllerAttribute(string? name = null) { }
+        public PacketHandlerAttribute(string? name = null) { }
     }
     public enum PacketFlags : ushort { None = 0 }
     public enum PacketPriority : byte { Normal = 0 }
@@ -247,11 +247,11 @@ namespace Nalix.Hosting
 
     public sealed class NetworkApplicationBuilder
     {
-        public NetworkApplicationBuilder ConfigureBufferPoolManager(object? manager = null) => this;
-        public NetworkApplicationBuilder ConfigureConnectionHub(object? hub = null) => this;
-        public IProtocolBindingBuilder BindTcp<T>() => new StubBindingBuilder(this);
-        public IProtocolBindingBuilder BindUdp<T>() => new StubBindingBuilder(this);
-        public NetworkApplicationBuilder AddHandler<THandler>() => this;
+        public NetworkApplicationBuilder UseBufferPoolManager(object? manager = null) => this;
+        public NetworkApplicationBuilder UseConnectionHub(object? hub = null) => this;
+        public IProtocolBindingBuilder ListenTcp<T>() => new StubBindingBuilder(this);
+        public IProtocolBindingBuilder ListenUdp<T>() => new StubBindingBuilder(this);
+        public NetworkApplicationBuilder MapHandlers<THandler>() => this;
         public NetworkApplicationBuilder AddMetadataProvider<TProvider>() => this;
         public object Build() => new();
 

@@ -16,7 +16,7 @@ namespace Nalix.Network.Connections;
 /// <remarks>
 /// This class is sealed to prevent derivation and ensure consistent behavior for connection event arguments.
 /// </remarks>
-public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolable, IPoolRentable
+public sealed class ConnectionEventArgs : EventArgs, IConnectionEventArgs, IPoolable, IPoolRentable
 {
     #region Fields
 

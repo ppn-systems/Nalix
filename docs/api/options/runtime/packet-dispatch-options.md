@@ -38,7 +38,7 @@
 
 ## Handler registration requirements
 
-- Controller type must be annotated with `[PacketController]`.
+- Controller type must be annotated with `[PacketHandler]`.
 - Handler methods are discovered via packet attributes (for example `[PacketOpcode]`).
 - Duplicate opcode registrations throw `InternalErrorException`.
 

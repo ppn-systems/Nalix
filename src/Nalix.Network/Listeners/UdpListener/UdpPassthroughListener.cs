@@ -146,7 +146,7 @@ public sealed class UdpPassthroughListener : UdpListenerBase
 
         if (_timing is not null && !connection.IsRegisteredInWheel)
         {
-            connection.OnCloseEvent += this.OnConnectionClosed;
+            connection.ConnectionClosed += this.OnConnectionClosed;
             _timing.Register(connection);
         }
 
@@ -174,14 +174,14 @@ public sealed class UdpPassthroughListener : UdpListenerBase
 
     #region Connection Close Handler
 
-    private void OnConnectionClosed(object? sender, IConnectEventArgs args)
+    private void OnConnectionClosed(object? sender, IConnectionEventArgs args)
     {
         if (args?.Connection is not PassthroughConnection connection)
         {
             return;
         }
 
-        connection.OnCloseEvent -= this.OnConnectionClosed;
+        connection.ConnectionClosed -= this.OnConnectionClosed;
         _ = _connections.TryRemove(connection.EndPointKey, out _);
         _connGuard?.OnConnectionClosed(sender, args);
     }
@@ -276,7 +276,7 @@ public sealed class UdpPassthroughListener : UdpListenerBase
 
     #region PassthroughArgs
 
-    private sealed class PassthroughArgs : IConnectEventArgs, IPoolable
+    private sealed class PassthroughArgs : IConnectionEventArgs, IPoolable
     {
         private IBufferLease? _lease;
         private IConnection? _connection;

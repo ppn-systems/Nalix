@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Environment.Configuration.Binding;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Runtime.Dispatching;
@@ -36,62 +35,6 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder Configure<TOptions>(Action<TOptions> configure) where TOptions : ConfigurationLoader, new();
 
     /// <summary>
-    /// Sets the logger instance used by the hosted Nalix runtime.
-    /// </summary>
-    /// <param name="logger">The logger to register into the Nalix runtime.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureLogging(ILogger logger);
-
-    /// <summary>
-    /// Sets the <see cref="IConnectionHub"/> instance used by the hosted Nalix runtime.
-    /// </summary>
-    /// <param name="connectionHub">The connection hub to register into the Nalix runtime.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureConnectionHub(IConnectionHub connectionHub);
-
-    /// <summary>
-    /// Sets the <see cref="ISessionService"/> instance used by the hosted Nalix runtime.
-    /// </summary>
-    /// <param name="sessionService">The session service to register.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureSessionService(ISessionService sessionService);
-
-    /// <summary>
-    /// Sets the <see cref="ISessionStore"/> instance used by the default session service.
-    /// </summary>
-    /// <param name="sessionStore">The session store to register.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureSessionStore(ISessionStore sessionStore);
-
-    /// <summary>
-    /// Sets the <see cref="ISessionFactory"/> instance used by the default session service.
-    /// </summary>
-    /// <param name="sessionFactory">The session factory to register.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureSessionFactory(ISessionFactory sessionFactory);
-
-    /// <summary>
-    /// Explicitly registers a <see cref="IBufferPoolManager"/> instance to be used by the application.
-    /// </summary>
-    /// <param name="manager">The manager instance to use.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureBufferPoolManager(IBufferPoolManager manager);
-
-    /// <summary>
-    /// Explicitly registers a <see cref="ObjectPoolManager"/> instance to be used by the application.
-    /// </summary>
-    /// <param name="manager">The manager instance to use.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureObjectPoolManager(IObjectPoolManager manager);
-
-    /// <summary>
-    /// Configures the server identity certificate path.
-    /// </summary>
-    /// <param name="certificatePath">The absolute path to the certificate file.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureCertificate(string certificatePath);
-
-    /// <summary>
     /// Configures the options for the packet dispatcher.
     /// </summary>
     /// <param name="configure">The callback used to configure dispatcher options.</param>
@@ -106,11 +49,39 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder ConfigureDispatch(Func<Action<PacketDispatchOptions<IPacket>>, IPacketDispatch> factory);
 
     /// <summary>
+    /// Sets the logger instance used by the hosted Nalix runtime.
+    /// </summary>
+    /// <param name="logger">The logger to register into the Nalix runtime.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder UseLogger(ILogger logger);
+
+    /// <summary>
+    /// Sets the <see cref="IConnectionHub"/> instance used by the hosted Nalix runtime.
+    /// </summary>
+    /// <param name="connectionHub">The connection hub to register into the Nalix runtime.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder UseConnectionHub(IConnectionHub connectionHub);
+
+    /// <summary>
+    /// Explicitly registers a <see cref="IBufferPoolManager"/> instance to be used by the application.
+    /// </summary>
+    /// <param name="manager">The manager instance to use.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder UseBufferPoolManager(IBufferPoolManager manager);
+
+    /// <summary>
+    /// Explicitly registers a <see cref="ObjectPoolManager"/> instance to be used by the application.
+    /// </summary>
+    /// <param name="manager">The manager instance to use.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder UseObjectPoolManager(IObjectPoolManager manager);
+
+    /// <summary>
     /// Adds a packet controller type using the default Nalix activator.
     /// </summary>
     /// <typeparam name="THandler">The packet controller type to register.</typeparam>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddHandler<
+    INetworkApplicationBuilder MapHandlers<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods)] THandler>()
         where THandler : class;
 
@@ -120,24 +91,22 @@ public interface INetworkApplicationBuilder
     /// <typeparam name="THandler">The packet controller type to register.</typeparam>
     /// <param name="factory">The factory used to create controller instances.</param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddHandler<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] THandler>(Func<THandler> factory) where THandler : class;
+    INetworkApplicationBuilder MapHandlers<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] THandler>(Func<THandler> factory) where THandler : class;
 
     /// <summary>
     /// Adds a packet controller type directly (primarily for static classes).
     /// </summary>
     /// <param name="controllerType">The type of the controller to register.</param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddHandler(
+    INetworkApplicationBuilder MapHandlers(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicMethods)] Type controllerType);
-
-
 
     /// <summary>
     /// Binds a TCP protocol using a fluent builder for port and factory configuration.
     /// </summary>
     /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
     /// <returns>A fluent builder to configure the binding.</returns>
-    IProtocolBindingBuilder BindTcp<
+    IProtocolBindingBuilder ListenTcp<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol;
 
@@ -146,7 +115,7 @@ public interface INetworkApplicationBuilder
     /// </summary>
     /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
     /// <returns>A fluent builder to configure the binding.</returns>
-    IProtocolBindingBuilder BindUdp<
+    IProtocolBindingBuilder ListenUdp<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol;
 
@@ -155,7 +124,7 @@ public interface INetworkApplicationBuilder
     /// </summary>
     /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
     /// <returns>A fluent builder to configure the WebSocket binding.</returns>
-    IWebSocketBindingBuilder BindWebSocket<
+    IWebSocketBindingBuilder ListenWebSocket<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol;
 }
