@@ -83,7 +83,7 @@ public static class ConnectionHubExtensions
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous broadcast operation.</returns>
     public static async Task BroadcastAsync(
-        this IConnectionHub hub, IPacket packet,
+        this IConnectionBroadcaster hub, IPacket packet,
         NetworkTransport transport = NetworkTransport.TCP,
         bool enableEncrypt = true, CancellationToken cancellationToken = default)
     {
@@ -135,7 +135,7 @@ public static class ConnectionHubExtensions
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous multicast operation.</returns>
     public static async Task MulticastAsync(
-        this IConnectionHub hub,
+        this IConnectionBroadcaster hub,
         IReadOnlyCollection<IConnection> connections,
         IPacket packet, NetworkTransport transport = NetworkTransport.TCP,
         bool enableEncrypt = true, CancellationToken cancellationToken = default)

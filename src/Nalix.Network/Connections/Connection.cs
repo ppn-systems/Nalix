@@ -377,21 +377,6 @@ public sealed partial class Connection :
     }
 
     /// <inheritdoc />
-    public event EventHandler<IConnectionEventArgs> MessageProcessing
-    {
-        add
-        {
-            ConnectionBacking? backing = Volatile.Read(ref _backing);
-            _ = backing?.MessageProcessing += value;
-        }
-        remove
-        {
-            ConnectionBacking? backing = Volatile.Read(ref _backing);
-            _ = backing?.MessageProcessing -= value;
-        }
-    }
-
-    /// <inheritdoc />
     public event EventHandler<IConnectionEventArgs> MessageProcessed
     {
         add
@@ -403,6 +388,21 @@ public sealed partial class Connection :
         {
             ConnectionBacking? backing = Volatile.Read(ref _backing);
             _ = backing?.MessageProcessed -= value;
+        }
+    }
+
+    /// <inheritdoc />
+    public event EventHandler<IConnectionEventArgs> MessageProcessing
+    {
+        add
+        {
+            ConnectionBacking? backing = Volatile.Read(ref _backing);
+            _ = backing?.MessageProcessing += value;
+        }
+        remove
+        {
+            ConnectionBacking? backing = Volatile.Read(ref _backing);
+            _ = backing?.MessageProcessing -= value;
         }
     }
 

@@ -63,9 +63,9 @@ public sealed class WebSocketConnection :
     private IObjectMap<AttributeKey, object>? _attributes;
     private ConcurrentDictionary<ushort, object>? _rateLimitCache;
 
-    private EventHandler<IConnectionEventArgs>? _ConnectionClosed;
-    private EventHandler<IConnectionEventArgs>? _MessageProcessing;
-    private EventHandler<IConnectionEventArgs>? _MessageProcessed;
+    private EventHandler<IConnectionEventArgs>? _connectionClosed;
+    private EventHandler<IConnectionEventArgs>? _messageProcessed;
+    private EventHandler<IConnectionEventArgs>? _messageProcessing;
 
     internal LocalPool<ConnectionEventArgs> _argsPool;
     internal LocalPool<PooledConnectEventContext> _contextPool;
@@ -214,22 +214,22 @@ public sealed class WebSocketConnection :
     /// <inheritdoc/>
     public event EventHandler<IConnectionEventArgs> ConnectionClosed
     {
-        add => _ConnectionClosed += value;
-        remove => _ConnectionClosed -= value;
-    }
-
-    /// <inheritdoc/>
-    public event EventHandler<IConnectionEventArgs> MessageProcessing
-    {
-        add => _MessageProcessing += value;
-        remove => _MessageProcessing -= value;
+        add => _connectionClosed += value;
+        remove => _connectionClosed -= value;
     }
 
     /// <inheritdoc/>
     public event EventHandler<IConnectionEventArgs> MessageProcessed
     {
-        add => _MessageProcessed += value;
-        remove => _MessageProcessed -= value;
+        add => _messageProcessed += value;
+        remove => _messageProcessed -= value;
+    }
+
+    /// <inheritdoc/>
+    public event EventHandler<IConnectionEventArgs> MessageProcessing
+    {
+        add => _messageProcessing += value;
+        remove => _messageProcessing -= value;
     }
 
     #endregion Events
@@ -246,7 +246,7 @@ public sealed class WebSocketConnection :
 
     internal void TriggerPostProcessEvent()
     {
-        if (_MessageProcessed is null)
+        if (_messageProcessed is null)
         {
             return;
         }
@@ -303,7 +303,7 @@ public sealed class WebSocketConnection :
 
         try
         {
-            self._MessageProcessing?.Invoke(self, e);
+            self._messageProcessing?.Invoke(self, e);
         }
         finally
         {
@@ -326,7 +326,7 @@ public sealed class WebSocketConnection :
 
         try
         {
-            self._MessageProcessed?.Invoke(self, e);
+            self._messageProcessed?.Invoke(self, e);
         }
         finally
         {
@@ -392,13 +392,13 @@ public sealed class WebSocketConnection :
 
         try
         {
-            if (Interlocked.Exchange(ref _closeSignaled, 1) == 0 && _ConnectionClosed != null)
+            if (Interlocked.Exchange(ref _closeSignaled, 1) == 0 && _connectionClosed != null)
             {
                 ConnectionEventArgs args = this.AcquireEventArgs();
                 args.Initialize(this);
                 try
                 {
-                    _ConnectionClosed.Invoke(this, args);
+                    _connectionClosed.Invoke(this, args);
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {

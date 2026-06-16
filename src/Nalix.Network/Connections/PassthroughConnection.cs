@@ -72,7 +72,7 @@ public sealed class PassthroughConnection :
 
     private SocketUdpTransport? _udpTransport;
     private IObjectMap<AttributeKey, object>? _attributes;
-    private EventHandler<IConnectionEventArgs>? _ConnectionClosed;
+    private EventHandler<IConnectionEventArgs>? _connectionClosed;
 
     private int _isDisposed;
     private long _lastPingTime;
@@ -325,15 +325,15 @@ public sealed class PassthroughConnection :
     /// <inheritdoc />
     public event EventHandler<IConnectionEventArgs>? ConnectionClosed
     {
-        add => _ConnectionClosed += value;
-        remove => _ConnectionClosed -= value;
+        add => _connectionClosed += value;
+        remove => _connectionClosed -= value;
     }
 
     /// <inheritdoc />
-    public event EventHandler<IConnectionEventArgs>? MessageProcessing { add { } remove { } }
+    public event EventHandler<IConnectionEventArgs>? MessageProcessed { add { } remove { } }
 
     /// <inheritdoc />
-    public event EventHandler<IConnectionEventArgs>? MessageProcessed { add { } remove { } }
+    public event EventHandler<IConnectionEventArgs>? MessageProcessing { add { } remove { } }
 
     #endregion Events
 
@@ -350,14 +350,14 @@ public sealed class PassthroughConnection :
         // Fire ConnectionClosed so TimingWheel and ConnectionGuard can clean up.
         try
         {
-            if (_ConnectionClosed != null)
+            if (_connectionClosed != null)
             {
                 ConnectionEventArgs args = new();
                 args.Initialize(this);
 
                 try
                 {
-                    Delegate[] handlers = _ConnectionClosed.GetInvocationList();
+                    Delegate[] handlers = _connectionClosed.GetInvocationList();
                     for (int i = 0; i < handlers.Length; i++)
                     {
                         EventHandler<IConnectionEventArgs> handler = (EventHandler<IConnectionEventArgs>)handlers[i];

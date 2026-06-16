@@ -18,7 +18,7 @@ using Nalix.Network.Internal.Connections;
 
 namespace Nalix.Network.Connections;
 
-public sealed partial class ConnectionHub
+public sealed partial class ConnectionHub : IConnectionBroadcaster
 {
     #region Public API
 
@@ -123,6 +123,72 @@ public sealed partial class ConnectionHub
     }
 
     /// <summary>
+    /// Multicasts a pre-serialized message buffer to a specific collection of connections.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    [Obsolete(
+        "This overload sends a pre-serialized buffer and bypasses the normal compression and encryption pipeline. Use the packet-based multicast overload instead.",
+        error: false,
+        DiagnosticId = "NALIX_NET001")]
+    public async Task MulticastAsync(
+        IReadOnlyCollection<IConnection> connections,
+        ReadOnlyMemory<byte> message,
+        NetworkTransport transport = NetworkTransport.TCP,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(connections);
+
+        int connectionCount = connections.Count;
+        if (connectionCount == 0 || message.IsEmpty || _disposed)
+        {
+            return;
+        }
+
+        Task[]? tasks = null;
+        IConnection[]? owners = null;
+        int taskCount = 0;
+
+        try
+        {
+            if (connections is IReadOnlyList<IConnection> list)
+            {
+                for (int i = 0; i < list.Count; i++)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
+
+                    QueueSend(list[i], connectionCount, message, transport, cancellationToken, ref tasks, ref owners, ref taskCount);
+                }
+            }
+            else
+            {
+                foreach (IConnection connection in connections)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
+
+                    QueueSend(connection, connectionCount, message, transport, cancellationToken, ref tasks, ref owners, ref taskCount);
+                }
+            }
+
+            if (taskCount == 0 || tasks is null || owners is null)
+            {
+                return;
+            }
+
+            await AwaitTasksAsync(tasks, owners, taskCount, cancellationToken, nameof(MulticastAsync)).ConfigureAwait(false);
+        }
+        finally
+        {
+            ReturnArrays(ref tasks, ref owners);
+        }
+    }
+
+    /// <summary>
     /// Broadcasts a message to all active connections.
     /// </summary>
     /// <param name="message">The pre-serialized message buffer to broadcast.</param>
@@ -205,7 +271,7 @@ public sealed partial class ConnectionHub
         ReadOnlyMemory<byte> message,
         Func<IConnection, bool> predicate,
         NetworkTransport transport = NetworkTransport.TCP,
-        CancellationToken cancellation = default)
+        CancellationToken cancellationToken = default)
     {
         if (message.IsEmpty || _disposed)
         {
@@ -219,13 +285,63 @@ public sealed partial class ConnectionHub
         }
 
         await this.BroadcastCoreAsync(
-            snapshot, message, predicate, transport, cancellation,
+            snapshot, message, predicate, transport, cancellationToken,
             nameof(BroadcastWhereAsync)).ConfigureAwait(false);
     }
 
     #endregion Public API
 
     #region Private Helpers
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void QueueSend(
+        IConnection connection,
+        int connectionCount,
+        ReadOnlyMemory<byte> message,
+        NetworkTransport transport,
+        CancellationToken cancellationToken,
+        ref Task[]? tasks,
+        ref IConnection[]? owners,
+        ref int taskCount)
+    {
+        if (connection.IsDisposed)
+        {
+            return;
+        }
+
+        IConnection.ITransport? targetTransport =
+            transport == NetworkTransport.UDP ? connection.UDP : connection.TCP;
+
+        if (targetTransport is null)
+        {
+            return;
+        }
+
+        try
+        {
+            ValueTask sendTask = targetTransport.SendAsync(message, cancellationToken);
+            if (sendTask.IsCompletedSuccessfully)
+            {
+                return;
+            }
+
+            tasks ??= ArrayPool<Task>.Shared.Rent(connectionCount);
+            owners ??= s_connectionPool.Rent(connectionCount);
+
+            tasks[taskCount] = sendTask.AsTask();
+            owners[taskCount] = connection;
+            taskCount++;
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+            {
+                DiagnosticsEvents.Write(
+                    DiagnosticsEvents.Internal.Error,
+                    new DiagnosticLog("NW.ConnectionHub:MulticastAsync", $"send-failure id={connection.ID:X16}", ex));
+            }
+        }
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void QueueSendGeneric<TState, TSender>(
