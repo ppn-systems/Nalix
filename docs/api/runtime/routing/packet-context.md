@@ -32,7 +32,7 @@ stateDiagram-v2
 In a system processing tens of thousands of packets per second, creating a new context object for every request would overwhelm the Garbage Collector. Nalix uses `ObjectPoolManager` to:
 
 - **Minimize Gen0 Allocations**: The object remains in memory and is reused millions of times.
-- **Pre-allocation**: Contexts are pre-allocated during startup based on the `PoolingOptions.PacketContextPreallocate` setting.
+- **Pre-allocation**: Contexts are pre-allocated during startup for warm-start performance.
 - **Reference Cleanup**: Strict Reset/Return protocols ensure that application data from one request doesn't "leak" into the next request.
 
 ## Core Interface: `IPacketContext<TPacket>`

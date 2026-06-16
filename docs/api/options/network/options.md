@@ -62,7 +62,6 @@ Nalix uses a modular configuration system. Depending on the packages you have in
 | `DispatchOptions` | `Nalix.Runtime` | Internal message routing. | Parallelism |
 | `CompressionOptions` | `Nalix.Codec` | LZ4 threshold settings. | Bandwidth |
 | `TokenBucketOptions` | `Nalix.Runtime` | Token-bucket traffic shaping. | QoS |
-| `PoolingOptions` | `Nalix.Runtime` | Packet context pool limits. | GC Pressure |
 | `ConcurrencyOptions` | `Nalix.Runtime` | Global concurrency gate and circuit-breaker thresholds. | Resilience |
 | `DirectiveGuardOptions` | `Nalix.Runtime` | Inbound directive cooldown suppression. | Anti-spam |
 

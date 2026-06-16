@@ -24,7 +24,9 @@ Nalix ships several cryptography primitives in `Nalix.Codec.Security`, but they 
 | Hashing and MAC | `Keccak256`, `HmacKeccak256`, `Poly1305`, `Pbkdf2` | [Hashing and MAC](./hashing-and-mac.md) |
 | AEAD and envelope encryption | `ChaCha20Poly1305`, `Salsa20Poly1305`, `EnvelopeCipher` | [AEAD and Envelope](./aead-and-envelope.md) |
 | Handshake protocol | `HandshakeHandlers`, `X25519` | [Handshake Protocol](./handshake.md) |
-| Security enums | `CipherSuiteType`, `DropPolicy` | |
+| Proof-of-Work | `ProofOfWork`, `ProofOfWorkSolver`, `IProofOfWorkPolicy` | [Proof-of-Work](./proof-of-work.md) |
+| Session Rekey | `SessionRekey`, `SessionRekeyHandlers`, `RekeyExtensions` | [Session Rekey](./session-rekey.md) |
+| Security enums | `CipherSuiteType`, `DropPolicy`, `PermissionLevel` | [Permission Levels](./permission-level.md) |
 
 ## Quick guidance
 

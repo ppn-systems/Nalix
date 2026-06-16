@@ -10,7 +10,6 @@ responses such as `UNAUTHORIZED`, `RATE_LIMITED`, and `TIMEOUT`.
 - `src/Nalix.Runtime/Internal/RateLimiting/DirectiveGuard.cs`
 - `src/Nalix.Runtime/Middleware/Standard/PermissionMiddleware.cs`
 - `src/Nalix.Runtime/Middleware/Standard/RateLimitMiddleware.cs`
-- `src/Nalix.Runtime/Middleware/Standard/ConcurrencyMiddleware.cs`
 - `src/Nalix.Runtime/Middleware/Standard/TimeoutMiddleware.cs`
 
 ## Defaults and Validation
@@ -74,7 +73,6 @@ that per-connection lock.
 | --- | --- | --- |
 | `PermissionMiddleware` | Unauthorized response | `InboundDirectiveUnauthorizedLastSentAtMs` |
 | `RateLimitMiddleware` | Rate-limited response | `InboundDirectiveRateLimitedLastSentAtMs` |
-| `ConcurrencyMiddleware` | Rate-limited response for concurrency denial/failure | `InboundDirectiveRateLimitedLastSentAtMs` |
 | `TimeoutMiddleware` | Timeout response | `InboundDirectiveTimeoutLastSentAtMs` |
 
 ## Important Semantics
