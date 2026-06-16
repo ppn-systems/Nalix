@@ -108,7 +108,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Framework.Memory.Buffers;
 
-public override void ProcessMessage(object sender, IConnectEventArgs args)
+public override void ProcessMessage(object sender, IConnectionEventArgs args)
 {
     IBufferLease lease = args.Lease;
     

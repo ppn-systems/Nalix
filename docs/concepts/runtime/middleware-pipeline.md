@@ -78,7 +78,6 @@ Middleware can read:
 - Permission rules (`[PacketPermission]`)
 - Timeout rules (`[PacketTimeout]`)
 - Rate limit rules (`[PacketRateLimit]`)
-- Concurrency limits (`[PacketConcurrencyLimit]`)
 - Custom attributes collected by the `PacketHandlerGenerator` source generator
 
 The typical flow is:
