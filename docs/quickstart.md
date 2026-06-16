@@ -146,7 +146,7 @@ The server requires a **Handler** for logic and a **Protocol** bridge to the net
 
         public PingProtocol(IPacketDispatch dispatch) => _dispatch = dispatch;
 
-        public override void ProcessMessage(object? sender, IConnectEventArgs args)
+        public override void ProcessMessage(object? sender, IConnectionEventArgs args)
         {
             if (args.Lease is null) return;
             _dispatch.HandlePacket(args.Lease, args.Connection);

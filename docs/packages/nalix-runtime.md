@@ -91,7 +91,6 @@ The runtime supports specialized middleware that executes before high-level hand
 | Middleware | Order | Stage | Behavior |
 |---|---:|---|---|
 | `PermissionMiddleware` | `-50` | `Inbound` | Fail-closed: the packet proceeds only when `[PacketPermission]` exists and its required level is met. |
-| `ConcurrencyMiddleware` | `50` | `Inbound` | Enforces `[PacketConcurrencyLimit]` per opcode with optional queuing. |
 | `RateLimitMiddleware` | `50` | `Inbound` | Enforces `[PacketRateLimit]` or falls back to global token-bucket throttling. |
 | `TimeoutMiddleware` | `75` | `Inbound` | Enforces `[PacketTimeout]` on handler execution. |
 
@@ -104,7 +103,6 @@ The runtime includes advanced throttling and protection primitives used by the m
 
 - **TokenBucketLimiter**: Tracks per-endpoint token state for traffic shaping.
 - **PolicyRateLimiter**: Evaluates handler-specific policy from `[PacketRateLimit]` metadata.
-- **ConcurrencyGate**: Manages per-opcode execution slots and circuit breaking.
 - **DirectiveGuard**: Protects against response directive spamming for failed requests.
 
 ### Handler Registration
@@ -205,7 +203,6 @@ Call `dispatch.GenerateReport()` to inspect runtime state:
 - [Packet Dispatch](../api/runtime/routing/packet-dispatch.md)
 - [Packet Dispatch Options](../api/options/runtime/packet-dispatch-options.md)
 - [Middleware Pipeline](../api/runtime/middleware/pipeline.md)
-- [Concurrency Gate](../api/runtime/middleware/concurrency-gate.md)
 - [Policy Rate Limiter](../api/runtime/middleware/policy-rate-limiter.md)
 - [Token Bucket Limiter](../api/runtime/middleware/token-bucket-limiter.md)
 - [Permission Middleware](../api/runtime/middleware/permission-middleware.md)

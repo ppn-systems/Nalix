@@ -39,7 +39,7 @@ Key responsibilities:
 
 - **Connection acceptance** - `ValidateConnection(IConnection)` controls whether new connections are accepted.
 - **Post-accept hook** - `OnAccept(IConnection, CancellationToken)` runs after a connection is admitted and registered.
-- **Frame forwarding** - `ProcessMessage(object? sender, IConnectEventArgs args)` pushes validated frames into `PacketDispatchChannel`.
+- **Frame forwarding** - `ProcessMessage(object? sender, IConnectionEventArgs args)` pushes validated frames into `PacketDispatchChannel`.
 - **Connection state** - `IsAccepting` controls whether the protocol accepts new connections (atomic property backed by `Interlocked`). `src/Nalix.Network/Protocols/Protocol.Core.cs` also exposes `SetConnectionAcceptance(bool)` as the public convenience API for toggling that state.
 
 ```csharp
@@ -49,7 +49,7 @@ public sealed class MyProtocol : Protocol
 
     public MyProtocol(IPacketDispatch dispatch) => _dispatch = dispatch;
 
-    public override void ProcessMessage(object? sender, IConnectEventArgs args)
+    public override void ProcessMessage(object? sender, IConnectionEventArgs args)
         => _dispatch.HandlePacket(args.Lease, args.Connection);
 
     protected override bool ValidateConnection(IConnection connection)
