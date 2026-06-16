@@ -27,6 +27,12 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
 {
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
+    static TimeoutMiddleware()
+    {
+        _ = s_pool.SetMaxCapacity<PooledCancellationTokenSource>(2048);
+        _ = s_pool.Prealloc<PooledCancellationTokenSource>(16);
+    }
+
     /// <inheritdoc/>
     public async ValueTask InvokeAsync(IPacketContext<IPacket> context, Func<CancellationToken, ValueTask> next)
     {

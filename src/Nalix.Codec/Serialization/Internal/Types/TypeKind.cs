@@ -22,11 +22,6 @@ internal enum TypeKind : byte
     None = 0,
 
     /// <summary>
-    /// An unmanaged single-dimensional array with contiguous element storage.
-    /// </summary>
-    UnmanagedSZArray = 1,
-
-    /// <summary>
     /// A serializable type whose byte size is known up front.
     /// </summary>
     FixedSizeSerializable = 2,
