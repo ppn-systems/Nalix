@@ -746,9 +746,11 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
     {
         Type type = typeof(T);
 
+        // Fast path: pool already exists — return directly without touching _metricsDict.
+        // Metrics are initialized on the slow path (pool creation) and via
+        // InitializePoolAndMetricsFast which is called when _pools[id] is null.
         if (_poolDict.TryGetValue(type, out ObjectPool? existing))
         {
-            _ = _metricsDict.GetOrAdd(type, _ => new PoolMetrics());
             return existing;
         }
 
