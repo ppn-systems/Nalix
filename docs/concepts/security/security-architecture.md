@@ -106,7 +106,6 @@ Packet middleware is where request-level enforcement lives. Built-in middleware 
 | :---: | :---: |
 | `PermissionMiddleware` | Rejects packets from connections below the required `PermissionLevel` |
 | `TimeoutMiddleware` | Cancels handler execution exceeding the declared timeout |
-| `ConcurrencyMiddleware` | Limits concurrent in-flight handlers via `ConcurrencyGate` |
 | `RateLimitMiddleware` | Per-opcode and per-endpoint rate limiting via `PolicyRateLimiter` and `TokenBucketLimiter` |
 
 Low-level transport rules (decryption validation, frame integrity) are enforced by the **`FramePipeline`** and **`Protocol`** layer before packet deserialization occurs.
@@ -121,6 +120,14 @@ Nalix includes a built-in X25519 key-agreement handshake flow:
 4. Subsequent traffic is encrypted using the active session cipher state
 
 Handshake state is carried on the `Connection` object. After handshake completion, the connection's `Secret` and cipher state are set, enabling transparent transport encryption/decryption.
+
+### Proof-of-Work Anti-DDoS
+
+When adaptive PoW is enabled (`ConnectionQuotaOptions.EnableAdaptiveMode`), the server dynamically increases the PoW difficulty as the connection rate rises. Clients must solve a Keccak-256 leading-zero-bits puzzle before the handshake proceeds. This is transparent to well-behaved clients under normal load (difficulty = 0), but makes automated connection floods computationally expensive during attacks.
+
+### Session Rekey
+
+Long-lived sessions can rotate their symmetric key mid-session via the `SessionRekey` protocol. This resets 16-bit sequence counters (preventing overflow after 65,535 frames) and limits the cryptographic exposure window. The client sends a new 32-byte key; the server applies it immediately and responds with `CIPHER_UPDATE_ACK`.
 
 ## Session Resume
 

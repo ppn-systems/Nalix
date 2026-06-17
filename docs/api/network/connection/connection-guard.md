@@ -63,7 +63,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 * `public void BanEndpoint(IPAddress address, TimeSpan duration)`
   Manually bans the specified IP address for the given duration.
 
-* `public void OnConnectionClosed(object? sender, IConnectEventArgs args)`
+* `public void OnConnectionClosed(object? sender, IConnectionEventArgs args)`
   Event handler triggered when a connection closes to release the slot for the client IP and decrement global metrics.
 
 

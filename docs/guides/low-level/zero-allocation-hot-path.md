@@ -20,7 +20,7 @@ sequenceDiagram
     participant LP as Local Pool (BufferPoolManager)
     participant DC as Dispatch Channel (Sharded)
     participant FR as Frozen Registry (O(1))
-    participant CH as Compiled Handler (Expression Trees)
+    participant CH as Source-Generated Invoker
     participant CP as Context Pool (ObjectPoolManager)
 
     OS->>LP: Receive raw bytes

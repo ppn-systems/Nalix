@@ -91,7 +91,7 @@ Expired fragment streams are also evicted periodically in the receive loop by
 and post-processing. The admission order is:
 
 1. Reserve one global slot with `TRY_RESERVE_GLOBAL_SLOT()`.
-2. Resolve the endpoint from `IConnectEventArgs.NetworkEndpoint`.
+2. Resolve the endpoint from `IConnectionEventArgs.NetworkEndpoint`.
 3. Reserve one endpoint-hash slot with `TRY_RESERVE_ENDPOINT_SLOT()`.
 4. Log high-backpressure warnings if the warning rule matches.
 5. Queue the wrapper with `ThreadPool.UnsafeQueueUserWorkItem()`.

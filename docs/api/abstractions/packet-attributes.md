@@ -22,7 +22,6 @@ Precise attribute docs reduce handler-registration errors and avoid policy misun
 - `src/Nalix.Abstractions/Networking/Packets/PacketOpcodeAttribute.cs`
 - `src/Nalix.Abstractions/Networking/Packets/PacketPermissionAttribute.cs`
 - `src/Nalix.Abstractions/Networking/Packets/PacketRateLimitAttribute.cs`
-- `src/Nalix.Abstractions/Networking/Packets/PacketConcurrencyLimitAttribute.cs`
 - `src/Nalix.Abstractions/Networking/Packets/PacketEncryptionAttribute.cs`
 - `src/Nalix.Abstractions/Networking/Packets/PacketTimeoutAttribute.cs`
 - `src/Nalix.Abstractions/Networking/Packets/PacketTransportAttribute.cs`
@@ -36,7 +35,6 @@ Precise attribute docs reduce handler-registration errors and avoid policy misun
 | `PacketOpcodeAttribute` | Method | Binds a handler to an opcode. |
 | `PacketPermissionAttribute` | Method | Declares the minimum `PermissionLevel` required to run. Defaults to `USER`. |
 | `PacketRateLimitAttribute` | Method | Declares requests-per-second and burst values. |
-| `PacketConcurrencyLimitAttribute` | Method | Declares concurrency and queue limits. |
 | `PacketEncryptionAttribute` | Method | Declares whether encryption is required and which cipher suite to use. Defaults to `true` and `Chacha20Poly1305`. |
 | `PacketTimeoutAttribute` | Method | Declares a handler timeout budget in milliseconds. |
 | `PacketTransportAttribute` | Method | Declares the preferred transport protocol for the handler's outbound response. |
@@ -58,7 +56,6 @@ public sealed class SecureChatController
     [PacketOpcode(0x3001)]
     [PacketPermission(PermissionLevel.USER)]
     [PacketRateLimit(10, burst: 2)]
-    [PacketConcurrencyLimit(100, queue: true, queueMax: 1000)]
     [PacketEncryption(true)]
     [PacketTimeout(5000)]
     [PacketTransport(NetworkTransport.UDP)]
@@ -76,7 +73,7 @@ For a comprehensive walkthrough of handler implementation, including error handl
 
 - Treat attributes as policy declarations; verify enforcement in runtime middleware configuration.
 - Keep opcode values centrally managed to avoid collisions.
-- Use explicit permission/rate/concurrency attributes on public-facing handlers.
+- Use explicit permission and rate-limit attributes on public-facing handlers.
 
 ## Related APIs
 

@@ -25,6 +25,25 @@
 
 `Validate()` runs DataAnnotation validation and throws `ValidationException` when constraints are violated.
 
+## Adaptive Proof-of-Work
+
+When adaptive mode is enabled, `ConnectionGuard` dynamically adjusts the PoW difficulty based on the current connection rate. This acts as an anti-DDoS mechanism: under normal load, PoW is trivial or disabled; under high load, difficulty increases to throttle automated connection floods.
+
+| Property | Default | Valid range | Description |
+| --- | ---: | --- | --- |
+| `EnableAdaptiveMode` | `false` | Boolean | Enables dynamic PoW difficulty scaling. |
+| `AdaptivePowMinDifficulty` | `0` | `0..32` | Minimum PoW leading-zero-bits (trivial/off when zero). |
+| `AdaptivePowMaxDifficulty` | `24` | `0..32` | Maximum PoW difficulty under full load. |
+| `AdaptivePowStartRate` | `10` | `1..1_000_000` | Connection rate (req/s) at which difficulty begins to increase. |
+| `AdaptivePowMaxRate` | `100` | `10..10_000_000` | Connection rate (req/s) at which maximum difficulty is reached. |
+
+Difficulty scales linearly between `AdaptivePowMinDifficulty` and `AdaptivePowMaxDifficulty` as the EWMA connection rate moves from `AdaptivePowStartRate` to `AdaptivePowMaxRate`.
+
+When `IsUnderAttack` is `true` (difficulty > min), the handshake handler requires clients to solve a PoW challenge before proceeding. Clients that have not passed PoW are sent a `POW_REQUIRED` control signal and must submit a `POW_PROOF` packet. The server verifies the proof, sets `connection.Level = POW_VERIFIED`, and allows the handshake to continue.
+
+!!! warning "Client solver performance"
+    The client-side solver (`ProofOfWorkSolver.SolveChallenge`) is a blocking brute-force search. Higher difficulty values exponentially increase solve time (approximately `2^difficulty` hashes). Keep `AdaptivePowMaxDifficulty` below `20` for consumer clients.
+
 ## Hosting Initialization
 
 `Bootstrap.Initialize()` loads `ConnectionQuotaOptions` during server startup so the server configuration template includes every quota knob:

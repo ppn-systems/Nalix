@@ -15,7 +15,6 @@ per-packet chain allocations.
 | `src/Nalix.Abstractions/Middleware/MiddlewareStageAttribute.cs` | Stage metadata and outbound `AlwaysExecute` flag. |
 | `src/Nalix.Runtime/Middleware/Standard/PermissionMiddleware.cs` | Built-in fail-closed permission guard. |
 | `src/Nalix.Runtime/Middleware/Standard/RateLimitMiddleware.cs` | Built-in policy/global token-bucket throttling. |
-| `src/Nalix.Runtime/Middleware/Standard/ConcurrencyMiddleware.cs` | Built-in per-opcode concurrency guard. |
 | `src/Nalix.Runtime/Middleware/Standard/TimeoutMiddleware.cs` | Built-in timeout wrapper. |
 
 ## Middleware Contract
@@ -69,12 +68,10 @@ Built-in inbound middleware currently declares:
 | --- | --- | ---: | --- |
 | `PermissionMiddleware` | `Inbound` | `-50` | Runs early and fail-closes missing/insufficient permission metadata. |
 | `RateLimitMiddleware` | `Inbound` | `50` | Uses packet policy limiter when `[PacketRateLimit]` exists, otherwise global endpoint token bucket. |
-| `ConcurrencyMiddleware` | `Inbound` | `50` | Uses `[PacketConcurrencyLimit]`; no attribute means pass-through. |
 | `TimeoutMiddleware` | `Inbound` | `75` | Wraps downstream work when `[PacketTimeout]` has a positive timeout. |
 
 !!! important "Equal middleware order"
-    `RateLimitMiddleware` and `ConcurrencyMiddleware` have the same order (`50`). The
-    runtime sort compares only `Order`; do not rely on a documented tie-breaker between
+    The runtime sort compares only `Order`; do not rely on a documented tie-breaker between
     equal-order middleware. Assign distinct orders in custom pipelines when relative order
     matters.
 
@@ -180,19 +177,6 @@ Directive spam is rate-gated by `DirectiveGuard` using
 If the limiter was disposed and throws `ObjectDisposedException`, the middleware logs a
 warning and denies fail-closed without sending a directive.
 
-### `ConcurrencyMiddleware`
-
-`ConcurrencyMiddleware` is opt-in per packet:
-
-- no `[PacketConcurrencyLimit]`: pass-through;
-- `Queue = true`: waits through `ConcurrencyGate.EnterAsync(...)`;
-- `Queue = false`: calls `TryEnter(...)` and rejects immediately if the lease is not
-  acquired.
-
-Acquired leases are disposed in `finally`. Rejection or `ConcurrencyFailureException`
-sends `FAIL / RATE_LIMITED / RETRY` with `IS_TRANSIENT` and `arg0 = opcode`, also gated
-by `DirectiveGuard`.
-
 ### `TimeoutMiddleware`
 
 `TimeoutMiddleware` is opt-in per packet:
@@ -236,7 +220,6 @@ socket receive
 ## Related APIs
 
 - [Permission Middleware](./permission-middleware.md)
-- [Concurrency Gate](./concurrency-gate.md)
 - [Policy Rate Limiter](./policy-rate-limiter.md)
 - [Token Bucket Limiter](./token-bucket-limiter.md)
 - [Timeout Middleware](./timeout-middleware.md)

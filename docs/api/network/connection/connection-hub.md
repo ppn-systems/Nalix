@@ -5,8 +5,12 @@
 ## Source Mapping
 
 - `src/Nalix.Abstractions/Networking/IConnection.Hub.cs`
-- `src/Nalix.Network/Connections/Connection.Hub.cs`
+- `src/Nalix.Abstractions/Networking/IConnection.Broadcaster.cs`
+- `src/Nalix.Abstractions/Networking/IConnectionSender.cs`
+- `src/Nalix.Network/Connections/ConnectionHub.cs`
+- `src/Nalix.Network/Connections/ConnectionHub.Broadcast.cs`
 - `src/Nalix.Network/Internal/Connections/ConnectionRegistry.cs`
+- `src/Nalix.Runtime/Extensions/ConnectionExtensions.Broadcast.cs`
 
 ## Why This Type Exists
 
@@ -81,16 +85,67 @@ When the hub is disposed, it shuts down all registered connections.
 - `GetConnection(ReadOnlySpan<byte> id)`: O(1) retrieval using a serialized binary ID.
 - `ListConnections()`: Returns a read-only snapshot collection of all active connections.
 - `ListConnections(networkEndpoint)`: Returns active connections originating from a specific remote endpoint.
-- `BroadcastAsync<T>(msg, sendFunc, cancellationToken)`: High-performance parallel or batched fan-out (configured by `BroadcastBatchSize`).
-- `BroadcastWhereAsync<T>(msg, sendFunc, predicate, cancellationToken)`: Broadcasts only to connections matching the filter predicate.
 - `GenerateReport()`: Generates a human-readable diagnostic report of active connections, algorithm usage, and bytes statistics.
 - `WriteReportData(writer)`: Writes structural JSON report data for monitoring systems.
 - `Dispose()`: Releases all resources, unsubscribes events, and closes all connections in parallel.
 
+## Broadcasting
+
+`ConnectionHub` implements `IConnectionBroadcaster`, providing server-wide message fan-out. Broadcasting captures a point-in-time snapshot of all connections and sends to each concurrently.
+
+### Packet-Based Broadcast (Recommended)
+
+The `ConnectionExtensions.BroadcastAsync()` extension method in `Nalix.Runtime` serializes a packet once and applies compression/encryption per-connection through the normal `FramePipeline`:
+
+```csharp
+IConnectionBroadcaster hub = /* resolved via DI */;
+IPacket notification = new ServerNotification { Message = "Maintenance in 5 minutes" };
+
+// Broadcast to all connections over TCP with encryption
+await hub.BroadcastAsync(notification, NetworkTransport.TCP, enableEncrypt: true);
+
+// Multicast to a specific subset
+IReadOnlyCollection<IConnection> targets = /* ... */;
+await hub.MulticastAsync(targets, notification);
+```
+
+### Generic Broadcast (Zero-Allocation)
+
+For maximum control, implement `IConnectionSender<TState>` as a `struct` to avoid virtual dispatch and closure allocation:
+
+```csharp
+public readonly struct MySender : IConnectionSender<byte[]>
+{
+    public ValueTask SendAsync(IConnection connection, ref byte[] state, CancellationToken ct)
+        => connection.TCP.SendAsync(state, ct);
+}
+
+await hub.BroadcastAsync(payload, new MySender(), cancellationToken);
+```
+
+### Legacy Buffer-Based Broadcast (Obsolete)
+
+The `BroadcastAsync(ReadOnlyMemory<byte>, ...)` overloads are marked `[Obsolete]`. They bypass the compression/encryption pipeline and send pre-serialized buffers directly. Prefer the packet-based extension methods.
+
+### Broadcast Behavior
+
+- A connection snapshot is captured via `CaptureConnectionSnapshotRented()` (zero-allocation, rents from `ArrayPool`)
+- If `BroadcastBatchSize > 0`, sends are batched: `Task[]` arrays are rented, awaited, and returned per batch
+- If `BroadcastBatchSize == 0` (default), all sends are queued and awaited together via `Task.WhenAll`
+- Individual send failures are logged per-connection but do not abort the broadcast
+- Cancellation is checked per-connection during the send loop
+- Disposed connections are skipped silently
+
 ## Best Practices
 
-!!! tip "Broadcast Filtering"
-    Always use `BroadcastWhereAsync<T>` if you only need to send data to a subset of clients (e.g., players in the same game room). This prevents unnecessary packet serialization for clients that don't need the update.
+!!! tip "Use Packet-Based Broadcast"
+    Prefer `ConnectionExtensions.BroadcastAsync(hub, packet)` over legacy buffer overloads. The packet-based path applies compression and encryption per-connection through the normal `FramePipeline`, ensuring consistent security posture.
+
+!!! tip "Multicast for Subsets"
+    Use `MulticastAsync(connections, packet)` to send only to a specific collection of connections (e.g., players in the same game room). This avoids iterating all connections and sending to clients that don't need the update.
+
+!!! warning "No Delivery Guarantee"
+    Broadcast is best-effort. Individual connection send failures are logged but do not abort the broadcast or throw to the caller. There is no built-in retry or acknowledgment mechanism.
 
 !!! warning "Avoid Locking Inside Callbacks"
     Since connection disposal and unregistration trigger event callbacks, avoid blocking or acquiring heavy application locks inside handlers subscribed to `ConnectionUnregistered` to prevent potential deadlock issues.

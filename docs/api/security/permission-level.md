@@ -11,6 +11,8 @@
 | Value | Name | Description |
 | --- | --- | --- |
 | `0` | `NONE` | No authority assigned. |
+| `10` | `POW_VERIFIED` | Connection has passed the Proof-of-Work challenge but has not yet completed handshake. |
+| `20` | `ESTABLISHED` | Secure session has been established. |
 | `25` | `GUEST` | Minimal access for anonymous or guest users. |
 | `50` | `READ_ONLY` | Read-only access. |
 | `100` | `USER` | Standard authenticated user. |

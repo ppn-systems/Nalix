@@ -14,7 +14,7 @@ At the highest level, Nalix is a networking stack that sits between external cli
 ```mermaid
 graph LR
     User("External Client / Service") -- "TCP / UDP" --> Stack("Nalix Networking Stack")
-    Stack -- "Logs" --> Logging("NLogix / External SIEM")
+    Stack -- "Logs" --> Logging("ILogger / External SIEM")
     Stack -- "Config" --> Config("Configuration (INI)")
 ```
 
@@ -149,7 +149,6 @@ The network runtime is designed to run with pressure controls enabled by default
 | `ConnectionGuard` | Socket-level admission control; rejects endpoints before application resources are allocated |
 | `TokenBucketLimiter` | Protects against request spikes with configurable burst and refill rates |
 | `PolicyRateLimiter` | Per-opcode and per-endpoint rate limiting driven by handler metadata |
-| `ConcurrencyGate` | Limits the number of in-flight handlers to prevent thread pool exhaustion |
 | `TimingWheel` | Manages idle timeouts with O(1) scheduling complexity |
 
 ## Where Does My Code Go?

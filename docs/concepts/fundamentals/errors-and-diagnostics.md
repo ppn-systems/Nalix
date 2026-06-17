@@ -56,15 +56,6 @@ If a client exceeds their allocated throughput for a specific opcode or the glob
  -`arg1`: `RetryAfterMs` (milliseconds to wait)
  -`arg2`: Remaining credit (if applicable)
 
-### ConcurrencyMiddleware
-
-If the server cannot acquire a concurrency slot for a specific opcode:
-
-- **Reason:** `RATE_LIMITED`
-- **Advice:** `RETRY`
-- **Flags:** `IS_TRANSIENT`
-- **Metadata:** `arg0` contains the opcode.
-
 ### TimeoutMiddleware
 
 If a handler takes longer than the configured maximum execution time:

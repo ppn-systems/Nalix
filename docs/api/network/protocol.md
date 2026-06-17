@@ -52,7 +52,7 @@ flowchart TD
 ## Core Contract
 
 ```csharp
-public abstract void ProcessMessage(object? sender, IConnectEventArgs args);
+public abstract void ProcessMessage(object? sender, IConnectionEventArgs args);
 ```
 
 Runtime default flow:
@@ -78,7 +78,7 @@ To create a custom protocol, you must inherit from `Protocol` and provide the fo
 ```csharp
 public class MyProtocol : Protocol
 {
-    public override void ProcessMessage(object? sender, IConnectEventArgs args)
+    public override void ProcessMessage(object? sender, IConnectionEventArgs args)
     {
         // 1. Read packet data from args.Lease (already decrypted/decompressed)
         // 2. Perform business routing (e.g., call a Dispatcher)
@@ -89,8 +89,8 @@ public class MyProtocol : Protocol
 
 ## Key Public Members
 
-- `ProcessMessage(object? sender, IConnectEventArgs args)`
-- `PostProcessMessage(object? sender, IConnectEventArgs args)`
+- `ProcessMessage(object? sender, IConnectionEventArgs args)`
+- `PostProcessMessage(object? sender, IConnectionEventArgs args)`
 - `OnAccept(IConnection connection, CancellationToken cancellationToken = default)`
 - `SetConnectionAcceptance(bool isEnabled)`
 - `GenerateReport()` / `WriteReportData(Utf8JsonWriter)`
@@ -104,7 +104,7 @@ public class MyProtocol : Protocol
 - `ValidateConnection(IConnection connection)`: Called during the accept phase. Return `false` to reject a connection immediately.
 - `OnAccept(IConnection connection, CancellationToken cancellationToken = default)`: Called for accepted TCP connections. The default implementation checks `IsAccepting`, calls `ValidateConnection(...)`, and starts `connection.TCP.BeginReceive(...)`.
 - `SetConnectionAcceptance(bool isEnabled)`: Convenience API from `src/Nalix.Network/Protocols/Protocol.Core.cs` for toggling the acceptance state while also emitting the built-in log message.
-- `OnPostProcess(IConnectEventArgs args)`: Runs after `ProcessMessage`.
+- `OnPostProcess(IConnectionEventArgs args)`: Runs after `ProcessMessage`.
 - `OnConnectionError(IConnection connection, Exception exception)`: Capture transport layer failures or protocol violations.
 - `Dispose(bool disposing)`: Standard lifecycle cleanup.
 

@@ -76,7 +76,6 @@ Before production, decide intentionally which of these you want to use:
 - `ConnectionGuard`
 - `TokenBucketLimiter`
 - `PolicyRateLimiter`
-- `ConcurrencyGate`
 
 At minimum, most public-facing servers should have:
 
@@ -100,9 +99,7 @@ Good production middleware should be:
 
 ## 8. Pooling and memory pressure
 
-Network-layer pool capacities (accept contexts, socket args, receive contexts, timeout tasks, transports, connections) are derived from `ConnectionGuardOptions.MaxConnections`. Set that option to your expected peak concurrent connection count.
-
-Runtime pool capacities (packet contexts) are configured through `Nalix.Runtime.Options.PoolingOptions`.
+Network-layer pool capacities (accept contexts, socket args, receive contexts, timeout tasks, transports, connections) are derived internally from `ConnectionGuardOptions.MaxConnections`. Set that option to your expected peak concurrent connection count.
 
 A useful rule of thumb:
 

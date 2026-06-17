@@ -7,7 +7,8 @@ for `ConnectionHub`.
 ## Source Mapping
 
 - `src/Nalix.Network/Options/ConnectionHubOptions.cs`
-- `src/Nalix.Network/Connections/Connection.Hub.cs`
+- `src/Nalix.Network/Connections/ConnectionHub.cs`
+- `src/Nalix.Network/Connections/ConnectionHub.Broadcast.cs`
 - `src/Nalix.Hosting/Bootstrap.cs`
 
 ## Defaults and Validation

@@ -95,7 +95,6 @@ Real-time systems fail fastest when they do not control pressure. Nalix integrat
 | `DatagramGuard` | Transport | Lock-free per-IP UDP packet throttling (UDP Flood protection) |
 | `TokenBucketLimiter` | Dispatch | Protect against request spikes with burst budgets |
 | `PolicyRateLimiter` | Dispatch | Per-opcode and per-endpoint rate limiting |
-| `ConcurrencyGate` | Dispatch | Limit concurrent in-flight handlers |
 | `TimingWheel` | Transport | O(1) idle timeout management for connection cleanup |
 
 These are not optional extras. They are part of making the engine stable under production traffic.
@@ -109,7 +108,6 @@ Handler attributes become runtime behavior through cached metadata:
 [PacketPermission(PermissionLevel.USER)]
 [PacketTimeout(3000)]
 [PacketRateLimit(requestsPerSecond: 30, burst: 10)]
-[PacketConcurrencyLimit(maxConcurrent: 4)]
 public ValueTask<PositionAck> HandlePosition(
     IPacketContext<PositionUpdate> context)
 {

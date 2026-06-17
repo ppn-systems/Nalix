@@ -64,9 +64,9 @@ public sealed class UserShardProxy : IConnection
     public void Dispose() => _physical.Dispose();
 
     // --- EVENT DELEGATION ---
-    public event EventHandler<IConnectEventArgs> OnCloseEvent { add => _physical.OnCloseEvent += value; remove => _physical.OnCloseEvent -= value; }
-    public event EventHandler<IConnectEventArgs> OnProcessEvent { add => _physical.OnProcessEvent += value; remove => _physical.OnProcessEvent -= value; }
-    public event EventHandler<IConnectEventArgs> OnPostProcessEvent { add => _physical.OnPostProcessEvent += value; remove => _physical.OnPostProcessEvent -= value; }
+    public event EventHandler<IConnectionEventArgs> OnCloseEvent { add => _physical.OnCloseEvent += value; remove => _physical.OnCloseEvent -= value; }
+    public event EventHandler<IConnectionEventArgs> OnProcessEvent { add => _physical.OnProcessEvent += value; remove => _physical.OnProcessEvent -= value; }
+    public event EventHandler<IConnectionEventArgs> OnPostProcessEvent { add => _physical.OnPostProcessEvent += value; remove => _physical.OnPostProcessEvent -= value; }
 }
 ```
 

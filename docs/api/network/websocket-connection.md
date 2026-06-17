@@ -83,13 +83,13 @@ public sealed class WebSocketConnection :
 
 #### Events
 
-* `public event EventHandler<IConnectEventArgs> OnCloseEvent`
+* `public event EventHandler<IConnectionEventArgs> OnCloseEvent`
   Triggered when the connection disconnects or is explicitly closed.
 
-* `public event EventHandler<IConnectEventArgs> OnProcessEvent`
+* `public event EventHandler<IConnectionEventArgs> OnProcessEvent`
   Triggered when a complete message frame is read and needs routing/handling.
 
-* `public event EventHandler<IConnectEventArgs> OnPostProcessEvent`
+* `public event EventHandler<IConnectionEventArgs> OnPostProcessEvent`
   Triggered after processing is completed (used for statistics or post-send updates).
 
 #### Public Methods
