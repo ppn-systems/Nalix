@@ -51,6 +51,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth 
 
     private long _totalReturned;
     private long _totalRented;
+    private long _totalDropped;
     private readonly System.Diagnostics.Stopwatch _uptime = System.Diagnostics.Stopwatch.StartNew();
 
     /// <summary>
@@ -116,6 +117,11 @@ public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth 
     public long TotalRentedCount => Interlocked.Read(ref _totalRented);
 
     /// <summary>
+    /// Gets the total number of objects dropped (discarded) because the pool was full.
+    /// </summary>
+    public long TotalDroppedCount => Interlocked.Read(ref _totalDropped);
+
+    /// <summary>
     /// Gets the pool uptime in milliseconds.
     /// </summary>
     public long UptimeMs => _uptime.ElapsedMilliseconds;
@@ -175,7 +181,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth 
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    internal void ReturnFast<T>(T obj, int id) where T : IPoolable
+    internal bool ReturnFast<T>(T obj, int id) where T : IPoolable
     {
         obj.ResetForPool();
 
@@ -187,21 +193,26 @@ public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth 
         if (typePool.AvailableCount == 0 && typePool.TryPush(obj))
         {
             _ = Interlocked.Increment(ref _totalReturned);
-            return;
+            return true;
         }
 
         // Try the fast-path thread-local slot (only when enabled)
         if (_threadCacheDepth > 0 && ThreadLocalCache<T>.TryPush(this, obj))
         {
             _ = Interlocked.Increment(ref _totalReturned);
-            return;
+            return true;
         }
 
         // Fallback to central pool if thread-local slot is occupied or disabled
         if (typePool.TryPush(obj))
         {
             _ = Interlocked.Increment(ref _totalReturned);
+            return true;
         }
+
+        // Object was dropped because the pool is at MaxCapacity
+        _ = Interlocked.Increment(ref _totalDropped);
+        return false;
     }
 
     [System.Runtime.CompilerServices.MethodImpl(
@@ -270,7 +281,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth 
         }
 
         int id = PoolType<T>.Id;
-        this.ReturnFast(obj, id);
+        _ = this.ReturnFast(obj, id);
     }
 
     /// <summary>
@@ -369,6 +380,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth 
             ["TypeCount"] = this.TypeCount,
             ["TotalRentedCount"] = this.TotalRentedCount,
             ["TotalReturnedCount"] = this.TotalReturnedCount,
+            ["TotalDroppedCount"] = this.TotalDroppedCount,
             ["ActiveRentals"] = this.TotalRentedCount - this.TotalReturnedCount,
             ["UptimeMs"] = this.UptimeMs,
             ["DefaultMaxItemsPerType"] = _defaultMaxItemsPerType
@@ -419,8 +431,9 @@ public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth 
     /// <c>0</c> = no trim (safety floor), <c>1–99</c> = keep that percentage of max capacity,
     /// <c>100</c> = keep up to full capacity. Negative values are clamped to <c>0</c>.
     /// </param>
+    /// <param name="decayFactor">Fraction of excess objects to remove (0.0-1.0). Default is 1.0 (remove all excess).</param>
     /// <returns>The total number of objects removed.</returns>
-    public int Trim(int percentage = 50)
+    public int Trim(int percentage = 50, double decayFactor = 1.0)
     {
         if (percentage < 0)
         {
@@ -435,7 +448,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth 
         int removedCount = 0;
         foreach (TypePool pool in _typePools.Values)
         {
-            removedCount += pool.Trim(percentage);
+            removedCount += pool.Trim(percentage, decayFactor);
         }
 
         return removedCount;
@@ -451,6 +464,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth 
         _ = Interlocked.Exchange(ref _totalCreated, 0);
         _ = Interlocked.Exchange(ref _totalRented, 0);
         _ = Interlocked.Exchange(ref _totalReturned, 0);
+        _ = Interlocked.Exchange(ref _totalDropped, 0);
         _uptime.Restart();
 
     }

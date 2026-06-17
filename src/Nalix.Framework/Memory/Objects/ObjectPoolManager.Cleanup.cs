@@ -44,12 +44,16 @@ public sealed partial class ObjectPoolManager
 
             try
             {
-                int removed = kvp.Value.Trim(trimPercentage);
+                int removed = kvp.Value.Trim(trimPercentage, _config.TrimDecayFactor);
                 totalRemoved += removed;
                 if (removed > 0)
                 {
                     _ = Interlocked.Add(ref metrics.TrimCount, removed);
                 }
+
+                // Update trim snapshot for next cycle's hit rate calculation
+                _ = Interlocked.Exchange(ref metrics.LastTrimGets, Interlocked.Read(ref metrics.TotalGets));
+                _ = Interlocked.Exchange(ref metrics.LastTrimHits, Interlocked.Read(ref metrics.CacheHits));
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
@@ -87,38 +91,38 @@ public sealed partial class ObjectPoolManager
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int CALCULATE_PER_TYPE_TRIM_PERCENTAGE(Type type, PoolMetrics metrics, bool isDeepTrim)
     {
-        if (isDeepTrim)
-        {
-            return _config.DeepTrimPercentage; // aggressive trim on deep cycle (keeps less, e.g. 25%)
-        }
+        long windowGets = Interlocked.Read(ref metrics.TotalGets) - Interlocked.Read(ref metrics.LastTrimGets);
+        long windowHits = Interlocked.Read(ref metrics.CacheHits) - Interlocked.Read(ref metrics.LastTrimHits);
+        
+        // If there are no gets in this window, assume hit rate is 100% to protect unused but cached objects.
+        // We'll rely on idle/free ratio checks below to clear them out if they are truly idle.
+        double hitRate = windowGets > 0 
+            ? (double)windowHits / windowGets * 100.0 
+            : 100.0;
 
-        if (metrics.TotalGets == 0)
-        {
-            // Pool has never been used → trim more aggressively (keeps less)
-            return _config.DeepTrimPercentage;
-        }
-
-        double hitRate = (double)metrics.CacheHits / metrics.TotalGets * 100.0;
-
-        // Get current pool state (available count and capacity)
+        // Get current pool state (available count and capacity) directly without allocating a Dictionary
         int available = 0;
         int maxCap = _defaultMaxPoolSize;
         if (_poolDict.TryGetValue(type, out ObjectPool? pool))
         {
-            Dictionary<string, object> info = pool.GetTypeInfoByType(type);
-            maxCap = info.TryGetValue("MaxCapacity", out object? mc) ? Convert.ToInt32(mc, CultureInfo.InvariantCulture) : maxCap;
-            available = info.TryGetValue("AvailableCount", out object? av) ? Convert.ToInt32(av, CultureInfo.InvariantCulture) : 0;
+            maxCap = pool.GetMaxCapacity(type);
+            available = pool.AvailableCountByType(type);
         }
-
-        double freeRatio = maxCap > 0 ? (double)available / maxCap : 0.0;
 
         // === SAFETY FLOOR ===
         // Never trim below this threshold to prevent excessive churn and keep recovery fast
-        int minKeep = Math.Max(_config.MinimumKeepObjects, maxCap / 12);
+        long peakOutstanding = Interlocked.Read(ref metrics.PeakOutstanding);
+        int minKeep = Math.Max(
+            _config.MinimumKeepObjects,
+            Math.Max(maxCap / 12, (int)(peakOutstanding * 1.5))
+        );
+        
         if (available <= minKeep)
         {
             return 0; // already at minimum safe level
         }
+
+        double freeRatio = maxCap > 0 ? (double)available / maxCap : 0.0;
 
         // === HOT POOL (high hit rate) → keep more objects ===
         if (hitRate >= _config.HotHitRateThreshold)
@@ -131,11 +135,17 @@ public sealed partial class ObjectPoolManager
 
         if (needsAggressive)
         {
-            // Aggressive trim when cache is poor or too many idle objects (keeps e.g. 50%)
+            // Aggressive trim when cache is poor or too many idle objects
             return Math.Max(_config.DeepTrimPercentage, _config.BaseKeepPercentage - 25);
         }
 
-        // Normal routine trim (keeps e.g. 75%)
+        if (isDeepTrim)
+        {
+            // If we reach here during a deep trim (not hot, not completely cold), apply deep trim
+            return _config.DeepTrimPercentage;
+        }
+
+        // Normal routine trim
         return _config.BaseKeepPercentage;
     }
 

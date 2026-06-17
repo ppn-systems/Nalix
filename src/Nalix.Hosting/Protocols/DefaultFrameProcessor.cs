@@ -198,7 +198,12 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
 
     private static bool ShouldEmitThrottledLog(IConnection connection)
     {
-        IObjectMap<AttributeKey, object>? attrs = connection?.Attributes;
+        if (connection is null || connection.IsDisposed)
+        {
+            return false;
+        }
+
+        IObjectMap<AttributeKey, object>? attrs = connection.Attributes;
         if (attrs is null)
         {
             return true;

@@ -34,6 +34,7 @@ public sealed partial class ObjectPoolManager
 
         public long TotalCreated;
         public long TotalDisposed;
+        public long TotalDropped;
         public DateTime LastAccessUtc;
         public string? LastAccessType;
         public int ConsecutiveFailures;
@@ -60,6 +61,9 @@ public sealed partial class ObjectPoolManager
         public long LastHealthPeakOutstanding;
         public long LastPoolFailureLogUtcTicks;
         public int LastPoolFailureSeverity;
+
+        public long LastTrimGets;
+        public long LastTrimHits;
     }
 
     #endregion Nested Types

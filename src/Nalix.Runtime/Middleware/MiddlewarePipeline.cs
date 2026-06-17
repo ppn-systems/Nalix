@@ -5,6 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
@@ -49,6 +50,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
     private long _activeExecutions;
     private long _totalExecutions;
     private long _totalExecutionTicks;
+    private long _maxExecutionTicks;
     private long _totalErrors;
 
     #endregion Fields
@@ -62,6 +64,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         Interlocked.Read(ref _activeExecutions),
         Interlocked.Read(ref _totalExecutions),
         Interlocked.Read(ref _totalExecutionTicks),
+        Interlocked.Read(ref _maxExecutionTicks),
         Interlocked.Read(ref _totalErrors));
 
     /// <summary>
@@ -244,6 +247,23 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         _ = Interlocked.Add(ref _totalExecutionTicks, elapsed);
         _ = Interlocked.Increment(ref _totalExecutions);
         _ = Interlocked.Decrement(ref _activeExecutions);
+        UpdateMaxTicks(ref _maxExecutionTicks, elapsed);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void UpdateMaxTicks(ref long maxField, long elapsed)
+    {
+        long max = Volatile.Read(ref maxField);
+        while (elapsed > max)
+        {
+            long prev = Interlocked.CompareExchange(ref maxField, elapsed, max);
+            if (prev == max)
+            {
+                break;
+            }
+
+            max = prev;
+        }
     }
 
     private static MiddlewareMetadata GetMiddlewareMetadata(Type middlewareType)
@@ -575,6 +595,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
                     {
                         _ = Interlocked.Add(ref _snapshot.Metrics[entry.MetricIndex]._totalExecutionTicks, elapsed);
                         _ = Interlocked.Increment(ref _snapshot.Metrics[entry.MetricIndex]._totalExecutions);
+                        UpdateMaxTicks(ref _snapshot.Metrics[entry.MetricIndex]._maxExecutionTicks, elapsed);
                     }
                     return pending;
                 }
@@ -686,6 +707,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
                 {
                     _ = Interlocked.Add(ref runner._snapshot.Metrics[entry.MetricIndex]._totalExecutionTicks, elapsed);
                     _ = Interlocked.Increment(ref runner._snapshot.Metrics[entry.MetricIndex]._totalExecutions);
+                    UpdateMaxTicks(ref runner._snapshot.Metrics[entry.MetricIndex]._maxExecutionTicks, elapsed);
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -709,6 +731,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             {
                 _ = Interlocked.Add(ref runner._snapshot.Metrics[entry.MetricIndex]._totalExecutionTicks, elapsed);
                 _ = Interlocked.Increment(ref runner._snapshot.Metrics[entry.MetricIndex]._totalExecutions);
+                UpdateMaxTicks(ref runner._snapshot.Metrics[entry.MetricIndex]._maxExecutionTicks, elapsed);
             }
         }
 

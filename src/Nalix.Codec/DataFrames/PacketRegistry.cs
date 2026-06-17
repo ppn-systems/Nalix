@@ -10,6 +10,7 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
+using Nalix.Codec.ProtocolFrames;
 using Nalix.Environment.Extensions;
 
 namespace Nalix.Codec.DataFrames;
@@ -69,7 +70,27 @@ public static class PacketRegistry
     /// <summary>
     /// Configures the shared Pool Manager for the entire packet ecosystem.
     /// </summary>
-    public static void Configure(IObjectPoolManager manager) => Volatile.Write(ref Manager, manager);
+    public static void Configure(IObjectPoolManager manager)
+    {
+        ArgumentNullException.ThrowIfNull(manager);
+
+        Volatile.Write(ref Manager, manager);
+
+        _ = manager.SetMaxCapacity<Control>(128);
+        _ = manager.SetMaxCapacity<TimeSync>(128);
+        _ = manager.SetMaxCapacity<Directive>(128);
+
+        _ = manager.SetMaxCapacity<ProofOfWorkProof>(128);
+        _ = manager.SetMaxCapacity<ProofOfWorkChallenge>(128);
+
+        _ = manager.SetMaxCapacity<SessionTofu>(128);
+        _ = manager.SetMaxCapacity<SessionInit>(128);
+        _ = manager.SetMaxCapacity<SessionProof>(128);
+        _ = manager.SetMaxCapacity<SessionRekey>(128);
+        _ = manager.SetMaxCapacity<SessionResume>(128);
+        _ = manager.SetMaxCapacity<SessionChallenge>(128);
+        _ = manager.SetMaxCapacity<SessionEstablished>(128);
+    }
 
     /// <summary>
     /// Builds and freezes the generated packet registry once.

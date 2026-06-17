@@ -92,6 +92,15 @@ public sealed partial class ObjectPoolOptions : ConfigurationLoader, IValidatabl
     public int DeepTrimPercentage { get; set; } = 25;
 
     /// <summary>
+    /// Fraction of excess objects to remove per trim cycle (0.0–1.0).
+    /// Lower values make trimming more gradual (e.g., 0.5 = remove half the excess each cycle).
+    /// Default is 0.5 (exponential decay).
+    /// </summary>
+    [IniComment("Fraction of excess to trim per cycle (0.1–1.0, default 0.5)")]
+    [ValueRange(0.1, 1.0)]
+    public double TrimDecayFactor { get; set; } = 0.5;
+
+    /// <summary>
     /// Gets or sets the hit rate threshold that marks a pool as "hot".
     /// Hot pools are trimmed less aggressively to preserve performance.
     /// Default value is 85%.

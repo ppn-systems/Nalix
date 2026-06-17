@@ -102,6 +102,12 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
 
     #region Constructor
 
+    static PacketContext()
+    {
+        _ = s_pool.SetMaxCapacity<PacketContext<TPacket>>(128);
+        _ = s_pool.Prealloc<PacketContext<TPacket>>(128);
+    }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketContext{TPacket}"/> class for pooling.
     /// </summary>

@@ -268,6 +268,8 @@ internal class Startup
 
                 // Vietnam timezone daily reset offset.
                 o.DailyResetTimeOffset = TimeSpan.FromHours(7);
+
+                o.EnableAdaptiveMode = true;
             })
             .Configure<ConnectionBanStoreOptions>(o =>
             {

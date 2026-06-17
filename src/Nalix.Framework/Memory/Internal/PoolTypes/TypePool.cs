@@ -138,9 +138,10 @@ internal class TypePool(int maxCapacity)
     ///   <item><description><c>&lt; 0</c> = clear all objects.</description></item>
     /// </list>
     /// </param>
+    /// <param name="decayFactor">Fraction of excess objects to remove (0.0-1.0). Default is 1.0 (remove all excess).</param>
     /// <returns>The number of objects removed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public int Trim(int percentage)
+    public int Trim(int percentage, double decayFactor = 1.0)
     {
         if (percentage < 0)
         {
@@ -162,7 +163,10 @@ internal class TypePool(int maxCapacity)
             return 0;
         }
 
-        int toRemove = currentCount - targetSize;
+        int excess = currentCount - targetSize;
+        int toRemove = decayFactor >= 1.0
+            ? excess
+            : System.Math.Max(1, (int)(excess * decayFactor));
 
         int removed = RemoveObjects(_objects, toRemove);
         Volatile.Write(ref _count, _objects.Count);
