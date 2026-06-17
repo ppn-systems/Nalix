@@ -81,6 +81,9 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
     private long _totalRejections;
     private long _totalCleanedEntries;
 
+    private int _peakGlobalConnections;
+    private int _peakTrackedEndpoints;
+
     private double _ewmaConnectionRate;
     private long _ewmaLastUpdateTicks;
 
@@ -314,6 +317,18 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
                 }
                 if (Interlocked.CompareExchange(ref _globalConnections, current + 1, current) == current)
                 {
+                    int newTotal = current + 1;
+                    if (newTotal > Volatile.Read(ref _peakGlobalConnections))
+                    {
+                        int currentPeak;
+                        while (newTotal > (currentPeak = Volatile.Read(ref _peakGlobalConnections)))
+                        {
+                            if (Interlocked.CompareExchange(ref _peakGlobalConnections, newTotal, currentPeak) == currentPeak)
+                            {
+                                break;
+                            }
+                        }
+                    }
                     break;
                 }
             }
@@ -421,6 +436,18 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
                 }
                 if (Interlocked.CompareExchange(ref _globalConnections, current + 1, current) == current)
                 {
+                    int newTotal = current + 1;
+                    if (newTotal > Volatile.Read(ref _peakGlobalConnections))
+                    {
+                        int currentPeak;
+                        while (newTotal > (currentPeak = Volatile.Read(ref _peakGlobalConnections)))
+                        {
+                            if (Interlocked.CompareExchange(ref _peakGlobalConnections, newTotal, currentPeak) == currentPeak)
+                            {
+                                break;
+                            }
+                        }
+                    }
                     break;
                 }
             }

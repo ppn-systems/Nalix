@@ -42,6 +42,8 @@ public sealed partial class TokenBucketLimiter
 
             if (removed > 0)
             {
+                _ = Interlocked.Add(ref _totalCleaned, removed);
+
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                 {
                     DiagnosticsEvents.Write(

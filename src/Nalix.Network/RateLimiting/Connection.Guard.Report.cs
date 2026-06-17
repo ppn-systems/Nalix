@@ -52,12 +52,26 @@ public sealed partial class ConnectionGuard
             SORT_SNAPSHOT_BY_LOAD(snapshot);
             GlobalMetrics metrics = this.CALCULATE_GLOBAL_METRICS(snapshot);
 
+            int currentEndpoints = metrics.TotalEndpoints;
+            if (currentEndpoints > Volatile.Read(ref _peakTrackedEndpoints))
+            {
+                int currentPeak;
+                while (currentEndpoints > (currentPeak = Volatile.Read(ref _peakTrackedEndpoints)))
+                {
+                    if (Interlocked.CompareExchange(ref _peakTrackedEndpoints, currentEndpoints, currentPeak) == currentPeak)
+                    {
+                        break;
+                    }
+                }
+            }
+
             writer.WriteStartObject();
             writer.WriteString("UtcNow", Clock.NowUtc());
             writer.WriteNumber("MaxPerEndpoint", _maxPerEndpoint);
             writer.WriteNumber("CleanupIntervalSeconds", _cleanupInterval.TotalSeconds);
             writer.WriteNumber("InactivityThresholdSeconds", _inactivityThreshold.TotalSeconds);
-            writer.WriteNumber("TrackedEndpoints", metrics.TotalEndpoints);
+            writer.WriteNumber("TrackedEndpoints", currentEndpoints);
+            writer.WriteNumber("PeakTrackedEndpoints", Volatile.Read(ref _peakTrackedEndpoints));
             writer.WriteNumber("TotalConcurrent", metrics.TotalConcurrent);
             writer.WriteNumber("TotalAttempts", metrics.TotalAttempts);
             writer.WriteNumber("TotalRejections", metrics.TotalRejections);
@@ -67,7 +81,9 @@ public sealed partial class ConnectionGuard
             writer.WriteNumber("SubnetTrackedV4", _subnetMapV4.Count);
             writer.WriteNumber("SubnetTrackedV6", _subnetMapV6.Count);
             writer.WriteNumber("GlobalConnections", Volatile.Read(ref _globalConnections));
+            writer.WriteNumber("PeakGlobalConnections", Volatile.Read(ref _peakGlobalConnections));
             writer.WriteNumber("MaxGlobalConnections", _maxGlobalConnections);
+            writer.WriteNumber(nameof(this.CurrentDifficulty), this.CurrentDifficulty);
             writer.WriteNumber("EWMARate", _ewmaConnectionRate);
             writer.WriteBoolean("AdaptiveActive", _config.EnableAdaptiveMode && Volatile.Read(ref _globalConnections) > _maxGlobalConnections * _config.AdaptiveLoadThreshold);
 
