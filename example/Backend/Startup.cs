@@ -108,8 +108,8 @@ internal class Startup
                 o.DeepTrimIntervalMinutes = 10;
 
                 // Keep hot pools warm, trim cold pools more aggressively.
-                o.BaseKeepPercentage = 25;
-                o.DeepTrimPercentage = 60;
+                o.BaseKeepPercentage = 75;
+                o.DeepTrimPercentage = 25;
                 o.HotHitRateThreshold = 85.0;
                 o.MinimumKeepObjects = 16;
 

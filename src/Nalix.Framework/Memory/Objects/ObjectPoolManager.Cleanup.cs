@@ -89,13 +89,13 @@ public sealed partial class ObjectPoolManager
     {
         if (isDeepTrim)
         {
-            return _config.DeepTrimPercentage; // aggressive trim on deep cycle
+            return _config.DeepTrimPercentage; // aggressive trim on deep cycle (keeps less, e.g. 25%)
         }
 
         if (metrics.TotalGets == 0)
         {
-            // Pool has never been used → trim more aggressively
-            return Math.Max(40, _config.BaseKeepPercentage + 15);
+            // Pool has never been used → trim more aggressively (keeps less)
+            return _config.DeepTrimPercentage;
         }
 
         double hitRate = (double)metrics.CacheHits / metrics.TotalGets * 100.0;
@@ -123,7 +123,7 @@ public sealed partial class ObjectPoolManager
         // === HOT POOL (high hit rate) → keep more objects ===
         if (hitRate >= _config.HotHitRateThreshold)
         {
-            return 75; // light trim
+            return Math.Min(90, _config.BaseKeepPercentage + 15); // light trim (keeps e.g. 90%)
         }
 
         // === COLD / UNHEALTHY / IDLE POOL ===
@@ -131,11 +131,11 @@ public sealed partial class ObjectPoolManager
 
         if (needsAggressive)
         {
-            // Aggressive trim when cache is poor or too many idle objects
-            return _config.BaseKeepPercentage + 27;
+            // Aggressive trim when cache is poor or too many idle objects (keeps e.g. 50%)
+            return Math.Max(_config.DeepTrimPercentage, _config.BaseKeepPercentage - 25);
         }
 
-        // Normal routine trim
+        // Normal routine trim (keeps e.g. 75%)
         return _config.BaseKeepPercentage;
     }
 

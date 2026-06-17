@@ -472,7 +472,8 @@ internal static class AsyncCallback
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.AsyncCallback:Internal", $"message event={eventName} suppressed-count={suppressed} endpoint={GET_ENDPOINT_SAFE(args)}"));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning,
+                        new DiagnosticLog("NW.AsyncCallback:Internal", $"message event={eventName} suppressed-count={suppressed} endpoint={GET_ENDPOINT_SAFE(args)}"));
                 }
                 ;
             }
@@ -488,7 +489,8 @@ internal static class AsyncCallback
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                 {
-                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.AsyncCallback:Internal", $"message event={eventName} suppressed-count={suppressed} endpoint={GET_ENDPOINT_SAFE(args)}", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error,
+                        new DiagnosticLog("NW.AsyncCallback:Internal", $"message event={eventName} suppressed-count={suppressed} endpoint={GET_ENDPOINT_SAFE(args)}", ex));
                 }
                 ;
             }

@@ -21,8 +21,8 @@ using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Internal.Connections;
+using Nalix.Network.Internal.Initialization;
 using Nalix.Network.Internal.Pooling;
-using Nalix.Network.Internal.Protocol;
 using Nalix.Network.Internal.Security;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Internal.Transport;
@@ -73,43 +73,7 @@ public sealed partial class Connection :
         s_callbackOptions = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
         s_timingWheelOptions = ConfigurationManager.Instance.Get<TimingWheelOptions>();
 
-        // Pre-configure pool capacities based on expected usage patterns to minimize resizing during runtime.
-        _ = s_pool.SetMaxCapacity<SocketConnection>(s_options.MaxConnections);
-        _ = s_pool.SetMaxCapacity<ConnectionBacking>(s_options.MaxConnections);
-        _ = s_pool.SetMaxCapacity<SocketTcpTransport>(s_options.MaxConnections);
-        _ = s_pool.SetMaxCapacity<SocketUdpTransport>(s_options.MaxConnections);
-        _ = s_pool.SetMaxCapacity<ProxyHeaderContext>(s_options.MaxConnections);
-        _ = s_pool.SetMaxCapacity<TimingWheel.TimeoutTask>(s_options.MaxConnections);
-        _ = s_pool.SetMaxCapacity<PooledSocketReceiveContext>(s_options.MaxConnections);
-
-        int capacity = (s_options.MaxConnections * 2) + 1024;
-
-        // Event args and contexts are used per-packet, so we provision extra capacity to handle spikes without immediate contention.
-        _ = s_pool.SetMaxCapacity<ConnectionEventArgs>(capacity);
-        _ = s_pool.SetMaxCapacity<PooledConnectEventContext>(capacity);
-
-        NetworkSocketOptions socketOptions = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
-
-        // Configure object pools for accept contexts and socket async event args based on the provided options.
-        _ = s_pool.SetMaxCapacity<PooledAcceptContext>(socketOptions.MaxParallel + 4);
-        _ = s_pool.Prealloc<PooledAcceptContext>(socketOptions.MaxParallel);
-
-        // Preallocate objects in the pools to improve performance and reduce latency during runtime.
-        _ = s_pool.SetMaxCapacity<PooledSocketAsyncEventArgs>(socketOptions.MaxParallel + s_options.MaxConnections);
-        _ = s_pool.Prealloc<PooledSocketAsyncEventArgs>(socketOptions.MaxParallel * 4);
-
-        _ = s_pool.Prealloc<SocketTcpTransport>(128);
-        _ = s_pool.Prealloc<SocketUdpTransport>(64);
-        _ = s_pool.Prealloc<PooledSocketReceiveContext>(128);
-        _ = s_pool.Prealloc<ProxyHeaderContext>(128);
-
-        _ = s_pool.Prealloc<ConnectionEventArgs>(256);
-        _ = s_pool.Prealloc<PooledConnectEventContext>(256);
-
-        _ = s_pool.Prealloc<TimingWheel.TimeoutTask>(128);
-
-        _ = s_pool.Prealloc<SocketConnection>(128);
-        _ = s_pool.Prealloc<ConnectionBacking>(128);
+        NetworkPoolInitializer.InitializeTcp();
     }
 
     /// <summary>Initializes a new instance of the <see cref="Connection"/> class.</summary>
@@ -754,9 +718,16 @@ public sealed partial class Connection :
         }
 
         int pending = Interlocked.Increment(ref backing.PendingProcessCallbacks);
+
         if (pending > s_callbackOptions.MaxPerConnectionPendingPackets)
         {
             _ = Interlocked.Decrement(ref backing.PendingProcessCallbacks);
+
+            if (s_callbackOptions.OverflowPolicy == NetworkOverflowPolicy.Disconnect)
+            {
+                this.Disconnect("Exceeded MaxPerConnectionPendingPackets threshold.");
+            }
+
             return false;
         }
 

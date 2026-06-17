@@ -13,6 +13,7 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
+using Nalix.Network.Internal.Initialization;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Options;
 using Nalix.Network.RateLimiting;
@@ -102,15 +103,16 @@ public abstract partial class WebSocketListenerBase : IListener
 
         _state = (int)ListenerState.STOPPED;
 
-
         _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
+        _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
+
         _config = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
         _forwardedConfig = ConfigurationManager.Instance.Get<ForwardedHeadersOptions>();
-        _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
 
         _config.Validate();
 
         _lock = new SemaphoreSlim(1, 1);
+        _ = nameof(NetworkPoolInitializer);
     }
 
     /// <summary>

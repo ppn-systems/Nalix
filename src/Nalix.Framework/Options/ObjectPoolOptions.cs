@@ -76,22 +76,20 @@ public sealed partial class ObjectPoolOptions : ConfigurationLoader, IValidatabl
     public int DeepTrimIntervalMinutes { get; set; } = 30;
 
     /// <summary>
-    /// Gets or sets the base trim percentage used during normal maintenance cycles.
-    /// Lower values keep more cached objects, while higher values free memory more aggressively.
-    /// Default value is 25%.
+    /// Gets or sets the base percentage of capacity to keep during normal maintenance cycles.
+    /// Default value is 75% (trims 25%).
     /// </summary>
-    [IniComment("Base trim percentage for normal cycles (default ~25%)")]
-    [ValueRange(10, 40)]
-    public int BaseKeepPercentage { get; set; } = 25;
+    [IniComment("Base keep percentage for normal cycles (default ~75%)")]
+    [ValueRange(50, 90)]
+    public int BaseKeepPercentage { get; set; } = 75;
 
     /// <summary>
-    /// Gets or sets the aggressive trim percentage used during deep cleanup cycles.
-    /// This is typically applied when memory pressure is high or pools are oversized.
-    /// Default value is 60%.
+    /// Gets or sets the percentage of capacity to keep during deep/aggressive cleanup cycles.
+    /// Default value is 25% (trims 75%).
     /// </summary>
-    [IniComment("Deep trim percentage (aggressive cycle)")]
-    [ValueRange(45, 75)]
-    public int DeepTrimPercentage { get; set; } = 60;
+    [IniComment("Deep keep percentage (aggressive cycle, default ~25%)")]
+    [ValueRange(10, 45)]
+    public int DeepTrimPercentage { get; set; } = 25;
 
     /// <summary>
     /// Gets or sets the hit rate threshold that marks a pool as "hot".
