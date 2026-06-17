@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Backend.Middleware;
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
@@ -12,6 +13,7 @@ using Nalix.Logging.Sinks;
 using Nalix.Network.Connections;
 using Nalix.Network.Options;
 using Nalix.Observability;
+using Nalix.Runtime.Middleware.Standard;
 using Nalix.Runtime.Options;
 
 #pragma warning disable IDE0079 // Remove unnecessary suppression
@@ -153,7 +155,7 @@ internal class Startup
                 o.BufferSize = 8192;
 
                 // Number of parallel accept/listener workers.
-                o.MaxParallel = 8;
+                o.MaxParallel = 2;
 
                 // Accepted socket queue before the connection processing loop catches up.
                 o.ProcessChannelCapacity = 8_192;
@@ -307,11 +309,11 @@ internal class Startup
             })
             .ConfigureDispatchOptions(o =>
             {
-                //_ = o.WithMiddleware(new TimeoutMiddleware());
-                //_ = o.WithMiddleware(new PacketTagMiddleware());
-                //_ = o.WithMiddleware(new RateLimitMiddleware());
-                //_ = o.WithMiddleware(new PermissionMiddleware());
-                _ = o.WithDispatchLoopCount(8);
+                _ = o.WithMiddleware(new TimeoutMiddleware());
+                _ = o.WithMiddleware(new PacketTagMiddleware());
+                _ = o.WithMiddleware(new RateLimitMiddleware());
+                _ = o.WithMiddleware(new PermissionMiddleware());
+                _ = o.WithDispatchLoopCount(4);
                 _ = o.WithErrorHandling((ex, cmd) => logger.LogError(ex, "Dispatch error: {Cmd}", cmd));
             })
             .ListenTcp<DefaultProtocol>()

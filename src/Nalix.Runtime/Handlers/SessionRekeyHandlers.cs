@@ -25,8 +25,8 @@ public static class SessionRekeyHandlers
     /// <returns>A ValueTask representing the asynchronous operation.</returns>
     [PacketEncryption(true)]
     [ReservedOpcodePermitted]
-    [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode(ProtocolOpCode.SESSION_REKEY)]
+    [PacketPermission(PermissionLevel.ESTABLISHED)]
     public static async ValueTask HandleAsync(IPacketContext<SessionRekey> context)
     {
         ArgumentNullException.ThrowIfNull(context);

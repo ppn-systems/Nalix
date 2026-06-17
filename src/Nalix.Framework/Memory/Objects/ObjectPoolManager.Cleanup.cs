@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions.Diagnostics;
@@ -93,11 +92,11 @@ public sealed partial class ObjectPoolManager
     {
         long windowGets = Interlocked.Read(ref metrics.TotalGets) - Interlocked.Read(ref metrics.LastTrimGets);
         long windowHits = Interlocked.Read(ref metrics.CacheHits) - Interlocked.Read(ref metrics.LastTrimHits);
-        
+
         // If there are no gets in this window, assume hit rate is 100% to protect unused but cached objects.
         // We'll rely on idle/free ratio checks below to clear them out if they are truly idle.
-        double hitRate = windowGets > 0 
-            ? (double)windowHits / windowGets * 100.0 
+        double hitRate = windowGets > 0
+            ? (double)windowHits / windowGets * 100.0
             : 100.0;
 
         // Get current pool state (available count and capacity) directly without allocating a Dictionary
@@ -116,7 +115,7 @@ public sealed partial class ObjectPoolManager
             _config.MinimumKeepObjects,
             Math.Max(maxCap / 12, (int)(peakOutstanding * 1.5))
         );
-        
+
         if (available <= minKeep)
         {
             return 0; // already at minimum safe level

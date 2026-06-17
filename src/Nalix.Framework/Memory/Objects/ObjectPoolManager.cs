@@ -393,7 +393,7 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
         }
 
         bool retained = pool.ReturnFast(obj, id);
-        
+
         if (!retained && (_config.EnableMetrics || _config.EnableDiagnostics))
         {
             _ = Interlocked.Increment(ref metrics.TotalDropped);

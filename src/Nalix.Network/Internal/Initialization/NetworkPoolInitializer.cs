@@ -44,7 +44,7 @@ internal static class NetworkPoolInitializer
         _ = pool.SetMaxCapacity<PooledConnectEventContext>(capacity);
 
         // Configure object pools for accept contexts and socket async event args based on the provided options.
-        _ = pool.SetMaxCapacity<PooledAcceptContext>(socketOptions.MaxParallel * 2);
+        _ = pool.SetMaxCapacity<PooledAcceptContext>(socketOptions.MaxParallel * 3);
         _ = pool.Prealloc<PooledAcceptContext>(socketOptions.MaxParallel);
 
         // Preallocate objects in the pools to improve performance and reduce latency during runtime.
