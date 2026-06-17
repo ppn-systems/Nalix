@@ -28,7 +28,7 @@ public sealed partial class BufferPoolManager
         foreach ((int bufferSize, double allocation) in _bufferAllocations)
         {
             int capacity = Math.Max(1, (int)(_config.TotalBuffers * allocation));
-            _slabPool.CreateBucket(bufferSize, capacity, _config.ThreadCacheDepth);
+            _slabPool.CreateBucket(bufferSize, capacity, _config.ThreadCacheDepth, _config.ReturnValidation);
         }
 
         _isInitialized = true;

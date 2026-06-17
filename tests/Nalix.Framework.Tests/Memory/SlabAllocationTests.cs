@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Abstractions;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Internal.Buffers;
 using Nalix.Framework.Options;
@@ -178,7 +179,7 @@ public sealed class SlabAllocationTests
     [Fact]
     public void SlabBucket_DoubleReturn_DoesNotUnderflow()
     {
-        using SlabBucket bucket = new(256, 4);
+        using SlabBucket bucket = new(256, 4, returnValidation: ReturnValidation.SilentDrop);
         byte[] arr = bucket.Rent();
         
         // Initial state: 1 rented, 3 free, total 4

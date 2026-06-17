@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Nalix.Abstractions;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Memory.Internal.Buffers;
@@ -57,7 +58,9 @@ internal sealed class SlabPoolManager : IDisposable
     /// <param name="segmentSize">The segment size in bytes.</param>
     /// <param name="initialCapacity">Number of segments to preallocate.</param>
     /// <param name="cacheDepth">The thread-local cache depth.</param>
-    public void CreateBucket(int segmentSize, int initialCapacity, int cacheDepth = 8)
+    /// <param name="returnValidation">Rented-address validation mode for the bucket.</param>
+    public void CreateBucket(int segmentSize, int initialCapacity, int cacheDepth = 8,
+                             ReturnValidation returnValidation = ReturnValidation.Disabled)
     {
         lock (_lock)
         {
@@ -66,7 +69,7 @@ internal sealed class SlabPoolManager : IDisposable
                 return;
             }
 
-            SlabBucket bucket = new(segmentSize, initialCapacity, cacheDepth);
+            SlabBucket bucket = new(segmentSize, initialCapacity, cacheDepth, returnValidation);
             bucket.ResizeOccurred += (b, d) => this.ResizeOccurred?.Invoke(b, d);
             _buckets[segmentSize] = bucket;
             this.RebuildSortedKeys();
