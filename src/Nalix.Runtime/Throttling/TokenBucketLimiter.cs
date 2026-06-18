@@ -30,7 +30,6 @@ namespace Nalix.Runtime.Throttling;
 [DebuggerNonUserCode]
 public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReportable
 {
-
     #region Constants
 
     private const int CancellationCheckFrequency = 256;
@@ -103,7 +102,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         _taskManager = InstanceManager.Instance.GetExistingInstance<ITaskManager>();
         _adaptiveThrottlingEnabled = _options.AdaptiveThrottlingEnabled && _taskManager is not null;
 
-        int poolCapacity = Math.Clamp(_options.MaxTrackedEndpoints / 8, 1024, 65536);
+        int poolCapacity = Math.Clamp(_options.MaxTrackedEndpoints / 2, 1024, 65536);
         _ = s_pool.SetMaxCapacity<EndpointState>(poolCapacity);
         _ = s_pool.Prealloc<EndpointState>(Math.Min(64, _options.MaxTrackedEndpoints));
 
@@ -919,8 +918,6 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     }
 
     #endregion Shard Selection
-
-
 
     #region Initialization
 

@@ -116,6 +116,16 @@ internal sealed class TimingWheel : IActivatable
     private CancellationTokenSource? _cts;
 #pragma warning restore CA2213
 
+#pragma warning restore CA2213
+
+    private int _registeredCount;
+    private int _peakRegistered;
+    private long _totalRegistrations;
+    private long _totalUnregistrations;
+    private long _totalTimeouts;
+    private long _totalStaleSkips;
+    private long _maxTickDrift;
+
     #endregion Fields
 
     #region Nested types
@@ -450,6 +460,17 @@ internal sealed class TimingWheel : IActivatable
 
             connection.IsRegisteredInWheel = true;
 
+            int newCount = Interlocked.Increment(ref _registeredCount);
+            _ = Interlocked.Increment(ref _totalRegistrations);
+            int peak;
+            while (newCount > (peak = Volatile.Read(ref _peakRegistered)))
+            {
+                if (Interlocked.CompareExchange(ref _peakRegistered, newCount, peak) == peak)
+                {
+                    break;
+                }
+            }
+
             TimeoutTask? task = null;
             bool subscribed = false;
             bool queued = false;
@@ -526,6 +547,8 @@ internal sealed class TimingWheel : IActivatable
             if (connection.IsRegisteredInWheel)
             {
                 connection.IsRegisteredInWheel = false;
+                _ = Interlocked.Decrement(ref _registeredCount);
+                _ = Interlocked.Increment(ref _totalUnregistrations);
                 connection.TimeoutVersion++;
                 connection.ConnectionClosed -= this.OnConnectionClosed;
 
@@ -568,6 +591,20 @@ internal sealed class TimingWheel : IActivatable
         this.Deactivate();
     }
 
+    /// <summary>Gets diagnostic statistics about timing wheel.</summary>
+    public TimingWheelMetrics GetStatistics()
+    {
+        return new TimingWheelMetrics(
+            Volatile.Read(ref _registeredCount),
+            Volatile.Read(ref _peakRegistered),
+            Volatile.Read(ref _totalRegistrations),
+            Volatile.Read(ref _totalUnregistrations),
+            Volatile.Read(ref _totalTimeouts),
+            Volatile.Read(ref _totalStaleSkips),
+            Volatile.Read(ref _maxTickDrift)
+        );
+    }
+
     #endregion Public APIs
 
     #region Loop
@@ -590,6 +627,12 @@ internal sealed class TimingWheel : IActivatable
                 long currentMono = Clock.MonoTicksNow();
                 double elapsedMs = Clock.MonoTicksToMilliseconds(currentMono - startTime);
                 long expectedTick = (long)(elapsedMs / _tickMs);
+
+                long drift = expectedTick - lastProcessedTick;
+                if (drift > Volatile.Read(ref _maxTickDrift))
+                {
+                    Volatile.Write(ref _maxTickDrift, drift);
+                }
 
                 // Catch up if we've missed any ticks due to system load or loop delay.
                 while (lastProcessedTick < expectedTick)
@@ -624,6 +667,7 @@ internal sealed class TimingWheel : IActivatable
                         // If version mismatch or connection is marked as not in wheel, it's stale.
                         if (connection.TimeoutVersion != task.Version || !connection.IsRegisteredInWheel)
                         {
+                            _ = Interlocked.Increment(ref _totalStaleSkips);
                             connection.TimeoutTask = null;
 
                             _poolManager.Return(task);
@@ -672,6 +716,7 @@ internal sealed class TimingWheel : IActivatable
 
                             try
                             {
+                                _ = Interlocked.Increment(ref _totalTimeouts);
                                 connection.Disconnect();
                             }
                             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
