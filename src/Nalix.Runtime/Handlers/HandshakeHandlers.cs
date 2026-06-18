@@ -83,7 +83,7 @@ public static partial class HandshakeHandlers
             }
         }
 
-        if (!TryAcquireHandshakeSlot(connection, out object claimToken))
+        if (!TryAcquireHandshakeSlot(connection))
         {
             await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
             return;
@@ -126,7 +126,10 @@ public static partial class HandshakeHandlers
 
         Bytes32 masterSecret = HandshakeX25519.ComputeMasterSecret(sharedSecretEE, sharedSecretSE);
 
-        Bytes32 serverNonce = new(Csprng.GetBytes(Bytes32.Size));
+        Span<byte> nonceBytes = stackalloc byte[Bytes32.Size];
+        Csprng.Fill(nonceBytes);
+        Bytes32 serverNonce = new(nonceBytes);
+        MemorySecurity.ZeroMemory(nonceBytes);
 
         Bytes32 transcriptHash = HandshakeX25519.ComputeTranscriptHash(
             packet.PublicKey,
@@ -139,7 +142,7 @@ public static partial class HandshakeHandlers
         state.TranscriptHash = transcriptHash;
         state.SessionKey = HandshakeX25519.DeriveSessionKey(masterSecret, packet.Nonce, serverNonce, transcriptHash);
 
-        if (!TryPublishHandshakeState(connection, claimToken, state))
+        if (!TryPublishHandshakeState(connection, state))
         {
             await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
             return;
@@ -300,6 +303,7 @@ public static partial class HandshakeHandlers
     private static readonly Lock s_initLock = new();
     private static Bytes32 s_certificate = Bytes32.Zero;
     private static Bytes32 s_serverPublicKey = Bytes32.Zero;
+    private static readonly object s_handshakeClaimToken = new();
 
     /// <summary>
     /// Gets the server's public key (derived from the certificate).
@@ -392,17 +396,16 @@ public static partial class HandshakeHandlers
         state = null;
         return false;
     }
-    private static bool TryAcquireHandshakeSlot(IConnection connection, out object claimToken)
+    private static bool TryAcquireHandshakeSlot(IConnection connection)
     {
-        claimToken = new object();
         RuntimeConnectionState runtimeState = ConnectionExtensions.GetRuntimeState(connection);
-        return Interlocked.CompareExchange(ref runtimeState.HandshakeState, claimToken, null) == null;
+        return Interlocked.CompareExchange(ref runtimeState.HandshakeState, s_handshakeClaimToken, null) == null;
     }
 
-    private static bool TryPublishHandshakeState(IConnection connection, object claimToken, HandshakeContext state)
+    private static bool TryPublishHandshakeState(IConnection connection, HandshakeContext state)
     {
         RuntimeConnectionState runtimeState = ConnectionExtensions.GetRuntimeState(connection);
-        return Interlocked.CompareExchange(ref runtimeState.HandshakeState, state, claimToken) == claimToken;
+        return Interlocked.CompareExchange(ref runtimeState.HandshakeState, state, s_handshakeClaimToken) == s_handshakeClaimToken;
     }
 
     #endregion Private Methods

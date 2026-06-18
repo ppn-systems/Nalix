@@ -65,14 +65,16 @@ internal static partial class OsCsprng
     {
         s_f = OperatingSystem.IsWindows()
             ? W
-            : System.OperatingSystem.IsLinux()
-                ? L
-                : System.OperatingSystem.IsMacOS() ||
-                 System.OperatingSystem.IsIOS() ||
-                 System.OperatingSystem.IsTvOS() ||
-                 System.OperatingSystem.IsWatchOS()
-                ? A
-                : D;
+            : OperatingSystem.IsBrowser()
+                ? B
+                : OperatingSystem.IsLinux()
+                    ? L
+                    : OperatingSystem.IsMacOS() ||
+                      OperatingSystem.IsIOS() ||
+                      OperatingSystem.IsTvOS() ||
+                      OperatingSystem.IsWatchOS()
+                        ? A
+                        : D;
     }
 
     #endregion Constructor
@@ -296,6 +298,10 @@ internal static partial class OsCsprng
             return handle;
         }
     }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [System.Runtime.Versioning.SupportedOSPlatform("browser")]
+    private static void B(Span<byte> b) => System.Security.Cryptography.RandomNumberGenerator.Fill(b);
 
     #endregion Private
 }

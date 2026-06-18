@@ -123,7 +123,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
     /// <summary>
     /// Indicates whether the server is currently under attack based on the elevated Proof-of-Work difficulty.
     /// </summary>
-    public bool IsUnderAttack => this.CurrentDifficulty > _config.AdaptivePowMinDifficulty;
+    public bool IsUnderAttack => this.CurrentDifficulty >= _config.AdaptivePowMinDifficulty;
 
     /// <summary>Gets the recurring name used for cleanup operations.</summary>
     public static readonly string RecurringName;
