@@ -294,9 +294,10 @@ internal static class AsyncCallback
             wrapper.LocalOwner = null;
         }
 
+        wrapper.SetThreadPoolInvoker(invoker);
         wrapper.Initialize(callback, sender, args, releasePendingPacketOnCompletion);
 
-        bool queued = QUEUE_SAFE(invoker, wrapper, args, preferLocal: isHigh);
+        bool queued = QUEUE_SAFE(wrapper, args, preferLocal: isHigh);
 
         if (!queued)
         {
@@ -319,11 +320,13 @@ internal static class AsyncCallback
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static bool QUEUE_SAFE(Action<object> invoker, PooledConnectEventContext wrapper, IConnectionEventArgs args, bool preferLocal)
+    private static bool QUEUE_SAFE(PooledConnectEventContext wrapper, IConnectionEventArgs args, bool preferLocal)
     {
         try
         {
-            return ThreadPool.UnsafeQueueUserWorkItem(invoker, wrapper, preferLocal);
+            // PooledConnectEventContext implements IThreadPoolWorkItem, so the runtime
+            // calls Execute() directly without allocating a QueueUserWorkItemCallbackDefaultContext wrapper.
+            return ThreadPool.UnsafeQueueUserWorkItem(wrapper, preferLocal);
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {

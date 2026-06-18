@@ -38,21 +38,28 @@ public sealed class SessionFactory : ISessionFactory
         // Rent a new object map for the session snapshot attributes
         ObjectMap<AttributeKey, object> attributes = ObjectMap<AttributeKey, object>.Rent();
 
-        // Copy existing connection attributes
+        // Copy existing connection attributes, skipping live pooled objects
         foreach (KeyValuePair<AttributeKey, object> item in connection.Attributes)
         {
+            if (item.Key == ConnectionAttributes.SequenceState ||
+                item.Key == ConnectionAttributes.RuntimeState ||
+                item.Key == ConnectionAttributes.OwnerHub)
+            {
+                continue;
+            }
             attributes[item.Key] = item.Value;
         }
 
         // Capture current transport sequence numbers to allow seamless resume
-        attributes[ConnectionAttributes.TcpSendSequence] = connection.TCP.SendSequence;
-        attributes[ConnectionAttributes.TcpReceiveSequence] = connection.TCP.ReceiveSequence;
-
-        if (connection.IsUdpCreated)
+        ConnectionSequenceState snapshotSeq = new()
         {
-            attributes[ConnectionAttributes.UdpSendSequence] = connection.UDP!.SendSequence;
-            attributes[ConnectionAttributes.UdpReceiveSequence] = connection.UDP!.ReceiveSequence;
-        }
+            TcpSendSequence = connection.TCP.SendSequence.Current(),
+            TcpReceiveSequence = connection.TCP.ReceiveSequence.Current(),
+            UdpSendSequence = connection.IsUdpCreated ? connection.UDP!.SendSequence.Current() : 0,
+            UdpReceiveSequence = connection.IsUdpCreated ? connection.UDP!.ReceiveSequence.Current() : 0
+        };
+
+        attributes[ConnectionAttributes.SequenceState] = snapshotSeq;
 
         SessionSnapshot snapshot = new()
         {

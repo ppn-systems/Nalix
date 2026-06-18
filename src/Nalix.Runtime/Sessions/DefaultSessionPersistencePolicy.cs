@@ -4,6 +4,7 @@
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Environment.Configuration;
+using Nalix.Runtime.Extensions;
 using Nalix.Runtime.Options;
 
 namespace Nalix.Runtime.Sessions;
@@ -27,7 +28,7 @@ public sealed class DefaultSessionPersistencePolicy : ISessionPersistencePolicy
         System.ArgumentNullException.ThrowIfNull(connection);
 
         // Policy 1: Only persist if the handshake was established
-        if (!connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeEstablished, out object? established) || established is not true)
+        if (!connection.GetRuntimeState().HandshakeEstablished)
         {
             return false;
         }

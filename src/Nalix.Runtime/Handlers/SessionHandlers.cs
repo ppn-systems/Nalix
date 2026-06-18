@@ -58,7 +58,7 @@ public static partial class SessionHandlers
             return;
         }
 
-        if (connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeEstablished))
+        if (connection.GetRuntimeState().HandshakeEstablished)
         {
             await HandleFailureAsync(context, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
             return;
@@ -129,29 +129,26 @@ public static partial class SessionHandlers
 
         // Token was already consumed atomically by ConsumeAsync — no separate RemoveAsync needed.
         RestoreSessionSnapshot(connection, session);
-        connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
+        connection.GetRuntimeState().HandshakeEstablished = true;
+
+        ConnectionSequenceState seqState = connection.GetSequenceState();
 
         // Restore sequence number
-        if (connection.Attributes.TryGetValue(ConnectionAttributes.TcpSendSequence, out object? ts) && ts is uint tcpSend)
+        if (session.Snapshot.Attributes?.TryGetValue(ConnectionAttributes.SequenceState, out object? seqObj) == true && seqObj is ConnectionSequenceState snapshotSeq)
         {
-            connection.TCP.SendSequence.ResumeFrom(tcpSend);
-        }
+            seqState.TcpSendSequence = snapshotSeq.TcpSendSequence;
+            connection.TCP.SendSequence.ResumeFrom(snapshotSeq.TcpSendSequence);
 
-        if (connection.Attributes.TryGetValue(ConnectionAttributes.TcpReceiveSequence, out object? tr) && tr is uint tcpRecv)
-        {
-            connection.TCP.ReceiveSequence.ResumeFrom(tcpRecv);
-        }
+            seqState.TcpReceiveSequence = snapshotSeq.TcpReceiveSequence;
+            connection.TCP.ReceiveSequence.ResumeFrom(snapshotSeq.TcpReceiveSequence);
 
-        if (connection.IsUdpCreated)
-        {
-            if (connection.Attributes.TryGetValue(ConnectionAttributes.UdpSendSequence, out object? us) && us is uint udpSend)
+            if (connection.IsUdpCreated)
             {
-                connection.UDP!.SendSequence.ResumeFrom(udpSend);
-            }
+                seqState.UdpSendSequence = snapshotSeq.UdpSendSequence;
+                connection.UDP!.SendSequence.ResumeFrom(snapshotSeq.UdpSendSequence);
 
-            if (connection.Attributes.TryGetValue(ConnectionAttributes.UdpReceiveSequence, out object? ur) && ur is uint udpRecv)
-            {
-                connection.UDP!.ReceiveSequence.ResumeFrom(udpRecv);
+                seqState.UdpReceiveSequence = snapshotSeq.UdpReceiveSequence;
+                connection.UDP!.ReceiveSequence.ResumeFrom(snapshotSeq.UdpReceiveSequence);
             }
         }
 
@@ -199,7 +196,7 @@ public static partial class SessionHandlers
             }
         }
 
-        connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
+        connection.GetRuntimeState().HandshakeEstablished = true;
     }
 
     /// <summary>

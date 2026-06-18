@@ -57,7 +57,7 @@ public sealed class ObjectMap<TKey, TValue> : IObjectMap<TKey, TValue>
     /// <summary>
     /// The underlying thread-safe dictionary.
     /// </summary>
-    private readonly ConcurrentDictionary<TKey, TValue> _dict = new();
+    private readonly ConcurrentDictionary<TKey, TValue> _dict = new(1, 8);
 
     #endregion Fields
 

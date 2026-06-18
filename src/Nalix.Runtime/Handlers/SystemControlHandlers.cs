@@ -15,6 +15,7 @@ using Nalix.Abstractions.Security;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Codec.Security;
+using Nalix.Runtime.Extensions;
 using Nalix.Runtime.Internal.RateLimiting;
 
 namespace Nalix.Runtime.Handlers;
@@ -123,6 +124,7 @@ public static partial class SystemControlHandlers
         using PacketScope<ProofOfWorkChallenge> lease = PacketFactory<ProofOfWorkChallenge>.Acquire();
         ProofOfWorkChallenge challenge = lease.Value;
         challenge.Initialize(nonce, diff, ts, mac);
+        challenge.SequenceId = context.Packet.SequenceId;
 
         await context.Sender.SendAsync(challenge).ConfigureAwait(false);
     }
@@ -179,7 +181,9 @@ public static partial class SystemControlHandlers
             return;
         }
 
-        if (!DirectiveGuard.TryAcquire(connection, ConnectionAttributes.InboundControlLogLastSentAtMs))
+        if (!DirectiveGuard.TryAcquire(connection,
+            state => state.InboundControlLogLastSentAtMs,
+            (state, val) => state.InboundControlLogLastSentAtMs = val))
         {
             return;
         }
@@ -201,7 +205,9 @@ public static partial class SystemControlHandlers
             return;
         }
 
-        if (!DirectiveGuard.TryAcquire(connection, ConnectionAttributes.InboundControlLogLastSentAtMs))
+        if (!DirectiveGuard.TryAcquire(connection,
+            state => state.InboundControlLogLastSentAtMs,
+            (state, val) => state.InboundControlLogLastSentAtMs = val))
         {
             return;
         }
@@ -221,7 +227,9 @@ public static partial class SystemControlHandlers
             return;
         }
 
-        if (!DirectiveGuard.TryAcquire(connection, ConnectionAttributes.InboundControlLogLastSentAtMs))
+        if (!DirectiveGuard.TryAcquire(connection,
+            state => state.InboundControlLogLastSentAtMs,
+            (state, val) => state.InboundControlLogLastSentAtMs = val))
         {
             return;
         }
@@ -243,7 +251,7 @@ public static partial class SystemControlHandlers
         }
 
         // Key exchange must happen BEFORE handshake.
-        if (context.Connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeEstablished))
+        if (context.Connection.GetRuntimeState().HandshakeEstablished)
         {
             context.Connection.Disconnect("Key exchange requested after handshake was established (State Violation).");
             return;

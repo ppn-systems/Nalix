@@ -9,6 +9,7 @@ using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
+using Nalix.Runtime.Extensions;
 
 namespace Nalix.Runtime.Handlers;
 
@@ -46,7 +47,7 @@ public static class SessionRekeyHandlers
             return;
         }
 
-        if (!connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeEstablished))
+        if (!connection.GetRuntimeState().HandshakeEstablished)
         {
             connection.Disconnect("Cannot perform Rekey before Handshake is established.");
             return;

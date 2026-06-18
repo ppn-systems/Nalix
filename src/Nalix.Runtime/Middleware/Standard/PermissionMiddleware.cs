@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Middleware;
-using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
@@ -60,9 +59,9 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
 
         context.Connection.IncrementErrorCount();
 
-        if (!DirectiveGuard.TryAcquire(
-            context.Connection,
-            ConnectionAttributes.InboundDirectiveUnauthorizedLastSentAtMs))
+        if (!DirectiveGuard.TryAcquire(context.Connection,
+            state => state.InboundDirectiveUnauthorizedLastSentAtMs,
+            (state, val) => state.InboundDirectiveUnauthorizedLastSentAtMs = val))
         {
             return;
         }

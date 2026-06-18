@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Middleware;
-using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Codec.Pooling;
@@ -93,9 +92,9 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
 
         if (!decision.Allowed)
         {
-            if (!DirectiveGuard.TryAcquire(
-                context.Connection,
-                ConnectionAttributes.InboundDirectiveRateLimitedLastSentAtMs))
+            if (!DirectiveGuard.TryAcquire(context.Connection,
+                state => state.InboundDirectiveRateLimitedLastSentAtMs,
+                (state, val) => state.InboundDirectiveRateLimitedLastSentAtMs = val))
             {
                 return;
             }

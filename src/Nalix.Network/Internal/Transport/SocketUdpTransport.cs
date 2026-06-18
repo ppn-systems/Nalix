@@ -128,14 +128,16 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
         transport.Initialize(ref epTarget);
         connection.SetUdpTransport(transport);
 
-        if (connection.Attributes.TryGetValue(ConnectionAttributes.UdpSendSequence, out object? us) && us is uint udpSend)
+        if (connection.Attributes.TryGetValue(ConnectionAttributes.SequenceState, out object? stateObj) && stateObj is ConnectionSequenceState state)
         {
-            connection.UDP!.SendSequence.ResumeFrom(udpSend);
-        }
-
-        if (connection.Attributes.TryGetValue(ConnectionAttributes.UdpReceiveSequence, out object? ur) && ur is uint udpRecv)
-        {
-            connection.UDP!.ReceiveSequence.ResumeFrom(udpRecv);
+            if (state.UdpSendSequence > 0)
+            {
+                connection.UDP!.SendSequence.ResumeFrom(state.UdpSendSequence);
+            }
+            if (state.UdpReceiveSequence > 0)
+            {
+                connection.UDP!.ReceiveSequence.ResumeFrom(state.UdpReceiveSequence);
+            }
         }
     }
 

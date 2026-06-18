@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Middleware;
-using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Codec.Pooling;
@@ -81,9 +80,9 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested && !context.CancellationToken.IsCancellationRequested)
         {
-            if (!DirectiveGuard.TryAcquire(
-                context.Connection,
-                ConnectionAttributes.InboundDirectiveTimeoutLastSentAtMs))
+            if (DirectiveGuard.TryAcquire(context.Connection,
+                state => state.InboundDirectiveTimeoutLastSentAtMs,
+                (state, val) => state.InboundDirectiveTimeoutLastSentAtMs = val))
             {
                 return;
             }
