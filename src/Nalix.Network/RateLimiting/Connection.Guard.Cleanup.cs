@@ -72,6 +72,22 @@ public sealed partial class ConnectionGuard
                 }
             );
         }
+
+        _ewmaJob = taskManager.ScheduleRecurring(
+            name: TaskNaming.Recurring.CleanupJobId(RecurringName + ".ewma", this.GetHashCode()),
+            interval: TimeSpan.FromSeconds(1),
+            work: _ =>
+            {
+                this.UPDATE_EWMA_SHARED();
+                return ValueTask.CompletedTask;
+            },
+            options: new RecurringOptions
+            {
+                NonReentrant = true,
+                Tag = TaskNaming.Tags.Service,
+                ExecutionTimeout = TimeSpan.FromSeconds(1)
+            }
+        );
     }
 
     #endregion Initialization

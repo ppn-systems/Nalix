@@ -3,6 +3,7 @@
 
 using Backend.Middleware;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Options;
@@ -28,7 +29,7 @@ internal class Startup
 
     public static ILogger CreateBootstrapLogger() => new NLogixBuilder()
         .AddTarget(new BatchConsoleLogTarget(t => t.EnableColors = false))
-        .SetMinimumLevel(LogLevel.Information)
+        .SetMinimumLevel(LogLevel.Warning)
         .Build();
 
     public static NetworkApplication Configure(ILogger logger)
@@ -41,8 +42,8 @@ internal class Startup
             .UseTimeSync()
             .UseSessions()
             .UseObservability()
-            .UseSystemControl()
             .UseSecureConnections()
+            .UseSystemControl()
             .UseLogger(logger)
             .UseConnectionHub(hub)
             .UseBufferPoolManager(bufferPool)
@@ -90,6 +91,8 @@ internal class Startup
                 o.InitialSlabTrackingCapacity = 512;
 
                 o.SuspiciousThresholdSeconds = 30;
+
+                o.ReturnValidation = ReturnValidation.Disabled;
             })
             .Configure<ObjectPoolOptions>(o =>
             {
@@ -268,10 +271,11 @@ internal class Startup
                 o.InactivityThreshold = TimeSpan.FromSeconds(15);
                 o.ConnectionRateWindow = TimeSpan.FromSeconds(5);
 
-                // Vietnam timezone daily reset offset.
-                o.DailyResetTimeOffset = TimeSpan.FromHours(7);
-
                 o.EnableAdaptiveMode = true;
+                o.AdaptivePowStartRate = 10;
+                o.AdaptivePowMaxRate = 100;
+                o.AdaptivePowMinDifficulty = 12;
+                o.AdaptivePowMaxDifficulty = 24;
             })
             .Configure<ConnectionBanStoreOptions>(o =>
             {
@@ -314,7 +318,7 @@ internal class Startup
                 _ = o.WithMiddleware(new RateLimitMiddleware());
                 _ = o.WithMiddleware(new PermissionMiddleware());
                 _ = o.WithDispatchLoopCount(4);
-                _ = o.WithErrorHandling((ex, cmd) => logger.LogError(ex, "Dispatch error: {Cmd}", cmd));
+                _ = o.WithErrorHandling((ex, cmd) => logger?.LogError(ex, "Dispatch error: {Cmd}", cmd));
             })
             .ListenTcp<DefaultProtocol>()
                 .OnPort(ListenPort)
