@@ -21,8 +21,12 @@ using Nalix.Environment.Time;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Internal.Connections;
+using Nalix.Network.Internal.Time;
 using Nalix.Network.Internal.Transport;
 using Nalix.Network.Options;
+
+#pragma warning disable IDE0079 // Remove unnecessary suppression
+#pragma warning disable CA2213 // Disposable fields should be disposed
 
 namespace Nalix.Network.Connections;
 
@@ -42,6 +46,7 @@ public sealed partial class ConnectionHub : IConnectionHub
 
     private readonly int _shardCount;
 
+    private readonly TimingWheel _timing;
     private readonly ConnectionRegistry _registry;
     private readonly ConnectionHubOptions _options;
 
@@ -121,6 +126,7 @@ public sealed partial class ConnectionHub : IConnectionHub
         _shardCount = Math.Max(1, _options.ShardCount);
         _registry = new ConnectionRegistry(_shardCount, 31);
 
+        _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
         _throughputTask = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
                                                   .ScheduleRecurring(TaskNaming.Recurring
                                                   .CleanupJobId(RecurringName, this.GetHashCode()), TimeSpan.FromSeconds(1), this.CalculateThroughputAsync);
@@ -338,6 +344,17 @@ public sealed partial class ConnectionHub : IConnectionHub
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Fairness Map Collisions   : {callbackStats.FairnessCollisions:N0}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Fairness Map Evictions    : {callbackStats.FairnessEvictions:N0}");
 
+        Internal.Time.TimingWheelMetrics wheelStats = _timing.GetStatistics();
+        _ = sb.AppendLine();
+        _ = sb.AppendLine("TimingWheel Idle Timeout Stats:");
+        _ = sb.AppendLine("----------------------------------------");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Registered Connections    : {wheelStats.RegisteredCount:N0} (Peak: {wheelStats.PeakRegistered:N0})");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Timeouts            : {wheelStats.TotalTimeouts:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Registrations       : {wheelStats.TotalRegistrations:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Unregistrations     : {wheelStats.TotalUnregistrations:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Stale Skips         : {wheelStats.TotalStaleSkips:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Tick Drift            : {wheelStats.MaxTickDrift:N0} ticks");
+
         return sb.ToString();
     }
 
@@ -368,6 +385,17 @@ public sealed partial class ConnectionHub : IConnectionHub
         writer.WriteNumber("SlowCallbacks", callbackStats.SlowCallbacks);
         writer.WriteNumber("FairnessCollisions", callbackStats.FairnessCollisions);
         writer.WriteNumber("FairnessEvictions", callbackStats.FairnessEvictions);
+        writer.WriteEndObject();
+
+        Internal.Time.TimingWheelMetrics wheelStats = _timing.GetStatistics();
+        writer.WriteStartObject("TimingWheel");
+        writer.WriteNumber("RegisteredCount", wheelStats.RegisteredCount);
+        writer.WriteNumber("PeakRegistered", wheelStats.PeakRegistered);
+        writer.WriteNumber("TotalRegistrations", wheelStats.TotalRegistrations);
+        writer.WriteNumber("TotalUnregistrations", wheelStats.TotalUnregistrations);
+        writer.WriteNumber("TotalTimeouts", wheelStats.TotalTimeouts);
+        writer.WriteNumber("TotalStaleSkips", wheelStats.TotalStaleSkips);
+        writer.WriteNumber("MaxTickDrift", wheelStats.MaxTickDrift);
         writer.WriteEndObject();
 
         writer.WriteEndObject();

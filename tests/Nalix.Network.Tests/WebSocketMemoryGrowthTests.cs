@@ -149,7 +149,8 @@ public class WebSocketMemoryGrowthTests : IDisposable
         socket.EnqueueReceive(data2, endOfMessage: true);
 
         var wsConn = new WebSocketConnection(socket, new StubOpCodeExtractor(), new IPEndPoint(IPAddress.Loopback, 0));
-        var transport = new WebSocketTransport(wsConn);
+        var transport = new WebSocketTransport();
+        transport.Initialize(wsConn, socket);
 
         // Act
         socket.EnqueueReceive(data1, endOfMessage: false);
@@ -181,7 +182,8 @@ public class WebSocketMemoryGrowthTests : IDisposable
         socket.EnqueueReceive(data2, endOfMessage: true);
 
         var wsConn = new WebSocketConnection(socket, new StubOpCodeExtractor(), new IPEndPoint(IPAddress.Loopback, 0));
-        var transport = new WebSocketTransport(wsConn);
+        var transport = new WebSocketTransport();
+        transport.Initialize(wsConn, socket);
 
         // Act
         socket.EnqueueReceive(data1, endOfMessage: false);
@@ -208,7 +210,8 @@ public class WebSocketMemoryGrowthTests : IDisposable
         // We will make the second receive throw a WebSocketException by leaving queue empty
         // so it fails inside HANDLE_LARGE_MESSAGE_ASYNC.
         var wsConn = new WebSocketConnection(socket, new StubOpCodeExtractor(), new IPEndPoint(IPAddress.Loopback, 0));
-        var transport = new WebSocketTransport(wsConn);
+        var transport = new WebSocketTransport();
+        transport.Initialize(wsConn, socket);
 
         // Act
         socket.EnqueueReceive(data1, endOfMessage: false);
@@ -228,7 +231,8 @@ public class WebSocketMemoryGrowthTests : IDisposable
         // Arrange
         var socket = new StubWebSocket();
         var wsConn = new WebSocketConnection(socket, new StubOpCodeExtractor(), new IPEndPoint(IPAddress.Loopback, 0));
-        var transport = new WebSocketTransport(wsConn);
+        var transport = new WebSocketTransport();
+        transport.Initialize(wsConn, socket);
 
         // Act & Assert
         // 1. Same reference check (verifies boxing is eliminated)

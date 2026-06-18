@@ -15,8 +15,13 @@ using Nalix.Network.Connections;
 using Nalix.Runtime.Sessions;
 using Xunit;
 
+#if DEBUG
+using Nalix.Runtime.Extensions;
+#endif
+
 namespace Nalix.Network.Tests;
 
+#if DEBUG
 [SuppressMessage("Reliability", "CA2007:Consider calling ConfigureAwait on the awaited task", Justification = "xUnit tests intentionally follow the test synchronization context.")]
 public sealed class ConnectionHubSessionTests
 {
@@ -63,7 +68,7 @@ public sealed class ConnectionHubSessionTests
 
         connection1.Secret = new Abstractions.Primitives.Bytes32(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
         connection1.Attributes[AttributeKey.FromName("test")] = "value";
-        connection1.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
+        connection1.GetRuntimeState().HandshakeEstablished = true;
         hub.RegisterConnection(connection1);
 
         ISessionFactory factory = new SessionFactory();
@@ -98,7 +103,7 @@ public sealed class ConnectionHubSessionTests
 
         _ = connection2.Secret.Should().Be(expectedSecret);
         _ = connection2.Attributes[AttributeKey.FromName("test")].Should().Be("value");
-        _ = connection2.Attributes[ConnectionAttributes.HandshakeEstablished].Should().Be(true);
+        _ = connection2.GetRuntimeState().HandshakeEstablished.Should().Be(true);
     }
 
     [Fact]
@@ -111,7 +116,7 @@ public sealed class ConnectionHubSessionTests
         using ConnectedSocketScope scope1 = await ConnectedSocketScope.CreateAsync();
         using Connection connection1 = new(scope1.ServerSocket, s_testOpCodeExtractor);
 
-        connection1.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
+        connection1.GetRuntimeState().HandshakeEstablished = true;
         hub.RegisterConnection(connection1);
 
         // 1. Create session (Initial state)
@@ -217,11 +222,6 @@ public sealed class ConnectionHubSessionTests
         ObjectMap<AttributeKey, object> attrs = ObjectMap<AttributeKey, object>.Rent();
         foreach (KeyValuePair<AttributeKey, object> attr in connection.Attributes)
         {
-            if (attr.Key == ConnectionAttributes.HandshakeState)
-            {
-                continue;
-            }
-
             attrs[attr.Key] = attr.Value;
         }
 
@@ -254,7 +254,7 @@ public sealed class ConnectionHubSessionTests
             }
         }
 
-        connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
+        connection.GetRuntimeState().HandshakeEstablished = true;
         connection.Attributes[AttributeKey.FromName("nalix.session.token")] = snapshot.SessionToken;
     }
 
@@ -330,3 +330,4 @@ public sealed class ConnectionHubSessionTests
         }
     }
 }
+#endif

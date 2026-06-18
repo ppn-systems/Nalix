@@ -28,9 +28,10 @@ internal sealed class ConnectionBacking : IPoolable
     public LocalPool<PooledConnectEventContext> ContextPool;
 
     public SocketConnection? Socket;
+    public SlidingWindow? UdpReplayWindow;
     public SocketTcpTransport? TcpTransport;
     public SocketUdpTransport? UdpTransport;
-    public SlidingWindow? UdpReplayWindow;
+    public WebSocketTransport? WsTransport;
 
     public long BytesSent;
     public long BytesReceived;
@@ -46,8 +47,8 @@ internal sealed class ConnectionBacking : IPoolable
     public ConcurrentDictionary<ushort, object>? RateLimitCache;
 
     public EventHandler<IConnectionEventArgs>? ConnectionClosed;
-    public EventHandler<IConnectionEventArgs>? MessageProcessing;
     public EventHandler<IConnectionEventArgs>? MessageProcessed;
+    public EventHandler<IConnectionEventArgs>? MessageProcessing;
 
     public ConnectionBacking()
     {
@@ -66,6 +67,7 @@ internal sealed class ConnectionBacking : IPoolable
         TcpTransport = null;
         UdpTransport = null;
         UdpReplayWindow = null;
+        WsTransport = null;
 
         BytesSent = 0;
         BytesReceived = 0;

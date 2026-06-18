@@ -49,19 +49,58 @@ internal static class Curve25519
 
         // Exactly one heap allocation: the 32-byte result array.
         byte[] result = GC.AllocateUninitializedArray<byte>(32);
-        ScalarMult(scalar[..32], point[..32], result);
+        ScalarMultiplication(scalar, point, result);
+
+        return result;
+    }
+
+    /// <summary>
+    /// X25519 scalar multiplication (scalar × point) per RFC 7748 §5.
+    /// Writes the 32-byte result into <paramref name="output"/>.
+    /// Zero heap allocation when caller provides a stack or pre-allocated buffer.
+    /// </summary>
+    /// <param name="scalar">The 32-byte scalar (at least 32 bytes; only the first 32 are used).</param>
+    /// <param name="point">The 32-byte point (at least 32 bytes; only the first 32 are used).</param>
+    /// <param name="output">Destination span (must be at least 32 bytes).</param>
+    /// <exception cref="System.ArgumentException">Thrown when inputs are too short or output is smaller than 32 bytes.</exception>
+    /// <exception cref="System.InvalidOperationException">Thrown when the input point is a low-order point (all-zero result).</exception>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
+    public static void ScalarMultiplication(
+        System.ReadOnlySpan<byte> scalar,
+        System.ReadOnlySpan<byte> point,
+        System.Span<byte> output)
+    {
+        if (scalar.Length < 32)
+        {
+            throw new System.ArgumentException("Length of scalar must be at least 32", nameof(scalar));
+        }
+
+        if (point.Length < 32)
+        {
+            throw new System.ArgumentException("Length of point must be at least 32", nameof(point));
+        }
+
+        if (output.Length < 32)
+        {
+            throw new System.ArgumentException("Output must be at least 32 bytes", nameof(output));
+        }
+
+        ScalarMult(scalar[..32], point[..32], output);
 
         // Constant-time low-order-point check.
         byte v = 0;
         for (int i = 0; i < 32; i++)
         {
-            v |= result[i];
+            v |= output[i];
         }
 
         // If all bytes are zero the input was a low-order point.
-        return (int)(((uint)(v ^ 0) - 1) >> 31) == 1
-            ? throw new System.InvalidOperationException("Bad input point: low order point")
-            : result;
+        if ((int)(((uint)(v ^ 0) - 1) >> 31) == 1)
+        {
+            output[..32].Clear();
+            throw new System.InvalidOperationException("Bad input point: low order point");
+        }
     }
 
     #endregion APIs

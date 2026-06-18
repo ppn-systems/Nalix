@@ -150,7 +150,6 @@ public sealed partial class BufferPoolManager : IBufferPoolManager, IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] Rent(int minimumLength = 256)
     {
-
         /*
          * [Fast Path 1: Direct Bucket Match]
          * We first try to rent directly from a slab bucket that exactly matches 

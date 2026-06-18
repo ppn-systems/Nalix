@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Nalix.Abstractions;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Memory.Internal.Buffers;
@@ -31,7 +32,8 @@ internal sealed class SlabBucket : IDisposable
     private readonly int _cacheDepth;
     private readonly Lock _slabLock;
     private readonly SlabBucketRing _freeRing;
-    private readonly ConcurrentDictionary<IntPtr, byte> _rentedAddresses = new(concurrencyLevel: 128, capacity: 1024);
+    private readonly ReturnValidation _returnValidation;
+    private readonly ConcurrentDictionary<IntPtr, byte>? _rentedAddresses;
 
     [ThreadStatic]
     [SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
@@ -85,7 +87,8 @@ internal sealed class SlabBucket : IDisposable
     /// <summary>
     /// Initializes a new <see cref="SlabBucket"/> for standalone arrays of the given size.
     /// </summary>
-    public SlabBucket(int segmentSize, int initialCapacity, int cacheDepth = 8)
+    public SlabBucket(int segmentSize, int initialCapacity, int cacheDepth = 8,
+                      ReturnValidation returnValidation = ReturnValidation.Disabled)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(segmentSize);
         ArgumentOutOfRangeException.ThrowIfNegative(cacheDepth);
@@ -93,6 +96,7 @@ internal sealed class SlabBucket : IDisposable
         _segmentSize = segmentSize;
         _initialCapacity = initialCapacity;
         _cacheDepth = cacheDepth;
+        _returnValidation = returnValidation;
         _slabLock = new();
 
         _bucketId = Interlocked.Increment(ref s_nextBucketId) - 1;
@@ -102,6 +106,11 @@ internal sealed class SlabBucket : IDisposable
             : (int)System.Numerics.BitOperations.RoundUpToPowerOf2((uint)initialCapacity);
 
         _freeRing = new SlabBucketRing(ringCapacity);
+
+        // Only allocate the rented-address dictionary when validation is enabled.
+        _rentedAddresses = returnValidation != ReturnValidation.Disabled
+            ? new ConcurrentDictionary<IntPtr, byte>(concurrencyLevel: 128, capacity: 1024)
+            : null;
 
         if (initialCapacity > 0)
         {
@@ -126,15 +135,7 @@ internal sealed class SlabBucket : IDisposable
             byte[]? cached = cache.Cache[idx];
             cache.Cache[idx] = null;
 
-            IntPtr addr;
-            unsafe
-            {
-                fixed (byte* p = cached)
-                {
-                    addr = (IntPtr)p;
-                }
-            }
-            _ = _rentedAddresses.TryAdd(addr, 0);
+            this.TrackRentedAddress(cached);
 
             _ = Interlocked.Increment(ref _rentedCount);
             cache.LocalHits++;
@@ -153,15 +154,7 @@ internal sealed class SlabBucket : IDisposable
 
         if (_freeRing.TryDequeue(out array))
         {
-            IntPtr addr;
-            unsafe
-            {
-                fixed (byte* p = array)
-                {
-                    addr = (IntPtr)p;
-                }
-            }
-            _ = _rentedAddresses.TryAdd(addr, 0);
+            this.TrackRentedAddress(array);
 
             _ = Interlocked.Increment(ref _rentedCount);
             cache.LocalHits++;
@@ -245,11 +238,9 @@ internal sealed class SlabBucket : IDisposable
             return;
         }
 
-        if (!_rentedAddresses.TryRemove(addr, out _))
+        // Rented-address validation (only when tracking is enabled).
+        if (!this.TryUntrackRentedAddress(addr))
         {
-#if DEBUG
-            Debug.WriteLine($"[FW.Memory] Double-return detected in SlabBucket of size {_segmentSize}!");
-#endif
             return;
         }
 
@@ -393,6 +384,63 @@ internal sealed class SlabBucket : IDisposable
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void THROW_ALLOCATION_FAILED() => throw new InvalidOperationException("SlabBucket: failed to allocate standalone buffer.");
+
+    /// <summary>
+    /// Tracks a buffer address as rented when validation is enabled.
+    /// No-op when <see cref="ReturnValidation.Disabled"/>.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void TrackRentedAddress(byte[]? array)
+    {
+        if (_returnValidation == ReturnValidation.Disabled || array is null)
+        {
+            return;
+        }
+
+        IntPtr addr;
+        unsafe
+        {
+            fixed (byte* p = array)
+            {
+                addr = (IntPtr)p;
+            }
+        }
+        _ = _rentedAddresses!.TryAdd(addr, 0);
+    }
+
+    /// <summary>
+    /// Attempts to untrack a rented buffer address. Returns true if the return is valid.
+    /// </summary>
+    /// <returns>
+    /// <c>true</c> if validation passed (or validation is disabled);
+    /// <c>false</c> if the return is invalid (double-return detected).
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool TryUntrackRentedAddress(IntPtr addr)
+    {
+        if (_returnValidation == ReturnValidation.Disabled)
+        {
+            return true;
+        }
+
+        // Validation enabled: the dictionary must exist.
+        Debug.Assert(_rentedAddresses is not null);
+
+        if (!_rentedAddresses.TryRemove(addr, out _))
+        {
+            // Address was not tracked as rented — this is a double-return or unowned buffer.
+            if (_returnValidation == ReturnValidation.ThrowOnError)
+            {
+                throw new InvalidOperationException(
+                    $"SlabBucket (size={_segmentSize}): double-return or untracked return detected for address 0x{addr:X}.");
+            }
+
+            // SilentDrop: silently drop.
+            return false;
+        }
+
+        return true;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private ThreadLocalCache GetThreadLocalCache()

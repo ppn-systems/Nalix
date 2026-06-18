@@ -4,6 +4,7 @@
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Framework.Injection;
@@ -23,7 +24,7 @@ namespace Nalix.Network.Internal.Pooling;
 /// </remarks>
 [SkipLocalsInit]
 [EditorBrowsable(EditorBrowsableState.Never)]
-internal sealed class PooledConnectEventContext : IPoolable
+internal sealed class PooledConnectEventContext : IPoolable, IThreadPoolWorkItem
 {
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
@@ -52,7 +53,14 @@ internal sealed class PooledConnectEventContext : IPoolable
     /// For local pooling! If set, calling Dispose() will invoke this owner
     /// instead of returning to the global ObjectPoolManager.
     /// </summary>
-    internal object? LocalOwner { get; set; }
+    public object? LocalOwner { get; set; }
+
+    /// <summary>
+    /// Stored invoker delegate for <see cref="IThreadPoolWorkItem"/> dispatch.
+    /// Set by <c>AsyncCallback.QUEUE</c> before queueing. Cleared in
+    /// <see cref="ResetForPool"/> so the context is safe to reuse.
+    /// </summary>
+    private Action<object>? _threadPoolInvoker;
 
     /// <summary>
     /// Initializes the pooled wrapper with the callback, sender, and arguments
@@ -78,6 +86,38 @@ internal sealed class PooledConnectEventContext : IPoolable
         ReleasePendingPacketOnCompletion = releasePendingPacketOnCompletion;
     }
 
+    /// <summary>
+    /// Stores the invoker delegate that the ThreadPool will call via
+    /// <see cref="IThreadPoolWorkItem.Execute"/>.
+    /// </summary>
+    /// <param name="invoker">
+    /// One of <c>AsyncCallback.s_invokeProcess</c>, <c>s_invokePost</c>, or <c>s_invokeHigh</c>.
+    /// </param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void SetThreadPoolInvoker(Action<object> invoker) => _threadPoolInvoker = invoker;
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Called by the ThreadPool when this context is queued via
+    /// <see cref="ThreadPool.UnsafeQueueUserWorkItem(IThreadPoolWorkItem, bool)"/>.
+    /// The stored invoker (one of the static <c>AsyncCallback</c> delegates) performs
+    /// pending-counter decrement, endpoint-slot release, callback invocation,
+    /// exception handling, and final <see cref="Dispose"/>.
+    /// </remarks>
+    void IThreadPoolWorkItem.Execute()
+    {
+        Action<object>? invoker = _threadPoolInvoker;
+
+        if (invoker is null)
+        {
+            // Defensive: should never happen in normal flow.
+            this.Dispose();
+            return;
+        }
+
+        invoker(this);
+    }
+
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ResetForPool()
@@ -86,6 +126,7 @@ internal sealed class PooledConnectEventContext : IPoolable
         Sender = null;
         Callback = null;
         ReleasePendingPacketOnCompletion = false;
+        _threadPoolInvoker = null;
         this.LocalOwner = null;
     }
 

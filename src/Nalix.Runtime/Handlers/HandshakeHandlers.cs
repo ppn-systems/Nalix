@@ -25,6 +25,8 @@ using Nalix.Environment.IO;
 using Nalix.Environment.Random;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Runtime.Extensions;
+using Nalix.Runtime.Internal;
 using Nalix.Runtime.Security;
 
 namespace Nalix.Runtime.Handlers;
@@ -40,8 +42,8 @@ public static partial class HandshakeHandlers
     /// <inheritdoc/>
     [ReservedOpcodePermitted]
     [PacketEncryption(false)]
-    [PacketOpcode(ProtocolOpCode.SESSION_INIT)]
     [PacketPermission(PermissionLevel.NONE)]
+    [PacketOpcode(ProtocolOpCode.SESSION_INIT)]
     public static async ValueTask HandleSessionInitAsync(IPacketContext<SessionInit> context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -55,7 +57,7 @@ public static partial class HandshakeHandlers
         SessionInit packet = context.Packet;
         IConnection connection = context.Connection;
 
-        if (connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeEstablished))
+        if (connection.GetRuntimeState().HandshakeEstablished)
         {
             await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
             return;
@@ -81,7 +83,7 @@ public static partial class HandshakeHandlers
             }
         }
 
-        if (!TryAcquireHandshakeSlot(connection, out object claimToken))
+        if (!TryAcquireHandshakeSlot(connection))
         {
             await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
             return;
@@ -124,7 +126,10 @@ public static partial class HandshakeHandlers
 
         Bytes32 masterSecret = HandshakeX25519.ComputeMasterSecret(sharedSecretEE, sharedSecretSE);
 
-        Bytes32 serverNonce = new(Csprng.GetBytes(Bytes32.Size));
+        Span<byte> nonceBytes = stackalloc byte[Bytes32.Size];
+        Csprng.Fill(nonceBytes);
+        Bytes32 serverNonce = new(nonceBytes);
+        MemorySecurity.ZeroMemory(nonceBytes);
 
         Bytes32 transcriptHash = HandshakeX25519.ComputeTranscriptHash(
             packet.PublicKey,
@@ -137,7 +142,7 @@ public static partial class HandshakeHandlers
         state.TranscriptHash = transcriptHash;
         state.SessionKey = HandshakeX25519.DeriveSessionKey(masterSecret, packet.Nonce, serverNonce, transcriptHash);
 
-        if (!TryPublishHandshakeState(connection, claimToken, state))
+        if (!TryPublishHandshakeState(connection, state))
         {
             await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
             return;
@@ -170,7 +175,7 @@ public static partial class HandshakeHandlers
         SessionProof packet = context.Packet;
         IConnection connection = context.Connection;
 
-        if (connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeEstablished))
+        if (connection.GetRuntimeState().HandshakeEstablished)
         {
             await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
             return;
@@ -211,12 +216,16 @@ public static partial class HandshakeHandlers
             connection.Level = PermissionLevel.ESTABLISHED;
         }
 
-        connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
-        if (connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? removedState) && removedState is HandshakeContext contextState)
+        RuntimeConnectionState runtimeState = connection.GetRuntimeState();
+
+        runtimeState.HandshakeEstablished = true;
+
+        if (runtimeState.HandshakeState is HandshakeContext contextState)
         {
             s_pool.Return(contextState);
         }
-        _ = connection.Attributes.Remove(ConnectionAttributes.HandshakeState);
+
+        runtimeState.HandshakeState = null;
 
         if (s_sessionService != null)
         {
@@ -294,6 +303,7 @@ public static partial class HandshakeHandlers
     private static readonly Lock s_initLock = new();
     private static Bytes32 s_certificate = Bytes32.Zero;
     private static Bytes32 s_serverPublicKey = Bytes32.Zero;
+    private static readonly object s_handshakeClaimToken = new();
 
     /// <summary>
     /// Gets the server's public key (derived from the certificate).
@@ -351,12 +361,14 @@ public static partial class HandshakeHandlers
 
     private static async ValueTask RejectHandshakeAsync(IConnection connection, IPacketSender sender, ProtocolReason reason)
     {
-        if (connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? removedState) && removedState is HandshakeContext contextState)
+        RuntimeConnectionState runtimeState = connection.GetRuntimeState();
+
+        if (runtimeState.HandshakeState is HandshakeContext contextState)
         {
             s_pool.Return(contextState);
         }
 
-        _ = connection.Attributes.Remove(ConnectionAttributes.HandshakeState);
+        runtimeState.HandshakeState = null;
 
         try
         {
@@ -373,8 +385,9 @@ public static partial class HandshakeHandlers
 
     private static bool TryGetState(IConnection connection, [NotNullWhen(true)] out HandshakeContext? state)
     {
-        if (connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? boxed) &&
-            boxed is HandshakeContext typed)
+        RuntimeConnectionState runtimeState = connection.GetRuntimeState();
+
+        if (runtimeState.HandshakeState is HandshakeContext typed)
         {
             state = typed;
             return true;
@@ -383,33 +396,16 @@ public static partial class HandshakeHandlers
         state = null;
         return false;
     }
-
-    private static bool TryAcquireHandshakeSlot(IConnection connection, out object claimToken)
+    private static bool TryAcquireHandshakeSlot(IConnection connection)
     {
-        claimToken = new object();
-        try
-        {
-            connection.Attributes.Add(ConnectionAttributes.HandshakeState, claimToken);
-        }
-        catch (ArgumentException)
-        {
-            return false;
-        }
-
-        return connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? current) &&
-               ReferenceEquals(current, claimToken);
+        RuntimeConnectionState runtimeState = ConnectionExtensions.GetRuntimeState(connection);
+        return Interlocked.CompareExchange(ref runtimeState.HandshakeState, s_handshakeClaimToken, null) == null;
     }
 
-    private static bool TryPublishHandshakeState(IConnection connection, object claimToken, HandshakeContext state)
+    private static bool TryPublishHandshakeState(IConnection connection, HandshakeContext state)
     {
-        if (!connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? current) ||
-            !ReferenceEquals(current, claimToken))
-        {
-            return false;
-        }
-
-        connection.Attributes[ConnectionAttributes.HandshakeState] = state;
-        return true;
+        RuntimeConnectionState runtimeState = ConnectionExtensions.GetRuntimeState(connection);
+        return Interlocked.CompareExchange(ref runtimeState.HandshakeState, state, s_handshakeClaimToken) == s_handshakeClaimToken;
     }
 
     #endregion Private Methods

@@ -54,6 +54,7 @@ public sealed class PacketDispatchChannel
     private int _dispatchLoops;
     private long _idleWorkers;
     private long _deserializationErrors;
+    private long _totalDropped;
 
     private long _wakeSignals;
     private long _wakeReadSignals;
@@ -270,6 +271,7 @@ public sealed class PacketDispatchChannel
             // If the channel is full or the connection is inactive, we must
             // release the reference we just took to avoid a memory leak.
             lease.Dispose();
+            _ = Interlocked.Increment(ref _totalDropped);
             return;
         }
 
@@ -293,7 +295,7 @@ public sealed class PacketDispatchChannel
     public string GenerateReport()
     {
         StringBuilder sb = new(2048);
-        PipelineMetrics metrics = this.Options.Metrics;
+        _ = this.Options.Metrics;
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] PacketDispatchChannel:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Running              : {(Volatile.Read(ref _running) == 1 ? "Yes" : "No")}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DispatchLoops        : {_dispatchLoops}");
@@ -305,6 +307,7 @@ public sealed class PacketDispatchChannel
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine("Channel Statistics:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Packets        : {_dispatch.TotalPackets}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Peak Packets         : {_dispatch.PeakPackets}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Connections    : {_dispatch.TotalConnections}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Ready Connections    : {_dispatch.ReadyConnections}");
         _ = sb.AppendLine();
@@ -319,40 +322,27 @@ public sealed class PacketDispatchChannel
         }
 
         _ = sb.AppendLine();
-        _ = sb.AppendLine("Top Connections by Pending Packets:");
-        _ = sb.AppendLine("EndPoint              | Pending");
-        _ = sb.AppendLine("----------------------|----------");
-
-        List<KeyValuePair<IConnection, int>> ranked = [.. _dispatch.PendingPerConnection];
-        ranked.Sort(static (a, b) => b.Value.CompareTo(a.Value));
-
-        int top = Math.Min(10, ranked.Count);
-        for (int i = 0; i < top; i++)
-        {
-            KeyValuePair<IConnection, int> kv = ranked[i];
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{kv.Key.NetworkEndpoint,-22}| {kv.Value,6}");
-        }
-
-        _ = sb.AppendLine();
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine("Pipeline Statistics:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Active Executions    : {this.Options.Metrics.ActiveExecutions}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Executions     : {this.Options.Metrics.TotalExecutions}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Dropped        : {Volatile.Read(ref _totalDropped) + _dispatch.TotalEvicted}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Errors         : {this.Options.Metrics.TotalErrors}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Deserialization Err : {Volatile.Read(ref _deserializationErrors)}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Time (ms)    : {this.Options.Metrics.AverageExecutionTime.TotalMilliseconds:F4}");
-
-        ReadOnlySpan<PerMiddlewareMetrics> mwMetrics = this.Options.MiddlewareMetrics;
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Time (ms)        : {TimeSpan.FromTicks(this.Options.Metrics.MaxExecutionTicks).TotalMilliseconds:F4}");
+        _ = this.Options.MiddlewareMetrics;
         if (this.Options.MiddlewareMetrics.Length > 0)
         {
             _ = sb.AppendLine();
             _ = sb.AppendLine("Middleware Performance:");
-            _ = sb.AppendLine("Middleware                           | Executions | Errors | Avg Time (ms)");
-            _ = sb.AppendLine("-------------------------------------|------------|--------|--------------");
+            _ = sb.AppendLine("Middleware                           | Executions | Errors | Avg Time (ms) | Max Time (ms)");
+            _ = sb.AppendLine("-------------------------------------|------------|--------|---------------|--------------");
             foreach (ref readonly PerMiddlewareMetrics m in this.Options.MiddlewareMetrics)
             {
                 double avgMs = m.TotalExecutions == 0 ? 0 : TimeSpan.FromTicks(m.TotalExecutionTicks / m.TotalExecutions).TotalMilliseconds;
-                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{m.MiddlewareType.Name,-36} | {m.TotalExecutions,-10} | {m.TotalErrors,-6} | {avgMs:F4}");
+                double maxMs = TimeSpan.FromTicks(m.MaxExecutionTicks).TotalMilliseconds;
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{m.MiddlewareType.Name,-36} | {m.TotalExecutions,-10} | {m.TotalErrors,-6} | {avgMs,-13:F4} | {maxMs:F4}");
             }
         }
 
@@ -370,6 +360,7 @@ public sealed class PacketDispatchChannel
         writer.WriteBoolean("Running", Volatile.Read(ref _running) == 1);
         writer.WriteNumber("DispatchLoops", _dispatchLoops);
         writer.WriteNumber("TotalPackets", _dispatch.TotalPackets);
+        writer.WriteNumber("PeakPackets", _dispatch.PeakPackets);
         writer.WriteNumber("TotalConnections", _dispatch.TotalConnections);
         writer.WriteNumber("ReadyConnections", _dispatch.ReadyConnections);
         writer.WriteNumber("WakeSignals", Interlocked.Read(ref _wakeSignals));
@@ -385,27 +376,14 @@ public sealed class PacketDispatchChannel
         }
         writer.WriteEndObject();
 
-        List<KeyValuePair<IConnection, int>> ranked = [.. _dispatch.PendingPerConnection];
-        ranked.Sort(static (a, b) => b.Value.CompareTo(a.Value));
-
-        int top = Math.Min(10, ranked.Count);
-        writer.WriteStartArray("PendingByConnection");
-        for (int i = 0; i < top; i++)
-        {
-            KeyValuePair<IConnection, int> kv = ranked[i];
-            writer.WriteStartObject();
-            writer.WriteString("EndPoint", kv.Key.NetworkEndpoint.Address);
-            writer.WriteNumber("Pending", kv.Value);
-            writer.WriteEndObject();
-        }
-        writer.WriteEndArray();
-
         writer.WriteStartObject("PipelineMetrics");
         writer.WriteNumber("ActiveExecutions", this.Options.Metrics.ActiveExecutions);
         writer.WriteNumber("TotalExecutions", this.Options.Metrics.TotalExecutions);
+        writer.WriteNumber("TotalDropped", Volatile.Read(ref _totalDropped) + _dispatch.TotalEvicted);
         writer.WriteNumber("TotalErrors", this.Options.Metrics.TotalErrors);
         writer.WriteNumber("DeserializationErrors", Volatile.Read(ref _deserializationErrors));
         writer.WriteNumber("AverageTimeMs", this.Options.Metrics.AverageExecutionTime.TotalMilliseconds);
+        writer.WriteNumber("MaxTimeMs", TimeSpan.FromTicks(this.Options.Metrics.MaxExecutionTicks).TotalMilliseconds);
         writer.WriteEndObject();
 
         if (this.Options.MiddlewareMetrics.Length > 0)
@@ -419,6 +397,7 @@ public sealed class PacketDispatchChannel
                 writer.WriteNumber("TotalErrors", m.TotalErrors);
                 double avgMs = m.TotalExecutions == 0 ? 0 : TimeSpan.FromTicks(m.TotalExecutionTicks / m.TotalExecutions).TotalMilliseconds;
                 writer.WriteNumber("AverageTimeMs", avgMs);
+                writer.WriteNumber("MaxTimeMs", TimeSpan.FromTicks(m.MaxExecutionTicks).TotalMilliseconds);
                 writer.WriteEndObject();
             }
             writer.WriteEndArray();
@@ -687,13 +666,16 @@ public sealed class PacketDispatchChannel
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            connection.IncrementErrorCount();
+            if (!connection.IsDisposed)
+            {
+                connection.IncrementErrorCount();
 
-            connection.ThrottledDiagnosticError(
-                DiagnosticsEvents.Internal.Error,
-                s_keyExecute,
-                "RT.PacketDispatchChannel:ExecutePacketAsync",
-                $"handler-error ep={connection.NetworkEndpoint}");
+                connection.ThrottledDiagnosticError(
+                    DiagnosticsEvents.Internal.Error,
+                    s_keyExecute,
+                    "RT.PacketDispatchChannel:ExecutePacketAsync",
+                    $"handler-error ep={connection.NetworkEndpoint}");
+            }
         }
 
         // 5. Cleanup for synchronous errors/cancellation

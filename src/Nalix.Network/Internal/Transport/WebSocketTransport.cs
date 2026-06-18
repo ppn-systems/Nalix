@@ -8,6 +8,7 @@ using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
@@ -19,6 +20,8 @@ using Nalix.Environment.Sequencing;
 using Nalix.Network.Connections;
 using Nalix.Network.Options;
 
+#pragma warning disable CA2213 // Disposable fields should be disposed
+
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
 
 namespace Nalix.Network.Internal.Transport;
@@ -29,30 +32,62 @@ namespace Nalix.Network.Internal.Transport;
 [SkipLocalsInit]
 [DebuggerNonUserCode]
 [EditorBrowsable(EditorBrowsableState.Never)]
-internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
+internal sealed class WebSocketTransport : IConnection.ITransport, IPoolable, IDisposable
 {
     #region Fields
 
-    private readonly WebSocketConnection _owner;
-    private readonly NetworkWebSocketOptions _options;
+    private WebSocketConnection _owner = null!;
+    private NetworkWebSocketOptions _options = null!;
 
     private int _disposed;
     private int _receiveStarted;
     private Task? _receiveLoopTask;
 
-    private readonly ISequenceCounter _sendSequence;
-    private readonly ISequenceCounter _receiveSequence;
+    private ISequenceCounter _sendSequence = null!;
+    private ISequenceCounter _receiveSequence = null!;
+
+    private WebSocket _webSocket = null!;
+    private SemaphoreSlim _sendLock = null!;
+
+    internal WebSocket WebSocket => _webSocket;
+    internal SemaphoreSlim SendLock => _sendLock;
 
     #endregion Fields
 
     #region Constructor
 
-    public WebSocketTransport(WebSocketConnection owner)
+    public WebSocketTransport()
+    {
+    }
+
+    public void Initialize(WebSocketConnection owner, WebSocket webSocket)
     {
         _sendSequence = new SequenceCounter();
         _receiveSequence = new SequenceCounter();
         _owner = owner ?? throw new ArgumentNullException(nameof(owner));
+        _webSocket = webSocket ?? throw new ArgumentNullException(nameof(webSocket));
         _options = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
+        _sendLock = new SemaphoreSlim(1, 1);
+        _disposed = 0;
+        _receiveStarted = 0;
+        _receiveLoopTask = null;
+    }
+
+    public void ResetForPool()
+    {
+        _owner = null!;
+        _webSocket = null!;
+        _options = null!;
+        _sendSequence = null!;
+        _receiveSequence = null!;
+        _disposed = 0;
+        _receiveStarted = 0;
+        _receiveLoopTask = null;
+
+        try { _sendLock?.Dispose(); }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
+
+        _sendLock = null!;
     }
 
     #endregion Constructor
@@ -91,21 +126,21 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
     [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
     public async ValueTask SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
     {
-        if (_owner.IsDisposed || _owner.WebSocket.State != WebSocketState.Open)
+        if (_owner.IsDisposed || _webSocket.State != WebSocketState.Open)
         {
             Throw.WebSocketClosed();
         }
 
         // WebSockets handle framing natively, so we just send the message as binary.
         // A SemaphoreSlim is used because WebSocket.SendAsync doesn't support concurrent calls.
-        await _owner.SendLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        await _sendLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await _owner.WebSocket.SendAsync(message, WebSocketMessageType.Binary, true, cancellationToken).ConfigureAwait(false);
+            await _webSocket.SendAsync(message, WebSocketMessageType.Binary, true, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
-            _ = _owner.SendLock.Release();
+            _ = _sendLock.Release();
         }
 
         _owner.AddBytesSent(message.Length);
@@ -155,9 +190,9 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
 
         try
         {
-            while (!cancellationToken.IsCancellationRequested && _owner.WebSocket.State == WebSocketState.Open && !_owner.IsDisposed)
+            while (!cancellationToken.IsCancellationRequested && _webSocket.State == WebSocketState.Open && !_owner.IsDisposed)
             {
-                WebSocketReceiveResult result = await _owner.WebSocket.ReceiveAsync(new ArraySegment<byte>(buffer, 0, length), cancellationToken).ConfigureAwait(false);
+                WebSocketReceiveResult result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer, 0, length), cancellationToken).ConfigureAwait(false);
 
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
@@ -243,7 +278,7 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
             WebSocketReceiveResult result;
             do
             {
-                result = await _owner.WebSocket.ReceiveAsync(new ArraySegment<byte>(buffer, 0, length), cancellationToken).ConfigureAwait(false);
+                result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer, 0, length), cancellationToken).ConfigureAwait(false);
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
                     return;
@@ -349,13 +384,20 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
         {
             this.OBSERVE_RECEIVE_LOOP_SHUTDOWN(receiveLoopTask);
         }
+
+        try
+        {
+            if (_webSocket is not null)
+            {
+                if (_webSocket.State == WebSocketState.Open)
+                {
+                    _webSocket.Abort();
+                }
+                _webSocket.Dispose();
+            }
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
     }
 
     #endregion Dispose
 }
-
-
-
-
-
-

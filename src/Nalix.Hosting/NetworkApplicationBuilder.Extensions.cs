@@ -6,6 +6,7 @@ using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Abstractions.Security;
 using Nalix.Framework.Injection;
 using Nalix.Hosting.Internal;
+using Nalix.Network.RateLimiting;
 using Nalix.Runtime.Handlers;
 using Nalix.Runtime.Security;
 using Nalix.Runtime.Sessions;
@@ -19,6 +20,36 @@ namespace Nalix.Hosting;
 /// </summary>
 public static class NetworkApplicationBuilderExtensions
 {
+    /// <summary>
+    /// Enables system-level control packet handling (DISCONNECT, CIPHER_UPDATE, TIME_SYNC, etc.).
+    /// </summary>
+    /// <param name="builder">The application builder.</param>
+    /// <returns>The current builder instance.</returns>
+    public static INetworkApplicationBuilder UseSystemControl(this INetworkApplicationBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        _ = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
+
+        _ = builder.MapHandlers(typeof(SystemControlHandlers));
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Enables time synchronization packet handling, allowing clients to synchronize
+    /// </summary>
+    /// <param name="builder">The application builder.</param>
+    /// <returns>The current builder instance.</returns>
+    public static INetworkApplicationBuilder UseTimeSync(this INetworkApplicationBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        _ = builder.MapHandlers(typeof(SystemTimeSyncHandlers));
+
+        return builder;
+    }
+
     /// <summary>
     /// Enables the X25519 handshake and key exchange protocol, and initializes
     /// the server identity certificate.
@@ -39,6 +70,8 @@ public static class NetworkApplicationBuilderExtensions
                 InstanceManager.Instance.GetOrCreateInstance<FileCertificateStore>()
             );
         }
+
+        _ = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
 
         _ = builder.MapHandlers(typeof(HandshakeHandlers));
         _ = builder.MapHandlers(typeof(ProofOfWorkHandlers));
@@ -115,34 +148,6 @@ public static class NetworkApplicationBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(sessionFactory);
         InstanceManager.Instance.Register<ISessionFactory>(sessionFactory);
-        return builder;
-    }
-
-    /// <summary>
-    /// Enables system-level control packet handling (DISCONNECT, CIPHER_UPDATE, TIME_SYNC, etc.).
-    /// </summary>
-    /// <param name="builder">The application builder.</param>
-    /// <returns>The current builder instance.</returns>
-    public static INetworkApplicationBuilder UseSystemControl(this INetworkApplicationBuilder builder)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        _ = builder.MapHandlers(typeof(SystemControlHandlers));
-
-        return builder;
-    }
-
-    /// <summary>
-    /// Enables time synchronization packet handling, allowing clients to synchronize
-    /// </summary>
-    /// <param name="builder">The application builder.</param>
-    /// <returns>The current builder instance.</returns>
-    public static INetworkApplicationBuilder UseTimeSync(this INetworkApplicationBuilder builder)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        _ = builder.MapHandlers(typeof(SystemTimeSyncHandlers));
-
         return builder;
     }
 }

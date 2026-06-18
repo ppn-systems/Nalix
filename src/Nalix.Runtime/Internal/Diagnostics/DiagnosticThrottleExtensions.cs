@@ -123,7 +123,12 @@ internal static class DiagnosticThrottleExtensions
     {
         suppressed = 0;
 
-        IObjectMap<AttributeKey, object>? attrs = connection?.Attributes;
+        if (connection is null || connection.IsDisposed)
+        {
+            return false;
+        }
+
+        IObjectMap<AttributeKey, object>? attrs = connection.Attributes;
         if (attrs is null)
         {
             return true;

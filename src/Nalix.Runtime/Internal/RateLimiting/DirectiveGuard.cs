@@ -2,11 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
+using Nalix.Runtime.Extensions;
 using Nalix.Runtime.Options;
 
 namespace Nalix.Runtime.Internal.RateLimiting;
@@ -25,14 +23,15 @@ internal static class DirectiveGuard
     /// Attempts to acquire permission to send a directive for the provided attribute key.
     /// </summary>
     /// <param name="connection">Target connection.</param>
-    /// <param name="lastSentAtAttributeKey">Attribute key that stores the last send timestamp.</param>
+    /// <param name="stateSelector">A function to select the timestamp field from RuntimeConnectionState.</param>
+    /// <param name="stateUpdater">An action to update the timestamp field in RuntimeConnectionState.</param>
     /// <param name="cooldownMs">
     /// Optional cooldown window in milliseconds. If null, <see cref="DirectiveGuardOptions.DefaultCooldownMs"/> is used.
     /// </param>
     /// <returns>
     /// <c>true</c> if sending is allowed now; otherwise <c>false</c> when suppressed by cooldown.
     /// </returns>
-    public static bool TryAcquire(IConnection connection, AttributeKey lastSentAtAttributeKey, int? cooldownMs = null)
+    public static bool TryAcquire(IConnection connection, Func<RuntimeConnectionState, long> stateSelector, Action<RuntimeConnectionState, long> stateUpdater, int? cooldownMs = null)
     {
         ArgumentNullException.ThrowIfNull(connection);
 
@@ -42,74 +41,21 @@ internal static class DirectiveGuard
             return true;
         }
 
-        IObjectMap<AttributeKey, object> attributes = connection.Attributes;
-        GuardState state = GET_OR_CREATE_STATE(attributes);
+        RuntimeConnectionState state = connection.GetRuntimeState();
 
-        bool lockTaken = false;
-
-        try
+        lock (state.DirectiveGuardLock)
         {
-            state.SpinLock.Enter(ref lockTaken);
             long nowMs = System.Environment.TickCount64;
+            long lastSent = stateSelector(state);
 
-            if (!attributes.TryGetValue(lastSentAtAttributeKey, out object? boxed))
+            if (lastSent == 0 || unchecked(nowMs - lastSent) >= resolvedCooldownMs)
             {
-                StrongBox<long> box = new(nowMs);
-                attributes[lastSentAtAttributeKey] = box;
+                stateUpdater(state, nowMs);
                 return true;
             }
-            else
-            {
-                StrongBox<long> box = (StrongBox<long>)boxed;
-                if (unchecked(nowMs - box.Value) < resolvedCooldownMs)
-                {
-                    return false;
-                }
 
-                box.Value = nowMs;
-                return true;
-            }
+            return false;
         }
-        finally
-        {
-            if (lockTaken)
-            {
-                state.SpinLock.Exit();
-            }
-        }
-    }
-
-    private sealed class GuardState
-    {
-        public SpinLock SpinLock = new(false);
-    }
-
-    private static GuardState GET_OR_CREATE_STATE(IObjectMap<AttributeKey, object> attributes)
-    {
-        if (attributes.TryGetValue(ConnectionAttributes.InboundDirectiveGuardLock, out object? existing) &&
-            existing is GuardState state)
-        {
-            return state;
-        }
-
-        GuardState created = new();
-        try
-        {
-            attributes.Add(ConnectionAttributes.InboundDirectiveGuardLock, created);
-        }
-        catch (ArgumentException)
-        {
-            // Ignore race condition and fallback to TryGetValue below
-        }
-
-        if (attributes.TryGetValue(ConnectionAttributes.InboundDirectiveGuardLock, out existing) &&
-            existing is GuardState resolved)
-        {
-            return resolved;
-        }
-
-        attributes[ConnectionAttributes.InboundDirectiveGuardLock] = created;
-        return created;
     }
 }
 

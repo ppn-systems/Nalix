@@ -44,6 +44,7 @@ public static class X25519
     public static X25519KeyPair GenerateKeyPair()
     {
         Span<byte> priv = stackalloc byte[KeySize];
+        Span<byte> pubBuf = stackalloc byte[KeySize];
         try
         {
             Csprng.Fill(priv);
@@ -53,16 +54,19 @@ public static class X25519
             priv[31] &= 127;
             priv[31] |= 64;
 
+            Curve25519.ScalarMultiplication(priv, Curve25519.Basepoint, pubBuf);
+
             X25519KeyPair key = new()
             {
                 PrivateKey = new Bytes32(priv),
-                PublicKey = new Bytes32(Curve25519.ScalarMultiplication(priv, Curve25519.Basepoint))
+                PublicKey = new Bytes32(pubBuf)
             };
             return key;
         }
         finally
         {
             MemorySecurity.ZeroMemory(priv);
+            MemorySecurity.ZeroMemory(pubBuf);
         }
     }
 
@@ -74,12 +78,22 @@ public static class X25519
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static X25519KeyPair GenerateKeyFromPrivateKey(Bytes32 privateKey)
     {
-        X25519KeyPair key = new()
+        Span<byte> pubBuf = stackalloc byte[KeySize];
+        try
         {
-            PrivateKey = privateKey,
-            PublicKey = new Bytes32(Curve25519.ScalarMultiplication(privateKey.AsSpan(), Curve25519.Basepoint))
-        };
-        return key;
+            Curve25519.ScalarMultiplication(privateKey.AsSpan(), Curve25519.Basepoint, pubBuf);
+
+            X25519KeyPair key = new()
+            {
+                PrivateKey = privateKey,
+                PublicKey = new Bytes32(pubBuf)
+            };
+            return key;
+        }
+        finally
+        {
+            MemorySecurity.ZeroMemory(pubBuf);
+        }
     }
 
     /// <summary>
@@ -90,5 +104,17 @@ public static class X25519
     /// <param name="otherPublicKey">The remote 32-byte public key.</param>
     /// <returns>A 32-byte shared secret that can be used for session key derivation.</returns>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static Bytes32 Agreement(Bytes32 myPrivateKey, Bytes32 otherPublicKey) => new(Curve25519.ScalarMultiplication(myPrivateKey.AsSpan(), otherPublicKey.AsSpan()));
+    public static Bytes32 Agreement(Bytes32 myPrivateKey, Bytes32 otherPublicKey)
+    {
+        Span<byte> secretBuf = stackalloc byte[KeySize];
+        try
+        {
+            Curve25519.ScalarMultiplication(myPrivateKey.AsSpan(), otherPublicKey.AsSpan(), secretBuf);
+            return new Bytes32(secretBuf);
+        }
+        finally
+        {
+            MemorySecurity.ZeroMemory(secretBuf);
+        }
+    }
 }

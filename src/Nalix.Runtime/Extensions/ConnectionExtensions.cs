@@ -11,6 +11,7 @@ using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Runtime.Dispatching;
+using Nalix.Runtime.Internal;
 
 namespace Nalix.Runtime.Extensions;
 
@@ -19,6 +20,36 @@ namespace Nalix.Runtime.Extensions;
 /// </summary>
 public static partial class ConnectionExtensions
 {
+    /// <summary>
+    /// Gets or creates the runtime specific state for the connection.
+    /// </summary>
+    internal static RuntimeConnectionState GetRuntimeState(this IConnection connection)
+    {
+        if (connection.Attributes.TryGetValue(ConnectionAttributes.RuntimeState, out object? obj) && obj is RuntimeConnectionState state)
+        {
+            return state;
+        }
+
+        RuntimeConnectionState newState = new();
+        connection.Attributes[ConnectionAttributes.RuntimeState] = newState;
+        return newState;
+    }
+
+    /// <summary>
+    /// Gets or creates the sequence state for the connection.
+    /// </summary>
+    internal static ConnectionSequenceState GetSequenceState(this IConnection connection)
+    {
+        if (connection.Attributes.TryGetValue(ConnectionAttributes.SequenceState, out object? obj) && obj is ConnectionSequenceState state)
+        {
+            return state;
+        }
+
+        ConnectionSequenceState newState = new();
+        connection.Attributes[ConnectionAttributes.SequenceState] = newState;
+        return newState;
+    }
+
     /// <summary>
     /// Gets the connection hub that owns this connection from its attributes.
     /// </summary>

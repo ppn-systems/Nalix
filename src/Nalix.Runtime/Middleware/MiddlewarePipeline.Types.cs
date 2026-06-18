@@ -28,6 +28,11 @@ public readonly struct PipelineMetrics
     public long TotalExecutionTicks { get; }
 
     /// <summary>
+    /// Gets the highest execution time of a single packet in ticks.
+    /// </summary>
+    public long MaxExecutionTicks { get; }
+
+    /// <summary>
     /// Gets the total number of non-fatal errors swallowed by the pipeline.
     /// </summary>
     public long TotalErrors { get; }
@@ -37,11 +42,12 @@ public readonly struct PipelineMetrics
     /// </summary>
     public TimeSpan AverageExecutionTime => this.TotalExecutions == 0 ? TimeSpan.Zero : TimeSpan.FromTicks(this.TotalExecutionTicks / this.TotalExecutions);
 
-    internal PipelineMetrics(long activeExecutions, long totalExecutions, long totalExecutionTicks, long totalErrors)
+    internal PipelineMetrics(long activeExecutions, long totalExecutions, long totalExecutionTicks, long maxExecutionTicks, long totalErrors)
     {
         this.ActiveExecutions = activeExecutions;
         this.TotalExecutions = totalExecutions;
         this.TotalExecutionTicks = totalExecutionTicks;
+        this.MaxExecutionTicks = maxExecutionTicks;
         this.TotalErrors = totalErrors;
     }
 }
@@ -56,6 +62,7 @@ public struct PerMiddlewareMetrics
     internal long _totalErrors;
     internal long _totalExecutions;
     internal long _totalExecutionTicks;
+    internal long _maxExecutionTicks;
 
     /// <summary>
     /// Gets the type of the middleware.
@@ -76,4 +83,9 @@ public struct PerMiddlewareMetrics
     /// Gets the total execution time spent in this middleware in ticks.
     /// </summary>
     public readonly long TotalExecutionTicks => Interlocked.Read(ref Unsafe.AsRef(in _totalExecutionTicks));
+
+    /// <summary>
+    /// Gets the highest execution time spent in this middleware in ticks.
+    /// </summary>
+    public readonly long MaxExecutionTicks => Interlocked.Read(ref Unsafe.AsRef(in _maxExecutionTicks));
 }

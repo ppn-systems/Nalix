@@ -5,6 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.WebSockets;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Diagnostics;
@@ -20,6 +21,8 @@ using Nalix.Environment.Time;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Network.Internal.Connections;
+using Nalix.Network.Internal.Initialization;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Internal.Transport;
@@ -46,29 +49,8 @@ public sealed class WebSocketConnection :
     private static readonly ConnectionGuardOptions s_limitOptions;
     private static readonly NetworkCallbackOptions s_callbackOptions;
 
-    private readonly WebSocket _webSocket;
-    private readonly SemaphoreSlim _sendLock = new(1, 1);
-
-    private int _errorCount;
-    private int _closeSignaled;
-    private int _disposeState; // 0=Active, 1=Closing, 2=Disposed
+    private ConnectionBacking? _backing;
     private volatile bool _disposed;
-
-    private long _bytesSent;
-    private long _bytesReceived;
-    private long _packetsDropped;
-    private int _pendingProcessCallbacks;
-
-    private WebSocketTransport? _tcp;
-    private IObjectMap<AttributeKey, object>? _attributes;
-    private ConcurrentDictionary<ushort, object>? _rateLimitCache;
-
-    private EventHandler<IConnectionEventArgs>? _connectionClosed;
-    private EventHandler<IConnectionEventArgs>? _messageProcessed;
-    private EventHandler<IConnectionEventArgs>? _messageProcessing;
-
-    internal LocalPool<ConnectionEventArgs> _argsPool;
-    internal LocalPool<PooledConnectEventContext> _contextPool;
 
     #endregion Fields
 
@@ -82,6 +64,8 @@ public sealed class WebSocketConnection :
         s_limitOptions = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
         s_timingWheelOptions = ConfigurationManager.Instance.Get<TimingWheelOptions>();
         s_callbackOptions = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
+
+        NetworkPoolInitializer.InitializeWebSocket();
     }
 
     /// <summary>
@@ -97,7 +81,10 @@ public sealed class WebSocketConnection :
         ArgumentNullException.ThrowIfNull(remoteEndPoint);
         ArgumentNullException.ThrowIfNull(packetClassifier);
 
-        _webSocket = webSocket;
+        _disposed = false;
+
+        _backing = s_pool.Get<ConnectionBacking>();
+        _backing.Initialize();
 
         this.Secret = Bytes32.Zero;
         this.PacketClassifier = packetClassifier;
@@ -105,8 +92,9 @@ public sealed class WebSocketConnection :
         this.ID = Snowflake.NewId(SnowflakeType.Session).ToUInt64();
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(remoteEndPoint ?? new IPEndPoint(IPAddress.Loopback, 0));
 
-        _argsPool = new LocalPool<ConnectionEventArgs>(s_pool);
-        _contextPool = new LocalPool<PooledConnectEventContext>(s_pool);
+        // Transport owns WebSocket — ownership transfer
+        _backing.WsTransport = s_pool.Get<WebSocketTransport>();
+        _backing.WsTransport.Initialize(this, webSocket);
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
@@ -134,7 +122,7 @@ public sealed class WebSocketConnection :
     public IOpCodeExtractor PacketClassifier { get; }
 
     /// <inheritdoc/>
-    public IConnection.ITransport TCP => _tcp ??= new WebSocketTransport(this);
+    public IConnection.ITransport TCP => Volatile.Read(ref _backing)?.WsTransport ?? throw new ObjectDisposedException(nameof(WebSocketConnection));
 
     /// <inheritdoc/>
     public IConnection.ITransport? UDP => null;
@@ -143,13 +131,27 @@ public sealed class WebSocketConnection :
     public INetworkEndpoint NetworkEndpoint { get; }
 
     /// <inheritdoc />
-    public IObjectMap<AttributeKey, object> Attributes => _attributes ??= ObjectMap<AttributeKey, object>.Rent();
+    public IObjectMap<AttributeKey, object> Attributes
+    {
+        get
+        {
+            ConnectionBacking backing = Volatile.Read(ref _backing) ?? throw new ObjectDisposedException(nameof(WebSocketConnection));
+            return backing.Attributes ??= ObjectMap<AttributeKey, object>.Rent();
+        }
+    }
 
     /// <inheritdoc />
-    public ConcurrentDictionary<ushort, object> RateLimitCache => _rateLimitCache ??= new();
+    public ConcurrentDictionary<ushort, object> RateLimitCache
+    {
+        get
+        {
+            ConnectionBacking backing = Volatile.Read(ref _backing) ?? throw new ObjectDisposedException(nameof(WebSocketConnection));
+            return backing.RateLimitCache ??= new();
+        }
+    }
 
     /// <inheritdoc/>
-    public int ErrorCount => _errorCount;
+    public int ErrorCount => Volatile.Read(ref _backing)?.ErrorCount ?? 0;
 
     /// <summary>
     /// Gets the connection uptime in milliseconds (how long the connection has been active).
@@ -157,22 +159,51 @@ public sealed class WebSocketConnection :
     public long UpTime { get => (long)Clock.UnixTime().TotalMilliseconds - field; } = (long)Clock.UnixTime().TotalMilliseconds;
 
     /// <inheritdoc/>
-    public long BytesSent => Interlocked.Read(ref _bytesSent);
+    public long BytesSent => Volatile.Read(ref _backing)?.BytesSent ?? 0;
 
     /// <inheritdoc/>
-    public long BytesReceived => Interlocked.Read(ref _bytesReceived);
+    public long BytesReceived => Volatile.Read(ref _backing)?.BytesReceived ?? 0;
 
     /// <inheritdoc/>
-    public long PacketsDropped => Interlocked.Read(ref _packetsDropped);
+    public long PacketsDropped => Volatile.Read(ref _backing)?.PacketsDropped ?? 0;
+
+    /// <summary>
+    /// Returns the number of packets currently pending in the async callback pipeline.
+    /// </summary>
+    public int PendingPackets => Volatile.Read(ref _backing)?.PendingProcessCallbacks ?? 0;
 
     /// <inheritdoc/>
-    public void IncrementBytesSent(int bytes) => Interlocked.Add(ref _bytesSent, bytes);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void IncrementBytesSent(int bytes)
+    {
+        ConnectionBacking? backing = Volatile.Read(ref _backing);
+        if (backing != null)
+        {
+            _ = Interlocked.Add(ref backing.BytesSent, bytes);
+        }
+    }
 
     /// <inheritdoc/>
-    public void IncrementBytesReceived(int bytes) => Interlocked.Add(ref _bytesReceived, bytes);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void IncrementBytesReceived(int bytes)
+    {
+        ConnectionBacking? backing = Volatile.Read(ref _backing);
+        if (backing != null)
+        {
+            _ = Interlocked.Add(ref backing.BytesReceived, bytes);
+        }
+    }
 
     /// <inheritdoc/>
-    public void IncrementPacketsDropped() => Interlocked.Increment(ref _packetsDropped);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void IncrementPacketsDropped()
+    {
+        ConnectionBacking? backing = Volatile.Read(ref _backing);
+        if (backing != null)
+        {
+            _ = Interlocked.Increment(ref backing.PacketsDropped);
+        }
+    }
 
     /// <summary>
     /// Gets or sets the timestamp (in milliseconds) of the last received ping.
@@ -214,43 +245,73 @@ public sealed class WebSocketConnection :
     /// <inheritdoc/>
     public event EventHandler<IConnectionEventArgs> ConnectionClosed
     {
-        add => _connectionClosed += value;
-        remove => _connectionClosed -= value;
+        add
+        {
+            ConnectionBacking? backing = Volatile.Read(ref _backing);
+            _ = backing?.ConnectionClosed += value;
+        }
+        remove
+        {
+            ConnectionBacking? backing = Volatile.Read(ref _backing);
+            _ = backing?.ConnectionClosed -= value;
+        }
     }
 
     /// <inheritdoc/>
     public event EventHandler<IConnectionEventArgs> MessageProcessed
     {
-        add => _messageProcessed += value;
-        remove => _messageProcessed -= value;
+        add
+        {
+            ConnectionBacking? backing = Volatile.Read(ref _backing);
+            _ = backing?.MessageProcessed += value;
+        }
+        remove
+        {
+            ConnectionBacking? backing = Volatile.Read(ref _backing);
+            _ = backing?.MessageProcessed -= value;
+        }
     }
 
     /// <inheritdoc/>
     public event EventHandler<IConnectionEventArgs> MessageProcessing
     {
-        add => _messageProcessing += value;
-        remove => _messageProcessing -= value;
+        add
+        {
+            ConnectionBacking? backing = Volatile.Read(ref _backing);
+            _ = backing?.MessageProcessing += value;
+        }
+        remove
+        {
+            ConnectionBacking? backing = Volatile.Read(ref _backing);
+            _ = backing?.MessageProcessing -= value;
+        }
     }
 
     #endregion Events
 
     #region Internal Helpers
 
+    internal void AddBytesSent(long count)
+    {
+        ConnectionBacking? backing = Volatile.Read(ref _backing);
+        if (backing != null)
+        {
+            _ = Interlocked.Add(ref backing.BytesSent, count);
+        }
+    }
 
-    internal WebSocket WebSocket => _webSocket;
-    internal SemaphoreSlim SendLock => _sendLock;
-
-    internal void AddBytesSent(long count) => Interlocked.Add(ref _bytesSent, count);
-    internal void AddBytesReceived(long count) => Interlocked.Add(ref _bytesReceived, count);
+    internal void AddBytesReceived(long count)
+    {
+        ConnectionBacking? backing = Volatile.Read(ref _backing);
+        if (backing != null)
+        {
+            _ = Interlocked.Add(ref backing.BytesReceived, count);
+        }
+    }
     internal void UpdateLastPingTime() => this.LastPingTime = Clock.UnixMillisecondsNow();
 
     internal void TriggerPostProcessEvent()
     {
-        if (_messageProcessed is null)
-        {
-            return;
-        }
-
         ConnectionEventArgs args = this.AcquireEventArgs();
         args.Initialize(this);
 
@@ -262,17 +323,31 @@ public sealed class WebSocketConnection :
 
     internal void TriggerProcessEvent(BufferLease lease)
     {
-        int pending = Interlocked.Increment(ref _pendingProcessCallbacks);
+        ConnectionBacking? backing = Volatile.Read(ref _backing);
+        if (backing == null)
+        {
+            lease.Dispose();
+            return;
+        }
+
+        int pending = Interlocked.Increment(ref backing.PendingProcessCallbacks);
+
         if (pending > s_callbackOptions.MaxPerConnectionPendingPackets)
         {
-            _ = Interlocked.Decrement(ref _pendingProcessCallbacks);
+            _ = Interlocked.Decrement(ref backing.PendingProcessCallbacks);
             lease.Dispose();
             this.IncrementPacketsDropped();
+
+            if (s_callbackOptions.OverflowPolicy == NetworkOverflowPolicy.Disconnect)
+            {
+                this.Disconnect("Exceeded MaxPerConnectionPendingPackets threshold.");
+            }
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
                 DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.WebSocketConnection:TriggerProcessEvent", $"receive throttle triggered remote-endpoint={this.NetworkEndpoint}"));
             }
+
             return;
         }
 
@@ -288,6 +363,7 @@ public sealed class WebSocketConnection :
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static void MessageProcessingBridge(object? sender, IConnectionEventArgs e)
     {
         if (e is null)
@@ -301,9 +377,16 @@ public sealed class WebSocketConnection :
             return;
         }
 
+        SAFE_PROCESS_EVENT_BRIDGE(self, e);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void SAFE_PROCESS_EVENT_BRIDGE(WebSocketConnection self, IConnectionEventArgs e)
+    {
         try
         {
-            self._messageProcessing?.Invoke(self, e);
+            ConnectionBacking? backing = Volatile.Read(ref self._backing);
+            backing?.MessageProcessing?.Invoke(self, e);
         }
         finally
         {
@@ -311,6 +394,7 @@ public sealed class WebSocketConnection :
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static void MessageProcessedBridge(object? sender, IConnectionEventArgs e)
     {
         if (e is null)
@@ -324,9 +408,16 @@ public sealed class WebSocketConnection :
             return;
         }
 
+        SAFE_POST_PROCESS_EVENT_BRIDGE(self, e);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void SAFE_POST_PROCESS_EVENT_BRIDGE(WebSocketConnection self, IConnectionEventArgs e)
+    {
         try
         {
-            self._messageProcessed?.Invoke(self, e);
+            ConnectionBacking? backing = Volatile.Read(ref self._backing);
+            backing?.MessageProcessed?.Invoke(self, e);
         }
         finally
         {
@@ -351,7 +442,13 @@ public sealed class WebSocketConnection :
     /// <inheritdoc/>
     public void IncrementErrorCount()
     {
-        int count = Interlocked.Increment(ref _errorCount);
+        ConnectionBacking? backing = Volatile.Read(ref _backing);
+        if (backing == null)
+        {
+            return;
+        }
+
+        int count = Interlocked.Increment(ref backing.ErrorCount);
 
         if (s_limitOptions.MaxErrorThreshold > 0 && count >= s_limitOptions.MaxErrorThreshold)
         {
@@ -385,26 +482,40 @@ public sealed class WebSocketConnection :
     /// <inheritdoc/>
     public void Dispose()
     {
-        if (Interlocked.CompareExchange(ref _disposeState, 1, 0) != 0)
+        ConnectionBacking? backing = Volatile.Read(ref _backing);
+        if (backing == null)
+        {
+            return;
+        }
+
+        if (Interlocked.CompareExchange(ref backing.DisposeState, 1, 0) != 0)
         {
             return;
         }
 
         try
         {
-            if (Interlocked.Exchange(ref _closeSignaled, 1) == 0 && _connectionClosed != null)
+            if (Interlocked.Exchange(ref backing.CloseSignaled, 1) == 0 && backing.ConnectionClosed != null)
             {
                 ConnectionEventArgs args = this.AcquireEventArgs();
                 args.Initialize(this);
                 try
                 {
-                    _connectionClosed.Invoke(this, args);
-                }
-                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-                {
-                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+                    Delegate[] handlers = backing.ConnectionClosed.GetInvocationList();
+                    for (int i = 0; i < handlers.Length; i++)
                     {
-                        DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.WebSocketConnection:Dispose", "Close event error", ex));
+                        EventHandler<IConnectionEventArgs> handler = (EventHandler<IConnectionEventArgs>)handlers[i];
+                        try
+                        {
+                            handler(this, args);
+                        }
+                        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                        {
+                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+                            {
+                                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.WebSocketConnection:Dispose", "Close event error", ex));
+                            }
+                        }
                     }
                 }
                 finally
@@ -424,34 +535,35 @@ public sealed class WebSocketConnection :
         }
         finally
         {
-            Volatile.Write(ref _disposeState, 2);
-            _disposed = true;
-
-            try
+            ConnectionBacking? b = Interlocked.Exchange(ref _backing, null);
+            if (b != null)
             {
-                if (_webSocket.State == WebSocketState.Open)
+                Volatile.Write(ref b.DisposeState, 2);
+                _disposed = true;
+
+                this.Secret = Bytes32.Zero;
+
+                try { b.Attributes?.Return(); b.Attributes = null; }
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
+
+                // Transport.Dispose() handles WebSocket Abort + Dispose
+                try
                 {
-                    _webSocket.Abort();
+                    if (b.WsTransport != null)
+                    {
+                        b.WsTransport.Dispose();
+                        s_pool.Return(b.WsTransport);
+                        b.WsTransport = null;
+                    }
                 }
-                _webSocket.Dispose();
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
+
+                // Return backing to pool
+                s_pool.Return(b);
             }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
-
-            _attributes?.Return();
-            _attributes = null;
-
-            try { Interlocked.Exchange(ref _tcp, null)?.Dispose(); }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
-
-            try { _argsPool.Destroy(); }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
-
-            try { _contextPool.Destroy(); }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
-
-            try { _sendLock.Dispose(); }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
         }
+
+        GC.SuppressFinalize(this);
     }
 
     #endregion Dispose Pattern
@@ -460,7 +572,8 @@ public sealed class WebSocketConnection :
 
     internal ConnectionEventArgs AcquireEventArgs()
     {
-        ConnectionEventArgs? argLocal = _argsPool.Acquire(this, static (arg, self) => arg.Initialize(self));
+        ConnectionBacking? backing = Volatile.Read(ref _backing);
+        ConnectionEventArgs? argLocal = backing?.ArgsPool.Acquire(this, static (arg, self) => arg.Initialize(self));
         if (argLocal != null)
         {
             return argLocal;
@@ -472,11 +585,23 @@ public sealed class WebSocketConnection :
         return args;
     }
 
-    internal void ReturnEventArgs(ConnectionEventArgs args) => _argsPool.Return(args);
+    internal void ReturnEventArgs(ConnectionEventArgs args)
+    {
+        ConnectionBacking? backing = Volatile.Read(ref _backing);
+        if (backing != null)
+        {
+            backing.ArgsPool.Return(args);
+        }
+        else
+        {
+            s_pool.Return(args);
+        }
+    }
 
     PooledConnectEventContext IPooledConnectContextPool.AcquireContext()
     {
-        PooledConnectEventContext? ctxLocal = _contextPool.Acquire(this, static (ctx, self) => ctx.LocalOwner = self);
+        ConnectionBacking? backing = Volatile.Read(ref _backing);
+        PooledConnectEventContext? ctxLocal = backing?.ContextPool.Acquire(this, static (ctx, self) => ctx.LocalOwner = self);
         if (ctxLocal != null)
         {
             ctxLocal.LocalOwner = this;
@@ -489,9 +614,28 @@ public sealed class WebSocketConnection :
         return ctxGlobal;
     }
 
-    void IPooledConnectContextPool.ReleasePendingPacket() => Interlocked.Decrement(ref _pendingProcessCallbacks);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    void IPooledConnectContextPool.ReleasePendingPacket()
+    {
+        ConnectionBacking? backing = Volatile.Read(ref _backing);
+        if (backing != null)
+        {
+            _ = Interlocked.Decrement(ref backing.PendingProcessCallbacks);
+        }
+    }
 
-    void IPooledConnectContextPool.ReturnContext(PooledConnectEventContext context) => _contextPool.Return(context);
+    void IPooledConnectContextPool.ReturnContext(PooledConnectEventContext context)
+    {
+        ConnectionBacking? backing = Volatile.Read(ref _backing);
+        if (backing != null)
+        {
+            backing.ContextPool.Return(context);
+        }
+        else
+        {
+            s_pool.Return(context);
+        }
+    }
 
     #endregion Internal Pooling
 }

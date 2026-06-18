@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Middleware;
-using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
@@ -30,11 +29,12 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
 
     /// <summary>
     /// Invokes the concurrency middleware, enforcing concurrency limits on incoming packets.
+    /// No async state machine is allocated when the user is authorized and the chain completes synchronously.
     /// </summary>
     /// <param name="context">The packet context containing the packet and connection information.</param>
     /// <param name="next">The next middleware delegate in the pipeline.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public async ValueTask InvokeAsync(IPacketContext<IPacket> context, Func<CancellationToken, ValueTask> next)
+    public ValueTask InvokeAsync(IPacketContext<IPacket> context, Func<CancellationToken, ValueTask> next)
     {
         ArgumentNullException.ThrowIfNull(next);
         ArgumentNullException.ThrowIfNull(context);
@@ -44,53 +44,69 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         if (context.Attributes.Permission is not null &&
             IsAuthorized(context.Connection.Level, context.Attributes.Permission))
         {
-            await next(context.CancellationToken).ConfigureAwait(false);
-            return;
+            // Hot path: authorized — forward directly without async state machine.
+            ValueTask pending = next(context.CancellationToken);
+            if (pending.IsCompletedSuccessfully)
+            {
+#pragma warning disable CA1849 // Completed-success fast path.
+                pending.GetAwaiter().GetResult();
+#pragma warning restore CA1849
+                return default;
+            }
+            return AWAIT_NEXT_ASYNC(pending);
         }
 
-        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+        // Cold path: denied — requires async I/O to send directive.
+        return DENY_ASYNC(this, context);
+
+        static async ValueTask AWAIT_NEXT_ASYNC(ValueTask operation) => await operation.ConfigureAwait(false);
+
+        static async ValueTask DENY_ASYNC(PermissionMiddleware owner, IPacketContext<IPacket> ctx)
         {
-            string needLevel = context.Attributes.Permission?.Level.ToString() ?? "N/A (no attribute)";
-            DiagnosticsEvents.Write(
-                DiagnosticsEvents.Internal.Trace,
-                new DiagnosticLog(
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+            {
+                string needLevel = ctx.Attributes.Permission?.Level.ToString() ?? "N/A (no attribute)";
+                DiagnosticsEvents.Write(
+                    DiagnosticsEvents.Internal.Trace,
+                    new DiagnosticLog(
+                        "RT.PermissionMiddleware:InvokeAsync",
+                        $"deny op=0x{ctx.Attributes.PacketOpcode.OpCode:X4} need={needLevel} have={ctx.Connection.Level}"));
+            }
+
+            ctx.Connection.IncrementErrorCount();
+
+            if (!DirectiveGuard.TryAcquire(ctx.Connection,
+                state => state.InboundDirectiveUnauthorizedLastSentAtMs,
+                (state, val) => state.InboundDirectiveUnauthorizedLastSentAtMs = val))
+            {
+                return;
+            }
+
+            using PacketScope<Directive> lease = PacketFactory<Directive>.Acquire();
+            Directive directive = lease.Value;
+
+            try
+            {
+                directive.Initialize(
+                    ControlType.FAIL,
+                    ProtocolReason.UNAUTHORIZED, ProtocolAdvice.NONE,
+                    sequenceId: ctx.Packet.Header.SequenceId,
+                    controlFlags: ControlFlags.NONE,
+                    arg0: 0,
+                    arg1: 0,
+                    arg2: ctx.Packet.Header.OpCode);
+
+                await ctx.Sender.SendAsync(directive).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            {
+                ctx.Connection.ThrottledDiagnosticError(
+                    DiagnosticsEvents.Internal.Error,
+                    s_keySendError,
                     "RT.PermissionMiddleware:InvokeAsync",
-                    $"deny op=0x{context.Attributes.PacketOpcode.OpCode:X4} need={needLevel} have={context.Connection.Level}"));
-        }
-
-        context.Connection.IncrementErrorCount();
-
-        if (!DirectiveGuard.TryAcquire(
-            context.Connection,
-            ConnectionAttributes.InboundDirectiveUnauthorizedLastSentAtMs))
-        {
-            return;
-        }
-
-        using PacketScope<Directive> lease = PacketFactory<Directive>.Acquire();
-        Directive directive = lease.Value;
-
-        try
-        {
-            directive.Initialize(
-                ControlType.FAIL,
-                ProtocolReason.UNAUTHORIZED, ProtocolAdvice.NONE,
-                sequenceId: context.Packet.Header.SequenceId,
-                controlFlags: ControlFlags.NONE,
-                arg0: 0,
-                arg1: 0,
-                arg2: context.Packet.Header.OpCode);
-
-            await context.Sender.SendAsync(directive).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            context.Connection.ThrottledDiagnosticError(
-                DiagnosticsEvents.Internal.Error,
-                s_keySendError,
-                "RT.PermissionMiddleware:InvokeAsync",
-                "send-error-failed",
-                ex);
+                    "send-error-failed",
+                    ex);
+            }
         }
     }
 

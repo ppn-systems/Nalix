@@ -201,7 +201,7 @@ internal static class AsyncCallback
         if (!TRY_RESERVE_GLOBAL_SLOT(lane, out int globalPending))
         {
             _ = Interlocked.Increment(ref s_droppedCallbacks);
-            LOG_THROTTLED_ERROR_SAFE(args, ref s_globalBackpressureTicks, ref s_globalBackpressureSuppressed, "async.global_backpressure");
+            LOG_THROTTLED_ERROR_SAFE(ref s_globalBackpressureTicks, ref s_globalBackpressureSuppressed, "async.global_backpressure");
             return false;
         }
 
@@ -211,7 +211,7 @@ internal static class AsyncCallback
             RELEASE_GLOBAL_SLOT(lane);
             _ = Interlocked.Increment(ref s_droppedCallbacks);
             _ = lane == CallbackLane.Process ? s_netOpts.MaxPendingPerIp : s_netOpts.MaxPendingPostPerIp;
-            LOG_THROTTLED_WARN_SAFE(args, ref s_perIpBackpressureTicks, ref s_perIpBackpressureSuppressed, "async.per_ip_backpressure");
+            LOG_THROTTLED_WARN_SAFE(ref s_perIpBackpressureTicks, ref s_perIpBackpressureSuppressed, "async.per_ip_backpressure");
             return false;
         }
 
@@ -219,7 +219,7 @@ internal static class AsyncCallback
         if (warnThreshold > 0 && globalPending >= warnThreshold && globalPending % 1_000 == 0)
         {
             _ = lane == CallbackLane.Process ? s_netOpts.MaxPendingNormalCallbacks : s_netOpts.MaxPendingPostCallbacks;
-            LOG_THROTTLED_WARN_SAFE(args, ref s_highBackpressureTicks, ref s_highBackpressureSuppressed, "async.high_backpressure");
+            LOG_THROTTLED_WARN_SAFE(ref s_highBackpressureTicks, ref s_highBackpressureSuppressed, "async.high_backpressure");
         }
 
         _ = Interlocked.Increment(ref s_totalInvoked);
@@ -294,9 +294,10 @@ internal static class AsyncCallback
             wrapper.LocalOwner = null;
         }
 
+        wrapper.SetThreadPoolInvoker(invoker);
         wrapper.Initialize(callback, sender, args, releasePendingPacketOnCompletion);
 
-        bool queued = QUEUE_SAFE(invoker, wrapper, args, preferLocal: isHigh);
+        bool queued = QUEUE_SAFE(wrapper, preferLocal: isHigh);
 
         if (!queued)
         {
@@ -308,7 +309,7 @@ internal static class AsyncCallback
             }
 
             _ = Interlocked.Increment(ref s_droppedCallbacks);
-            LOG_THROTTLED_ERROR_SAFE(args, ref s_queueFailedTicks, ref s_queueFailedSuppressed, "async.queue_failed");
+            LOG_THROTTLED_ERROR_SAFE(ref s_queueFailedTicks, ref s_queueFailedSuppressed, "async.queue_failed");
 
             wrapper.Dispose();
 
@@ -319,15 +320,17 @@ internal static class AsyncCallback
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static bool QUEUE_SAFE(Action<object> invoker, PooledConnectEventContext wrapper, IConnectionEventArgs args, bool preferLocal)
+    private static bool QUEUE_SAFE(PooledConnectEventContext wrapper, bool preferLocal)
     {
         try
         {
-            return ThreadPool.UnsafeQueueUserWorkItem(invoker, wrapper, preferLocal);
+            // PooledConnectEventContext implements IThreadPoolWorkItem, so the runtime
+            // calls Execute() directly without allocating a QueueUserWorkItemCallbackDefaultContext wrapper.
+            return ThreadPool.UnsafeQueueUserWorkItem(wrapper, preferLocal);
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            LOG_THROTTLED_ERROR_SAFE(args, ref s_queueExceptionTicks, ref s_queueExceptionSuppressed, "async.queue_exception", ex);
+            LOG_THROTTLED_ERROR_SAFE(ref s_queueExceptionTicks, ref s_queueExceptionSuppressed, "async.queue_exception", ex);
             return false;
         }
     }
@@ -464,7 +467,7 @@ internal static class AsyncCallback
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void LOG_THROTTLED_WARN_SAFE(IConnectionEventArgs? args, ref long ticks, ref long suppressedCount, string eventName)
+    private static void LOG_THROTTLED_WARN_SAFE(ref long ticks, ref long suppressedCount, string eventName)
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
         {
@@ -472,15 +475,15 @@ internal static class AsyncCallback
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                 {
-                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.AsyncCallback:Internal", $"message event={eventName} suppressed-count={suppressed} endpoint={GET_ENDPOINT_SAFE(args)}"));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning,
+                        new DiagnosticLog("NW.AsyncCallback:Internal", $"message event={eventName} suppressed-count={suppressed}"));
                 }
-                ;
             }
         }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void LOG_THROTTLED_ERROR_SAFE(IConnectionEventArgs? args, ref long ticks, ref long suppressedCount, string eventName, Exception? ex = null)
+    private static void LOG_THROTTLED_ERROR_SAFE(ref long ticks, ref long suppressedCount, string eventName, Exception? ex = null)
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
         {
@@ -488,7 +491,8 @@ internal static class AsyncCallback
             {
                 if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                 {
-                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.AsyncCallback:Internal", $"message event={eventName} suppressed-count={suppressed} endpoint={GET_ENDPOINT_SAFE(args)}", ex));
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error,
+                        new DiagnosticLog("NW.AsyncCallback:Internal", $"message event={eventName} suppressed-count={suppressed}", ex));
                 }
                 ;
             }
@@ -506,7 +510,7 @@ internal static class AsyncCallback
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            LOG_THROTTLED_ERROR_SAFE(args, ref s_callbackErrorTicks, ref s_callbackErrorSuppressed, "async.callback_error", ex);
+            LOG_THROTTLED_ERROR_SAFE(ref s_callbackErrorTicks, ref s_callbackErrorSuppressed, "async.callback_error", ex);
         }
         finally
         {
@@ -514,7 +518,7 @@ internal static class AsyncCallback
             if (elapsedMs > s_netOpts.MaxCallbackExecutionMs)
             {
                 _ = Interlocked.Increment(ref s_slowCallbacks);
-                LOG_THROTTLED_WARN_SAFE(args, ref s_slowCallbackTicks, ref s_slowCallbackSuppressed, "async.slow_callback");
+                LOG_THROTTLED_WARN_SAFE(ref s_slowCallbackTicks, ref s_slowCallbackSuppressed, "async.slow_callback");
             }
 
             if (w.ReleasePendingPacketOnCompletion && w.Sender is IPooledConnectContextPool owner)

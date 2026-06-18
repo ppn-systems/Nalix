@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Middleware;
-using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Codec.Pooling;
@@ -34,7 +33,7 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
     }
 
     /// <inheritdoc/>
-    public async ValueTask InvokeAsync(IPacketContext<IPacket> context, Func<CancellationToken, ValueTask> next)
+    public ValueTask InvokeAsync(IPacketContext<IPacket> context, Func<CancellationToken, ValueTask> next)
     {
         ArgumentNullException.ThrowIfNull(next);
         ArgumentNullException.ThrowIfNull(context);
@@ -42,30 +41,46 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
         int timeout = context.Attributes.Timeout?.TimeoutMilliseconds ?? 0;
         if (timeout <= 0)
         {
-            await next(context.CancellationToken).ConfigureAwait(false);
-            return;
+            // Hot path: no timeout configured — forward directly without async state machine.
+            ValueTask pending = next(context.CancellationToken);
+            if (pending.IsCompletedSuccessfully)
+            {
+#pragma warning disable CA1849 // Completed-success fast path.
+                pending.GetAwaiter().GetResult();
+#pragma warning restore CA1849
+                return default;
+            }
+            return AWAIT_NEXT_ASYNC(pending);
         }
 
-        PooledCancellationTokenSource timeoutCts = s_pool.Get<PooledCancellationTokenSource>();
-        timeoutCts.CancelAfter(timeout);
+        // Cold path: timeout configured — requires CTS setup and async wrapping.
+        return INVOKE_WITH_TIMEOUT_ASYNC(timeout, context, next);
 
-        CancellationTokenRegistration reg = default;
-        if (context.CancellationToken.CanBeCanceled)
-        {
-            reg = context.CancellationToken.UnsafeRegister(
-                static s => ((PooledCancellationTokenSource)s!).Cancel(), timeoutCts);
-        }
+        static async ValueTask AWAIT_NEXT_ASYNC(ValueTask operation) => await operation.ConfigureAwait(false);
 
-        try
+        static async ValueTask INVOKE_WITH_TIMEOUT_ASYNC(int timeoutMs, IPacketContext<IPacket> ctx, Func<CancellationToken, ValueTask> nxt)
         {
-            await ExecuteHandlerAsync(timeout, context, next, timeoutCts.Token).ConfigureAwait(false);
-        }
-        finally
-        {
-#pragma warning disable CA1849 // Call async methods when in an async method
-            reg.Dispose();
-#pragma warning restore CA1849 // Call async methods when in an async method
-            s_pool.Return<PooledCancellationTokenSource>(timeoutCts);
+            PooledCancellationTokenSource timeoutCts = s_pool.Get<PooledCancellationTokenSource>();
+            timeoutCts.CancelAfter(timeoutMs);
+
+            CancellationTokenRegistration reg = default;
+            if (ctx.CancellationToken.CanBeCanceled)
+            {
+                reg = ctx.CancellationToken.UnsafeRegister(
+                    static s => ((PooledCancellationTokenSource)s!).Cancel(), timeoutCts);
+            }
+
+            try
+            {
+                await ExecuteHandlerAsync(timeoutMs, ctx, nxt, timeoutCts.Token).ConfigureAwait(false);
+            }
+            finally
+            {
+#pragma warning disable CA1849
+                reg.Dispose();
+#pragma warning restore CA1849
+                s_pool.Return<PooledCancellationTokenSource>(timeoutCts);
+            }
         }
     }
 
@@ -81,9 +96,9 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested && !context.CancellationToken.IsCancellationRequested)
         {
-            if (!DirectiveGuard.TryAcquire(
-                context.Connection,
-                ConnectionAttributes.InboundDirectiveTimeoutLastSentAtMs))
+            if (DirectiveGuard.TryAcquire(context.Connection,
+                state => state.InboundDirectiveTimeoutLastSentAtMs,
+                (state, val) => state.InboundDirectiveTimeoutLastSentAtMs = val))
             {
                 return;
             }

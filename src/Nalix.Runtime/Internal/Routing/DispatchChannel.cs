@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -31,7 +30,7 @@ namespace Nalix.Runtime.Internal.Routing;
 [DebuggerNonUserCode]
 [EditorBrowsable(EditorBrowsableState.Never)]
 [DebuggerDisplay("TotalPackets={TotalPackets}")]
-public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDisposable where TPacket : IPacket
+internal sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDisposable where TPacket : IPacket
 {
     #region Constants
 
@@ -61,6 +60,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
 
     private int _activeConnections;
     private int _readyConnections;
+    private long _totalEvicted;
+    private long _peakPacketCount;
     private PaddedSequence _packetCount;
 
     #endregion Fields
@@ -73,15 +74,34 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
     public long TotalPackets => Interlocked.Read(ref _packetCount.Value);
 
     /// <summary>
+    /// Gets the highest number of queued packets reached.
+    /// </summary>
+    public long PeakPackets => Interlocked.Read(ref _peakPacketCount);
+
+    /// <summary>
     /// Gets a value indicating whether any packet is available.
     /// </summary>
     public bool HasPacket => Interlocked.Read(ref _packetCount.Value) > 0;
 
-    internal int TotalConnections => Volatile.Read(ref _activeConnections);
+    /// <summary>
+    /// Gets the total number of active connections currently tracked by the channel.
+    /// </summary>
+    public int TotalConnections => Volatile.Read(ref _activeConnections);
 
-    internal int ReadyConnections => Volatile.Read(ref _readyConnections);
+    /// <summary>
+    /// Gets the number of connections that currently have at least one packet ready to be dispatched.
+    /// </summary>
+    public int ReadyConnections => Volatile.Read(ref _readyConnections);
 
-    internal int[] PendingPerPriority
+    /// <summary>
+    /// Gets the total number of packets evicted (dropped) because of capacity limits.
+    /// </summary>
+    public long TotalEvicted => Interlocked.Read(ref _totalEvicted);
+
+    /// <summary>
+    /// Gets a snapshot of the number of ready connections per priority level.
+    /// </summary>
+    public int[] PendingPerPriority
     {
         get
         {
@@ -93,43 +113,6 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
             }
 
             return snapshot;
-        }
-    }
-
-    internal IReadOnlyDictionary<IConnection, int> PendingPerConnection
-    {
-        get
-        {
-            Dictionary<IConnection, int> result = new(Math.Max(4, this.TotalConnections));
-
-            for (int i = 0; i < _stateBuckets.Length; i++)
-            {
-                for (Node? node = Volatile.Read(ref _stateBuckets[i]); node is not null; node = node.Next)
-                {
-                    if (Volatile.Read(ref node.Removed) != 0)
-                    {
-                        continue;
-                    }
-
-                    ConnectionState? state = node.State;
-                    if (state is null || !state.IsActive)
-                    {
-                        continue;
-                    }
-
-                    int pending = state.TotalCount;
-                    if (pending > 0)
-                    {
-                        IConnection? conn = node.Connection;
-                        if (conn is not null)
-                        {
-                            result[conn] = pending;
-                        }
-                    }
-                }
-            }
-
-            return result;
         }
     }
 
@@ -422,7 +405,19 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
         }
 
         _ = state.OnEnqueued(priority);
-        _ = Interlocked.Increment(ref _packetCount.Value);
+        long currentTotal = Interlocked.Increment(ref _packetCount.Value);
+
+        long peak = Volatile.Read(ref _peakPacketCount);
+        while (currentTotal > peak)
+        {
+            long prev = Interlocked.CompareExchange(ref _peakPacketCount, currentTotal, peak);
+            if (prev == peak)
+            {
+                break;
+            }
+
+            peak = prev;
+        }
 
         if (!state.IsActive)
         {
@@ -543,6 +538,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
             evicted.Dispose();
             _ = state.OnDequeued(p);
             DecrementNonNegative(ref _packetCount.Value);
+            _ = Interlocked.Increment(ref _totalEvicted);
             return true;
         }
 

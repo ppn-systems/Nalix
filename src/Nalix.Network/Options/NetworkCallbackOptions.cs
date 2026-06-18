@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Abstractions;
+using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
 
@@ -60,6 +61,13 @@ public sealed partial class NetworkCallbackOptions : ConfigurationLoader, IValid
     #endregion Layer 1 — Per-connection receive throttle
 
     #region Layer 2 — Global and per-IP callback caps
+
+    /// <summary>
+    /// Action will be executed when the number of pending packets for a connection
+    /// exceeds <see cref="MaxPerConnectionPendingPackets"/>.
+    /// </summary>
+    [IniComment("Action to take when a connection exceeds max pending packets (0=DropPacket, 1=Disconnect)")]
+    public NetworkOverflowPolicy OverflowPolicy { get; set; } = NetworkOverflowPolicy.DropPacket;
 
     /// <summary>
     /// Maximum total <b>normal-priority</b> callbacks that may be pending in

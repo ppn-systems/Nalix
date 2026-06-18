@@ -114,6 +114,11 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             InstanceManager.Instance.Register<ConnectionHub>(concrete);
         }
 
+        if (connectionHub is IConnectionBroadcaster broadcaster)
+        {
+            InstanceManager.Instance.Register<IConnectionBroadcaster>(broadcaster);
+        }
+
         return this;
     }
 

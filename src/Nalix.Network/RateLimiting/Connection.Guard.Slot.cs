@@ -7,6 +7,7 @@ using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions.Diagnostics;
+using Nalix.Environment.Time;
 using Nalix.Network.Internal.Security;
 using Nalix.Network.Internal.Transport;
 
@@ -17,14 +18,32 @@ public sealed partial class ConnectionGuard
     #region Connection Slot Management
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void UPDATE_EWMA(long nowTicks)
+    private void UPDATE_EWMA_SHARED()
     {
-        double elapsed = (nowTicks - _ewmaLastUpdateTicks) / (double)TimeSpan.TicksPerSecond;
-        if (elapsed > 0)
+        long nowTicks = Clock.NowUtc().Ticks;
+        bool lockTaken = false;
+        try
         {
-            double currentRate = Interlocked.Read(ref _totalConnectionAttempts) / elapsed;
-            _ewmaConnectionRate = (EwmaAlpha * currentRate) + ((1 - EwmaAlpha) * _ewmaConnectionRate);
-            _ewmaLastUpdateTicks = nowTicks;
+            _ewmaLock.Enter(ref lockTaken);
+
+            double elapsed = (nowTicks - _ewmaLastUpdateTicks) / (double)TimeSpan.TicksPerSecond;
+            if (elapsed > 0)
+            {
+                long currentTotal = Interlocked.Read(ref _totalConnectionAttempts);
+                long windowAttempts = currentTotal - _ewmaLastConnectionAttempts;
+                double currentRate = windowAttempts / elapsed;
+
+                _ewmaConnectionRate = (EwmaAlpha * currentRate) + ((1 - EwmaAlpha) * _ewmaConnectionRate);
+                _ewmaLastUpdateTicks = nowTicks;
+                _ewmaLastConnectionAttempts = currentTotal;
+            }
+        }
+        finally
+        {
+            if (lockTaken)
+            {
+                _ewmaLock.Exit();
+            }
         }
     }
 

@@ -33,7 +33,7 @@ public sealed partial class SessionStoreOptions : ConfigurationLoader, IValidata
     /// </summary>
     [IniComment("Minimum number of attributes required to persist a session (excluding internal flags, default 10)")]
     [ValueRange(0, int.MaxValue)]
-    public int MinAttributesForPersistence { get; set; } = 10;
+    public int MinAttributesForPersistence { get; set; } = 20;
 
     /// <summary>
     /// Validates the configuration options.

@@ -151,6 +151,7 @@ public static class HandshakeX25519
     /// This API is kept for compatibility and returns raw transcript bytes.
     /// Callers should wipe the returned buffer with
     /// <see cref="MemorySecurity.ZeroMemory(byte[])"/> after hashing.
+    /// Prefer <see cref="TryComposeTranscriptBuffer"/> for zero-allocation paths.
     /// </remarks>
     public static byte[] ComposeTranscriptBuffer(Bytes32 clientPublicKey, Bytes32 clientNonce, Bytes32 serverPublicKey, Bytes32 serverNonce)
     {
@@ -181,6 +182,54 @@ public static class HandshakeX25519
     }
 
     /// <summary>
+    /// Attempts to compose the transcript buffer into a caller-provided destination span
+    /// without heap allocation. Returns <see langword="true"/> on success.
+    /// </summary>
+    /// <param name="destination">The destination span (must be at least 144 bytes for four Bytes32 segments).</param>
+    /// <param name="written">The number of bytes written to <paramref name="destination"/>.</param>
+    /// <param name="clientPublicKey">The client's ephemeral public key.</param>
+    /// <param name="clientNonce">The client's nonce.</param>
+    /// <param name="serverPublicKey">The server's ephemeral public key.</param>
+    /// <param name="serverNonce">The server's nonce.</param>
+    /// <returns><see langword="true"/> if the transcript was composed successfully; <see langword="false"/> if the destination was too short.</returns>
+    public static bool TryComposeTranscriptBuffer(
+        Span<byte> destination, out int written,
+        Bytes32 clientPublicKey, Bytes32 clientNonce,
+        Bytes32 serverPublicKey, Bytes32 serverNonce)
+    {
+        int total = (sizeof(int) * 4)
+            + Bytes32.Size
+            + Bytes32.Size
+            + Bytes32.Size
+            + Bytes32.Size;
+
+        if (destination.Length < total)
+        {
+            written = 0;
+            return false;
+        }
+
+        int offset = 0;
+
+        try
+        {
+            offset = WriteSegment(destination, offset, clientPublicKey.AsSpan());
+            offset = WriteSegment(destination, offset, clientNonce.AsSpan());
+            offset = WriteSegment(destination, offset, serverPublicKey.AsSpan());
+            offset = WriteSegment(destination, offset, serverNonce.AsSpan());
+
+            written = offset;
+            return true;
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            destination[..offset].Clear();
+            written = 0;
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Computes the handshake transcript hash from public keys and nonces,
     /// and securely clears the temporary heap buffer after hashing.
     /// </summary>
@@ -188,15 +237,15 @@ public static class HandshakeX25519
         Bytes32 clientPublicKey, Bytes32 clientNonce,
         Bytes32 serverPublicKey, Bytes32 serverNonce)
     {
-        byte[] buffer = ComposeTranscriptBuffer(clientPublicKey, clientNonce, serverPublicKey, serverNonce);
-        try
-        {
-            return Keccak256.HashDataToFixed(buffer);
-        }
-        finally
-        {
-            MemorySecurity.ZeroMemory(buffer);
-        }
+        // Transcript is always 4 × (4 + 32) = 144 bytes for four Bytes32 segments.
+        Span<byte> buffer = stackalloc byte[144];
+
+        _ = TryComposeTranscriptBuffer(buffer, out _,
+            clientPublicKey, clientNonce, serverPublicKey, serverNonce);
+
+        Bytes32 hash = Keccak256.HashDataToFixed(buffer);
+        MemorySecurity.ZeroMemory(buffer);
+        return hash;
     }
 
     #endregion Public Methods

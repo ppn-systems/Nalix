@@ -227,10 +227,12 @@ public sealed partial class ObjectPoolManager
                 writer.WriteNumber("Hits", hits);
                 writer.WriteNumber("Misses", misses);
                 writer.WriteNumber("Trimmed", metrics.TrimCount);
+                writer.WriteNumber("Dropped", metrics.TotalDropped);
                 writer.WriteNumber("HitRate", hitPercent);
                 writer.WriteString("LastAccessUtc", metrics.LastAccessUtc);
                 writer.WriteString("LastAccessType", metrics.LastAccessType ?? "None");
                 writer.WriteNumber("Outstanding", metrics.Outstanding);
+                writer.WriteNumber("PeakOutstanding", metrics.PeakOutstanding);
                 writer.WriteNumber("ConsecutiveFailures", metrics.ConsecutiveFailures);
                 writer.WriteString("Status", this.GET_POOL_STATUS(kvp.Key, metrics));
             }

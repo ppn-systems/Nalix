@@ -174,6 +174,20 @@ public sealed partial class ConnectionQuotaOptions : ConfigurationLoader, IValid
     public int AdaptivePowMaxRate { get; set; } = 100;
 
     /// <summary>
+    /// Enables capacity-based adaptive PoW scaling.
+    /// </summary>
+    [IniComment("Enable capacity-based PoW scaling (default true)")]
+    public bool EnableCapacityBasedPoW { get; set; } = true;
+
+    /// <summary>
+    /// The load factor threshold (0.0 - 1.0) at which PoW difficulty starts to increase due to server capacity.
+    /// Default 0.5 means PoW remains minimal until server reaches 50% of its max global connections.
+    /// </summary>
+    [IniComment("Load factor threshold for capacity-based PoW scaling (default 0.5)")]
+    [ValueRange(0.0, 1.0)]
+    public double CapacityPoWThreshold { get; set; } = 0.5;
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <exception cref="Abstractions.Exceptions.ValidationException">

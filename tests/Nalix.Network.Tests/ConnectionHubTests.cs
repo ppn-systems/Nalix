@@ -14,6 +14,10 @@ using Nalix.Network.Connections;
 using Nalix.Runtime.Sessions;
 using NSubstitute;
 
+#if DEBUG
+using Nalix.Runtime.Extensions;
+#endif
+
 namespace Nalix.Network.Tests;
 
 [SuppressMessage("Reliability", "CA2007:Consider calling ConfigureAwait on the awaited task", Justification = "xUnit tests intentionally follow the test synchronization context.")]
@@ -84,6 +88,7 @@ public sealed class ConnectionHubTests
            .And.Contain(connection2);
     }
 
+#if DEBUG
     [Fact]
     public async Task UnregisterConnection_WhenSessionStoreFails_ReclaimsSessionSnapshot()
     {
@@ -98,7 +103,7 @@ public sealed class ConnectionHubTests
         using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
 
         connection.Secret = new Bytes32(RandomNumberGenerator.GetBytes(Bytes32.Size));
-        connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
+        connection.GetRuntimeState().HandshakeEstablished = true;
         connection.Attributes[AttributeKey.FromName("attr-1")] = 1;
         connection.Attributes[AttributeKey.FromName("attr-2")] = 2;
         connection.Attributes[AttributeKey.FromName("attr-3")] = 3;
@@ -125,6 +130,7 @@ public sealed class ConnectionHubTests
         reclaimed.Should().BeTrue("Session secret should be zeroed after store failure.");
         attempted.Snapshot.Attributes.Should().BeNull();
     }
+#endif
 
     private sealed class ConnectedSocketScope : IDisposable
     {

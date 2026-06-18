@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Middleware;
-using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Codec.Pooling;
@@ -52,11 +51,12 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
     /// <summary>
     /// Invokes the rate limiting middleware for inbound packets. Checks if the packet exceeds the configured rate limit for the remote IP address.
     /// If the rate limit is exceeded, the packet is not processed further.
+    /// No async state machine is allocated when the request is allowed and the chain completes synchronously.
     /// </summary>
     /// <param name="context">The packet context containing the packet, connection, and metadata.</param>
     /// <param name="next">The next middleware delegate in the pipeline.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public async ValueTask InvokeAsync(IPacketContext<IPacket> context, Func<CancellationToken, ValueTask> next)
+    public ValueTask InvokeAsync(IPacketContext<IPacket> context, Func<CancellationToken, ValueTask> next)
     {
         ArgumentNullException.ThrowIfNull(next);
         ArgumentNullException.ThrowIfNull(context);
@@ -88,14 +88,33 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
                         "RT.RateLimitMiddleware:InvokeAsync",
                         "rate-limiter-disposed request-denied"));
             }
-            return;
+            return default;
         }
 
         if (!decision.Allowed)
         {
-            if (!DirectiveGuard.TryAcquire(
-                context.Connection,
-                ConnectionAttributes.InboundDirectiveRateLimitedLastSentAtMs))
+            // Cold path: rate-limited — requires async I/O to send directive.
+            return SEND_RATELIMITED_ASYNC(context, decision);
+        }
+
+        // Hot path: allowed — forward directly without async state machine.
+        ValueTask pending = next(context.CancellationToken);
+        if (pending.IsCompletedSuccessfully)
+        {
+#pragma warning disable CA1849 // Completed-success fast path.
+            pending.GetAwaiter().GetResult();
+#pragma warning restore CA1849
+            return default;
+        }
+        return AWAIT_NEXT_ASYNC(pending);
+
+        static async ValueTask AWAIT_NEXT_ASYNC(ValueTask operation) => await operation.ConfigureAwait(false);
+
+        static async ValueTask SEND_RATELIMITED_ASYNC(IPacketContext<IPacket> ctx, TokenBucketLimiter.RateLimitDecision dec)
+        {
+            if (!DirectiveGuard.TryAcquire(ctx.Connection,
+                state => state.InboundDirectiveRateLimitedLastSentAtMs,
+                (state, val) => state.InboundDirectiveRateLimitedLastSentAtMs = val))
             {
                 return;
             }
@@ -106,17 +125,13 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
 
             directive.Initialize(
                 ControlType.FAIL, ProtocolReason.RATE_LIMITED, ProtocolAdvice.RETRY,
-                sequenceId: context.Packet.Header.SequenceId,
+                sequenceId: ctx.Packet.Header.SequenceId,
                 controlFlags: ControlFlags.IS_TRANSIENT,
-                arg0: context.Packet.Header.OpCode,
-                arg1: (uint)decision.RetryAfterMs,
-                arg2: decision.Credit);
+                arg0: ctx.Packet.Header.OpCode,
+                arg1: (uint)dec.RetryAfterMs,
+                arg2: dec.Credit);
 
-            await context.Sender.SendAsync(directive, context.CancellationToken).ConfigureAwait(false);
-
-            return;
+            await ctx.Sender.SendAsync(directive, ctx.CancellationToken).ConfigureAwait(false);
         }
-
-        await next(context.CancellationToken).ConfigureAwait(false);
     }
 }

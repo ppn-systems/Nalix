@@ -8,8 +8,10 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Network.Connections;
 using Xunit;
@@ -130,6 +132,14 @@ public sealed class AsyncCallbackDispatchTests
     private static void EnsureLoggerRegistered()
     {
         InstanceManager.Instance.Register<ILogger>(NullLogger.Instance);
+        Nalix.Framework.Options.ObjectPoolOptions poolOpts = ConfigurationManager.Instance.Get<Nalix.Framework.Options.ObjectPoolOptions>();
+        poolOpts.BaseKeepPercentage = 75;
+        poolOpts.DeepTrimPercentage = 25;
+        poolOpts.HotHitRateThreshold = 85.0;
+        poolOpts.DefaultPreallocate = 16;
+        poolOpts.DefaultMaxPoolSize = 1024;
+        InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>();
+        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
     }
 }
 #endif

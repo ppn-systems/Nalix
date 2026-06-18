@@ -747,6 +747,10 @@ internal sealed partial class SocketConnection : IDisposable, IPoolable
                 {
                     Interlocked.Decrement(ref _openFragmentStreams);
 
+                    if (s_opts.OverflowPolicy == NetworkOverflowPolicy.Disconnect)
+                    {
+                        _connectionOwner?.Disconnect("Exceeded MaxPerConnectionOpenFragmentStreams threshold.");
+                    }
 #if DEBUG
                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
                     {

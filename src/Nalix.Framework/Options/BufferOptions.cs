@@ -171,6 +171,32 @@ public sealed partial class BufferOptions : ConfigurationLoader, IValidatableCon
     public int InitialSlabTrackingCapacity { get; set; } = 128;
 
     /// <summary>
+    /// Controls rented-address validation in the buffer pool's <c>SlabBucket</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="ReturnValidation.Disabled"/> disables rented-address tracking entirely,
+    /// eliminating <c>ConcurrentDictionary</c> allocations from the hot path.
+    /// This is the default for production and benchmarks.
+    /// </para>
+    /// <para>
+    /// <see cref="ReturnValidation.SilentDrop"/> enables tracking and silently
+    /// drops invalid returns.
+    /// </para>
+    /// <para>
+    /// <see cref="ReturnValidation.ThrowOnError"/> enables tracking and throws on invalid returns.
+    /// Use this for tests and debugging only.
+    /// </para>
+    /// </remarks>
+    [IniComment("Buffer pool rented-address validation mode (Disabled, SilentDrop, ThrowOnError)\nDisabled = zero-allocation production mode\nSilentDrop = track and silently drop invalid returns\nThrowOnError = track and throw on invalid returns (tests/debug only)")]
+    public ReturnValidation ReturnValidation { get; set; } =
+#if DEBUG
+        ReturnValidation.ThrowOnError;
+#else
+        ReturnValidation.Disabled;
+#endif
+
+    /// <summary>
     /// Threshold in seconds after which an outstanding object is considered "suspicious".
     /// </summary>
     [IniComment("Threshold in seconds to flag 'suspicious' objects in reports")]

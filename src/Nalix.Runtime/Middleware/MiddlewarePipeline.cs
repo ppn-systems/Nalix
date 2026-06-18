@@ -5,6 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
@@ -14,6 +15,8 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Runtime.Dispatching;
+using Nalix.Runtime.Internal.Compilation;
+using Nalix.Runtime.Routing;
 
 namespace Nalix.Runtime.Middleware;
 
@@ -49,6 +52,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
     private long _activeExecutions;
     private long _totalExecutions;
     private long _totalExecutionTicks;
+    private long _maxExecutionTicks;
     private long _totalErrors;
 
     #endregion Fields
@@ -56,13 +60,9 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
     #region APIs
 
     /// <summary>
-    /// Gets the aggregated metrics for the pipeline.
+    /// Gets a value indicating whether the pipeline has no middleware in any stage.
     /// </summary>
-    public PipelineMetrics Metrics => new(
-        Interlocked.Read(ref _activeExecutions),
-        Interlocked.Read(ref _totalExecutions),
-        Interlocked.Read(ref _totalExecutionTicks),
-        Interlocked.Read(ref _totalErrors));
+    public bool IsEmpty => Volatile.Read(ref _snapshot).IsEmpty;
 
     /// <summary>
     /// Gets the metrics for each individual middleware instance.
@@ -70,9 +70,9 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
     public ReadOnlySpan<PerMiddlewareMetrics> MiddlewareMetrics => Volatile.Read(ref _snapshot).Metrics;
 
     /// <summary>
-    /// Gets a value indicating whether the pipeline has no middleware in any stage.
+    /// Gets the aggregated metrics for the pipeline.
     /// </summary>
-    public bool IsEmpty => Volatile.Read(ref _snapshot).IsEmpty;
+    public PipelineMetrics Metrics => new(Interlocked.Read(ref _activeExecutions), Interlocked.Read(ref _totalExecutions), Interlocked.Read(ref _totalExecutionTicks), Interlocked.Read(ref _maxExecutionTicks), Interlocked.Read(ref _totalErrors));
 
     /// <summary>
     /// Clears all registered middleware.
@@ -150,16 +150,18 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
     }
 
     /// <summary>
-    /// Executes the middleware pipeline for a packet context.
+    /// Executes the middleware pipeline for a packet context with a typed terminal handler.
+    /// No per-packet delegate or closure is allocated; the terminal handler is invoked directly.
     /// </summary>
     /// <param name="context">Packet execution context.</param>
-    /// <param name="handler">Final packet handler.</param>
+    /// <param name="dispatch">Dispatch options that own the terminal handler.</param>
+    /// <param name="descriptor">Resolved packet handler descriptor.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A value task representing pipeline completion.</returns>
-    public ValueTask ExecuteAsync(PacketContext<TPacket> context, Func<CancellationToken, ValueTask> handler, CancellationToken ct = default)
+    public ValueTask ExecuteAsync(PacketContext<TPacket> context, PacketDispatchOptions<TPacket> dispatch, PacketHandler<TPacket> descriptor, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(context);
-        ArgumentNullException.ThrowIfNull(handler);
+        ArgumentNullException.ThrowIfNull(dispatch);
 
         _ = Interlocked.Increment(ref _activeExecutions);
         long startTicks = Stopwatch.GetTimestamp();
@@ -167,23 +169,24 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         PipelineSnapshot snapshot = Volatile.Read(ref _snapshot);
         if (snapshot.IsEmpty)
         {
-            ValueTask handlerPending = handler(ct);
+            ValueTask handlerPending = dispatch.ExecuteTerminalHandler(descriptor, context, ct);
             if (handlerPending.IsCompletedSuccessfully)
             {
 #pragma warning disable CA1849 // Completed-success fast path; GetResult observes synchronous exceptions without blocking or allocating an async state machine.
                 handlerPending.GetAwaiter().GetResult();
 #pragma warning restore CA1849
-                this.RecordExecution(startTicks);
+                this.RECORD_EXECUTION(startTicks);
                 return ValueTask.CompletedTask;
             }
             return AwaitPendingEmptyAsync(this, handlerPending, startTicks);
         }
 
-        PooledPipelineContext? runner = this.AcquireRunner();
+        PooledPipelineContext? runner = this.ACQUIRE_RUNNER();
         runner ??= s_pool.Get<PooledPipelineContext>();
 
-        // Initialize for full pipeline execution to avoid intermediate closures.
-        runner.InitializeFull(this, snapshot, context, handler, ct);
+        // Initialize for full pipeline execution.
+        // Terminal handler info is stored as typed fields — no delegate allocation.
+        runner.InitializeFull(this, snapshot, context, dispatch, descriptor, ct);
 
         ValueTask pending = runner.RunAsync();
         if (pending.IsCompletedSuccessfully)
@@ -196,10 +199,10 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             }
             finally
             {
-                this.ReturnRunnerSync(runner);
+                this.RETURN_RUNNER_SYNC(runner);
             }
 
-            this.RecordExecution(startTicks);
+            this.RECORD_EXECUTION(startTicks);
             return ValueTask.CompletedTask;
         }
 
@@ -213,8 +216,8 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             }
             finally
             {
-                owner.ReturnRunnerSync(pooledRunner);
-                owner.RecordExecution(startTicks);
+                owner.RETURN_RUNNER_SYNC(pooledRunner);
+                owner.RECORD_EXECUTION(startTicks);
             }
         }
 
@@ -226,25 +229,17 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             }
             finally
             {
-                owner.RecordExecution(startTicks);
+                owner.RECORD_EXECUTION(startTicks);
             }
         }
     }
 
     /// <inheritdoc/>
-    internal void RecordError() => Interlocked.Increment(ref _totalErrors);
+    public void RecordError() => Interlocked.Increment(ref _totalErrors);
 
     #endregion APIs
 
     #region Private Methods
-
-    private void RecordExecution(long startTicks)
-    {
-        long elapsed = Stopwatch.GetTimestamp() - startTicks;
-        _ = Interlocked.Add(ref _totalExecutionTicks, elapsed);
-        _ = Interlocked.Increment(ref _totalExecutions);
-        _ = Interlocked.Decrement(ref _activeExecutions);
-    }
 
     private static MiddlewareMetadata GetMiddlewareMetadata(Type middlewareType)
     {
@@ -273,7 +268,32 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         });
     }
 
-    private static CancellationTokenSource? CreateExecutionToken(CancellationToken inboundToken, CancellationToken rootToken, out CancellationToken effectiveToken)
+    private void RECORD_EXECUTION(long startTicks)
+    {
+        long elapsed = Stopwatch.GetTimestamp() - startTicks;
+        _ = Interlocked.Add(ref _totalExecutionTicks, elapsed);
+        _ = Interlocked.Increment(ref _totalExecutions);
+        _ = Interlocked.Decrement(ref _activeExecutions);
+        UPDATE_MAX_TICKS(ref _maxExecutionTicks, elapsed);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void UPDATE_MAX_TICKS(ref long maxField, long elapsed)
+    {
+        long max = Volatile.Read(ref maxField);
+        while (elapsed > max)
+        {
+            long prev = Interlocked.CompareExchange(ref maxField, elapsed, max);
+            if (prev == max)
+            {
+                break;
+            }
+
+            max = prev;
+        }
+    }
+
+    private static CancellationTokenSource? CREATE_EXECUTION_TOKEN(CancellationToken inboundToken, CancellationToken rootToken, out CancellationToken effectiveToken)
     {
         if (inboundToken.CanBeCanceled)
         {
@@ -292,8 +312,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         return null;
     }
 
-
-    private PooledPipelineContext? AcquireRunner()
+    private PooledPipelineContext? ACQUIRE_RUNNER()
     {
         for (int i = 0; i < 32; i++)
         {
@@ -311,7 +330,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         return null;
     }
 
-    private void ReturnRunnerSync(PooledPipelineContext runner)
+    private void RETURN_RUNNER_SYNC(PooledPipelineContext runner)
     {
         for (int i = 0; i < 32; i++)
         {
@@ -437,11 +456,12 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         private Func<CancellationToken, ValueTask>? _final;
         private Func<CancellationToken, ValueTask>[] _steps = [];
 
-        // Full pipeline state
+        // Full pipeline state — typed terminal handler (no delegate allocation).
         private MiddlewarePipeline<TPacket>? _owner;
         private PipelineSnapshot? _snapshot;
         private PipelineStage _currentStage;
-        private Func<CancellationToken, ValueTask>? _rootHandler;
+        private PacketDispatchOptions<TPacket>? _dispatch;
+        private PacketHandler<TPacket> _handler;
 
         #endregion Fields
 
@@ -469,13 +489,15 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             MiddlewarePipeline<TPacket> owner,
             PipelineSnapshot snapshot,
             PacketContext<TPacket> context,
-            Func<CancellationToken, ValueTask> handler,
+            PacketDispatchOptions<TPacket> dispatch,
+            PacketHandler<TPacket> handler,
             CancellationToken ct)
         {
             _owner = owner;
             _snapshot = snapshot;
             _context = context;
-            _rootHandler = handler;
+            _dispatch = dispatch;
+            _handler = handler;
             _rootCt = ct;
             _startToken = ct;
             _continueOnError = snapshot.ContinueOnError;
@@ -495,7 +517,8 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             _errorHandler = null;
             _owner = null;
             _snapshot = null;
-            _rootHandler = null;
+            _dispatch = null;
+            _handler = default;
             _currentStage = PipelineStage.None;
         }
 
@@ -575,16 +598,17 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
                     {
                         _ = Interlocked.Add(ref _snapshot.Metrics[entry.MetricIndex]._totalExecutionTicks, elapsed);
                         _ = Interlocked.Increment(ref _snapshot.Metrics[entry.MetricIndex]._totalExecutions);
+                        UPDATE_MAX_TICKS(ref _snapshot.Metrics[entry.MetricIndex]._maxExecutionTicks, elapsed);
                     }
                     return pending;
                 }
 
                 if (!_continueOnError)
                 {
-                    return AwaitAndRecordAsync(this, pending, entry, startTicks);
+                    return AWAIT_AND_RECORD_ASYNC(this, pending, entry, startTicks);
                 }
 
-                return AwaitWithContinueAndRecordAsync(this, pending, entry, next, token, startTicks);
+                return AWAIT_WITH_CONTINUE_AND_RECORD_ASYNC(this, pending, entry, next, token, startTicks);
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
@@ -604,72 +628,111 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             }
         }
 
-        private async ValueTask TRANSITION_ASYNC(CancellationToken token)
+        private ValueTask TRANSITION_ASYNC(CancellationToken token)
         {
             switch (_currentStage)
             {
                 case PipelineStage.Inbound:
-                    await this.EXECUTE_HANDLER_FULL_ASYNC(token).ConfigureAwait(false);
-                    break;
-
+                    {
+                        ValueTask pending = this.EXECUTE_HANDLER_FULL_ASYNC(token);
+                        if (pending.IsCompletedSuccessfully)
+                        {
+#pragma warning disable CA1849
+                            pending.GetAwaiter().GetResult();
+#pragma warning restore CA1849
+                            return default;
+                        }
+                        return AWAIT_TRANSITION_INBOUND_ASYNC(pending);
+                    }
                 case PipelineStage.OutboundAlways:
                     if (!_context!.SkipOutbound && !token.IsCancellationRequested)
                     {
                         this.SET_STAGE(PipelineStage.Outbound);
-                        await this.RunAsync().ConfigureAwait(false);
+                        ValueTask pending = this.RunAsync();
+                        if (pending.IsCompletedSuccessfully)
+                        {
+#pragma warning disable CA1849
+                            pending.GetAwaiter().GetResult();
+#pragma warning restore CA1849
+                            return default;
+                        }
+                        return AWAIT_TRANSITION_OUTBOUND_ASYNC(pending);
                     }
                     else
                     {
                         _currentStage = PipelineStage.Finished;
+                        return default;
                     }
-                    break;
 
                 case PipelineStage.Outbound:
                     _currentStage = PipelineStage.Finished;
-                    break;
+                    return default;
                 case PipelineStage.None:
                 case PipelineStage.Mid:
                 case PipelineStage.Finished:
                 default:
-                    break;
+                    return default;
             }
+
+            static async ValueTask AWAIT_TRANSITION_INBOUND_ASYNC(ValueTask pending) => await pending.ConfigureAwait(false);
+
+            static async ValueTask AWAIT_TRANSITION_OUTBOUND_ASYNC(ValueTask pending) => await pending.ConfigureAwait(false);
         }
 
-        private async ValueTask EXECUTE_HANDLER_FULL_ASYNC(CancellationToken inboundCt)
+        private ValueTask EXECUTE_HANDLER_FULL_ASYNC(CancellationToken inboundCt)
         {
-            CancellationTokenSource? linkedCts = null;
-            try
-            {
-                linkedCts = CreateExecutionToken(inboundCt, _rootCt, out CancellationToken handlerCt);
+            CancellationTokenSource? linkedCts = CREATE_EXECUTION_TOKEN(inboundCt, _rootCt, out CancellationToken handlerCt);
 
-                try
-                {
-                    ValueTask handlerPending = _rootHandler!(handlerCt);
-                    if (!handlerPending.IsCompletedSuccessfully)
-                    {
-                        await handlerPending.ConfigureAwait(false);
-                    }
-                    else
-                    {
-#pragma warning disable CA1849 // Completed-success fast path; GetResult observes synchronous exceptions without blocking or allocating an async state machine.
-                        handlerPending.GetAwaiter().GetResult();
+            // Direct terminal handler invocation — no delegate allocation.
+            ValueTask handlerPending = _dispatch!.ExecuteTerminalHandler(_handler, _context!, handlerCt);
+
+            if (handlerPending.IsCompletedSuccessfully)
+            {
+#pragma warning disable CA1849 // Completed-success fast path.
+                handlerPending.GetAwaiter().GetResult();
 #pragma warning restore CA1849
-                    }
-                }
-                catch (OperationCanceledException) when (handlerCt.IsCancellationRequested)
-                {
-                }
+                linkedCts?.Dispose();
 
                 this.SET_STAGE(PipelineStage.OutboundAlways);
-                await this.RunAsync().ConfigureAwait(false);
+                ValueTask outboundPending = this.RunAsync();
+                if (outboundPending.IsCompletedSuccessfully)
+                {
+#pragma warning disable CA1849
+                    outboundPending.GetAwaiter().GetResult();
+#pragma warning restore CA1849
+                    return default;
+                }
+                return AWAIT_OUTBOUND_ASYNC(outboundPending);
             }
-            finally
+
+            return AWAIT_HANDLER_AND_OUTBOUND_ASYNC(this, handlerPending, handlerCt, linkedCts);
+
+            static async ValueTask AWAIT_OUTBOUND_ASYNC(ValueTask outbound) => await outbound.ConfigureAwait(false);
+
+            static async ValueTask AWAIT_HANDLER_AND_OUTBOUND_ASYNC(
+                PooledPipelineContext runner, ValueTask handler, CancellationToken handlerCt, CancellationTokenSource? linkedCts)
             {
-                linkedCts?.Dispose();
+                try
+                {
+                    try
+                    {
+                        await handler.ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException) when (handlerCt.IsCancellationRequested)
+                    {
+                    }
+
+                    runner.SET_STAGE(PipelineStage.OutboundAlways);
+                    await runner.RunAsync().ConfigureAwait(false);
+                }
+                finally
+                {
+                    linkedCts?.Dispose();
+                }
             }
         }
 
-        private static async ValueTask AwaitWithContinueAndRecordAsync(
+        private static async ValueTask AWAIT_WITH_CONTINUE_AND_RECORD_ASYNC(
             PooledPipelineContext runner,
             ValueTask pending,
             MiddlewareEntry entry,
@@ -686,6 +749,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
                 {
                     _ = Interlocked.Add(ref runner._snapshot.Metrics[entry.MetricIndex]._totalExecutionTicks, elapsed);
                     _ = Interlocked.Increment(ref runner._snapshot.Metrics[entry.MetricIndex]._totalExecutions);
+                    UPDATE_MAX_TICKS(ref runner._snapshot.Metrics[entry.MetricIndex]._maxExecutionTicks, elapsed);
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -701,7 +765,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             }
         }
 
-        private static async ValueTask AwaitAndRecordAsync(PooledPipelineContext runner, ValueTask pending, MiddlewareEntry entry, long startTicks)
+        private static async ValueTask AWAIT_AND_RECORD_ASYNC(PooledPipelineContext runner, ValueTask pending, MiddlewareEntry entry, long startTicks)
         {
             await pending.ConfigureAwait(false);
             long elapsed = Stopwatch.GetTimestamp() - startTicks;
@@ -709,6 +773,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             {
                 _ = Interlocked.Add(ref runner._snapshot.Metrics[entry.MetricIndex]._totalExecutionTicks, elapsed);
                 _ = Interlocked.Increment(ref runner._snapshot.Metrics[entry.MetricIndex]._totalExecutions);
+                UPDATE_MAX_TICKS(ref runner._snapshot.Metrics[entry.MetricIndex]._maxExecutionTicks, elapsed);
             }
         }
 

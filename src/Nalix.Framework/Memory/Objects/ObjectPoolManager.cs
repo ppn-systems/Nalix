@@ -392,7 +392,12 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
             }
         }
 
-        pool.ReturnFast(obj, id);
+        bool retained = pool.ReturnFast(obj, id);
+
+        if (!retained && (_config.EnableMetrics || _config.EnableDiagnostics))
+        {
+            _ = Interlocked.Increment(ref metrics.TotalDropped);
+        }
     }
 
     /// <summary>Gets or creates a type-specific pool adapter for <typeparamref name="T"/>.</summary>
@@ -491,6 +496,7 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
             _ = Interlocked.Exchange(ref metrics.ConsecutiveFailures, 0);
             _ = Interlocked.Exchange(ref metrics.TotalCreated, 0);
             _ = Interlocked.Exchange(ref metrics.TotalDisposed, 0);
+            _ = Interlocked.Exchange(ref metrics.TotalDropped, 0);
             _ = Interlocked.Exchange(ref metrics.LastHealthGets, 0);
             _ = Interlocked.Exchange(ref metrics.LastHealthHits, 0);
             _ = Interlocked.Exchange(ref metrics.LastHealthMisses, 0);
@@ -516,8 +522,10 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
                 ["TotalGets"] = 0L,
                 ["TotalReturns"] = 0L,
                 ["TotalCreated"] = 0L,
+                ["TotalDropped"] = 0L,
                 ["CacheHitRate"] = 0.0,
                 ["CacheMisses"] = 0L,
+                ["TrimCount"] = 0L,
                 ["Outstanding"] = 0L,
                 ["PeakOutstanding"] = 0L,
                 ["LastAccessUtc"] = DateTime.MinValue,
@@ -529,8 +537,10 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
         _ = info.TryAdd("TotalGets", 0L);
         _ = info.TryAdd("TotalReturns", 0L);
         _ = info.TryAdd("TotalCreated", 0L);
+        _ = info.TryAdd("TotalDropped", 0L);
         _ = info.TryAdd("CacheHitRate", 0.0);
         _ = info.TryAdd("CacheMisses", 0L);
+        _ = info.TryAdd("TrimCount", 0L);
         _ = info.TryAdd("Outstanding", 0L);
         _ = info.TryAdd("PeakOutstanding", 0L);
         _ = info.TryAdd("LastAccessUtc", DateTime.MinValue);
@@ -543,10 +553,12 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
             info["TotalGets"] = metrics.TotalGets;
             info["TotalReturns"] = metrics.TotalReturns;
             info["TotalCreated"] = metrics.TotalCreated;
+            info["TotalDropped"] = metrics.TotalDropped;
             info["CacheHitRate"] = metrics.TotalGets > 0
                 ? (metrics.CacheHits / (double)metrics.TotalGets * 100.0)
                 : 0.0;
             info["CacheMisses"] = metrics.CacheMisses;
+            info["TrimCount"] = metrics.TrimCount;
             info["LastAccessUtc"] = metrics.LastAccessUtc;
             info["LastAccessType"] = metrics.LastAccessType ?? "None";
             info["Outstanding"] = metrics.Outstanding;
@@ -734,9 +746,11 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
     {
         Type type = typeof(T);
 
+        // Fast path: pool already exists — return directly without touching _metricsDict.
+        // Metrics are initialized on the slow path (pool creation) and via
+        // InitializePoolAndMetricsFast which is called when _pools[id] is null.
         if (_poolDict.TryGetValue(type, out ObjectPool? existing))
         {
-            _ = _metricsDict.GetOrAdd(type, _ => new PoolMetrics());
             return existing;
         }
 

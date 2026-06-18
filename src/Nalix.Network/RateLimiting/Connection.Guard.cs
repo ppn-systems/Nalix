@@ -67,6 +67,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
     private int _reloadPending;
     private IRecurringHandle? _saveJob;
     private IRecurringHandle? _cleanupJob;
+    private IRecurringHandle? _ewmaJob;
     private IRecurringHandle? _hotReloadJob;
     private System.IO.FileSystemWatcher? _configWatcher;
 
@@ -81,8 +82,13 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
     private long _totalRejections;
     private long _totalCleanedEntries;
 
+    private int _peakGlobalConnections;
+    private int _peakTrackedEndpoints;
+
     private double _ewmaConnectionRate;
     private long _ewmaLastUpdateTicks;
+    private long _ewmaLastConnectionAttempts;
+    private SpinLock _ewmaLock = new(false);
 
     private readonly long _banCountDecayWindowTicks;
 
@@ -100,20 +106,40 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
                 return _config.AdaptivePowMinDifficulty;
             }
 
+            // Rate-based scale (0..1)
             double rate = Volatile.Read(ref _ewmaConnectionRate);
+            double rateScale;
             if (rate <= _config.AdaptivePowStartRate)
             {
-                return _config.AdaptivePowMinDifficulty;
+                rateScale = 0.0;
             }
-
-            if (rate >= _config.AdaptivePowMaxRate)
+            else if (rate >= _config.AdaptivePowMaxRate)
             {
-                return _config.AdaptivePowMaxDifficulty;
+                rateScale = 1.0;
+            }
+            else
+            {
+                rateScale = (rate - _config.AdaptivePowStartRate) / (_config.AdaptivePowMaxRate - _config.AdaptivePowStartRate);
             }
 
-            double scale = (rate - _config.AdaptivePowStartRate) / (_config.AdaptivePowMaxRate - _config.AdaptivePowStartRate);
+            // Capacity-based scale (0..1)
+            double capacityScale = 1.0;
+            if (_config.EnableCapacityBasedPoW && _maxGlobalConnections > 0)
+            {
+                double loadFactor = (double)Volatile.Read(ref _globalConnections) / _maxGlobalConnections;
+                if (loadFactor <= _config.CapacityPoWThreshold)
+                {
+                    capacityScale = 0.0;
+                }
+                else
+                {
+                    capacityScale = (loadFactor - _config.CapacityPoWThreshold) / (1.0 - _config.CapacityPoWThreshold);
+                }
+            }
+
+            double finalScale = rateScale * capacityScale;
             double diffRange = _config.AdaptivePowMaxDifficulty - _config.AdaptivePowMinDifficulty;
-            return (byte)(_config.AdaptivePowMinDifficulty + (diffRange * scale));
+            return (byte)(_config.AdaptivePowMinDifficulty + (diffRange * finalScale));
         }
     }
 
@@ -314,6 +340,18 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
                 }
                 if (Interlocked.CompareExchange(ref _globalConnections, current + 1, current) == current)
                 {
+                    int newTotal = current + 1;
+                    if (newTotal > Volatile.Read(ref _peakGlobalConnections))
+                    {
+                        int currentPeak;
+                        while (newTotal > (currentPeak = Volatile.Read(ref _peakGlobalConnections)))
+                        {
+                            if (Interlocked.CompareExchange(ref _peakGlobalConnections, newTotal, currentPeak) == currentPeak)
+                            {
+                                break;
+                            }
+                        }
+                    }
                     break;
                 }
             }
@@ -324,7 +362,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         long attempts = Interlocked.Read(ref _totalConnectionAttempts);
         if (attempts % 100 == 0)
         {
-            this.UPDATE_EWMA(now.Ticks);
+            this.UPDATE_EWMA_SHARED();
         }
 
         ConnectionAllowResult result = this.TRY_ACQUIRE_CONNECTION_SLOT(key, now, endPoint.Address);
@@ -421,6 +459,18 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
                 }
                 if (Interlocked.CompareExchange(ref _globalConnections, current + 1, current) == current)
                 {
+                    int newTotal = current + 1;
+                    if (newTotal > Volatile.Read(ref _peakGlobalConnections))
+                    {
+                        int currentPeak;
+                        while (newTotal > (currentPeak = Volatile.Read(ref _peakGlobalConnections)))
+                        {
+                            if (Interlocked.CompareExchange(ref _peakGlobalConnections, newTotal, currentPeak) == currentPeak)
+                            {
+                                break;
+                            }
+                        }
+                    }
                     break;
                 }
             }
@@ -429,7 +479,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         long attempts = Interlocked.Read(ref _totalConnectionAttempts);
         if (attempts % 100 == 0)
         {
-            this.UPDATE_EWMA(now.Ticks);
+            this.UPDATE_EWMA_SHARED();
         }
 
         // Zero-alloc connection slot: trusted-proxy check uses SocketEndpoint directly.
@@ -610,6 +660,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         {
             _cleanupJob?.Dispose();
             _saveJob?.Dispose();
+            _ewmaJob?.Dispose();
             _hotReloadJob?.Dispose();
 
             if (_configWatcher != null)

@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Diagnostics;
+using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Environment.Configuration;
@@ -39,8 +40,9 @@ namespace Nalix.Runtime.Throttling;
 /// This class is thread-safe and optimized for high-throughput network environments.
 /// </para>
 /// </remarks>
-[DebuggerNonUserCode]
+[Injectable]
 [SkipLocalsInit]
+[DebuggerNonUserCode]
 public sealed class PolicyRateLimiter : IReportable, IDisposable
 {
     #region Fields
