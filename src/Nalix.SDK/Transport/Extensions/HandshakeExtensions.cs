@@ -88,6 +88,7 @@ public static class HandshakeExtensions
         if (response is Control controlPacket)
         {
             controlPacket.Dispose();
+            composite.Dispose(); // Dispose subChallenge early to avoid double-deserialize
 
             // --- Proof-of-Work Negotiation ---
             using Control powReq = new();

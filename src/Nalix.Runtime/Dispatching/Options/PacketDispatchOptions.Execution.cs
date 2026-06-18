@@ -24,42 +24,14 @@ public sealed partial class PacketDispatchOptions<TPacket>
 {
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    private async ValueTask ExecuteHandlerAsync(PacketHandler<TPacket> descriptor, PacketContext<TPacket> context)
+    private ValueTask ExecuteHandlerAsync(PacketHandler<TPacket> descriptor, PacketContext<TPacket> context)
     {
         // If the packet was deserialized into the wrong runtime type, fail early and
         // send a protocol-level response instead of letting the handler crash later.
         Type? expectedType = descriptor.ExpectedPacketType;
         if (expectedType is not null && !expectedType.IsInstanceOfType(context.Packet))
         {
-            Type? actualType = context.Packet?.GetType();
-            IPacket? packet = context.Packet;
-
-            if (packet is null)
-            {
-                return;
-            }
-
-            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
-            {
-                string actualName = actualType?.Name ?? "null";
-                DiagnosticsEvents.Write(
-                    DiagnosticsEvents.Internal.Debug,
-                    new DiagnosticLog(
-                        "RT.PacketDispatchOptions:ExecuteHandlerAsync",
-                        $"type-mismatch opcode=0x{descriptor.OpCode:X4} expected={expectedType.Name} actual={actualName}"));
-            }
-
-            await this.TrySendControlAsync(
-                context,
-                descriptor.OpCode,
-                controlType: ControlType.FAIL,
-                reason: ProtocolReason.REQUEST_INVALID,
-                action: ProtocolAdvice.FIX_AND_RETRY,
-                options: new ControlDirectiveOptions(
-                    SequenceId: packet.Header.SequenceId,
-                    Arg0: descriptor.OpCode)).ConfigureAwait(false);
-
-            return;
+            return HandleTypeMismatchAsync(this, descriptor, context);
         }
 
         // Industrial-grade validation: if the packet implements IPacketValidatable,
@@ -67,26 +39,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         // application code touch it.
         if (context.Packet is IPacketValidatable validatable && !validatable.Validate(out string? failureReason))
         {
-            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
-            {
-                DiagnosticsEvents.Write(
-                    DiagnosticsEvents.Internal.Warning,
-                    new DiagnosticLog(
-                        "RT.PacketDispatchOptions:ExecuteHandlerAsync",
-                        $"validation-failed opcode=0x{descriptor.OpCode} reason={failureReason} skipping-handler"));
-            }
-
-            await this.TrySendControlAsync(
-                context,
-                descriptor.OpCode,
-                controlType: ControlType.FAIL,
-                reason: ProtocolReason.MALFORMED_PACKET,
-                action: ProtocolAdvice.FIX_AND_RETRY,
-                options: new ControlDirectiveOptions(
-                    SequenceId: context.Packet.Header.SequenceId,
-                    Arg0: descriptor.OpCode)).ConfigureAwait(false);
-
-            return;
+            return HandleValidationFailureAsync(this, descriptor, context, failureReason);
         }
 
         // Void / Task / ValueTask handlers do not produce an outbound packet payload.
@@ -96,130 +49,295 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             // The packet pipeline runs first so middleware can transform, validate, or short-circuit
             // the context before the actual handler executes.
-            await _pipeline.ExecuteAsync(context, InvokeHandlerAsync, context.CancellationToken)
-                           .ConfigureAwait(false);
+            // Terminal handler is invoked directly — no per-packet delegate/closure allocated.
+            ValueTask pending = _pipeline.ExecuteAsync(context, this, descriptor, context.CancellationToken);
+            if (pending.IsCompletedSuccessfully)
+            {
+#pragma warning disable CA1849 // Completed-success fast path.
+                pending.GetAwaiter().GetResult();
+#pragma warning restore CA1849
+                return default;
+            }
+            return AwaitPipelineCompletionAsync(pending);
         }
         else
         {
-            await InvokeHandlerAsync(context.CancellationToken).ConfigureAwait(false);
-        }
-
-        async ValueTask InvokeHandlerAsync(CancellationToken ct = default)
-        {
-            IPacket? responsePacket = null;
-            try
-            {
-                ct.ThrowIfCancellationRequested();
-
-                if (!descriptor.CanExecute(context))
-                {
-                    // Rate limiting is treated as a protocol failure with a transient retry hint.
-                    await this.TrySendControlAsync(
-                        context,
-                        descriptor.OpCode,
-                        controlType: ControlType.FAIL,
-                        reason: ProtocolReason.RATE_LIMITED,
-                        action: ProtocolAdvice.RETRY,
-                        options: new ControlDirectiveOptions(
-                            Flags: ControlFlags.IS_TRANSIENT,
-                            SequenceId: context.Packet.Header.SequenceId,
-                            Arg0: descriptor.OpCode)).ConfigureAwait(false);
-
-                    return;
-                }
-
-                object? result = await AwaitHandlerResultAsync(descriptor.ExecuteAsync(context), ct).ConfigureAwait(false);
-
-                if (!context.SkipOutbound && result is not null)
-                {
-                    if (result is IPacket packetResult)
-                    {
-                        responsePacket = packetResult;
-                        await AwaitReturnAsync(context.Sender.SendAsync(packetResult, ct), ct).ConfigureAwait(false);
-                    }
-                    else if (result is ReadOnlyMemory<byte> rom)
-                    {
-                        await SendRawAsync(context, rom).ConfigureAwait(false);
-                    }
-                    else if (result is byte[] arr)
-                    {
-                        await SendRawAsync(context, arr).ConfigureAwait(false);
-                    }
-                    else if (result is Memory<byte> mem)
-                    {
-                        await SendRawAsync(context, mem).ConfigureAwait(false);
-                    }
-                }
-            }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested)
-            {
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-            {
-                await this.HandleDispatchExceptionAsync(descriptor, context, ex)
-                          .ConfigureAwait(false);
-            }
-            finally
-            {
-                // Return handler-returned response packets to their pool.
-                // PacketSender.SendAsync only serializes; it does not own or dispose the packet.
-                // Skip disposal when the handler returned the same request-packet instance,
-                // because the base PacketContext already owns that lifecycle.
-                // PacketBase.Dispose is idempotent (atomic _isRented guard), so this is safe
-                // even if the packet was already disposed by another path.
-                if (responsePacket is not null && !ReferenceEquals(responsePacket, context.Packet))
-                {
-                    if (responsePacket is IDisposable disposableResponse)
-                    {
-                        disposableResponse.Dispose();
-                    }
-                }
-            }
-        }
-
-        static async ValueTask<object?> AwaitHandlerResultAsync(ValueTask<object?> pending, CancellationToken token)
-        {
-            // Fast path: if the handler already completed, avoid an allocation and return the result directly.
-            token.ThrowIfCancellationRequested();
-
+            ValueTask pending = this.ExecuteTerminalHandler(descriptor, context, context.CancellationToken);
             if (pending.IsCompletedSuccessfully)
             {
-                return pending.Result;
-            }
-
-            return await CancellableValueTaskSource<object?>.Await(pending, token)
-                                                           .ConfigureAwait(false);
-        }
-
-        static async ValueTask AwaitReturnAsync(ValueTask pending, CancellationToken token)
-        {
-            // Same fast-path pattern as above, but for handlers that only need to emit side effects.
-            token.ThrowIfCancellationRequested();
-
-            if (pending.IsCompletedSuccessfully)
-            {
-#pragma warning disable CA1849 // Completed-success fast path; GetResult observes synchronous exceptions without blocking or allocating an async state machine.
+#pragma warning disable CA1849 // Completed-success fast path.
                 pending.GetAwaiter().GetResult();
 #pragma warning restore CA1849
-                return;
+                return default;
             }
+            return AwaitHandlerCompletionAsync(pending);
+        }
+    }
 
-            await CancellableValueTaskSource.Await(pending, token)
-                                            .ConfigureAwait(false);
+    /// <summary>
+    /// Executes the terminal packet handler with explicit parameters.
+    /// This method replaces the former per-packet-captured InvokeHandlerAsync local function.
+    /// No delegate, closure, or async state machine is allocated for synchronous completions.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    internal ValueTask ExecuteTerminalHandler(PacketHandler<TPacket> descriptor, PacketContext<TPacket> context, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        // Permission check — sync, no allocation.
+        if (!descriptor.CanExecute(context))
+        {
+            // Cold path: denied — requires async I/O to send directive.
+            return SendDenyControlAsync(this, descriptor, context);
         }
 
-        static async ValueTask SendRawAsync(PacketContext<TPacket> context, ReadOnlyMemory<byte> data)
+        // Handler execution — try sync fast-path.
+        ValueTask<object?> handlerResult = descriptor.ExecuteAsync(context);
+
+        if (handlerResult.IsCompletedSuccessfully)
         {
-            if (context.IsReliable || context.Connection.UDP is null)
+            object? result = handlerResult.Result;
+
+            if (context.SkipOutbound || result is null)
             {
-                await context.Connection.TCP.SendAsync(data).ConfigureAwait(false);
+                return default; // Hot path: zero allocation.
             }
-            else
+
+            // Response needed — delegate to async helper.
+            return SendHandlerResponseAsync(this, descriptor, context, result, ct);
+        }
+
+        // Handler didn't complete synchronously — async slow-path.
+        return AwaitHandlerAndRespondAsync(this, descriptor, context, handlerResult, ct);
+    }
+
+    #region Terminal Handler Async Slow-Paths
+
+    private static async ValueTask SendDenyControlAsync(
+        PacketDispatchOptions<TPacket> owner, PacketHandler<TPacket> descriptor,
+        PacketContext<TPacket> context)
+    {
+        try
+        {
+            // Rate limiting is treated as a protocol failure with a transient retry hint.
+            await owner.TrySendControlAsync(
+                context,
+                descriptor.OpCode,
+                controlType: ControlType.FAIL,
+                reason: ProtocolReason.RATE_LIMITED,
+                action: ProtocolAdvice.RETRY,
+                options: new ControlDirectiveOptions(
+                    Flags: ControlFlags.IS_TRANSIENT,
+                    SequenceId: context.Packet.Header.SequenceId,
+                    Arg0: descriptor.OpCode)).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            await owner.HandleDispatchExceptionAsync(descriptor, context, ex)
+                      .ConfigureAwait(false);
+        }
+    }
+
+    private static async ValueTask SendHandlerResponseAsync(
+        PacketDispatchOptions<TPacket> owner, PacketHandler<TPacket> descriptor,
+        PacketContext<TPacket> context, object result, CancellationToken ct)
+    {
+        IPacket? responsePacket = null;
+        try
+        {
+            if (result is IPacket packetResult)
             {
-                await context.Connection.UDP.SendAsync(data).ConfigureAwait(false);
+                responsePacket = packetResult;
+                await AwaitReturnAsync(context.Sender.SendAsync(packetResult, ct), ct).ConfigureAwait(false);
+            }
+            else if (result is ReadOnlyMemory<byte> rom)
+            {
+                await SendRawAsync(context, rom).ConfigureAwait(false);
+            }
+            else if (result is byte[] arr)
+            {
+                await SendRawAsync(context, arr).ConfigureAwait(false);
+            }
+            else if (result is Memory<byte> mem)
+            {
+                await SendRawAsync(context, mem).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            await owner.HandleDispatchExceptionAsync(descriptor, context, ex)
+                      .ConfigureAwait(false);
+        }
+        finally
+        {
+            if (responsePacket is not null && !ReferenceEquals(responsePacket, context.Packet))
+            {
+                if (responsePacket is IDisposable disposableResponse)
+                {
+                    disposableResponse.Dispose();
+                }
             }
         }
     }
+
+    private static async ValueTask AwaitHandlerAndRespondAsync(
+        PacketDispatchOptions<TPacket> owner, PacketHandler<TPacket> descriptor,
+        PacketContext<TPacket> context, ValueTask<object?> handlerResult, CancellationToken ct)
+    {
+        IPacket? responsePacket = null;
+        try
+        {
+            object? result = await AwaitHandlerResultAsync(handlerResult, ct).ConfigureAwait(false);
+
+            if (!context.SkipOutbound && result is not null)
+            {
+                if (result is IPacket packetResult)
+                {
+                    responsePacket = packetResult;
+                    await AwaitReturnAsync(context.Sender.SendAsync(packetResult, ct), ct).ConfigureAwait(false);
+                }
+                else if (result is ReadOnlyMemory<byte> rom)
+                {
+                    await SendRawAsync(context, rom).ConfigureAwait(false);
+                }
+                else if (result is byte[] arr)
+                {
+                    await SendRawAsync(context, arr).ConfigureAwait(false);
+                }
+                else if (result is Memory<byte> mem)
+                {
+                    await SendRawAsync(context, mem).ConfigureAwait(false);
+                }
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            await owner.HandleDispatchExceptionAsync(descriptor, context, ex)
+                      .ConfigureAwait(false);
+        }
+        finally
+        {
+            if (responsePacket is not null && !ReferenceEquals(responsePacket, context.Packet))
+            {
+                if (responsePacket is IDisposable disposableResponse)
+                {
+                    disposableResponse.Dispose();
+                }
+            }
+        }
+    }
+
+    #endregion Terminal Handler Async Slow-Paths
+
+    #region Terminal Handler Static Helpers
+
+    private static async ValueTask HandleTypeMismatchAsync(PacketDispatchOptions<TPacket> owner, PacketHandler<TPacket> descriptor, PacketContext<TPacket> context)
+    {
+        Type? actualType = context.Packet?.GetType();
+        IPacket? packet = context.Packet;
+
+        if (packet is null)
+        {
+            return;
+        }
+
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
+        {
+            string actualName = actualType?.Name ?? "null";
+            DiagnosticsEvents.Write(
+                DiagnosticsEvents.Internal.Debug,
+                new DiagnosticLog(
+                    "RT.PacketDispatchOptions:ExecuteHandlerAsync",
+                    $"type-mismatch opcode=0x{descriptor.OpCode:X4} expected={descriptor.ExpectedPacketType!.Name} actual={actualName}"));
+        }
+
+        await owner.TrySendControlAsync(
+            context,
+            descriptor.OpCode,
+            controlType: ControlType.FAIL,
+            reason: ProtocolReason.REQUEST_INVALID,
+            action: ProtocolAdvice.FIX_AND_RETRY,
+            options: new ControlDirectiveOptions(
+                SequenceId: packet.Header.SequenceId,
+                Arg0: descriptor.OpCode)).ConfigureAwait(false);
+    }
+
+    private static async ValueTask HandleValidationFailureAsync(PacketDispatchOptions<TPacket> owner, PacketHandler<TPacket> descriptor, PacketContext<TPacket> context, string? failureReason)
+    {
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
+        {
+            DiagnosticsEvents.Write(
+                DiagnosticsEvents.Internal.Warning,
+                new DiagnosticLog(
+                    "RT.PacketDispatchOptions:ExecuteHandlerAsync",
+                    $"validation-failed opcode=0x{descriptor.OpCode} reason={failureReason} skipping-handler"));
+        }
+
+        await owner.TrySendControlAsync(
+            context,
+            descriptor.OpCode,
+            controlType: ControlType.FAIL,
+            reason: ProtocolReason.MALFORMED_PACKET,
+            action: ProtocolAdvice.FIX_AND_RETRY,
+            options: new ControlDirectiveOptions(
+                SequenceId: context.Packet.Header.SequenceId,
+                Arg0: descriptor.OpCode)).ConfigureAwait(false);
+    }
+
+    private static async ValueTask AwaitPipelineCompletionAsync(ValueTask pending) => await pending.ConfigureAwait(false);
+
+    private static async ValueTask AwaitHandlerCompletionAsync(ValueTask pending) => await pending.ConfigureAwait(false);
+
+    private static async ValueTask<object?> AwaitHandlerResultAsync(ValueTask<object?> pending, CancellationToken token)
+    {
+        // Fast path: if the handler already completed, avoid an allocation and return the result directly.
+        token.ThrowIfCancellationRequested();
+
+        if (pending.IsCompletedSuccessfully)
+        {
+            return pending.Result;
+        }
+
+        return await CancellableValueTaskSource<object?>.Await(pending, token)
+                                                         .ConfigureAwait(false);
+    }
+
+    private static async ValueTask AwaitReturnAsync(ValueTask pending, CancellationToken token)
+    {
+        // Same fast-path pattern as above, but for handlers that only need to emit side effects.
+        token.ThrowIfCancellationRequested();
+
+        if (pending.IsCompletedSuccessfully)
+        {
+#pragma warning disable CA1849 // Completed-success fast path; GetResult observes synchronous exceptions without blocking or allocating an async state machine.
+            pending.GetAwaiter().GetResult();
+#pragma warning restore CA1849
+            return;
+        }
+
+        await CancellableValueTaskSource.Await(pending, token)
+                                        .ConfigureAwait(false);
+    }
+
+    private static async ValueTask SendRawAsync(PacketContext<TPacket> context, ReadOnlyMemory<byte> data)
+    {
+        if (context.IsReliable || context.Connection.UDP is null)
+        {
+            await context.Connection.TCP.SendAsync(data).ConfigureAwait(false);
+        }
+        else
+        {
+            await context.Connection.UDP.SendAsync(data).ConfigureAwait(false);
+        }
+    }
+
+    #endregion Terminal Handler Static Helpers
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
