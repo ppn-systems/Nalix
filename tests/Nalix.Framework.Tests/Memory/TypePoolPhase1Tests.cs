@@ -10,6 +10,7 @@ using Nalix.Framework.Options;
 
 namespace Nalix.Framework.Tests.Memory;
 
+#if DEBUG
 [Collection("TypePoolPhase1")]
 public sealed class TypePoolPhase1Tests
 {
@@ -832,3 +833,4 @@ public sealed class TypePoolPhase1Tests
         Assert.Equal(0, pool.TotalAvailableCount);
     }
 }
+#endif

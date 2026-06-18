@@ -66,13 +66,18 @@ public sealed class CustomSessionPersistencePolicyTests
         attributes.Return();
     }
 
+#if DEBUG
     [Fact]
     public void DefaultSessionPersistencePolicy_Succeeds_WhenHandshakeEstablishedAndEnoughAttributes()
     {
         // Arrange
         var mockConnection = Substitute.For<IConnection>();
         var attributes = Nalix.Framework.Memory.Objects.ObjectMap<AttributeKey, object>.Rent();
-        attributes[ConnectionAttributes.HandshakeEstablished] = true;
+        
+        var runtimeState = new Nalix.Runtime.Internal.RuntimeConnectionState();
+        runtimeState.HandshakeEstablished = true;
+        attributes[ConnectionAttributes.RuntimeState] = runtimeState;
+
         for (int i = 0; i < 20; i++)
         {
             attributes[AttributeKey.FromName($"key_{i}")] = i;
@@ -86,4 +91,5 @@ public sealed class CustomSessionPersistencePolicyTests
 
         attributes.Return();
     }
+#endif
 }

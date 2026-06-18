@@ -23,6 +23,7 @@ using Xunit;
 
 namespace Nalix.Runtime.Tests;
 
+#if DEBUG
 [SuppressMessage("Reliability", "CA2007:Consider calling ConfigureAwait on the awaited task", Justification = "xUnit tests intentionally follow the test synchronization context.")]
 public sealed class DispatchChannelTests
 {
@@ -594,3 +595,4 @@ public sealed class DispatchChannelTests
 
     #endregion
 }
+#endif

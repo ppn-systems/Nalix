@@ -150,7 +150,7 @@ public sealed class RuntimeObservationSdkSendTests
     private static string FormatExceptionChain(Exception? exception)
     {
         StringBuilder builder = new();
-        for (Exception current = exception; current is not null; current = current.InnerException)
+        for (Exception? current = exception; current is not null; current = current.InnerException)
         {
             builder.AppendLine(string.Format("--- {0} ---", current.GetType().FullName));
             builder.AppendLine(current.Message);
