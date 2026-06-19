@@ -26,6 +26,9 @@ internal static class Verifier<TCodeFix>
     public static async Task VerifyAnalyzerAsync(string source, params string[] expectedDiagnosticIds)
         => await VerifyAnalyzerAsync([source], expectedDiagnosticIds).ConfigureAwait(false);
 
+    public static async Task VerifyAnalyzerInAssemblyAsync(string source, string assemblyName, params string[] expectedDiagnosticIds)
+        => await VerifyAnalyzerInAssemblyAsync([source], assemblyName, expectedDiagnosticIds).ConfigureAwait(false);
+
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1310:Specify StringComparison for correctness", Justification = "<Pending>")]
     public static async Task VerifyAnalyzerAsync(string[] sources, params string[] expectedDiagnosticIds)
     {
@@ -34,6 +37,22 @@ internal static class Verifier<TCodeFix>
         ImmutableArray<Diagnostic> diagnostics = await GetDiagnosticsAsync(document).ConfigureAwait(false);
 
         // Filter diagnostics to only those in TestX.cs files
+        string[] actual = [.. diagnostics
+            .Where(d => d.Location.SourceTree?.FilePath?.StartsWith("Test") == true)
+            .Select(d => d.Id)
+            .OrderBy(x => x)];
+
+        string[] expected = [.. expectedDiagnosticIds.OrderBy(x => x)];
+        Assert.Equal(expected, actual);
+    }
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1310:Specify StringComparison for correctness", Justification = "<Pending>")]
+    public static async Task VerifyAnalyzerInAssemblyAsync(string[] sources, string assemblyName, params string[] expectedDiagnosticIds)
+    {
+        Project project = CreateProject(sources, assemblyName);
+        Document document = project.Documents.First(d => d.Name != "Prelude.cs");
+        ImmutableArray<Diagnostic> diagnostics = await GetDiagnosticsAsync(document).ConfigureAwait(false);
+
         string[] actual = [.. diagnostics
             .Where(d => d.Location.SourceTree?.FilePath?.StartsWith("Test") == true)
             .Select(d => d.Id)
@@ -206,15 +225,17 @@ internal static class Verifier<TCodeFix>
 
     private static Document CreateDocument(string source) => CreateProject([source]).Documents.First(d => d.Name == "Test0.cs");
 
-    private static Project CreateProject(string[] sources)
+    private static Project CreateProject(string[] sources, string? assemblyName = null)
     {
         ProjectId projectId = ProjectId.CreateNewId();
         string[] trustedAssemblies = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES"))?
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
             ?? [];
 
+        string effectiveAssemblyName = assemblyName ?? "TestProject";
+
         Solution solution = new AdhocWorkspace().CurrentSolution
-            .AddProject(projectId, "TestProject", "TestProject", LanguageNames.CSharp)
+            .AddProject(projectId, "TestProject", effectiveAssemblyName, LanguageNames.CSharp)
             .WithProjectCompilationOptions(projectId, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
             .WithProjectParseOptions(projectId, new CSharpParseOptions(LanguageVersion.Preview, documentationMode: DocumentationMode.Parse))
             .AddDocument(DocumentId.CreateNewId(projectId), "Prelude.cs", SourceText.From(TestSources.Prelude));

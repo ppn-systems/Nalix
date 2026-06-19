@@ -46,10 +46,9 @@ All implemented diagnostics are correct, production code changes are behavior-pr
 ### NALIX073
 
 * **Scope correctness:**
-  * Scoped by namespace only: `IsInNalixCoreNamespace` walks the containing namespace hierarchy looking for `"Nalix"`.
-  * This means any code in a namespace starting with `Nalix.` will be checked, including hypothetical consumer namespaces like `Nalix.Game.*` or `Nalix.MyApp.*`.
-  * This is **not** assembly/project-based filtering.
-  * **Documented limitation:** Consumer projects using `Nalix.*` as a namespace prefix will receive NALIX073 warnings. This is an acceptable Phase 1 trade-off because: (a) Nalix Core owns the `Nalix.*` namespace, (b) consumers typically use their own namespace hierarchy, (c) `#pragma warning disable NALIX073` provides an escape hatch.
+  * **Phase 1.1 update:** Scoped by assembly name, not namespace. `IsNalixCoreAssembly` checks `Compilation.Assembly.Name` against an explicit allowlist of Nalix Core assemblies (`Nalix.Abstractions`, `Nalix.Codec`, `Nalix.Environment`, `Nalix.Framework`, `Nalix.Network`, `Nalix.Runtime`, `Nalix.SDK`, `Nalix.Observability`, `Nalix.Observability.Extensions`, `Nalix.Hosting`).
+  * Consumer assemblies (`Nalix.Message`, `Nalix.Sample`, `MyApp`, etc.) are never checked, regardless of namespace.
+  * Test assemblies (`Nalix.Tests`, `Nalix.*.Tests`) are excluded by not being in the allowlist.
   * Generated code is correctly excluded via `context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None)` in `Initialize`.
 
 * **Production code behavior:**
@@ -64,7 +63,7 @@ All implemented diagnostics are correct, production code changes are behavior-pr
   * All changes are strictly additive guards. No catch block now swallows exceptions that were previously rethrown — all existing `throw;` statements remain intact.
 
 * **False-positive risks:**
-  * Consumer code in `Nalix.*` namespaces (documented limitation above).
+  * ~~Consumer code in `Nalix.*` namespaces~~ — **Fixed in Phase 1.1.** NALIX073 now uses assembly-name based scoping (allowlist of known Nalix Core assemblies). Consumer assemblies like `Nalix.Message` or `Nalix.Sample` are no longer checked regardless of namespace.
   * `catch (Exception ex) when (someOtherCheck)` patterns that are semantically safe but don't use `ExceptionClassifier` will be flagged. The test `CatchExceptionWithUnrelatedFilter_ReportsNalix073` confirms this is intentional.
 
 * **Missing tests:**

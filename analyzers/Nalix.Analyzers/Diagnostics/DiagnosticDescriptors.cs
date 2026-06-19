@@ -490,6 +490,24 @@ internal static class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "Nalix core code should use 'catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))' to avoid swallowing fatal runtime exceptions like OutOfMemoryException or StackOverflowException.");
 
+    public static readonly DiagnosticDescriptor DisallowedCryptographyUsage = new(
+        id: "NALIX071",
+        title: "Use Nalix crypto abstractions instead of System.Security.Cryptography",
+        messageFormat: "Usage of '{0}' from System.Security.Cryptography is not allowed in Nalix Core assemblies. Use Nalix internal crypto abstractions instead.",
+        category: "Security",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Nalix Core assemblies should centralize cryptographic behavior behind Nalix-owned abstractions. Direct BCL crypto usage can bypass security review, create platform inconsistencies, and complicate Native AOT compatibility. Approved platform fallback shims are allowlisted.");
+
+    public static readonly DiagnosticDescriptor AllocatingEndpointFormatting = new(
+        id: "NALIX072",
+        title: "Use zero-allocation endpoint formatting in hot paths",
+        messageFormat: "Usage of '{0}' allocates in networking hot paths. Use TryFormatAddress or other zero-allocation formatting APIs instead.",
+        category: "Performance",
+        defaultSeverity: DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "IPAddress.ToString(), INetworkEndpoint.Address, and SocketEndpoint.Address allocate strings on every call. In networking hot paths, use SocketEndpoint.TryFormatAddress or Span-based formatting to avoid GC pressure.");
+
     public static readonly DiagnosticDescriptor PacketScopeNotDisposed = new(
         id: "NALIX075",
         title: "PacketScope<T> must be disposed",

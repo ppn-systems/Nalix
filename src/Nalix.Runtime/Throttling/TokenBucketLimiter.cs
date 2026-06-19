@@ -14,6 +14,7 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
+using Nalix.Environment.Hashing;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Runtime.Options;
@@ -902,7 +903,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     private Shard SELECT_SHARD(INetworkEndpoint key)
     {
         ReadOnlySpan<byte> bytes = System.Runtime.InteropServices.MemoryMarshal.AsBytes(key.Address.AsSpan());
-        uint h = Environment.Hashing.XxHash32.Compute(bytes);
+        uint h = XxHash32.Compute(bytes);
 
         // Mix hash for better distribution
         unchecked

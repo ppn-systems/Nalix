@@ -76,6 +76,8 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.RequestOptionsInfiniteTimeoutWithRetry,
             DiagnosticDescriptors.GenericPacketHandlerMethod,
             DiagnosticDescriptors.UnguardedCatchException,
+            DiagnosticDescriptors.DisallowedCryptographyUsage,
+            DiagnosticDescriptors.AllocatingEndpointFormatting,
             DiagnosticDescriptors.PacketScopeNotDisposed
         ];
 
@@ -122,6 +124,16 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             startContext.RegisterOperationAction(
                 operationContext => AnalyzeCatchClause(operationContext, symbols),
                 OperationKind.CatchClause);
+
+            startContext.RegisterOperationAction(
+                operationContext => AnalyzeCryptographyUsage(operationContext),
+                OperationKind.Invocation,
+                OperationKind.ObjectCreation);
+
+            startContext.RegisterOperationAction(
+                operationContext => AnalyzeEndpointFormatting(operationContext),
+                OperationKind.Invocation,
+                OperationKind.PropertyReference);
 
             startContext.RegisterSyntaxNodeAction(
                 syntaxContext => AnalyzeLocalDeclaration(syntaxContext, symbols),
@@ -1593,7 +1605,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        if (!IsInNalixCoreNamespace(context.ContainingSymbol))
+        if (!IsNalixCoreAssembly(context.Operation.SemanticModel?.Compilation?.Assembly.Name))
         {
             return;
         }
@@ -1649,22 +1661,224 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    private static bool IsInNalixCoreNamespace(ISymbol? symbol)
+    private static bool IsNalixCoreAssembly(string? assemblyName)
     {
-        if (symbol is null)
+        if (string.IsNullOrEmpty(assemblyName))
         {
             return false;
         }
 
-        INamespaceSymbol? ns = symbol.ContainingNamespace;
+        // Exact match against known Nalix Core assembly names.
+        // Excludes test, benchmark, sample, and consumer assemblies.
+        return assemblyName is
+            "Nalix.Abstractions" or
+            "Nalix.Codec" or
+            "Nalix.Environment" or
+            "Nalix.Framework" or
+            "Nalix.Network" or
+            "Nalix.Runtime" or
+            "Nalix.SDK" or
+            "Nalix.Observability" or
+            "Nalix.Observability.Extensions" or
+            "Nalix.Hosting";
+    }
+
+    // ─── NALIX071: Disallowed System.Security.Cryptography usage in Core ────
+
+    private static void AnalyzeCryptographyUsage(OperationAnalysisContext context)
+    {
+        string? assemblyName = context.Operation.SemanticModel?.Compilation?.Assembly.Name;
+        if (!IsNalixCoreAssembly(assemblyName))
+        {
+            return;
+        }
+
+        ITypeSymbol? targetType = context.Operation switch
+        {
+            IInvocationOperation invocation => invocation.TargetMethod.ContainingType,
+            IObjectCreationOperation creation => creation.Type,
+            _ => null
+        };
+
+        if (targetType is null || !IsInCryptoNamespace(targetType))
+        {
+            return;
+        }
+
+        string usedMember = context.Operation switch
+        {
+            IInvocationOperation inv => $"{inv.TargetMethod.ContainingType.Name}.{inv.TargetMethod.Name}",
+            IObjectCreationOperation cr => cr.Type?.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat) ?? "unknown",
+            _ => "unknown"
+        };
+
+        if (IsAllowedCryptographyUsage(context.Operation, targetType))
+        {
+            return;
+        }
+
+        context.ReportDiagnostic(Diagnostic.Create(
+            DiagnosticDescriptors.DisallowedCryptographyUsage,
+            context.Operation.Syntax.GetLocation(),
+            usedMember));
+    }
+
+    private static bool IsInCryptoNamespace(ITypeSymbol typeSymbol)
+    {
+        INamespaceSymbol? ns = typeSymbol.ContainingNamespace;
         while (ns is not null)
         {
-            if (ns.Name == "Nalix")
+            if (ns.Name == "Cryptography"
+                && ns.ContainingNamespace?.Name == "Security"
+                && ns.ContainingNamespace?.ContainingNamespace?.Name == "System"
+                && ns.ContainingNamespace?.ContainingNamespace?.ContainingNamespace?.IsGlobalNamespace == true)
             {
                 return true;
             }
 
             ns = ns.ContainingNamespace;
+        }
+
+        return false;
+    }
+
+    private static bool IsAllowedCryptographyUsage(IOperation operation, ITypeSymbol targetType)
+    {
+        // Allowlist 1: CryptographicOperations.FixedTimeEquals
+        // Nalix has BitwiseOperations.FixedTimeEquals but this BCL call is a
+        // known-compat shim until all call sites are migrated.
+        if (operation is IInvocationOperation invocation
+            && invocation.TargetMethod.Name == "FixedTimeEquals"
+            && targetType.Name == "CryptographicOperations")
+        {
+            return true;
+        }
+
+        // Allowlist 2: Platform fallback shims in OsCsprng-like files.
+        // Check if the containing method or type is in a known CSPRNG shim.
+        ISymbol? containingSymbol = operation.SemanticModel?.GetEnclosingSymbol(
+            operation.Syntax.Span.Start, System.Threading.CancellationToken.None);
+
+        if (containingSymbol is not null)
+        {
+            INamedTypeSymbol? containingType = containingSymbol switch
+            {
+                IMethodSymbol method => method.ContainingType,
+                IFieldSymbol field => field.ContainingType,
+                IPropertySymbol prop => prop.ContainingType,
+                _ => null
+            };
+
+            if (containingType is not null && IsApprovedCryptoShimType(containingType))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsApprovedCryptoShimType(INamedTypeSymbol typeSymbol)
+    {
+        // Allow types named OsCsprng, OsRandom, or similar platform CSPRNG shims.
+        string name = typeSymbol.Name;
+        return name is "OsCsprng" or "OsRandom" or "PlatformCsprng";
+    }
+
+    // ─── NALIX072: Allocating endpoint formatting in hot paths ──────────────
+
+    private static void AnalyzeEndpointFormatting(OperationAnalysisContext context)
+    {
+        string? assemblyName = context.Operation.SemanticModel?.Compilation?.Assembly.Name;
+        if (!IsNalixCoreAssembly(assemblyName))
+        {
+            return;
+        }
+
+        switch (context.Operation)
+        {
+            case IInvocationOperation invocation:
+                AnalyzeEndpointInvocation(context, invocation);
+                break;
+
+            case IPropertyReferenceOperation propertyRef:
+                AnalyzeEndpointPropertyReference(context, propertyRef);
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    private static void AnalyzeEndpointInvocation(OperationAnalysisContext context, IInvocationOperation invocation)
+    {
+        IMethodSymbol targetMethod = invocation.TargetMethod;
+
+        // Report IPAddress.ToString()
+        if (targetMethod.Name == "ToString"
+            && targetMethod.Parameters.Length == 0
+            && invocation.Instance is not null
+            && IsIPAddressType(invocation.Instance.Type))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.AllocatingEndpointFormatting,
+                invocation.Syntax.GetLocation(),
+                "IPAddress.ToString()"));
+        }
+    }
+
+    private static void AnalyzeEndpointPropertyReference(OperationAnalysisContext context, IPropertyReferenceOperation propertyRef)
+    {
+        // Skip if inside TryFormatAddress (the zero-allocation alternative)
+        if (IsInsideTryFormatAddress(context.Operation))
+        {
+            return;
+        }
+
+        string? propertyName = propertyRef.Property.Name;
+        ITypeSymbol? containingType = propertyRef.Property.ContainingType;
+
+        if (containingType is null)
+        {
+            return;
+        }
+
+        // Report INetworkEndpoint.Address (allocates in SocketEndpoint implementation)
+        if (propertyName == "Address" && IsNetworkEndpointType(containingType))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.AllocatingEndpointFormatting,
+                propertyRef.Syntax.GetLocation(),
+                $"{containingType.Name}.Address"));
+        }
+    }
+
+    private static bool IsIPAddressType(ITypeSymbol? type)
+    {
+        return type is not null
+            && type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "global::System.Net.IPAddress";
+    }
+
+    private static bool IsNetworkEndpointType(ITypeSymbol type)
+    {
+        string fullName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        return fullName is
+            "global::Nalix.Abstractions.Networking.INetworkEndpoint"
+            or "global::Nalix.Network.Internal.Transport.SocketEndpoint";
+    }
+
+    private static bool IsInsideTryFormatAddress(IOperation operation)
+    {
+        IOperation? current = operation.Parent;
+        while (current is not null)
+        {
+            if (current is IInvocationOperation invocation
+                && invocation.TargetMethod.Name == "TryFormatAddress")
+            {
+                return true;
+            }
+
+            current = current.Parent;
         }
 
         return false;

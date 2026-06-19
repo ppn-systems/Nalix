@@ -34,7 +34,9 @@ The analyzer defines a rich catalog of diagnostic checks across four main catego
 | **`NALIX035`** | Reserved Opcode Range | **Warning** | Routing | A handler is mapped to an opcode in the range `0x0000 - 0x00FF`, which is strictly reserved for system packets. |
 | **`NALIX037`** | Potential Allocation in Hot Path | **Info** | Performance | A high-frequency routing hot path contains a class allocation (`new` keyword). Should use `ObjectPoolManager`. |
 | **`NALIX039`** | Potential IBufferLease Leak | **Warning** | Lifecycle | A local variable of type `IBufferLease` might not be returned/disposed on all execution pathways. |
-| **`NALIX073`** | Unguarded `catch(Exception)` | **Warning** | Correctness | A catch clause catches `System.Exception` without an `ExceptionClassifier.IsNonFatal()` filter. Nalix Core only. |
+| **`NALIX071`** | Disallowed crypto usage | **Warning** | Security | Direct `System.Security.Cryptography` usage in Nalix Core assemblies. Use Nalix internal crypto abstractions. Platform fallback shims (e.g. `OsCsprng`) and `FixedTimeEquals` are allowlisted. Scoped to Nalix Core assemblies only. |
+| **`NALIX072`** | Allocating endpoint formatting | **Info** | Performance | `IPAddress.ToString()`, `INetworkEndpoint.Address`, or `SocketEndpoint.Address` in Nalix Core networking hot paths. Use `TryFormatAddress` or Span-based formatting. Scoped to Nalix Core assemblies only. |
+| **`NALIX073`** | Unguarded `catch(Exception)` | **Warning** | Correctness | A catch clause catches `System.Exception` without an `ExceptionClassifier.IsNonFatal()` filter. Scoped to Nalix Core assemblies only (not consumer/test/sample projects). |
 | **`NALIX075`** | `PacketScope<T>` Not Disposed | **Error** | Pooling | A local variable of type `PacketScope<T>` is not declared with `using`, causing the pooled packet to leak. |
 
 ---
