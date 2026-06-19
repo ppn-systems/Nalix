@@ -40,6 +40,7 @@ public abstract partial class TcpListenerBase : IListener
     private readonly TimingWheel _timing;
     private readonly ObjectPoolManager _pool;
     private readonly IConnectionGuard _limiter;
+    private readonly ITaskManager _taskManager;
     private int _state;
     private int _isDisposed;
     private int _stopInitiated;
@@ -89,9 +90,10 @@ public abstract partial class TcpListenerBase : IListener
     /// <param name="port">Gets or sets the port number for the network connection.</param>
     /// <param name="protocol">The protocol to handle the connections.</param>
     /// <param name="hub">The connection hub for managing active connections.</param>
-    /// <param name="guard"></param>
+    /// <param name="guard">The connection guard.</param>
+    /// <param name="taskManager">The task manager.</param>
     [DebuggerStepThrough]
-    protected TcpListenerBase(ushort port, IProtocol protocol, IConnectionHub hub, IConnectionGuard guard)
+    protected TcpListenerBase(ushort port, IProtocol protocol, IConnectionHub hub, IConnectionGuard guard, ITaskManager taskManager)
     {
         ArgumentNullException.ThrowIfNull(hub, nameof(hub));
         ArgumentNullException.ThrowIfNull(guard, nameof(guard));
@@ -112,6 +114,7 @@ public abstract partial class TcpListenerBase : IListener
         _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
         _pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
         _limiter = guard;
+        _taskManager = taskManager ?? throw new ArgumentNullException(nameof(taskManager));
 
         _config.Validate();
 
@@ -126,9 +129,10 @@ public abstract partial class TcpListenerBase : IListener
     /// </summary>
     /// <param name="protocol">The protocol to handle the connections.</param>
     /// <param name="hub">The connection hub for managing active connections.</param>
-    /// <param name="guard"></param>
+    /// <param name="guard">The connection guard.</param>
+    /// <param name="taskManager">The task manager.</param>
     [DebuggerStepThrough]
-    protected TcpListenerBase(IProtocol protocol, IConnectionHub hub, IConnectionGuard guard) : this(ConfigurationManager.Instance.Get<NetworkSocketOptions>().Port, protocol, hub, guard)
+    protected TcpListenerBase(IProtocol protocol, IConnectionHub hub, IConnectionGuard guard, ITaskManager taskManager) : this(ConfigurationManager.Instance.Get<NetworkSocketOptions>().Port, protocol, hub, guard, taskManager)
     {
     }
 

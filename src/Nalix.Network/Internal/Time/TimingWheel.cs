@@ -81,6 +81,7 @@ internal sealed class TimingWheel : IActivatable
     private readonly TimingWheelOptions _options;
 
 #pragma warning disable CA2213 // Disposable fields should be disposed
+    private readonly ITaskManager _taskManager;
     private readonly ObjectPoolManager _poolManager;
 #pragma warning restore CA2213 // Disposable fields should be disposed
 
@@ -247,10 +248,11 @@ internal sealed class TimingWheel : IActivatable
     /// Initializes a new instance of the <see cref="TimingWheel"/> class
     /// using values from <see cref="TimingWheelOptions"/> via <see cref="ConfigurationManager"/>.
     /// </summary>
-    public TimingWheel()
+    public TimingWheel(ITaskManager taskManager)
     {
         _options = ConfigurationManager.Instance.Get<TimingWheelOptions>();
         _poolManager = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+        _taskManager = taskManager ?? throw new ArgumentNullException(nameof(taskManager));
 
         _options.Validate();
 
@@ -300,7 +302,7 @@ internal sealed class TimingWheel : IActivatable
 
         _cts = linkedCts;
 
-        _worker = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
+        _worker = _taskManager.ScheduleWorker(
             name: $"{TaskNaming.Tags.Time}.{TaskNaming.Tags.Wheel}",
             group: TaskNaming.Tags.Time,
             work: async (ctx, ct) => await this.RUN_LOOP(ctx, ct).ConfigureAwait(false),

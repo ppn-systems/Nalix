@@ -373,3 +373,4 @@ public sealed class ConnectionGuardTests
         verifyResult.Should().BeTrue();
     }
 }
+

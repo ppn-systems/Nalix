@@ -187,3 +187,4 @@ public sealed class FormatterProviderCircularInitTests
         Assert.Same(first, second);
     }
 }
+

@@ -100,7 +100,7 @@ public abstract partial class WebSocketListenerBase
             IWorkerHandle[] acceptWorkers = new IWorkerHandle[workers];
             for (int i = 0; i < workers; i++)
             {
-                acceptWorkers[i] = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
+                acceptWorkers[i] = _taskManager.ScheduleWorker(
                     name: $"{TaskNaming.Tags.Net}.{TaskNaming.Tags.WebSocket}.{TaskNaming.Tags.Accept}.{i}",
                     group: $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.WebSocket}/{_port}",
                     work: async (ctx, ct) => await this.AcceptConnectionsAsync(ctx, ct).ConfigureAwait(false),

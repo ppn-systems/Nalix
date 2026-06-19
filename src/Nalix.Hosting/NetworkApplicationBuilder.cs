@@ -8,8 +8,10 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Security;
 using Nalix.Codec.DataFrames;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Configuration.Binding;
@@ -17,11 +19,11 @@ using Nalix.Environment.Memory;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Framework.Tasks;
 using Nalix.Hosting.Internal;
 using Nalix.Network.Connections;
 using Nalix.Network.Listeners.Udp;
 using Nalix.Network.RateLimiting;
-using Nalix.Abstractions.Security;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Routing;
 
@@ -184,6 +186,23 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         return this;
     }
 
+    /// <inheritdoc />
+    public INetworkApplicationBuilder UseTaskManager(ITaskManager manager)
+    {
+        ArgumentNullException.ThrowIfNull(manager);
+
+        _state.HasCustomTaskManager = true;
+        _state.TaskManager = manager;
+        InstanceManager.Instance.Register<ITaskManager>(manager);
+
+        if (manager is TaskManager concrete)
+        {
+            InstanceManager.Instance.Register<TaskManager>(concrete);
+        }
+
+        return this;
+    }
+
     #endregion APIs Using Registered Services
 
     #region APIs
@@ -290,6 +309,13 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     {
         ServiceRegistrar.RegisterPacketRegistry();
 
+        if (!_state.HasCustomTaskManager)
+        {
+#pragma warning disable CA2000 // Dispose objects before losing scope
+            _ = this.UseTaskManager(new TaskManager());
+#pragma warning restore CA2000 // Dispose objects before losing scope
+        }
+
         // Apply options eagerly so that EnsureSessionServiceRegistered
         // can read SessionStoreOptions.Enabled before handler factories
         // are captured in the dispatch closure.
@@ -321,8 +347,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                 IListener listener;
 
                 listener = port.HasValue
-                    ? new TcpServerListener(port.Value, protocol, hub, guard)
-                    : new TcpServerListener(protocol, hub, guard);
+                    ? new TcpServerListener(port.Value, protocol, hub, guard, _state.TaskManager)
+                    : new TcpServerListener(protocol, hub, guard, _state.TaskManager);
 
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, NetworkTransport.TCP);
             });
@@ -363,18 +389,18 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                     }
 
                     listener = port.HasValue
-                        ? new UdpPassthroughListener(port.Value, protocol, hub, guard)
-                        : new UdpPassthroughListener(protocol, hub, guard);
+                        ? new UdpPassthroughListener(port.Value, protocol, hub, guard, _state.TaskManager)
+                        : new UdpPassthroughListener(protocol, hub, guard, _state.TaskManager);
                 }
                 else
                 {
                     listener = authen is not null
                         ? (port.HasValue
-                            ? new UdpServerListener(port.Value, protocol, hub, authen)
-                            : new UdpServerListener(protocol, hub, authen))
+                            ? new UdpServerListener(port.Value, protocol, hub, _state.TaskManager, authen)
+                            : new UdpServerListener(protocol, hub, _state.TaskManager, authen))
                         : (port.HasValue
-                            ? new UdpServerListener(port.Value, protocol, hub)
-                            : new UdpServerListener(protocol, hub));
+                            ? new UdpServerListener(port.Value, protocol, hub, _state.TaskManager)
+                            : new UdpServerListener(protocol, hub, _state.TaskManager));
                 }
 
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, NetworkTransport.UDP);
@@ -402,8 +428,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                 }
 
                 WebSocketServerListener listener = (port.HasValue && path is not null)
-                    ? new(port.Value, path, protocol, hub, guard)
-                    : new(protocol, hub, guard);
+                    ? new(port.Value, path, protocol, hub, guard, _state.TaskManager)
+                    : new(protocol, hub, guard, _state.TaskManager);
 
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, NetworkTransport.WEBSOCKET);
             });
@@ -420,6 +446,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             ServiceRegistrar.RegistererConnectionHub(_state);
             ServiceRegistrar.RegisterConnectionGuard(_state);
             ServiceRegistrar.RegistererBufferPoolManager(_state);
+            ServiceRegistrar.RegisterTaskManager(_state);
         }
     }
 

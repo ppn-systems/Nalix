@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Environment.Configuration.Binding;
@@ -82,6 +83,13 @@ public interface INetworkApplicationBuilder
     /// <param name="manager">The manager instance to use.</param>
     /// <returns>The current builder instance.</returns>
     INetworkApplicationBuilder UseObjectPoolManager(IObjectPoolManager manager);
+
+    /// <summary>
+    /// Explicitly registers a <see cref="ITaskManager"/> instance to be used by the application.
+    /// </summary>
+    /// <param name="manager">The manager instance to use.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder UseTaskManager(ITaskManager manager);
 
     /// <summary>
     /// Adds a packet controller type using the default Nalix activator.

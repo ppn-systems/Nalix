@@ -111,8 +111,9 @@ public sealed partial class ConnectionHub : IConnectionHub
     /// Initializes a new instance of the <see cref="ConnectionHub"/> class.
     /// </summary>
 
-    public ConnectionHub()
+    public ConnectionHub(ITaskManager taskManager)
     {
+        ArgumentNullException.ThrowIfNull(taskManager, nameof(taskManager));
         _options = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
         _options.Validate();
 
@@ -127,8 +128,7 @@ public sealed partial class ConnectionHub : IConnectionHub
         _registry = new ConnectionRegistry(_shardCount, 31);
 
         _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
-        _throughputTask = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                                  .ScheduleRecurring(TaskNaming.Recurring
+        _throughputTask = taskManager.ScheduleRecurring(TaskNaming.Recurring
                                                   .CleanupJobId(RecurringName, this.GetHashCode()), TimeSpan.FromSeconds(1), this.CalculateThroughputAsync);
     }
 

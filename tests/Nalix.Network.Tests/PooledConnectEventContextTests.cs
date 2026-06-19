@@ -404,3 +404,4 @@ public sealed class PooledConnectEventContextTests
     #endregion
 }
 #endif
+

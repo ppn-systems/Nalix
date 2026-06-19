@@ -1,7 +1,7 @@
-// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Networking;
 using Nalix.Network.Listeners.Udp;
 
@@ -13,18 +13,20 @@ internal sealed class UdpServerListener : UdpListenerBase
     private readonly Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool>? _authen;
 
     /// <inheritdoc />
-    public UdpServerListener(IProtocol protocol, IConnectionHub hub) : base(protocol, hub) { }
+    public UdpServerListener(IProtocol protocol, IConnectionHub hub, ITaskManager taskManager)
+        : base(protocol, hub, taskManager) { }
 
     /// <inheritdoc />
-    public UdpServerListener(ushort port, IProtocol protocol, IConnectionHub hub) : base(port, protocol, hub) { }
+    public UdpServerListener(ushort port, IProtocol protocol, IConnectionHub hub, ITaskManager taskManager)
+        : base(port, protocol, hub, taskManager) { }
 
     /// <inheritdoc />
-    public UdpServerListener(ushort port, IProtocol protocol, IConnectionHub hub, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
-        : base(port, protocol, hub) => _authen = authen;
+    public UdpServerListener(ushort port, IProtocol protocol, IConnectionHub hub, ITaskManager taskManager, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
+        : base(port, protocol, hub, taskManager) => _authen = authen;
 
     /// <inheritdoc />
-    public UdpServerListener(IProtocol protocol, IConnectionHub hub, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
-        : base(protocol, hub) => _authen = authen;
+    public UdpServerListener(IProtocol protocol, IConnectionHub hub, ITaskManager taskManager, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
+        : base(protocol, hub, taskManager) => _authen = authen;
 
     /// <inheritdoc />
     public override bool IsAuthenticated(IConnection connection, System.Net.EndPoint remoteEndPoint, ReadOnlySpan<byte> payload)

@@ -13,7 +13,6 @@ using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Memory;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Internal.Protocol;
@@ -69,7 +68,7 @@ public abstract partial class TcpListenerBase
     /// </remarks>
     private void START_PROXY_SWEEP(CancellationToken ct)
     {
-        _proxySweepHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
+        _proxySweepHandle = _taskManager.ScheduleRecurring(
             name: $"{TaskNaming.Tags.Tcp}.{TaskNaming.Tags.Proxy}.Sweep.{_port}",
             interval: TimeSpan.FromMilliseconds(500),
             work: _ => { this.SWEEP_PROXY_TIMEOUTS(ct); return ValueTask.CompletedTask; },

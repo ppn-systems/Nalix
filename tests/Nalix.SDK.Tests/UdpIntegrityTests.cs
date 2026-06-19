@@ -87,3 +87,4 @@ public sealed class UdpIntegrityTests : IDisposable
 
     public void Dispose() => InstanceManager.Instance.Clear(dispose: false);
 }
+

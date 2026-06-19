@@ -305,7 +305,7 @@ public sealed partial class Connection :
         ConnectionBacking? backing = Volatile.Read(ref _backing);
         if (backing != null)
         {
-            Interlocked.Increment(ref backing.PendingProcessCallbacks);
+            _ = Interlocked.Increment(ref backing.PendingProcessCallbacks);
         }
 
         args.Initialize(lease, this);

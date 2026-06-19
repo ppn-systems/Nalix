@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Sessions;
@@ -95,7 +96,7 @@ internal static class ServiceRegistrar
             return;
         }
 
-        ConnectionHub hub = new();
+        ConnectionHub hub = new(state.TaskManager);
         try
         {
             InstanceManager.Instance.Register<IConnectionHub>(hub);
@@ -106,6 +107,16 @@ internal static class ServiceRegistrar
             hub.Dispose();
             throw;
         }
+    }
+
+    public static void RegisterTaskManager(HostingBuilderContext state)
+    {
+        if (state.HasCustomTaskManager)
+        {
+            return;
+        }
+
+        InstanceManager.Instance.Register<ITaskManager>(state.TaskManager);
     }
 
     [SuppressMessage(

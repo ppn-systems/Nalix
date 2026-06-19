@@ -71,7 +71,7 @@ public sealed class UdpPassthroughListener : UdpListenerBase
     /// <summary>
     /// Initializes a new instance of the <see cref="UdpPassthroughListener"/> class.
     /// </summary>
-    public UdpPassthroughListener(IProtocol protocol, IConnectionHub hub, IConnectionGuard guard) : base(protocol, hub)
+    public UdpPassthroughListener(IProtocol protocol, IConnectionHub hub, IConnectionGuard guard, Nalix.Abstractions.Concurrency.ITaskManager taskManager) : base(protocol, hub, taskManager)
     {
         _timing = InstanceManager.Instance.GetExistingInstance<TimingWheel>();
         _connGuard = guard;
@@ -80,7 +80,7 @@ public sealed class UdpPassthroughListener : UdpListenerBase
     /// <summary>
     /// Initializes a new instance of the <see cref="UdpPassthroughListener"/> class.
     /// </summary>
-    public UdpPassthroughListener(ushort port, IProtocol protocol, IConnectionHub hub, IConnectionGuard guard) : base(port, protocol, hub)
+    public UdpPassthroughListener(ushort port, IProtocol protocol, IConnectionHub hub, IConnectionGuard guard, Nalix.Abstractions.Concurrency.ITaskManager taskManager) : base(port, protocol, hub, taskManager)
     {
         _timing = InstanceManager.Instance.GetExistingInstance<TimingWheel>();
         _connGuard = guard;

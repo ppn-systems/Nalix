@@ -16,7 +16,6 @@ using Nalix.Framework.Injection;
 using Nalix.Network.Internal.Initialization;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Options;
-using Nalix.Network.RateLimiting;
 
 #pragma warning disable IDE0079
 #pragma warning disable CA2213
@@ -39,6 +38,7 @@ public abstract partial class WebSocketListenerBase : IListener
     private readonly IConnectionHub _hub;
     private readonly TimingWheel _timing;
     private readonly IConnectionGuard _limiter;
+    private readonly ITaskManager _taskManager;
     private readonly NetworkWebSocketOptions _config;
     private readonly ForwardedHeadersOptions _forwardedConfig;
 
@@ -87,10 +87,13 @@ public abstract partial class WebSocketListenerBase : IListener
     /// </summary>
     /// <param name="port">The port number to listen on.</param>
     /// <param name="path">The HTTP path prefix to listen on.</param>
-    /// <param name="protocol">The protocol to handle the connections.</param>
-    /// <param name="hub">The connection hub for managing active connections.</param>
+    /// <param name="protocol">The WebSocket protocol implementation.</param>
+    /// <param name="hub">The connection hub to register active connections.</param>
+    /// <param name="guard">The connection guard to limit resources.</param>
+    /// <param name="taskManager">The task manager.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="protocol"/> is <c>null</c>.</exception>
     [DebuggerStepThrough]
-    protected WebSocketListenerBase(ushort port, string path, IProtocol protocol, IConnectionHub hub, IConnectionGuard guard)
+    protected WebSocketListenerBase(ushort port, string path, IProtocol protocol, IConnectionHub hub, IConnectionGuard guard, ITaskManager taskManager)
     {
         ArgumentNullException.ThrowIfNull(hub, nameof(hub));
         ArgumentNullException.ThrowIfNull(guard, nameof(guard));
@@ -106,6 +109,7 @@ public abstract partial class WebSocketListenerBase : IListener
 
         _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
         _limiter = guard;
+        _taskManager = taskManager ?? throw new ArgumentNullException(nameof(taskManager));
 
         _config = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
         _forwardedConfig = ConfigurationManager.Instance.Get<ForwardedHeadersOptions>();
@@ -119,13 +123,15 @@ public abstract partial class WebSocketListenerBase : IListener
     /// <summary>
     /// Initializes a new instance of the <see cref="WebSocketListenerBase"/> class using configuration defaults.
     /// </summary>
-    /// <param name="protocol">The protocol to handle the connections.</param>
-    /// <param name="hub">The connection hub for managing active connections.</param>
+    /// <param name="protocol">The WebSocket protocol implementation.</param>
+    /// <param name="hub">The connection hub to register active connections.</param>
+    /// <param name="guard">The connection guard to limit resources.</param>
+    /// <param name="taskManager">The task manager.</param>
     [DebuggerStepThrough]
-    protected WebSocketListenerBase(IProtocol protocol, IConnectionHub hub, IConnectionGuard guard)
+    protected WebSocketListenerBase(IProtocol protocol, IConnectionHub hub, IConnectionGuard guard, ITaskManager taskManager)
         : this(ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().Port,
                ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().Path,
-               protocol, hub, guard)
+               protocol, hub, guard, taskManager)
     {
     }
 

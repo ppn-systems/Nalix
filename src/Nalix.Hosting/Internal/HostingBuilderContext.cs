@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Runtime.Dispatching;
@@ -87,6 +88,20 @@ internal sealed class HostingBuilderContext
     /// A custom factory for creating the packet dispatcher.
     /// </summary>
     public Func<Action<PacketDispatchOptions<IPacket>>, IPacketDispatch>? CustomDispatchFactory { get; set; }
+
+    /// <summary>
+    /// Indicates whether the user has explicitly configured a custom
+    /// <see cref="Nalix.Framework.Tasks.TaskManager"/> via <c>UseTaskManager</c>.
+    /// When <c>true</c>, the host will not create a default manager.
+    /// </summary>
+    public bool HasCustomTaskManager { get; set; }
+
+    /// <summary>
+    /// The explicit task manager to use, if configured.
+    /// </summary>
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+    public ITaskManager TaskManager { get; set; }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 }
 
 /// <summary>

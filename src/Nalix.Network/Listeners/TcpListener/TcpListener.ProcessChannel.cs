@@ -60,7 +60,7 @@ public abstract partial class TcpListenerBase
                 AllowSynchronousContinuations = false,
             });
 
-        _processWorker = Framework.Injection.InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
+        _processWorker = _taskManager.ScheduleWorker(
             name: $"{TaskNaming.Tags.Tcp}.{TaskNaming.Tags.Accept}.{TaskNaming.Tags.Dispatch}.{_port}",
             group: $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Tcp}/{_port}",
             work: this.PROCESS_CHANNEL_LOOP_ASYNC,

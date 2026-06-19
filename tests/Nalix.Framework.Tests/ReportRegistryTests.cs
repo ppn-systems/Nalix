@@ -262,3 +262,4 @@ public sealed class ReportRegistryTests : IDisposable
         public string GenerateReport() => $"Data: {Data}";
     }
 }
+

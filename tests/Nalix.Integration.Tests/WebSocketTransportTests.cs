@@ -1,3 +1,5 @@
+using NSubstitute;
+using Nalix.Abstractions.Concurrency;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -72,8 +74,7 @@ public class WebSocketTransportTests : IDisposable
     /// </summary>
     private sealed class TestWebSocketListener : WebSocketListenerBase
     {
-        public TestWebSocketListener(ushort port, string path, IProtocol protocol, IConnectionHub hub, IConnectionGuard guard)
-            : base(port, path, protocol, hub, guard) { }
+        public TestWebSocketListener(ushort port, string path, IProtocol protocol, IConnectionHub hub, IConnectionGuard guard) : base(port, path, protocol, hub, guard, NSubstitute.Substitute.For<Nalix.Abstractions.Concurrency.ITaskManager>()) { }
     }
 
     private static ushort GetFreePort()
@@ -93,7 +94,7 @@ public class WebSocketTransportTests : IDisposable
         ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().Host = "127.0.0.1";
         
         var protocol = new IntegrationTestProtocol();
-        var hub = new ConnectionHub(); // Real hub
+        var hub = new ConnectionHub(NSubstitute.Substitute.For<Nalix.Abstractions.Concurrency.ITaskManager>()); // Real hub
         var guard = Nalix.Framework.Injection.InstanceManager.Instance.GetExistingInstance<IConnectionGuard>() ?? Nalix.Framework.Injection.InstanceManager.Instance.GetOrCreateInstance<Nalix.Network.RateLimiting.ConnectionGuard>();
 
         using var server = new TestWebSocketListener(port, "/ws/", protocol, hub, guard);
@@ -402,7 +403,7 @@ public class WebSocketTransportTests : IDisposable
         ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().MaxMessageSize = 1_048_576;
 
         var protocol = new IntegrationTestProtocol();
-        var hub = new ConnectionHub();
+        var hub = new ConnectionHub(NSubstitute.Substitute.For<Nalix.Abstractions.Concurrency.ITaskManager>());
         var guard = Nalix.Framework.Injection.InstanceManager.Instance.GetExistingInstance<IConnectionGuard>() ?? Nalix.Framework.Injection.InstanceManager.Instance.GetOrCreateInstance<Nalix.Network.RateLimiting.ConnectionGuard>();
 
         using var server = new TestWebSocketListener(port, "/ws/", protocol, hub, guard);
@@ -449,7 +450,7 @@ public class WebSocketTransportTests : IDisposable
         serverOptions.MaxMessageSize = 16;
 
         var protocol = new IntegrationTestProtocol();
-        var hub = new ConnectionHub();
+        var hub = new ConnectionHub(NSubstitute.Substitute.For<Nalix.Abstractions.Concurrency.ITaskManager>());
         var guard = Nalix.Framework.Injection.InstanceManager.Instance.GetExistingInstance<IConnectionGuard>() ?? Nalix.Framework.Injection.InstanceManager.Instance.GetOrCreateInstance<Nalix.Network.RateLimiting.ConnectionGuard>();
 
         using var server = new TestWebSocketListener(port, "/ws/", protocol, hub, guard);
@@ -515,3 +516,6 @@ public class WebSocketTransportTests : IDisposable
     private void EnsureCertificate()
         => File.WriteAllText(_certificatePath, "0000000000000000000000000000000000000000000000000000000000000001");
 }
+
+
+

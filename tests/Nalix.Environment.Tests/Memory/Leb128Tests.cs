@@ -66,3 +66,4 @@ public class Leb128Tests
         Assert.Throws<FormatException>(() => Leb128.TryRead(buffer, out int _, out int _));
     }
 }
+

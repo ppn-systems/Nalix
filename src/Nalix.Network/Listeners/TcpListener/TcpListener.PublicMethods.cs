@@ -13,10 +13,8 @@ using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Network.Internal.Time;
 
 namespace Nalix.Network.Listeners.Tcp;
 
@@ -129,8 +127,7 @@ public abstract partial class TcpListenerBase
 
             if (_config.EnableTimeout)
             {
-                InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
-                                        .Activate(linkedToken);
+                _timing.Activate(linkedToken);
             }
 
             // Spawn N accept-worker async tasks, where N = MaxParallel.
@@ -139,7 +136,7 @@ public abstract partial class TcpListenerBase
             IWorkerHandle[] acceptWorkers = new IWorkerHandle[_config.MaxParallel];
             for (int i = 0; i < _config.MaxParallel; i++)
             {
-                acceptWorkers[i] = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
+                acceptWorkers[i] = _taskManager.ScheduleWorker(
                     name: $"{TaskNaming.Tags.Tcp}.{TaskNaming.Tags.Accept}.{i}",
                     group: $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Tcp}/{_port}",
                     work: async (ctx, ct) => await this.AcceptConnectionsAsync(ctx, ct).ConfigureAwait(false),
@@ -343,8 +340,7 @@ public abstract partial class TcpListenerBase
 
             if (_config.EnableTimeout)
             {
-                InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
-                                        .Deactivate(CancellationToken.None);
+                _timing.Deactivate(CancellationToken.None);
             }
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))

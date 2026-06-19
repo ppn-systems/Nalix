@@ -14,7 +14,6 @@ using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 
@@ -111,7 +110,7 @@ public abstract partial class UdpListenerBase : IListener
             for (int i = 0; i < concurrency; i++)
             {
                 int workerIndex = i;
-                receiveWorkers[i] = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
+                receiveWorkers[i] = _taskManager.ScheduleWorker(
                     name: $"{TaskNaming.Tags.Udp}.{TaskNaming.Tags.Accept}.{i}",
                     group: $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Udp}/{_port}",
                     work: async (ctx, ct) => await this.RunReceiveWorkerAsync(ctx, ct).ConfigureAwait(false),
