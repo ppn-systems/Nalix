@@ -31,7 +31,6 @@ public sealed partial class NalixUsageAnalyzer
             INamedTypeSymbol? packetRegistryFactoryType,
             INamedTypeSymbol? packetDeserializerType,
             INamedTypeSymbol? packetMiddlewareType,
-            INamedTypeSymbol? networkBufferMiddlewareType,
             INamedTypeSymbol? networkApplicationBuilderType,
             INamedTypeSymbol? middlewareOrderAttribute,
             INamedTypeSymbol? middlewareStageAttribute,
@@ -54,6 +53,9 @@ public sealed partial class NalixUsageAnalyzer
             INamedTypeSymbol? fixedSizeSerializableType,
             INamedTypeSymbol? packetDispatchType,
             INamedTypeSymbol? bufferLeaseType,
+            INamedTypeSymbol? exceptionClassifierType,
+            INamedTypeSymbol? packetScopeType,
+            INamedTypeSymbol? caughtExceptionType,
             int packetHeaderRegionOffset)
         {
             this.PacketOpcodeAttribute = packetOpcodeAttribute;
@@ -73,7 +75,6 @@ public sealed partial class NalixUsageAnalyzer
             this.PacketRegistryFactoryType = packetRegistryFactoryType;
             this.PacketDeserializerType = packetDeserializerType;
             this.PacketMiddlewareType = packetMiddlewareType;
-            this.NetworkBufferMiddlewareType = networkBufferMiddlewareType;
             this.NetworkApplicationBuilderType = networkApplicationBuilderType;
             this.MiddlewareOrderAttribute = middlewareOrderAttribute;
             this.MiddlewareStageAttribute = middlewareStageAttribute;
@@ -96,6 +97,9 @@ public sealed partial class NalixUsageAnalyzer
             this.FixedSizeSerializableType = fixedSizeSerializableType;
             this.PacketDispatchType = packetDispatchType;
             this.BufferLeaseType = bufferLeaseType;
+            this.ExceptionClassifierType = exceptionClassifierType;
+            this.PacketScopeType = packetScopeType;
+            this.CaughtExceptionType = caughtExceptionType;
             this.PacketHeaderRegionOffset = packetHeaderRegionOffset;
         }
 
@@ -116,7 +120,6 @@ public sealed partial class NalixUsageAnalyzer
         public INamedTypeSymbol? PacketRegistryFactoryType { get; }
         public INamedTypeSymbol? PacketDeserializerType { get; }
         public INamedTypeSymbol? PacketMiddlewareType { get; }
-        public INamedTypeSymbol? NetworkBufferMiddlewareType { get; }
         public INamedTypeSymbol? NetworkApplicationBuilderType { get; }
         public INamedTypeSymbol? MiddlewareOrderAttribute { get; }
         public INamedTypeSymbol? MiddlewareStageAttribute { get; }
@@ -139,6 +142,9 @@ public sealed partial class NalixUsageAnalyzer
         public INamedTypeSymbol? FixedSizeSerializableType { get; }
         public INamedTypeSymbol? PacketDispatchType { get; }
         public INamedTypeSymbol? BufferLeaseType { get; }
+        public INamedTypeSymbol? ExceptionClassifierType { get; }
+        public INamedTypeSymbol? PacketScopeType { get; }
+        public INamedTypeSymbol? CaughtExceptionType { get; }
         public int PacketHeaderRegionOffset { get; }
 
         public static SymbolSet? Create(Compilation compilation)
@@ -187,6 +193,9 @@ public sealed partial class NalixUsageAnalyzer
             INamedTypeSymbol? fixedSizeSerializableType = compilation.GetTypeByMetadataName("Nalix.Abstractions.Serialization.IFixedSizeSerializable");
             INamedTypeSymbol? packetDispatchType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.IPacketDispatch");
             INamedTypeSymbol? bufferLeaseType = compilation.GetTypeByMetadataName("Nalix.Abstractions.IBufferLease");
+            INamedTypeSymbol? exceptionClassifierType = compilation.GetTypeByMetadataName("Nalix.Abstractions.Exceptions.ExceptionClassifier");
+            INamedTypeSymbol? packetScopeType = compilation.GetTypeByMetadataName("Nalix.Codec.Pooling.PacketScope`1");
+            INamedTypeSymbol? caughtExceptionType = compilation.GetTypeByMetadataName("System.Exception");
             int packetHeaderRegionOffset = 12;
             if (packetHeaderOffsetType is not null)
             {
@@ -223,7 +232,6 @@ public sealed partial class NalixUsageAnalyzer
                     packetRegistryFactoryType,
                     packetDeserializerType,
                     packetMiddlewareType,
-                    null, // networkBufferMiddlewareType removed
                     networkApplicationBuilderType,
                     middlewareOrderAttribute,
                     middlewareStageAttribute,
@@ -246,6 +254,9 @@ public sealed partial class NalixUsageAnalyzer
                     fixedSizeSerializableType,
                     packetDispatchType,
                     bufferLeaseType,
+                    exceptionClassifierType,
+                    packetScopeType,
+                    caughtExceptionType,
                     packetHeaderRegionOffset);
         }
     }

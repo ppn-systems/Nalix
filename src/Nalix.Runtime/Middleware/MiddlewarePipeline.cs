@@ -186,7 +186,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
 
         // Initialize for full pipeline execution.
         // Terminal handler info is stored as typed fields — no delegate allocation.
-        runner.InitializeFull(this, snapshot, context, dispatch, descriptor, ct);
+        runner.Initialize(this, snapshot, context, dispatch, descriptor, ct);
 
         ValueTask pending = runner.RunAsync();
         if (pending.IsCompletedSuccessfully)
@@ -468,24 +468,6 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         #region APIs
 
         public void Initialize(
-            MiddlewareEntry[] middlewares,
-            PacketContext<TPacket> context,
-            Func<CancellationToken, ValueTask> final,
-            CancellationToken startToken,
-            bool continueOnError,
-            Action<Exception, Type>? errorHandler)
-        {
-            _middlewares = middlewares;
-            _context = context;
-            _final = final;
-            _startToken = startToken;
-            _continueOnError = continueOnError;
-            _errorHandler = errorHandler;
-            _currentStage = PipelineStage.Mid;
-            this.ENSURE_STEPS(middlewares.Length + 1);
-        }
-
-        public void InitializeFull(
             MiddlewarePipeline<TPacket> owner,
             PipelineSnapshot snapshot,
             PacketContext<TPacket> context,
@@ -495,7 +477,9 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         {
             _owner = owner;
             _snapshot = snapshot;
+#pragma warning disable NALIX076 // MiddlewarePipeline intentionally holds context during execution; cleared in ResetForPool.
             _context = context;
+#pragma warning restore NALIX076
             _dispatch = dispatch;
             _handler = handler;
             _rootCt = ct;

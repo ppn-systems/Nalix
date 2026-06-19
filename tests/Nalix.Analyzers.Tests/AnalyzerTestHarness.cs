@@ -9,6 +9,9 @@ internal static class AnalyzerTestHarness
     public static Task AssertDiagnosticIdsAsync(string source, params string[] expectedIds)
         => Verifier<ResetForPoolCodeFixProvider>.VerifyAnalyzerAsync(source, expectedIds);
 
+    public static Task AssertDiagnosticIdsInAssemblyAsync(string source, string assemblyName, params string[] expectedIds)
+        => Verifier<ResetForPoolCodeFixProvider>.VerifyAnalyzerInAssemblyAsync(source, assemblyName, expectedIds);
+
     public static Task AssertCodeFixAsync<TCodeFix>(
         string source,
         string expectedFixedSource,

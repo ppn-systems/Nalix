@@ -35,6 +35,7 @@ namespace Nalix.Abstractions.Networking.Packets
     public interface IPacket { }
     public interface IPacketRegistry { }
     public interface IPacketDeserializer<TPacket> where TPacket : IPacket { }
+    public interface IPacketStaticOpcode { static abstract ushort StaticOpCode { get; } }
     public sealed class PacketOpcodeAttribute : Attribute { public PacketOpcodeAttribute(ushort opcode) { } }
     public sealed class PacketHandlerAttribute : Attribute
     {
@@ -66,6 +67,30 @@ namespace Nalix.Abstractions
     public sealed class ConfigurationIgnoreAttribute : Attribute
     {
         public ConfigurationIgnoreAttribute(string? reason = null) { }
+    }
+    public sealed class ReservedOpcodePermittedAttribute : Attribute { }
+}
+
+namespace Nalix.Abstractions.Exceptions
+{
+    public static class ExceptionClassifier
+    {
+        public static bool IsNonFatal(Exception ex) => ex is not (OutOfMemoryException or StackOverflowException or AccessViolationException);
+    }
+}
+
+namespace Nalix.Codec.Pooling
+{
+    using Nalix.Abstractions.Networking.Packets;
+    using Nalix.Codec.DataFrames;
+
+    public readonly struct PacketScope<TPacket> : IDisposable where TPacket : PacketBase<TPacket>, IPacketStaticOpcode, new()
+    {
+        private readonly TPacket _packet;
+        public PacketScope(TPacket packet) => _packet = packet;
+        public TPacket Value => _packet;
+        public void Dispose() { /* returns _packet to pool */ }
+        public static implicit operator TPacket(PacketScope<TPacket> lease) => lease._packet;
     }
 }
 

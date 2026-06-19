@@ -219,8 +219,14 @@ internal sealed class DiagnosticChannel :
         Type type = value.Value.GetType();
         ObjectAccessor accessor = s_accessors.GetOrAdd(type, t => new ObjectAccessor(t));
 
+        // NALIX078: Intentional diagnostic payload inspection — bridges DiagnosticListener events
+        // to ILogger. Observational/non-hot-path, not serialization or packet dispatch.
+        // ObjectAccessor cache is populated once per type, annotated with
+        // [UnconditionalSuppressMessage("Trimming", "IL2070")].
+#pragma warning disable NALIX078
         string? message = accessor.MessageProperty?.GetValue(value.Value) as string;
         Exception? exception = accessor.ExceptionProperty?.GetValue(value.Value) as Exception;
+#pragma warning restore NALIX078
 
         System.Text.StringBuilder sb = new();
         _ = sb.Append('[').Append(GetCategory(value.Key)).Append("] ");
@@ -241,7 +247,10 @@ internal sealed class DiagnosticChannel :
                 }
 
                 _ = sb.Append(accessor.OtherProperties[i].Name).Append('=');
+                // NALIX078: Intentional diagnostic property enumeration — see above.
+#pragma warning disable NALIX078
                 object? propVal = accessor.OtherProperties[i].GetValue(value.Value);
+#pragma warning restore NALIX078
                 _ = sb.Append(propVal);
             }
 

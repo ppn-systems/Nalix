@@ -71,7 +71,6 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
     internal sealed class ScopedEndpoint : INetworkEndpoint, IEquatable<ScopedEndpoint>
     {
         private readonly ushort _op;
-        private readonly string _ip;
         private readonly string? _policyId;
         private readonly INetworkEndpoint _inner;
 
@@ -82,16 +81,19 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
         {
             _op = op;
             _policyId = policyId;
-            _ip = inner?.Address ?? string.Empty;
             _inner = inner ?? throw new ArgumentNullException(nameof(inner));
         }
 
         public int Port => _inner.Port;
         public bool IsIPv6 => _inner.IsIPv6;
         public bool HasPort => _inner.HasPort;
+#pragma warning disable NALIX072 // ScopedEndpoint proxies INetworkEndpoint.Address; allocation is at the call site, not here.
         public string Address => _inner.Address;
+#pragma warning restore NALIX072
 
-        public override int GetHashCode() => ComputeHash(_op, _policyId, _ip);
+        public bool TryFormatAddress(Span<char> destination, out int charsWritten) => _inner.TryFormatAddress(destination, out charsWritten);
+
+        public override int GetHashCode() => ComputeHash(_op, _policyId, _inner);
 
         public bool Equals(ScopedEndpoint? other)
         {
@@ -107,22 +109,36 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
 
             return _op == other._op &&
                    string.Equals(_policyId, other._policyId, StringComparison.Ordinal) &&
-                   string.Equals(_ip, other._ip, StringComparison.Ordinal);
+                   _inner.Equals(other._inner);
         }
 
         public override bool Equals(object? obj) => obj is ScopedEndpoint other && this.Equals(other);
 
-        public override string ToString() => $"op:{_op:X4}|policy:{_policyId ?? "null"}|ip:{_ip}";
+        public override string ToString()
+        {
+            Span<char> buffer = stackalloc char[64];
+
+            if (_inner.TryFormatAddress(buffer, out int written))
+            {
+                return $"op:{_op:X4}|policy:{_policyId ?? "null"}|ip:{buffer[..written]}";
+            }
+
+#pragma warning disable NALIX072 // ToString() fallback when TryFormatAddress fails; not a hot path.
+            return $"op:{_op:X4}|policy:{_policyId ?? "null"}|ip:{_inner.Address}";
+#pragma warning restore NALIX072
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        private static int ComputeHash(ushort op, string? policyId, string ip)
+        private static int ComputeHash(ushort op, string? policyId, INetworkEndpoint inner)
         {
-            if (string.IsNullOrEmpty(ip))
+            Span<char> buffer = stackalloc char[64];
+            if (!inner.TryFormatAddress(buffer, out int written) || written == 0)
             {
                 return op; // fallback
             }
 
-            ReadOnlySpan<byte> ipBytes = MemoryMarshal.AsBytes(ip.AsSpan());
+            ReadOnlySpan<char> charSpan = buffer[..written];
+            ReadOnlySpan<byte> ipBytes = MemoryMarshal.AsBytes(charSpan);
             uint seed = policyId != null ? (uint)policyId.GetHashCode(StringComparison.Ordinal) : op;
 
             uint hash = XxHash32.Compute(ipBytes, seed: seed);

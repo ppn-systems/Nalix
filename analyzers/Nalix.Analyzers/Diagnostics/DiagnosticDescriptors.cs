@@ -61,14 +61,7 @@ internal static class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "Nalix packet middleware should be registered against a compatible PacketDispatchOptions<TPacket>.");
 
-    public static readonly DiagnosticDescriptor BufferMiddlewareShouldNotUseStageAttribute = new(
-        id: "NALIX007",
-        title: "Network buffer middleware ignores MiddlewareStageAttribute",
-        messageFormat: "Buffer middleware type '{0}' implements INetworkBufferMiddleware, but MiddlewareStageAttribute has no effect in NetworkBufferMiddlewarePipeline",
-        category: "Usage",
-        defaultSeverity: DiagnosticSeverity.Info,
-        isEnabledByDefault: true,
-        description: "Nalix network buffer middleware ordering uses MiddlewareOrderAttribute only.");
+    // NALIX007 — removed. NetworkBufferMiddlewareType was intentionally dropped from Nalix.
 
     public static readonly DiagnosticDescriptor ControllerMissingPacketHandlerAttribute = new(
         id: "NALIX008",
@@ -169,14 +162,7 @@ internal static class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "Nalix packet registry should register only concrete, non-abstract, non-generic packet types.");
 
-    public static readonly DiagnosticDescriptor BufferMiddlewareRegistrationTypeMismatch = new(
-        id: "NALIX019",
-        title: "Registered buffer middleware does not implement INetworkBufferMiddleware",
-        messageFormat: "Type '{0}' is passed to WithBufferMiddleware, but it is not assignable to INetworkBufferMiddleware",
-        category: "Usage",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true,
-        description: "Nalix buffer middleware registration should pass a type implementing INetworkBufferMiddleware.");
+    // NALIX019 — removed. NetworkBufferMiddlewareType was intentionally dropped from Nalix.
 
     public static readonly DiagnosticDescriptor ResetForPoolShouldCallBase = new(
         id: "NALIX020",
@@ -196,14 +182,14 @@ internal static class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "Nalix explicit serialization layout should not use negative SerializeOrder values.");
 
-    public static readonly DiagnosticDescriptor PacketMemberOverlapsHeaderRegion = new(
+    public static readonly DiagnosticDescriptor ReservedPacketHeaderSlot = new(
         id: "NALIX022",
-        title: "Packet member SerializeOrder overlaps packet header region",
-        messageFormat: "Member '{0}' uses SerializeOrder {1}, which overlaps the reserved packet header region ending at {2}",
+        title: "SerializeHeader(0) is reserved on PacketBase types",
+        messageFormat: "Member '{0}' uses [SerializeHeader(0)] on a PacketBase-derived type, but header slot 0 is reserved by Nalix packet internals",
         category: "Serialization",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Packet payload members on PacketBase-derived types should start at or after PacketHeaderOffset.Region.");
+        description: "On PacketBase<TSelf>-derived types, SerializeHeader(0) is reserved by the Nalix packet header. Use a non-zero header order or SerializeOrder for user-defined members.");
 
     public static readonly DiagnosticDescriptor UnsupportedConfigurationPropertyType = new(
         id: "NALIX023",
@@ -268,14 +254,7 @@ internal static class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "Nalix packet middleware ordering is more predictable when each middleware declares MiddlewareOrderAttribute explicitly.");
 
-    public static readonly DiagnosticDescriptor BufferMiddlewareMissingOrder = new(
-        id: "NALIX031",
-        title: "Buffer middleware should declare MiddlewareOrder",
-        messageFormat: "Buffer middleware type '{0}' does not declare [MiddlewareOrder(...)]",
-        category: "Middleware",
-        defaultSeverity: DiagnosticSeverity.Info,
-        isEnabledByDefault: true,
-        description: "Nalix network buffer middleware ordering is determined solely by MiddlewareOrderAttribute.");
+    // NALIX031 — removed. NetworkBufferMiddlewareType was intentionally dropped from Nalix.
 
     public static readonly DiagnosticDescriptor InboundMiddlewareAlwaysExecuteIgnored = new(
         id: "NALIX032",
@@ -501,5 +480,68 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Nalix packet dispatch expects concrete handler signatures; generic handler methods can lead to ambiguous or unsupported binding.");
+
+    public static readonly DiagnosticDescriptor UnguardedCatchException = new(
+        id: "NALIX073",
+        title: "catch(Exception) should filter through ExceptionClassifier.IsNonFatal()",
+        messageFormat: "Catch clause catches System.Exception without an ExceptionClassifier.IsNonFatal() filter; fatal exceptions may be swallowed",
+        category: "Correctness",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Nalix core code should use 'catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))' to avoid swallowing fatal runtime exceptions like OutOfMemoryException or StackOverflowException.");
+
+    public static readonly DiagnosticDescriptor DisallowedCryptographyUsage = new(
+        id: "NALIX071",
+        title: "Use Nalix crypto abstractions instead of System.Security.Cryptography",
+        messageFormat: "Usage of '{0}' from System.Security.Cryptography is not allowed in Nalix Core assemblies. Use Nalix internal crypto abstractions instead.",
+        category: "Security",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Nalix Core assemblies should centralize cryptographic behavior behind Nalix-owned abstractions. Direct BCL crypto usage can bypass security review, create platform inconsistencies, and complicate Native AOT compatibility. Approved platform fallback shims are allowlisted.");
+
+    public static readonly DiagnosticDescriptor AllocatingEndpointFormatting = new(
+        id: "NALIX072",
+        title: "Use zero-allocation endpoint formatting in hot paths",
+        messageFormat: "Usage of '{0}' allocates in networking hot paths. Use TryFormatAddress or other zero-allocation formatting APIs instead.",
+        category: "Performance",
+        defaultSeverity: DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "IPAddress.ToString(), INetworkEndpoint.Address, and SocketEndpoint.Address allocate strings on every call. In networking hot paths, use SocketEndpoint.TryFormatAddress or Span-based formatting to avoid GC pressure.");
+
+    public static readonly DiagnosticDescriptor PacketScopeNotDisposed = new(
+        id: "NALIX075",
+        title: "PacketScope<T> must be disposed",
+        messageFormat: "Local variable '{0}' of type PacketScope<{1}> is not declared with 'using'; the pooled packet will not be returned",
+        category: "Pooling",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "PacketScope<T> wraps a pooled packet and must be disposed via 'using' to return it to the pool. Forgetting 'using' causes pool leaks.");
+
+    public static readonly DiagnosticDescriptor UnboundedReflectionInAotCode = new(
+        id: "NALIX078",
+        title: "Avoid unbounded reflection in AOT-sensitive Nalix Core code",
+        messageFormat: "Usage of '{0}' introduces unbounded reflection that may not be compatible with Native AOT trimming. Use source-generated or compile-time alternatives instead.",
+        category: "AOT",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Nalix Core assemblies targeting Native AOT should avoid runtime assembly scanning, dynamic code generation, and unannotated reflection. Use source-generated activators, compile-time registration, or DynamicallyAccessedMembers annotations.");
+
+    public static readonly DiagnosticDescriptor EagerStringFormattingInDiagnosticLog = new(
+        id: "NALIX074",
+        title: "Avoid eager string formatting in diagnostic logging",
+        messageFormat: "Eager string formatting in DiagnosticLog construction allocates even when diagnostics are disabled. Use constant strings or move formatting behind an IsEnabled check.",
+        category: "Performance",
+        defaultSeverity: DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "DiagnosticLog message arguments are eagerly evaluated. Interpolated strings, string.Format, or concatenation inside new DiagnosticLog(...) allocate even when the diagnostic event is disabled. In hot paths, prefer constant strings or guard formatting behind DiagnosticsEvents.Source.IsEnabled(...).");
+
+    public static readonly DiagnosticDescriptor PacketContextEscapesHandlerScope = new(
+        id: "NALIX076",
+        title: "Packet context must not escape handler scope",
+        messageFormat: "Pooled {0} must not escape the handler scope: {1}",
+        category: "Correctness",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "IPacketContext<T> and its Packet are pooled and returned after the handler completes. Capturing them in a field, long-lived delegate, or offloaded task causes use-after-return bugs. Extract needed data into locals before offloading work.");
 
 }

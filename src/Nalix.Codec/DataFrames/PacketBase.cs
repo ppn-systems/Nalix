@@ -89,10 +89,10 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
         {
             return LiteSerializer.Serialize((TSelf)this, buffer);
         }
-        catch (Exception ex) when (
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex) && (
             ex is InvalidOperationException ||
             ex is InternalErrorException ||
-            ex is ArgumentOutOfRangeException)
+            ex is ArgumentOutOfRangeException))
         {
             if (buffer.Length < required)
             {

@@ -1542,7 +1542,7 @@ public static class Setup
     }
 
     [Fact]
-    public async Task SerializeOrderStartingFromZero_DoesNotReportNalix022()
+    public async Task SerializeOrderZeroOnPacketBase_DoesNotReportNalix022()
     {
         const string source = """
 namespace Demo;
@@ -1560,11 +1560,1233 @@ public sealed class MyPacket : PacketBase<MyPacket>, IPacketStaticOpcode
     [SerializeOrder(1)]
     public int FieldB { get; set; }
 
-    public static new MyPacket Deserialize(ReadOnlyMemory<byte> buffer) => null!;
+    public static new MyPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<MyPacket>.Deserialize(buffer);
 }
 """;
 
         await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source);
+    }
+
+    [Fact]
+    public async Task SerializeOrderBelow12OnPacketBase_DoesNotReportNalix022()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Abstractions.Serialization;
+using Nalix.Codec.DataFrames;
+
+[SerializePackable(SerializeLayout.Explicit)]
+public sealed class MyPacket : PacketBase<MyPacket>, IPacketStaticOpcode
+{
+    public static ushort StaticOpCode => 9999;
+
+    [SerializeOrder(5)]
+    public int Payload { get; set; }
+
+    [SerializeOrder(11)]
+    public int AnotherPayload { get; set; }
+
+    public static new MyPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<MyPacket>.Deserialize(buffer);
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source);
+    }
+
+    [Fact]
+    public async Task SerializeHeaderZeroOnPacketBase_ReportsNalix022()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Abstractions.Serialization;
+using Nalix.Codec.DataFrames;
+
+[SerializePackable(SerializeLayout.Explicit)]
+public sealed class MyPacket : PacketBase<MyPacket>, IPacketStaticOpcode
+{
+    public static ushort StaticOpCode => 9999;
+
+    [SerializeHeader(0)]
+    public int Reserved { get; set; }
+
+    public static new MyPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<MyPacket>.Deserialize(buffer);
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX022");
+    }
+
+    [Fact]
+    public async Task SerializeHeaderNonZeroOnPacketBase_DoesNotReportNalix022()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Abstractions.Serialization;
+using Nalix.Codec.DataFrames;
+
+[SerializePackable(SerializeLayout.Explicit)]
+public sealed class MyPacket : PacketBase<MyPacket>, IPacketStaticOpcode
+{
+    public static ushort StaticOpCode => 9999;
+
+    [SerializeHeader(1)]
+    public int MyHeader { get; set; }
+
+    public static new MyPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<MyPacket>.Deserialize(buffer);
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source);
+    }
+
+    [Fact]
+    public async Task SerializeHeaderZeroOnNonPacketBase_DoesNotReportNalix022()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Abstractions.Serialization;
+
+[SerializePackable(SerializeLayout.Explicit)]
+public sealed class PlainType
+{
+    [SerializeHeader(0)]
+    public int Field { get; set; }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source);
+    }
+
+    // ─── NALIX073: Unguarded catch(Exception) ──────────────────────────────────
+
+    [Fact]
+    public async Task BareCatchExceptionInCoreAssembly_ReportsNalix073()
+    {
+        const string source = """
+namespace Nalix.Runtime.Internal;
+
+public static class Processor
+{
+    public static void Process()
+    {
+        try { }
+        catch (System.Exception) { }
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Runtime", "NALIX073");
+    }
+
+    [Fact]
+    public async Task GuardedCatchExceptionInCoreAssembly_DoesNotReportNalix073()
+    {
+        const string source = """
+namespace Nalix.Runtime.Internal;
+
+public static class Processor
+{
+    public static void Process()
+    {
+        try { }
+        catch (System.Exception ex) when (Nalix.Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex)) { }
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Runtime");
+    }
+
+    [Fact]
+    public async Task SpecificExceptionCatchInCoreAssembly_DoesNotReportNalix073()
+    {
+        const string source = """
+namespace Nalix.Runtime.Internal;
+
+public static class Processor
+{
+    public static void Process()
+    {
+        try { }
+        catch (System.IO.IOException) { }
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Runtime");
+    }
+
+    [Fact]
+    public async Task BareCatchExceptionInNonCoreAssembly_DoesNotReportNalix073()
+    {
+        const string source = """
+namespace MyApp.Services;
+
+public static class Processor
+{
+    public static void Process()
+    {
+        try { }
+        catch (System.Exception) { }
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "MyApp");
+    }
+
+    [Fact]
+    public async Task BareCatchExceptionInConsumerNalixNamespace_DoesNotReportNalix073()
+    {
+        const string source = """
+namespace Nalix.Message.Handlers;
+
+public static class Processor
+{
+    public static void Process()
+    {
+        try { }
+        catch (System.Exception) { }
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Message");
+    }
+
+    [Fact]
+    public async Task BareCatchExceptionInTestAssembly_DoesNotReportNalix073()
+    {
+        const string source = """
+namespace Nalix.Runtime.Tests;
+
+public static class Processor
+{
+    public static void Process()
+    {
+        try { }
+        catch (System.Exception) { }
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Tests");
+    }
+
+    [Fact]
+    public async Task CatchExceptionWithUnrelatedFilter_ReportsNalix073()
+    {
+        const string source = """
+namespace Nalix.Core.Processing;
+
+public static class Processor
+{
+    public static void Process()
+    {
+        try { }
+        catch (System.Exception ex) when (ex is not System.ObjectDisposedException) { }
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Runtime", "NALIX073");
+    }
+
+    // ─── NALIX071: Disallowed cryptography usage ──────────────────────────────
+
+    [Fact]
+    public async Task CryptoSha256InCoreAssembly_ReportsNalix071()
+    {
+        const string source = """
+namespace Nalix.Codec.Security;
+
+public static class Hasher
+{
+    public static byte[] Hash(byte[] data)
+    {
+        return System.Security.Cryptography.SHA256.HashData(data);
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Codec", "NALIX071");
+    }
+
+    [Fact]
+    public async Task CryptoRngFillInCoreAssembly_ReportsNalix071()
+    {
+        const string source = """
+namespace Nalix.Environment.Random;
+
+public static class RngHelper
+{
+    public static void Fill(System.Span<byte> buffer)
+    {
+        System.Security.Cryptography.RandomNumberGenerator.Fill(buffer);
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Environment", "NALIX071");
+    }
+
+    [Fact]
+    public async Task OsCsprngAllowlistInCoreAssembly_DoesNotReportNalix071()
+    {
+        const string source = """
+namespace Nalix.Environment.Random;
+
+public static class OsCsprng
+{
+    public static void Fill(System.Span<byte> buffer)
+    {
+        System.Security.Cryptography.RandomNumberGenerator.Fill(buffer);
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Environment");
+    }
+
+    [Fact]
+    public async Task NalixInternalCryptoInCoreAssembly_DoesNotReportNalix071()
+    {
+        const string source = """
+namespace Nalix.Codec.Security.Hashing;
+
+public static class MyHasher
+{
+    public static byte[] Hash(byte[] data)
+    {
+        return Nalix.Codec.Security.Hashing.Keccak256.HashData(data);
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Codec");
+    }
+
+    [Fact]
+    public async Task CryptoInNonCoreAssembly_DoesNotReportNalix071()
+    {
+        const string source = """
+namespace MyApp.Security;
+
+public static class Hasher
+{
+    public static byte[] Hash(byte[] data)
+    {
+        return System.Security.Cryptography.SHA256.HashData(data);
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "MyApp");
+    }
+
+    [Fact]
+    public async Task CryptoInTestAssembly_DoesNotReportNalix071()
+    {
+        const string source = """
+namespace Nalix.Codec.Tests;
+
+public static class Hasher
+{
+    public static byte[] Hash(byte[] data)
+    {
+        return System.Security.Cryptography.SHA256.HashData(data);
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Tests");
+    }
+
+    [Fact]
+    public async Task FixedTimeEqualsAllowlistInCoreAssembly_DoesNotReportNalix071()
+    {
+        const string source = """
+namespace Nalix.Codec.Security;
+
+public static class Verifier
+{
+    public static bool Verify(System.ReadOnlySpan<byte> expected, System.ReadOnlySpan<byte> actual)
+    {
+        return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(expected, actual);
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Codec");
+    }
+
+    // ─── NALIX072: Allocating endpoint formatting ─────────────────────────────
+
+    [Fact]
+    public async Task IPAddressToStringInCoreAssembly_ReportsNalix072()
+    {
+        const string source = """
+namespace Nalix.Network.Internal;
+
+public static class EndpointHelper
+{
+    public static string Format(System.Net.IPAddress addr)
+    {
+        return addr.ToString();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Network", "NALIX072");
+    }
+
+    [Fact]
+    public async Task NetworkEndpointAddressInCoreAssembly_ReportsNalix072()
+    {
+        const string source = """
+namespace Nalix.Network.Internal;
+
+using Nalix.Abstractions.Networking;
+
+public static class EndpointHelper
+{
+    public static string GetAddress(INetworkEndpoint ep)
+    {
+        return ep.Address;
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Network", "NALIX072");
+    }
+
+    [Fact]
+    public async Task NetworkEndpointAddressInsideTryFormat_DoesNotReportNalix072()
+    {
+        const string source = """
+namespace Nalix.Network.Internal;
+
+using Nalix.Abstractions.Networking;
+
+public static class EndpointHelper
+{
+    public static bool FormatEndpoint(INetworkEndpoint ep, System.Span<char> dest)
+    {
+        return TryFormatAddress(ep, dest);
+    }
+
+    private static bool TryFormatAddress(INetworkEndpoint ep, System.Span<char> dest)
+    {
+        string addr = ep.Address;
+        return addr.AsSpan().TryCopyTo(dest);
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Network", "NALIX072");
+    }
+
+    [Fact]
+    public async Task IPAddressInNonCoreAssembly_DoesNotReportNalix072()
+    {
+        const string source = """
+namespace MyApp.Network;
+
+public static class EndpointHelper
+{
+    public static string Format(System.Net.IPAddress addr)
+    {
+        return addr.ToString();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "MyApp");
+    }
+
+    [Fact]
+    public async Task IPAddressInTestAssembly_DoesNotReportNalix072()
+    {
+        const string source = """
+namespace Nalix.Network.Tests;
+
+public static class EndpointHelper
+{
+    public static string Format(System.Net.IPAddress addr)
+    {
+        return addr.ToString();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Tests");
+    }
+
+    [Fact]
+    public async Task UnrelatedToStringInCoreAssembly_DoesNotReportNalix072()
+    {
+        const string source = """
+namespace Nalix.Network.Internal;
+
+public static class Helper
+{
+    public static string Format(int value)
+    {
+        return value.ToString();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Network");
+    }
+
+    [Fact]
+    public async Task IPAddressInterpolationInCoreAssembly_ReportsNalix072()
+    {
+        const string source = """
+namespace Nalix.Network.Internal;
+
+public static class EndpointHelper
+{
+    public static string Format(System.Net.IPAddress addr)
+    {
+        return $"address={addr}";
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Network");
+    }
+
+    // ─── NALIX078: Unbounded reflection in AOT code ───────────────────────────
+
+    [Fact]
+    public async Task AssemblyGetTypesInCoreAssembly_ReportsNalix078()
+    {
+        const string source = """
+namespace Nalix.Framework.Injection;
+
+public static class Scanner
+{
+    public static System.Type[] Scan()
+    {
+        return typeof(Scanner).Assembly.GetTypes();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Framework", "NALIX078");
+    }
+
+    [Fact]
+    public async Task AppDomainGetAssembliesInCoreAssembly_ReportsNalix078()
+    {
+        const string source = """
+namespace Nalix.Framework.Injection;
+
+public static class Scanner
+{
+    public static System.Reflection.Assembly[] GetAll()
+    {
+        return System.AppDomain.CurrentDomain.GetAssemblies();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Framework", "NALIX078");
+    }
+
+    [Fact]
+    public async Task ExpressionCompileInCoreAssembly_ReportsNalix078()
+    {
+        const string source = """
+namespace Nalix.Framework.Injection;
+
+using System.Linq.Expressions;
+
+public static class Factory
+{
+    public static Func<T> CreateFactory<T>() where T : new()
+    {
+        Expression<Func<T>> expr = () => new T();
+        return expr.Compile();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Framework", "NALIX078");
+    }
+
+    [Fact]
+    public async Task MakeGenericTypeInCoreAssembly_ReportsNalix078()
+    {
+        const string source = """
+namespace Nalix.Framework.Injection;
+
+public static class GenericFactory
+{
+    public static object Create(System.Type itemType)
+    {
+        System.Type listType = typeof(System.Collections.Generic.List<>).MakeGenericType(itemType);
+        return System.Activator.CreateInstance(listType)!;
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Framework", "NALIX078");
+    }
+
+    [Fact]
+    public async Task MethodInfoInvokeInCoreAssembly_ReportsNalix078()
+    {
+        const string source = """
+namespace Nalix.Framework.Injection;
+
+using System.Reflection;
+
+public static class Reflector
+{
+    public static object? Call(MethodInfo method, object? target, object?[]? args)
+    {
+        return method.Invoke(target, args);
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Framework", "NALIX078");
+    }
+
+    [Fact]
+    public async Task TypeGetTypeStringInCoreAssembly_ReportsNalix078()
+    {
+        const string source = """
+namespace Nalix.Framework.Injection;
+
+public static class TypeResolver
+{
+    public static System.Type? Resolve(string name)
+    {
+        return System.Type.GetType(name);
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Framework", "NALIX078");
+    }
+
+    [Fact]
+    public async Task ReflectionInNonCoreAssembly_DoesNotReportNalix078()
+    {
+        const string source = """
+namespace MyApp.Reflection;
+
+public static class Scanner
+{
+    public static System.Type[] Scan()
+    {
+        return typeof(Scanner).Assembly.GetTypes();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "MyApp");
+    }
+
+    [Fact]
+    public async Task ReflectionInTestAssembly_DoesNotReportNalix078()
+    {
+        const string source = """
+namespace Nalix.Framework.Tests;
+
+public static class Scanner
+{
+    public static System.Type[] Scan()
+    {
+        return typeof(Scanner).Assembly.GetTypes();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Tests");
+    }
+
+    [Fact]
+    public async Task TypeofDoesNotReportNalix078()
+    {
+        const string source = """
+namespace Nalix.Framework.Injection;
+
+public static class TypeHelper
+{
+    public static System.Type GetMyType()
+    {
+        return typeof(string);
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Framework");
+    }
+
+    [Fact]
+    public async Task ActivatorCreateInstanceGeneric_DoesNotReportNalix078()
+    {
+        const string source = """
+namespace Nalix.Framework.Injection;
+
+public static class Factory
+{
+    public static T Create<T>() where T : new()
+    {
+        return System.Activator.CreateInstance<T>();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Framework");
+    }
+
+    [Fact]
+    public async Task ActivatorCreateInstanceStaticType_DoesNotReportNalix078()
+    {
+        const string source = """
+namespace Nalix.Framework.Injection;
+
+public static class Factory
+{
+    public static object Create()
+    {
+        return System.Activator.CreateInstance(typeof(System.Text.StringBuilder))!;
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Framework");
+    }
+
+    // Activator.CreateInstance(Type) detection is deferred.
+    // See research/analyzers/08-nalix078-aot-reflection.md for details.
+
+    // ─── NALIX074: Eager string formatting in DiagnosticLog ───────────────────
+
+    [Fact]
+    public async Task InterpolationInDiagnosticLogInCoreAssembly_ReportsNalix074()
+    {
+        const string source = """
+namespace Nalix.Network.Internal;
+
+using Nalix.Abstractions.Diagnostics;
+
+public static class LogHelper
+{
+    public static void Log(string endpoint, int count)
+    {
+        DiagnosticsEvents.Write("test", new DiagnosticLog("tag", $"endpoint={endpoint} count={count}"));
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Network", "NALIX074");
+    }
+
+    [Fact]
+    public async Task StringFormatInDiagnosticLogInCoreAssembly_ReportsNalix074()
+    {
+        const string source = """
+namespace Nalix.Network.Internal;
+
+using Nalix.Abstractions.Diagnostics;
+
+public static class LogHelper
+{
+    public static void Log(string endpoint, int count)
+    {
+        DiagnosticsEvents.Write("test", new DiagnosticLog("tag", string.Format("endpoint={0} count={1}", endpoint, count)));
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Network", "NALIX074");
+    }
+
+    [Fact]
+    public async Task StringConcatInDiagnosticLogInCoreAssembly_ReportsNalix074()
+    {
+        const string source = """
+namespace Nalix.Network.Internal;
+
+using Nalix.Abstractions.Diagnostics;
+
+public static class LogHelper
+{
+    public static void Log(string endpoint)
+    {
+        DiagnosticsEvents.Write("test", new DiagnosticLog("tag", "remote=" + endpoint));
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Network", "NALIX074");
+    }
+
+    [Fact]
+    public async Task ConstantStringInDiagnosticLogInCoreAssembly_DoesNotReportNalix074()
+    {
+        const string source = """
+namespace Nalix.Network.Internal;
+
+using Nalix.Abstractions.Diagnostics;
+
+public static class LogHelper
+{
+    public static void Log()
+    {
+        DiagnosticsEvents.Write("test", new DiagnosticLog("tag", "connection-closed"));
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Network");
+    }
+
+    [Fact]
+    public async Task InterpolationOutsideDiagnosticLog_DoesNotReportNalix074()
+    {
+        const string source = """
+namespace Nalix.Network.Internal;
+
+public static class LogHelper
+{
+    public static string Format(string endpoint, int count)
+    {
+        return $"endpoint={endpoint} count={count}";
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Network");
+    }
+
+    [Fact]
+    public async Task DiagnosticLogInNonCoreAssembly_DoesNotReportNalix074()
+    {
+        const string source = """
+namespace MyApp.Logging;
+
+using Nalix.Abstractions.Diagnostics;
+
+public static class LogHelper
+{
+    public static void Log(string endpoint)
+    {
+        var log = new DiagnosticLog("tag", $"endpoint={endpoint}");
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "MyApp");
+    }
+
+    [Fact]
+    public async Task DiagnosticLogInTestAssembly_DoesNotReportNalix074()
+    {
+        const string source = """
+namespace Nalix.Network.Tests;
+
+using Nalix.Abstractions.Diagnostics;
+
+public static class LogHelper
+{
+    public static void Log(string endpoint)
+    {
+        var log = new DiagnosticLog("tag", $"endpoint={endpoint}");
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Tests");
+    }
+
+    [Fact]
+    public async Task NameofInDiagnosticLog_DoesNotReportNalix074()
+    {
+        const string source = """
+namespace Nalix.Network.Internal;
+
+using Nalix.Abstractions.Diagnostics;
+
+public static class LogHelper
+{
+    public static void Log()
+    {
+        DiagnosticsEvents.Write("test", new DiagnosticLog(nameof(LogHelper), "initialized"));
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Network");
+    }
+
+    [Fact]
+    public async Task InterpolationInsideIsEnabledGuard_DoesNotReportNalix074()
+    {
+        const string source = """
+namespace Nalix.Network.Internal;
+
+using Nalix.Abstractions.Diagnostics;
+
+public static class LogHelper
+{
+    public static void Log(string endpoint, int count)
+    {
+        if (DiagnosticsEvents.Source.IsEnabled("test"))
+        {
+            DiagnosticsEvents.Write("test", new DiagnosticLog("tag", $"endpoint={endpoint} count={count}"));
+        }
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Network");
+    }
+
+    // ─── NALIX075: PacketScope must be disposed ────────────────────────────────
+
+    [Fact]
+    public async Task PacketScopeWithoutUsing_ReportsNalix075()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Codec.DataFrames;
+using Nalix.Codec.Pooling;
+
+public static class PoolDemo
+{
+    public static void Use()
+    {
+        PacketScope<DummyPacket> scope = new PacketScope<DummyPacket>(new DummyPacket());
+        _ = scope.Value;
+    }
+}
+
+public sealed class DummyPacket : PacketBase<DummyPacket>, IPacketStaticOpcode
+{
+    public static ushort StaticOpCode => 1;
+    public static new DummyPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DummyPacket>.Deserialize(buffer);
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX075");
+    }
+
+    [Fact]
+    public async Task PacketScopeWithUsingDeclaration_DoesNotReportNalix075()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Codec.DataFrames;
+using Nalix.Codec.Pooling;
+
+public static class PoolDemo
+{
+    public static void Use()
+    {
+        using PacketScope<DummyPacket> scope = new PacketScope<DummyPacket>(new DummyPacket());
+        _ = scope.Value;
+    }
+}
+
+public sealed class DummyPacket : PacketBase<DummyPacket>, IPacketStaticOpcode
+{
+    public static ushort StaticOpCode => 1;
+    public static new DummyPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DummyPacket>.Deserialize(buffer);
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source);
+    }
+
+    [Fact]
+    public async Task PacketScopeWithUsingStatement_DoesNotReportNalix075()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Codec.DataFrames;
+using Nalix.Codec.Pooling;
+
+public static class PoolDemo
+{
+    public static void Use()
+    {
+        using (PacketScope<DummyPacket> scope = new PacketScope<DummyPacket>(new DummyPacket()))
+        {
+            _ = scope.Value;
+        }
+    }
+}
+
+public sealed class DummyPacket : PacketBase<DummyPacket>, IPacketStaticOpcode
+{
+    public static ushort StaticOpCode => 1;
+    public static new DummyPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DummyPacket>.Deserialize(buffer);
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source);
+    }
+
+    [Fact]
+    public async Task UnrelatedDisposableWithoutUsing_DoesNotReportNalix075()
+    {
+        const string source = """
+namespace Demo;
+
+public sealed class MyDisposable : System.IDisposable
+{
+    public void Dispose() { }
+}
+
+public static class DemoClass
+{
+    public static void Use()
+    {
+        MyDisposable d = new MyDisposable();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source);
+    }
+
+    [Fact]
+    public async Task PacketScopeVarWithoutUsing_ReportsNalix075()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Codec.DataFrames;
+using Nalix.Codec.Pooling;
+
+public static class PoolDemo
+{
+    public static void Use()
+    {
+        var scope = new PacketScope<DummyPacket>(new DummyPacket());
+        _ = scope.Value;
+    }
+}
+
+public sealed class DummyPacket : PacketBase<DummyPacket>, IPacketStaticOpcode
+{
+    public static ushort StaticOpCode => 1;
+    public static new DummyPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DummyPacket>.Deserialize(buffer);
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX075");
+    }
+
+    // ─── NALIX076: Packet context escape detection ────────────────────────────
+
+    [Fact]
+    public async Task ContextAssignedToField_ReportsNalix076()
+    {
+        const string source = """
+namespace Nalix.Runtime.Handlers;
+
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Runtime.Dispatching;
+
+public sealed class BadHandler
+{
+    private PacketContext<DemoPacket>? _saved;
+
+    public void Handle(PacketContext<DemoPacket> context)
+    {
+        _saved = context;
+    }
+}
+
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
+{
+    public static ushort StaticOpCode => 1;
+    public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Runtime", "NALIX076");
+    }
+
+    [Fact]
+    public async Task ContextPacketAssignedToField_ReportsNalix076()
+    {
+        const string source = """
+namespace Nalix.Runtime.Handlers;
+
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Runtime.Dispatching;
+
+public sealed class BadHandler
+{
+    private DemoPacket? _savedPacket;
+
+    public void Handle(PacketContext<DemoPacket> context)
+    {
+        _savedPacket = context.Packet;
+    }
+}
+
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
+{
+    public static ushort StaticOpCode => 1;
+    public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Runtime", "NALIX076");
+    }
+
+    [Fact]
+    public async Task TaskRunWithContext_ReportsNalix076()
+    {
+        const string source = """
+namespace Nalix.Runtime.Handlers;
+
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Runtime.Dispatching;
+
+public sealed class BadHandler
+{
+    public void Handle(PacketContext<DemoPacket> context)
+    {
+        _ = System.Threading.Tasks.Task.Run(() => ProcessLater(context));
+    }
+
+    private static void ProcessLater(PacketContext<DemoPacket> ctx) { }
+}
+
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
+{
+    public static ushort StaticOpCode => 1;
+    public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Runtime", "NALIX076");
+    }
+
+    [Fact]
+    public async Task TaskRunWithLambdaCapturingContext_ReportsNalix076()
+    {
+        const string source = """
+namespace Nalix.Runtime.Handlers;
+
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Runtime.Dispatching;
+
+public sealed class BadHandler
+{
+    public void Handle(PacketContext<DemoPacket> context)
+    {
+        _ = System.Threading.Tasks.Task.Run(async () =>
+        {
+            await System.Threading.Tasks.Task.Delay(100);
+            var p = context.Packet;
+        });
+    }
+}
+
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
+{
+    public static ushort StaticOpCode => 1;
+    public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Runtime", "NALIX076");
+    }
+
+    [Fact]
+    public async Task PassingContextToHelper_DoesNotReportNalix076()
+    {
+        const string source = """
+namespace Nalix.Runtime.Handlers;
+
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Runtime.Dispatching;
+
+public sealed class GoodHandler
+{
+    public async ValueTask Handle(PacketContext<DemoPacket> context)
+    {
+        await ProcessAsync(context);
+    }
+
+    private static async ValueTask ProcessAsync(PacketContext<DemoPacket> ctx)
+    {
+        await System.Threading.Tasks.Task.CompletedTask;
+    }
+}
+
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
+{
+    public static ushort StaticOpCode => 1;
+    public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Runtime");
+    }
+
+    [Fact]
+    public async Task ExtractPacketToLocal_DoesNotReportNalix076()
+    {
+        const string source = """
+namespace Nalix.Runtime.Handlers;
+
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Runtime.Dispatching;
+
+public sealed class GoodHandler
+{
+    public void Handle(PacketContext<DemoPacket> context)
+    {
+        DemoPacket packet = context.Packet;
+        var name = packet.GetType().Name;
+    }
+}
+
+public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
+{
+    public static ushort StaticOpCode => 1;
+    public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Runtime");
+    }
+
+    [Fact]
+    public async Task ContextEscapeInNonCoreAssembly_DoesNotReportNalix076()
+    {
+        const string source = """
+namespace MyApp.Handlers;
+
+using Nalix.Abstractions.Networking.Packets;
+
+public sealed class BadHandler
+{
+    private object? _saved;
+
+    public void Handle(IPacketContext<MyPacket> context)
+    {
+        _saved = context;
+    }
+}
+
+public sealed class MyPacket : IPacket { }
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "MyApp");
     }
 }
 

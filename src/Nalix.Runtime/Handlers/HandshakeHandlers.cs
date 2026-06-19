@@ -353,7 +353,7 @@ public static partial class HandshakeHandlers
             s_certificate = store.Load(certPath);
             s_serverPublicKey = X25519.GenerateKeyFromPrivateKey(s_certificate).PublicKey;
         }
-        catch (Exception ex) when (ex is not InternalErrorException)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex) && ex is not InternalErrorException)
         {
             throw new InternalErrorException($"Handshake failed: Unable to load server identity from '{certPath}'. Exception detail: " + ex.Message, ex);
         }

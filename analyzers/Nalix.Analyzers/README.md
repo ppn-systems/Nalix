@@ -30,10 +30,29 @@ The analyzer defines a rich catalog of diagnostic checks across four main catego
 | **`NALIX013`** | Missing SerializeOrder | **Warning** | Serialization | A type declares `SerializeLayout.Explicit` but a serializable property has no `[SerializeOrder]` or `[SerializeIgnore]`. |
 | **`NALIX014`** | Duplicate SerializeOrder | **Warning** | Serialization | Two properties or fields inside the same class declare the exact same `SerializeOrder` index. |
 | **`NALIX020`** | ResetForPool Missing Base Call | **Warning** | Lifecycle | A packet class overrides `ResetForPool()` but does not call `base.ResetForPool()`, potentially leaking headers. |
-| **`NALIX022`** | Member Overlaps Header | **Warning** | Serialization | A packet property uses a `SerializeOrder` index that overlaps the reserved 10-byte header region. |
+| **`NALIX022`** | Reserved Header Slot | **Warning** | Serialization | A user-defined member on a `PacketBase`-derived type uses `[SerializeHeader(0)]`, but header slot 0 is reserved by Nalix packet internals. |
 | **`NALIX035`** | Reserved Opcode Range | **Warning** | Routing | A handler is mapped to an opcode in the range `0x0000 - 0x00FF`, which is strictly reserved for system packets. |
 | **`NALIX037`** | Potential Allocation in Hot Path | **Info** | Performance | A high-frequency routing hot path contains a class allocation (`new` keyword). Should use `ObjectPoolManager`. |
 | **`NALIX039`** | Potential IBufferLease Leak | **Warning** | Lifecycle | A local variable of type `IBufferLease` might not be returned/disposed on all execution pathways. |
+| **`NALIX071`** | Disallowed crypto usage | **Warning** | Security | Direct `System.Security.Cryptography` usage in Nalix Core assemblies. Use Nalix internal crypto abstractions. Platform fallback shims (e.g. `OsCsprng`) and `FixedTimeEquals` are allowlisted. Scoped to Nalix Core assemblies only. |
+| **`NALIX072`** | Allocating endpoint formatting | **Info** | Performance | `IPAddress.ToString()`, `INetworkEndpoint.Address`, or `SocketEndpoint.Address` in Nalix Core networking hot paths. Use `TryFormatAddress` or Span-based formatting. Scoped to Nalix Core assemblies only. |
+| **`NALIX073`** | Unguarded `catch(Exception)` | **Warning** | Correctness | A catch clause catches `System.Exception` without an `ExceptionClassifier.IsNonFatal()` filter. Scoped to Nalix Core assemblies only (not consumer/test/sample projects). |
+| **`NALIX074`** | Eager string formatting in diagnostic logging | **Info** | Performance | Interpolated strings, `string.Format`, or concatenation inside `new DiagnosticLog(...)` in Nalix Core assemblies. Only reports when NOT guarded by `IsEnabled(...)`. Scoped to Nalix Core assemblies only. |
+| **`NALIX075`** | `PacketScope<T>` Not Disposed | **Error** | Pooling | A local variable of type `PacketScope<T>` is not declared with `using`, causing the pooled packet to leak. |
+| **`NALIX076`** | Packet context escapes handler scope | **Warning** | Correctness | `IPacketContext<T>` or its `Packet` is captured by a field, long-lived delegate, or offloaded `Task.Run`. Extract needed data into locals before offloading. Scoped to Nalix Core assemblies only. See [examples](../docs/api/analyzers/diagnostic-codes.md#nalix076-examples). |
+| **`NALIX078`** | Unbounded reflection in AOT code | **Warning** | AOT | `Assembly.GetTypes()`, `Expression.Compile()`, `MakeGenericType()`, `MethodInfo.Invoke()`, `Type.GetType(string)`, and other unbounded reflection in Nalix Core assemblies. Use source-generated or compile-time alternatives. `Activator.CreateInstance` detection is intentionally deferred. Scoped to Nalix Core assemblies only. |
+
+---
+
+## Deprecated / Removed Diagnostics
+
+The following diagnostics have been removed because the underlying `INetworkBufferMiddleware` type was intentionally dropped from Nalix:
+
+| ID | Title | Status |
+| :--- | :--- | :--- |
+| `NALIX007` | Buffer middleware ignores stage attribute | Removed |
+| `NALIX019` | Buffer middleware type invalid | Removed |
+| `NALIX031` | Buffer middleware missing order | Removed |
 
 ---
 

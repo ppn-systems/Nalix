@@ -29,7 +29,6 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.PacketContextTypeMismatch,
             DiagnosticDescriptors.HandlerPacketTypeMismatch,
             DiagnosticDescriptors.MiddlewareTypeMismatch,
-            DiagnosticDescriptors.BufferMiddlewareShouldNotUseStageAttribute,
             DiagnosticDescriptors.ControllerMissingPacketHandlerAttribute,
             DiagnosticDescriptors.PacketRegistryPacketMissingDeserializer,
             DiagnosticDescriptors.PacketBaseSelfTypeMismatch,
@@ -41,10 +40,9 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.SerializeDynamicSizeOnFixedMember,
             DiagnosticDescriptors.PacketDeserializeSignatureInvalid,
             DiagnosticDescriptors.PacketRegistryPacketMustBeConcrete,
-            DiagnosticDescriptors.BufferMiddlewareRegistrationTypeMismatch,
             DiagnosticDescriptors.ResetForPoolShouldCallBase,
             DiagnosticDescriptors.NegativeSerializeOrder,
-            DiagnosticDescriptors.PacketMemberOverlapsHeaderRegion,
+            DiagnosticDescriptors.ReservedPacketHeaderSlot,
             DiagnosticDescriptors.UnsupportedConfigurationPropertyType,
             DiagnosticDescriptors.ConfigurationPropertyNotBindable,
             DiagnosticDescriptors.MetadataProviderClearsOpcode,
@@ -52,7 +50,6 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.RequestOptionsRetryCountNegative,
             DiagnosticDescriptors.RequestOptionsTimeoutNegative,
             DiagnosticDescriptors.PacketMiddlewareMissingOrder,
-            DiagnosticDescriptors.BufferMiddlewareMissingOrder,
             DiagnosticDescriptors.InboundMiddlewareAlwaysExecuteIgnored,
             DiagnosticDescriptors.MiddlewareRegistrationDuplicateOrder,
             DiagnosticDescriptors.SerializeHeaderConflictsWithOrder,
@@ -77,7 +74,14 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.RedundantPacketContextPacketCast,
             DiagnosticDescriptors.MiddlewareRegistrationNullLiteral,
             DiagnosticDescriptors.RequestOptionsInfiniteTimeoutWithRetry,
-            DiagnosticDescriptors.GenericPacketHandlerMethod
+            DiagnosticDescriptors.GenericPacketHandlerMethod,
+            DiagnosticDescriptors.UnguardedCatchException,
+            DiagnosticDescriptors.DisallowedCryptographyUsage,
+            DiagnosticDescriptors.AllocatingEndpointFormatting,
+            DiagnosticDescriptors.UnboundedReflectionInAotCode,
+            DiagnosticDescriptors.EagerStringFormattingInDiagnosticLog,
+            DiagnosticDescriptors.PacketScopeNotDisposed,
+            DiagnosticDescriptors.PacketContextEscapesHandlerScope
         ];
 
     public override void Initialize(AnalysisContext context)
@@ -119,6 +123,38 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             startContext.RegisterSyntaxNodeAction(
                 syntaxContext => AnalyzeMethodDeclaration(syntaxContext, symbols),
                 Microsoft.CodeAnalysis.CSharp.SyntaxKind.MethodDeclaration);
+
+            startContext.RegisterOperationAction(
+                operationContext => AnalyzeCatchClause(operationContext, symbols),
+                OperationKind.CatchClause);
+
+            startContext.RegisterOperationAction(
+                operationContext => AnalyzeCryptographyUsage(operationContext),
+                OperationKind.Invocation,
+                OperationKind.ObjectCreation);
+
+            startContext.RegisterOperationAction(
+                operationContext => AnalyzeEndpointFormatting(operationContext),
+                OperationKind.Invocation,
+                OperationKind.PropertyReference);
+
+            startContext.RegisterOperationAction(
+                operationContext => AnalyzeReflectionUsage(operationContext),
+                OperationKind.Invocation);
+
+            startContext.RegisterOperationAction(
+                operationContext => AnalyzeDiagnosticLogCreation(operationContext),
+                OperationKind.ObjectCreation);
+
+            startContext.RegisterSyntaxNodeAction(
+                syntaxContext => AnalyzeLocalDeclaration(syntaxContext, symbols),
+                Microsoft.CodeAnalysis.CSharp.SyntaxKind.LocalDeclarationStatement);
+
+            startContext.RegisterOperationAction(
+                operationContext => AnalyzeContextEscape(operationContext, symbols),
+                OperationKind.SimpleAssignment,
+                OperationKind.Invocation,
+                OperationKind.EventAssignment);
         });
     }
 
@@ -357,6 +393,17 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                 if (finalOrder.Value < 0)
                 {
                     Report(context, DiagnosticDescriptors.NegativeSerializeOrder, member, member.Name, finalOrder.Value);
+                }
+
+                if (isPacketBaseType
+                    && headerOrder.HasValue && headerOrder.Value == 0
+                    && SymbolEqualityComparer.Default.Equals(member.ContainingType, typeSymbol))
+                {
+                    Report(
+                        context,
+                        DiagnosticDescriptors.ReservedPacketHeaderSlot,
+                        member,
+                        member.Name);
                 }
 
 
@@ -1561,5 +1608,913 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                 }
             }
         }
+    }
+
+    // ─── NALIX073: Unguarded catch(Exception) in Nalix Core ──────────────────
+
+    private static void AnalyzeCatchClause(OperationAnalysisContext context, SymbolSet symbols)
+    {
+        ICatchClauseOperation catchClause = (ICatchClauseOperation)context.Operation;
+
+        if (catchClause.ExceptionType is null
+            || !IsSymbol(catchClause.ExceptionType, symbols.CaughtExceptionType))
+        {
+            return;
+        }
+
+        if (!IsNalixCoreAssembly(context.Operation.SemanticModel?.Compilation?.Assembly.Name))
+        {
+            return;
+        }
+
+        if (catchClause.Filter is not null && ContainsExceptionClassifierInvocation(catchClause.Filter, symbols))
+        {
+            return;
+        }
+
+        context.ReportDiagnostic(Diagnostic.Create(
+            DiagnosticDescriptors.UnguardedCatchException,
+            catchClause.Syntax.GetLocation()));
+    }
+
+    private static bool ContainsExceptionClassifierInvocation(IOperation filter, SymbolSet symbols)
+    {
+        // The filter itself may be the invocation (e.g. when (ExceptionClassifier.IsNonFatal(ex)))
+        if (filter is IInvocationOperation directInvocation
+            && IsSymbol(directInvocation.TargetMethod.ContainingType, symbols.ExceptionClassifierType)
+            && directInvocation.TargetMethod.Name == "IsNonFatal")
+        {
+            return true;
+        }
+
+        foreach (IOperation child in filter.ChildOperations)
+        {
+            if (ContainsExceptionClassifierInvocationRecursive(child, symbols))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsExceptionClassifierInvocationRecursive(IOperation operation, SymbolSet symbols)
+    {
+        if (operation is IInvocationOperation invocation
+            && IsSymbol(invocation.TargetMethod.ContainingType, symbols.ExceptionClassifierType)
+            && invocation.TargetMethod.Name == "IsNonFatal")
+        {
+            return true;
+        }
+
+        foreach (IOperation child in operation.ChildOperations)
+        {
+            if (ContainsExceptionClassifierInvocationRecursive(child, symbols))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsNalixCoreAssembly(string? assemblyName)
+    {
+        if (string.IsNullOrEmpty(assemblyName))
+        {
+            return false;
+        }
+
+        // Exact match against known Nalix Core assembly names.
+        // Excludes test, benchmark, sample, and consumer assemblies.
+        return assemblyName is
+            "Nalix.Abstractions" or
+            "Nalix.Codec" or
+            "Nalix.Environment" or
+            "Nalix.Framework" or
+            "Nalix.Network" or
+            "Nalix.Runtime" or
+            "Nalix.SDK" or
+            "Nalix.Observability" or
+            "Nalix.Observability.Extensions" or
+            "Nalix.Hosting";
+    }
+
+    // ─── NALIX071: Disallowed System.Security.Cryptography usage in Core ────
+
+    private static void AnalyzeCryptographyUsage(OperationAnalysisContext context)
+    {
+        string? assemblyName = context.Operation.SemanticModel?.Compilation?.Assembly.Name;
+        if (!IsNalixCoreAssembly(assemblyName))
+        {
+            return;
+        }
+
+        ITypeSymbol? targetType = context.Operation switch
+        {
+            IInvocationOperation invocation => invocation.TargetMethod.ContainingType,
+            IObjectCreationOperation creation => creation.Type,
+            _ => null
+        };
+
+        if (targetType is null || !IsInCryptoNamespace(targetType))
+        {
+            return;
+        }
+
+        string usedMember = context.Operation switch
+        {
+            IInvocationOperation inv => $"{inv.TargetMethod.ContainingType.Name}.{inv.TargetMethod.Name}",
+            IObjectCreationOperation cr => cr.Type?.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat) ?? "unknown",
+            _ => "unknown"
+        };
+
+        if (IsAllowedCryptographyUsage(context.Operation, targetType))
+        {
+            return;
+        }
+
+        context.ReportDiagnostic(Diagnostic.Create(
+            DiagnosticDescriptors.DisallowedCryptographyUsage,
+            context.Operation.Syntax.GetLocation(),
+            usedMember));
+    }
+
+    private static bool IsInCryptoNamespace(ITypeSymbol typeSymbol)
+    {
+        INamespaceSymbol? ns = typeSymbol.ContainingNamespace;
+        while (ns is not null)
+        {
+            if (ns.Name == "Cryptography"
+                && ns.ContainingNamespace?.Name == "Security"
+                && ns.ContainingNamespace?.ContainingNamespace?.Name == "System"
+                && ns.ContainingNamespace?.ContainingNamespace?.ContainingNamespace?.IsGlobalNamespace == true)
+            {
+                return true;
+            }
+
+            ns = ns.ContainingNamespace;
+        }
+
+        return false;
+    }
+
+    private static bool IsAllowedCryptographyUsage(IOperation operation, ITypeSymbol targetType)
+    {
+        // Allowlist 1: CryptographicOperations.FixedTimeEquals
+        // Nalix has BitwiseOperations.FixedTimeEquals but this BCL call is a
+        // known-compat shim until all call sites are migrated.
+        if (operation is IInvocationOperation invocation
+            && invocation.TargetMethod.Name == "FixedTimeEquals"
+            && targetType.Name == "CryptographicOperations")
+        {
+            return true;
+        }
+
+        // Allowlist 2: Platform fallback shims in OsCsprng-like files.
+        // Check if the containing method or type is in a known CSPRNG shim.
+        ISymbol? containingSymbol = operation.SemanticModel?.GetEnclosingSymbol(
+            operation.Syntax.Span.Start, System.Threading.CancellationToken.None);
+
+        if (containingSymbol is not null)
+        {
+            INamedTypeSymbol? containingType = containingSymbol switch
+            {
+                IMethodSymbol method => method.ContainingType,
+                IFieldSymbol field => field.ContainingType,
+                IPropertySymbol prop => prop.ContainingType,
+                _ => null
+            };
+
+            if (containingType is not null && IsApprovedCryptoShimType(containingType))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsApprovedCryptoShimType(INamedTypeSymbol typeSymbol)
+    {
+        // Allow types named OsCsprng, OsRandom, or similar platform CSPRNG shims.
+        string name = typeSymbol.Name;
+        return name is "OsCsprng" or "OsRandom" or "PlatformCsprng";
+    }
+
+    // ─── NALIX072: Allocating endpoint formatting in hot paths ──────────────
+
+    private static void AnalyzeEndpointFormatting(OperationAnalysisContext context)
+    {
+        string? assemblyName = context.Operation.SemanticModel?.Compilation?.Assembly.Name;
+        if (!IsNalixCoreAssembly(assemblyName))
+        {
+            return;
+        }
+
+        switch (context.Operation)
+        {
+            case IInvocationOperation invocation:
+                AnalyzeEndpointInvocation(context, invocation);
+                break;
+
+            case IPropertyReferenceOperation propertyRef:
+                AnalyzeEndpointPropertyReference(context, propertyRef);
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    private static void AnalyzeEndpointInvocation(OperationAnalysisContext context, IInvocationOperation invocation)
+    {
+        IMethodSymbol targetMethod = invocation.TargetMethod;
+
+        // Report IPAddress.ToString()
+        if (targetMethod.Name == "ToString"
+            && targetMethod.Parameters.Length == 0
+            && invocation.Instance is not null
+            && IsIPAddressType(invocation.Instance.Type))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.AllocatingEndpointFormatting,
+                invocation.Syntax.GetLocation(),
+                "IPAddress.ToString()"));
+        }
+    }
+
+    private static void AnalyzeEndpointPropertyReference(OperationAnalysisContext context, IPropertyReferenceOperation propertyRef)
+    {
+        // Skip if inside TryFormatAddress (the zero-allocation alternative)
+        if (IsInsideTryFormatAddress(context.Operation))
+        {
+            return;
+        }
+
+        string? propertyName = propertyRef.Property.Name;
+        ITypeSymbol? containingType = propertyRef.Property.ContainingType;
+
+        if (containingType is null)
+        {
+            return;
+        }
+
+        // Report INetworkEndpoint.Address (allocates in SocketEndpoint implementation)
+        if (propertyName == "Address" && IsNetworkEndpointType(containingType))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.AllocatingEndpointFormatting,
+                propertyRef.Syntax.GetLocation(),
+                $"{containingType.Name}.Address"));
+        }
+    }
+
+    private static bool IsIPAddressType(ITypeSymbol? type)
+    {
+        return type is not null
+            && type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "global::System.Net.IPAddress";
+    }
+
+    private static bool IsNetworkEndpointType(ITypeSymbol type)
+    {
+        string fullName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        return fullName is
+            "global::Nalix.Abstractions.Networking.INetworkEndpoint"
+            or "global::Nalix.Network.Internal.Transport.SocketEndpoint";
+    }
+
+    private static bool IsInsideTryFormatAddress(IOperation operation)
+    {
+        IOperation? current = operation.Parent;
+        while (current is not null)
+        {
+            if (current is IInvocationOperation invocation
+                && invocation.TargetMethod.Name == "TryFormatAddress")
+            {
+                return true;
+            }
+
+            current = current.Parent;
+        }
+
+        return false;
+    }
+
+    // ─── NALIX078: Unbounded reflection in AOT-sensitive Core code ──────────
+
+    private static void AnalyzeReflectionUsage(OperationAnalysisContext context)
+    {
+        if (context.Operation is not IInvocationOperation invocation)
+        {
+            return;
+        }
+
+        string? assemblyName = context.Operation.SemanticModel?.Compilation?.Assembly.Name;
+        if (!IsNalixCoreAssembly(assemblyName))
+        {
+            return;
+        }
+
+        IMethodSymbol targetMethod = invocation.TargetMethod;
+        ITypeSymbol containingType = targetMethod.ContainingType;
+        string containingTypeFullName = containingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+        // Check for dangerous assembly scanning
+        if (targetMethod.Name is "GetTypes" or "GetExportedTypes"
+            && containingTypeFullName is "global::System.Reflection.Assembly")
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.UnboundedReflectionInAotCode,
+                invocation.Syntax.GetLocation(),
+                $"{containingType.Name}.{targetMethod.Name}"));
+            return;
+        }
+
+        if (targetMethod.Name == "GetAssemblies"
+            && containingTypeFullName is "global::System.AppDomain")
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.UnboundedReflectionInAotCode,
+                invocation.Syntax.GetLocation(),
+                $"{containingType.Name}.{targetMethod.Name}"));
+            return;
+        }
+
+        // Check for dynamic code generation
+        if (targetMethod.Name == "Compile"
+            && (containingTypeFullName is "global::System.Linq.Expressions.LambdaExpression"
+                || TypeInheritsFrom(containingType, "global::System.Linq.Expressions.LambdaExpression")))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.UnboundedReflectionInAotCode,
+                invocation.Syntax.GetLocation(),
+                $"{containingType.Name}.Compile"));
+            return;
+        }
+
+        // Check for dynamic generic construction
+        if (targetMethod.Name is "MakeGenericType" or "MakeGenericMethod"
+            && containingTypeFullName is "global::System.Type" or "global::System.Reflection.MethodInfo")
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.UnboundedReflectionInAotCode,
+                invocation.Syntax.GetLocation(),
+                $"{containingType.Name}.{targetMethod.Name}"));
+            return;
+        }
+
+        // Check for string-based type lookup
+        if (targetMethod.Name == "GetType"
+            && targetMethod.Parameters.Length >= 1
+            && targetMethod.Parameters[0].Type?.SpecialType == SpecialType.System_String
+            && containingTypeFullName is "global::System.Type" or "global::System.Reflection.Assembly")
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.UnboundedReflectionInAotCode,
+                invocation.Syntax.GetLocation(),
+                $"{containingType.Name}.{targetMethod.Name}"));
+            return;
+        }
+
+        // NOTE: Activator.CreateInstance(Type) detection is deferred.
+        // It requires reliable differentiation between:
+        //   - Activator.CreateInstance<T>() (allowed)
+        //   - Activator.CreateInstance(typeof(KnownType)) (allowed)
+        //   - Activator.CreateInstance(type) with unannotated runtime Type (report)
+        //   - Activator.CreateInstance(type) with [DynamicallyAccessedMembers] (allowed)
+        // This will be addressed in a future phase with more robust annotation detection.
+
+        // Check for reflection invocations on MemberInfo subtypes
+        if (IsReflectionInvokeOrAccessor(targetMethod, containingTypeFullName))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.UnboundedReflectionInAotCode,
+                invocation.Syntax.GetLocation(),
+                $"{containingType.Name}.{targetMethod.Name}"));
+        }
+    }
+
+    private static bool IsReflectionInvokeOrAccessor(IMethodSymbol method, string containingTypeFullName)
+    {
+        // MethodInfo.Invoke, ConstructorInfo.Invoke
+        if (method.Name == "Invoke"
+            && containingTypeFullName is
+                "global::System.Reflection.MethodInfo"
+                or "global::System.Reflection.ConstructorInfo"
+                or "global::System.Reflection.MethodBase")
+        {
+            return true;
+        }
+
+        // PropertyInfo.GetValue, PropertyInfo.SetValue
+        if (method.Name is "GetValue" or "SetValue"
+            && containingTypeFullName is "global::System.Reflection.PropertyInfo")
+        {
+            return true;
+        }
+
+        // FieldInfo.GetValue, FieldInfo.SetValue
+        if (method.Name is "GetValue" or "SetValue"
+            && containingTypeFullName is "global::System.Reflection.FieldInfo")
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TypeInheritsFrom(ITypeSymbol type, string baseTypeFullName)
+    {
+        ITypeSymbol? current = type.BaseType;
+        while (current is not null)
+        {
+            if (current.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == baseTypeFullName)
+            {
+                return true;
+            }
+
+            current = current.BaseType;
+        }
+
+        return false;
+    }
+
+    // NOTE: HasDynamicallyAccessedConstructorsAnnotation is deferred until
+    // Activator.CreateInstance detection is implemented (see NALIX078 report).
+
+    // ─── NALIX074: Eager string formatting in DiagnosticLog ─────────────────
+
+    private static void AnalyzeDiagnosticLogCreation(OperationAnalysisContext context)
+    {
+        if (context.Operation is not IObjectCreationOperation creation)
+        {
+            return;
+        }
+
+        string? assemblyName = context.Operation.SemanticModel?.Compilation?.Assembly.Name;
+        if (!IsNalixCoreAssembly(assemblyName))
+        {
+            return;
+        }
+
+        if (creation.Type is null
+            || creation.Type.MetadataName != "DiagnosticLog"
+            || creation.Type.ContainingNamespace?.ToDisplayString() != "Nalix.Abstractions.Diagnostics")
+        {
+            return;
+        }
+
+        // Check the Message argument (index 1) for eager string formatting.
+        // DiagnosticLog(string Tag, string Message, Exception? Exception = null)
+        if (creation.Arguments.Length < 2)
+        {
+            return;
+        }
+
+        IArgumentOperation messageArg = creation.Arguments[1];
+
+        if (ContainsEagerStringFormatting(messageArg.Value)
+            && !IsInsideIsEnabledGuard(creation))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.EagerStringFormattingInDiagnosticLog,
+                creation.Syntax.GetLocation()));
+        }
+    }
+
+    private static bool IsInsideIsEnabledGuard(IOperation operation)
+    {
+        IOperation? current = operation.Parent;
+        while (current is not null)
+        {
+            // Check if we're inside an if statement whose condition calls IsEnabled
+            if (current is IConditionalOperation conditional
+                && ContainsIsEnabledInvocation(conditional.Condition))
+            {
+                return true;
+            }
+
+            current = current.Parent;
+        }
+
+        return false;
+    }
+
+    private static bool ContainsIsEnabledInvocation(IOperation operation)
+    {
+        if (operation is IInvocationOperation invocation
+            && invocation.TargetMethod.Name == "IsEnabled")
+        {
+            return true;
+        }
+
+        foreach (IOperation child in operation.ChildOperations)
+        {
+            if (ContainsIsEnabledInvocation(child))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsEagerStringFormatting(IOperation operation)
+    {
+        switch (operation)
+        {
+            case IInterpolatedStringOperation:
+                return true;
+
+            case IBinaryOperation binary:
+                // String concatenation uses BinaryOperatorKind.Add with string result type
+                return binary.OperatorKind == BinaryOperatorKind.Add
+                    && IsStringType(binary.Type);
+
+            case IInvocationOperation invocation:
+                return IsStringFormattingMethod(invocation.TargetMethod);
+
+            case IConversionOperation conversion:
+                return ContainsEagerStringFormatting(conversion.Operand);
+
+            default:
+                return false;
+        }
+    }
+
+    private static bool IsStringFormattingMethod(IMethodSymbol method)
+    {
+        if (method.ContainingType?.SpecialType != SpecialType.System_String)
+        {
+            return false;
+        }
+
+        return method.Name is "Format" or "Concat" or "Join";
+    }
+
+    private static bool IsStringType(ITypeSymbol? type)
+        => type?.SpecialType == SpecialType.System_String;
+
+    // ─── NALIX075: PacketScope must be disposed ──────────────────────────────
+
+    private static void AnalyzeLocalDeclaration(SyntaxNodeAnalysisContext context, SymbolSet symbols)
+    {
+        if (context.Node is not LocalDeclarationStatementSyntax localDecl)
+        {
+            return;
+        }
+
+        if (localDecl.UsingKeyword.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.UsingKeyword))
+        {
+            return;
+        }
+
+        VariableDeclarationSyntax declaration = localDecl.Declaration;
+        ITypeSymbol? declaredType = context.SemanticModel.GetTypeInfo(declaration.Type, context.CancellationToken).Type;
+
+        if (declaredType is null)
+        {
+            return;
+        }
+
+        bool isPacketScope = false;
+        if (declaredType is INamedTypeSymbol namedType
+            && namedType.IsGenericType
+            && IsSymbol(namedType.OriginalDefinition, symbols.PacketScopeType))
+        {
+            isPacketScope = true;
+        }
+
+        if (!isPacketScope)
+        {
+            return;
+        }
+
+        foreach (VariableDeclaratorSyntax variable in declaration.Variables)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.PacketScopeNotDisposed,
+                variable.GetLocation(),
+                variable.Identifier.Text,
+                declaredType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
+        }
+    }
+
+    // ─── NALIX076: Packet context escape detection ────────────────────────────
+
+    private static void AnalyzeContextEscape(OperationAnalysisContext context, SymbolSet symbols)
+    {
+        string? assemblyName = context.Operation.SemanticModel?.Compilation?.Assembly.Name;
+        if (!IsNalixCoreAssembly(assemblyName))
+        {
+            return;
+        }
+
+        switch (context.Operation)
+        {
+            case ISimpleAssignmentOperation assignment:
+                AnalyzeFieldPropertyAssignment(context, assignment, symbols);
+                break;
+
+            case IInvocationOperation invocation:
+                AnalyzeContextEscapeInvocation(context, invocation, symbols);
+                break;
+
+            case IEventAssignmentOperation eventAssignment:
+                AnalyzeEventAssignment(context, eventAssignment, symbols);
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    private static void AnalyzeFieldPropertyAssignment(
+        OperationAnalysisContext context,
+        ISimpleAssignmentOperation assignment,
+        SymbolSet symbols)
+    {
+        if (assignment.Target is not IFieldReferenceOperation and not IPropertyReferenceOperation)
+        {
+            return;
+        }
+
+        // Skip null assignments (e.g., _context = null in ResetForPool)
+        if (assignment.Value.ConstantValue is { HasValue: true, Value: null })
+        {
+            return;
+        }
+
+        ITypeSymbol? valueType = assignment.Value.Type;
+        if (valueType is null)
+        {
+            return;
+        }
+
+        if (IsPacketContextType(valueType, symbols))
+        {
+            string targetDesc = assignment.Target switch
+            {
+                IFieldReferenceOperation f => $"field '{f.Field.Name}'",
+                IPropertyReferenceOperation p => $"property '{p.Property.Name}'",
+                _ => "member"
+            };
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.PacketContextEscapesHandlerScope,
+                assignment.Syntax.GetLocation(),
+                "PacketContext",
+                $"Assigning to {targetDesc} extends the pooled context lifetime beyond the handler."));
+        }
+        else if (IsPacketType(valueType, symbols))
+        {
+            string targetDesc = assignment.Target switch
+            {
+                IFieldReferenceOperation f => $"field '{f.Field.Name}'",
+                IPropertyReferenceOperation p => $"property '{p.Property.Name}'",
+                _ => "member"
+            };
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.PacketContextEscapesHandlerScope,
+                assignment.Syntax.GetLocation(),
+                "Packet",
+                $"Assigning Packet to {targetDesc} extends the pooled packet lifetime beyond the handler."));
+        }
+    }
+
+    private static void AnalyzeContextEscapeInvocation(
+        OperationAnalysisContext context,
+        IInvocationOperation invocation,
+        SymbolSet symbols)
+    {
+        IMethodSymbol targetMethod = invocation.TargetMethod;
+
+        // Pattern: Task.Run(() => context/packet)
+        if (IsOffloadMethod(targetMethod) && invocation.Arguments.Length >= 1)
+        {
+            IArgumentOperation firstArg = invocation.Arguments[0];
+            if (ArgumentCapturesContextOrPacket(firstArg, symbols))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    DiagnosticDescriptors.PacketContextEscapesHandlerScope,
+                    invocation.Syntax.GetLocation(),
+                    "PacketContext",
+                    $"Offloading to '{targetMethod.ContainingType.Name}.{targetMethod.Name}' with a delegate that captures a pooled context or packet."));
+            }
+        }
+
+        // Pattern: collection.Add(context) / queue.Enqueue(context.Packet)
+        if (IsCollectionAddMethod(targetMethod) && invocation.Arguments.Length >= 1)
+        {
+            IArgumentOperation firstArg = invocation.Arguments[0];
+            if (IsPacketContextType(firstArg.Type, symbols) || IsPacketType(firstArg.Type, symbols))
+            {
+                string typeName = IsPacketContextType(firstArg.Type, symbols) ? "PacketContext" : "Packet";
+                context.ReportDiagnostic(Diagnostic.Create(
+                    DiagnosticDescriptors.PacketContextEscapesHandlerScope,
+                    invocation.Syntax.GetLocation(),
+                    typeName,
+                    $"Adding to a collection via '{targetMethod.Name}' extends the pooled lifetime beyond the handler."));
+            }
+        }
+    }
+
+    private static void AnalyzeEventAssignment(
+        OperationAnalysisContext context,
+        IEventAssignmentOperation eventAssignment,
+        SymbolSet symbols)
+    {
+        // IEventAssignmentOperation doesn't expose a Value property directly;
+        // walk child operations to find the delegate/value being assigned.
+        foreach (IOperation child in eventAssignment.ChildOperations)
+        {
+            if (child is IDelegateCreationOperation delegateCreation
+                && delegateCreation.Target is IAnonymousFunctionOperation lambda)
+            {
+                if (LambdaCapturesContextOrPacket(lambda, symbols))
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        DiagnosticDescriptors.PacketContextEscapesHandlerScope,
+                        eventAssignment.Syntax.GetLocation(),
+                        "PacketContext",
+                        "Event subscription with a delegate that captures a pooled context or packet."));
+                }
+
+                return;
+            }
+        }
+    }
+
+    private static bool IsOffloadMethod(IMethodSymbol method)
+    {
+        string name = method.Name;
+        string containingType = method.ContainingType?.ToDisplayString() ?? "";
+
+        // Task.Run
+        if (name == "Run" && containingType.StartsWith("System.Threading.Tasks.Task", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        // Task.Factory.StartNew
+        if (name == "StartNew" && containingType.Contains("TaskFactory", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        // ThreadPool.QueueUserWorkItem
+        if (name == "QueueUserWorkItem" && containingType.Contains("ThreadPool", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsCollectionAddMethod(IMethodSymbol method)
+    {
+        string name = method.Name;
+        return name is "Add" or "Enqueue" or "TryWrite" or "Push" or "Insert";
+    }
+
+    private static bool ArgumentCapturesContextOrPacket(IArgumentOperation argument, SymbolSet symbols)
+    {
+        // Check if the argument type itself is context/packet
+        if (IsPacketContextType(argument.Type, symbols) || IsPacketType(argument.Type, symbols))
+        {
+            return true;
+        }
+
+        // Check if it's a delegate/lambda that captures context/packet
+        if (argument.Value is IDelegateCreationOperation delegateCreation
+            && delegateCreation.Target is IAnonymousFunctionOperation lambda)
+        {
+            return LambdaCapturesContextOrPacket(lambda, symbols);
+        }
+
+        // Check if it's a method group
+        if (argument.Value is IMethodReferenceOperation methodRef)
+        {
+            // If the method takes a context/packet parameter, the delegate likely captures it
+            foreach (IParameterSymbol param in methodRef.Method.Parameters)
+            {
+                if (IsPacketContextType(param.Type, symbols) || IsPacketType(param.Type, symbols))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool LambdaCapturesContextOrPacket(IAnonymousFunctionOperation lambda, SymbolSet symbols)
+    {
+        // Walk the lambda body looking for references to context/packet types
+        foreach (IOperation descendant in lambda.Descendants())
+        {
+            switch (descendant)
+            {
+                case IParameterReferenceOperation paramRef:
+                    if (IsPacketContextType(paramRef.Type, symbols) || IsPacketType(paramRef.Type, symbols))
+                    {
+                        return true;
+                    }
+                    break;
+
+                case ILocalReferenceOperation localRef:
+                    if (IsPacketContextType(localRef.Type, symbols) || IsPacketType(localRef.Type, symbols))
+                    {
+                        return true;
+                    }
+                    break;
+
+                case IFieldReferenceOperation fieldRef:
+                    if (IsPacketContextType(fieldRef.Type, symbols) || IsPacketType(fieldRef.Type, symbols))
+                    {
+                        return true;
+                    }
+                    break;
+
+                case IPropertyReferenceOperation propRef:
+                    if (IsPacketContextType(propRef.Type, symbols) || IsPacketType(propRef.Type, symbols))
+                    {
+                        return true;
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsPacketContextType(ITypeSymbol? type, SymbolSet symbols)
+    {
+        if (type is null)
+        {
+            return false;
+        }
+
+        if (type is INamedTypeSymbol namedType && namedType.IsGenericType)
+        {
+            INamedTypeSymbol originalDef = namedType.OriginalDefinition;
+            if (IsSymbol(originalDef, symbols.PacketContextType) || IsSymbol(originalDef, symbols.PacketContextInterface))
+            {
+                return true;
+            }
+        }
+
+        // Check if the type implements IPacketContext<T>
+        foreach (INamedTypeSymbol iface in type.AllInterfaces)
+        {
+            if (iface.IsGenericType && IsSymbol(iface.OriginalDefinition, symbols.PacketContextInterface))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsPacketType(ITypeSymbol? type, SymbolSet symbols)
+    {
+        if (type is null)
+        {
+            return false;
+        }
+
+        // Check if it's the packet interface
+        if (IsSymbol(type, symbols.PacketInterface))
+        {
+            return true;
+        }
+
+        // Check if it implements IPacket
+        foreach (INamedTypeSymbol iface in type.AllInterfaces)
+        {
+            if (IsSymbol(iface, symbols.PacketInterface))
+            {
+                return true;
+            }
+        }
+
+        // Check if it inherits from PacketBase<T>
+        ITypeSymbol? current = type.BaseType;
+        while (current is not null)
+        {
+            if (current is INamedTypeSymbol namedBase
+                && namedBase.IsGenericType
+                && IsSymbol(namedBase.OriginalDefinition, symbols.PacketBaseType))
+            {
+                return true;
+            }
+
+            current = current.BaseType;
+        }
+
+        return false;
     }
 }

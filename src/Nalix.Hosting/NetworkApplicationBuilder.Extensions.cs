@@ -21,6 +21,20 @@ namespace Nalix.Hosting;
 public static class NetworkApplicationBuilderExtensions
 {
     /// <summary>
+    /// Enables time synchronization packet handling, allowing clients to synchronize
+    /// </summary>
+    /// <param name="builder">The application builder.</param>
+    /// <returns>The current builder instance.</returns>
+    public static INetworkApplicationBuilder UseTimeSync(this INetworkApplicationBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        _ = builder.MapHandlers(typeof(SystemTimeSyncHandlers));
+
+        return builder;
+    }
+
+    /// <summary>
     /// Enables system-level control packet handling (DISCONNECT, CIPHER_UPDATE, TIME_SYNC, etc.).
     /// </summary>
     /// <param name="builder">The application builder.</param>
@@ -32,20 +46,6 @@ public static class NetworkApplicationBuilderExtensions
         _ = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
 
         _ = builder.MapHandlers(typeof(SystemControlHandlers));
-
-        return builder;
-    }
-
-    /// <summary>
-    /// Enables time synchronization packet handling, allowing clients to synchronize
-    /// </summary>
-    /// <param name="builder">The application builder.</param>
-    /// <returns>The current builder instance.</returns>
-    public static INetworkApplicationBuilder UseTimeSync(this INetworkApplicationBuilder builder)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        _ = builder.MapHandlers(typeof(SystemTimeSyncHandlers));
 
         return builder;
     }

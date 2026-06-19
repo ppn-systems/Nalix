@@ -426,7 +426,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 action: action,
                 options: options).ConfigureAwait(false);
         }
-        catch (Exception ex) when (IsConnectionTeardownException(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex) && IsConnectionTeardownException(ex))
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
             {

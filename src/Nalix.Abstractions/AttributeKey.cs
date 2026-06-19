@@ -74,7 +74,6 @@ public readonly struct AttributeKey : IEquatable<AttributeKey>
         $"0x{_hash:X16}";
 #endif
 
-
     /// <summary>
     /// Compares two <see cref="AttributeKey"/> instances for equality.
     /// </summary>

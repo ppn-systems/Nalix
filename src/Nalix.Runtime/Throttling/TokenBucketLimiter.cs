@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
@@ -14,6 +15,7 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
+using Nalix.Environment.Hashing;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Runtime.Options;
@@ -248,9 +250,22 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        if (string.IsNullOrEmpty(key.Address))
+        Span<char> buffer = stackalloc char[64];
+        if (key.TryFormatAddress(buffer, out int written))
         {
-            THROW_KEY_ADDRESS_EMPTY();
+            if (written == 0)
+            {
+                THROW_KEY_ADDRESS_EMPTY();
+            }
+        }
+        else
+        {
+#pragma warning disable NALIX072 // Validation check; one-time per endpoint, not a hot-path allocation.
+            if (string.IsNullOrEmpty(key.Address))
+            {
+                THROW_KEY_ADDRESS_EMPTY();
+            }
+#pragma warning restore NALIX072
         }
     }
 
@@ -901,8 +916,23 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Shard SELECT_SHARD(INetworkEndpoint key)
     {
-        ReadOnlySpan<byte> bytes = System.Runtime.InteropServices.MemoryMarshal.AsBytes(key.Address.AsSpan());
-        uint h = Environment.Hashing.XxHash32.Compute(bytes);
+        uint h;
+        Span<char> buffer = stackalloc char[64];
+
+        if (key.TryFormatAddress(buffer, out int written))
+        {
+            ReadOnlySpan<char> charSpan = buffer[..written];
+            ReadOnlySpan<byte> ipBytes = MemoryMarshal.AsBytes(charSpan);
+            h = XxHash32.Compute(ipBytes);
+        }
+        else
+        {
+#pragma warning disable NALIX072 // INetworkEndpoint lacks zero-allocation address API; deferred until interface is extended.
+            ReadOnlySpan<char> charSpan = key.Address.AsSpan();
+            ReadOnlySpan<byte> ipBytes = MemoryMarshal.AsBytes(charSpan);
+            h = XxHash32.Compute(ipBytes);
+#pragma warning restore NALIX072
+        }
 
         // Mix hash for better distribution
         unchecked

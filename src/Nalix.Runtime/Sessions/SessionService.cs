@@ -91,7 +91,7 @@ public sealed class SessionService : ISessionService, IDisposable, IReportable
 
             return AWAIT_STORE_ASYNC(this, task, entry);
         }
-        catch (Exception)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _ = Interlocked.Increment(ref _totalStoresFailed);
             entry.Return(); // Reclaim pooled resources on failure
@@ -105,7 +105,7 @@ public sealed class SessionService : ISessionService, IDisposable, IReportable
                 await task.ConfigureAwait(false);
                 _ = Interlocked.Increment(ref self._totalStoresSucceeded);
             }
-            catch (Exception)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 _ = Interlocked.Increment(ref self._totalStoresFailed);
                 entry.Return(); // Reclaim pooled resources on failure
@@ -137,7 +137,7 @@ public sealed class SessionService : ISessionService, IDisposable, IReportable
 
             return AWAIT_CONSUME_ASYNC(this, task);
         }
-        catch (Exception)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _ = Interlocked.Increment(ref _totalConsumesFailed);
             throw;
@@ -158,7 +158,7 @@ public sealed class SessionService : ISessionService, IDisposable, IReportable
                 }
                 return entry;
             }
-            catch (Exception)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 _ = Interlocked.Increment(ref self._totalConsumesFailed);
                 throw;
