@@ -33,12 +33,12 @@ The source of truth is `analyzers/Nalix.Analyzers/Diagnostics/DiagnosticDescript
 | ID | Title | Severity | Category | Description |
 | --- | --- | ---: | --- | --- |
 | `NALIX006` | Registered middleware type does not match dispatcher packet type | Warning | Usage | Packet middleware should be compatible with the dispatcher packet type. |
-| `NALIX007` | Network buffer middleware ignores MiddlewareStageAttribute | Info | Usage | Buffer middleware ordering uses `MiddlewareOrderAttribute` only. **Note:** Non-functional in current source (`networkBufferMiddlewareType` is null). |
-| `NALIX019` | Registered buffer middleware does not implement INetworkBufferMiddleware | Warning | Usage | `WithBufferMiddleware` requires an `INetworkBufferMiddleware` type. **Note:** Non-functional in current source (`networkBufferMiddlewareType` is null). |
+| `NALIX007` | ~~Network buffer middleware ignores MiddlewareStageAttribute~~ | ~~Info~~ | ~~Usage~~ | **Removed.** `INetworkBufferMiddleware` was intentionally dropped from Nalix. |
+| `NALIX019` | ~~Registered buffer middleware does not implement INetworkBufferMiddleware~~ | ~~Warning~~ | ~~Usage~~ | **Removed.** `INetworkBufferMiddleware` was intentionally dropped from Nalix. |
 | `NALIX025` | Packet metadata provider clears Opcode | Warning | Routing | Metadata providers should not clear `builder.Opcode`. |
 | `NALIX026` | Packet metadata provider overwrites Opcode without guard | Info | Routing | Metadata providers should usually augment rather than overwrite opcode metadata. |
 | `NALIX030` | Packet middleware should declare MiddlewareOrder | Info | Middleware | Explicit middleware order makes packet middleware chains predictable. |
-| `NALIX031` | Buffer middleware should declare MiddlewareOrder | Info | Middleware | Buffer middleware ordering is determined by `MiddlewareOrderAttribute`. |
+| `NALIX031` | ~~Buffer middleware should declare MiddlewareOrder~~ | ~~Info~~ | ~~Middleware~~ | **Removed.** `INetworkBufferMiddleware` was intentionally dropped from Nalix. |
 | `NALIX032` | Inbound middleware ignores AlwaysExecute | Info | Middleware | `AlwaysExecute` only affects outbound middleware execution. |
 | `NALIX033` | Registered middleware shares MiddlewareOrder with another middleware in the same chain | Info | Middleware | Duplicate order values in one builder chain reduce predictability. |
 | `NALIX035` | PacketOpcode is in reserved range | Warning | Usage | Application handlers should avoid reserved opcodes `0x0000..0x00FF`. |
@@ -54,7 +54,7 @@ The source of truth is `analyzers/Nalix.Analyzers/Diagnostics/DiagnosticDescript
 | `NALIX015` | SerializeIgnore conflicts with SerializeOrder | Warning | Serialization | A member cannot be both ignored and explicitly ordered. |
 | `NALIX016` | SerializeDynamicSize is unnecessary on fixed-size member | Info | Serialization | Dynamic-size metadata should be used only for variable-size members. |
 | `NALIX021` | SerializeOrder should not be negative | Warning | Serialization | Explicit serialization order values should be non-negative. |
-| `NALIX022` | Packet member SerializeOrder overlaps packet header region | Warning | Serialization | Packet payload members on `PacketBase`-derived types should start at or after `PacketHeaderOffset.Region`. |
+| `NALIX022` | SerializeHeader(0) is reserved on PacketBase types | Warning | Serialization | On `PacketBase<TSelf>`-derived types, `SerializeHeader(0)` is reserved by Nalix packet internals. Use a non-zero header order or `SerializeOrder` for user-defined members. |
 | `NALIX034` | SerializeHeader conflicts with SerializeOrder | Warning | Serialization | Do not combine `SerializeHeader` and `SerializeOrder` on one member. |
 | `NALIX046` | SerializeOrder gap is unusually large | Info | Serialization | `SerializeOrder` is ordering metadata, not a byte offset. |
 | `NALIX051` | IFixedSizeSerializable type contains dynamic serialization member | Warning | Serialization | Fixed-size serializable types should avoid dynamic-size members. |
@@ -77,6 +77,17 @@ The source of truth is `analyzers/Nalix.Analyzers/Diagnostics/DiagnosticDescript
 | `NALIX044` | NetworkApplicationBuilder should configure a TCP binding | Info | Usage | Hosts usually need at least one TCP binding. |
 | `NALIX045` | NetworkApplicationBuilder should configure TCP before UDP | Info | Usage | UDP bindings are expected to be paired with TCP bindings in this host setup. |
 | `NALIX057` | RequestOptions uses infinite timeout with retries | Info | SDK | `TimeoutMs=0` can make retries ineffective because each attempt may wait indefinitely. |
+
+## Correctness, Security, Pooling, and AOT Codes
+
+| ID | Title | Severity | Category | Scope | Description |
+| --- | --- | ---: | --- | --- | --- |
+| `NALIX071` | Use Nalix crypto abstractions instead of System.Security.Cryptography | Warning | Security | Core-only | Direct BCL crypto usage in Nalix Core assemblies bypasses security review. Platform fallback shims (e.g. `OsCsprng`) and `FixedTimeEquals` are allowlisted. |
+| `NALIX072` | Use zero-allocation endpoint formatting in hot paths | Info | Performance | Core-only | `IPAddress.ToString()`, `INetworkEndpoint.Address`, and `SocketEndpoint.Address` allocate strings. Use `TryFormatAddress` or Span-based formatting. |
+| `NALIX073` | Unguarded catch(Exception) | Warning | Correctness | Core-only | Catch clauses should filter through `ExceptionClassifier.IsNonFatal()` to avoid swallowing fatal exceptions. |
+| `NALIX074` | Avoid eager string formatting in diagnostic logging | Info | Performance | Core-only | Interpolated strings, `string.Format`, or concatenation inside `new DiagnosticLog(...)` allocate even when diagnostics are disabled. Guard behind `IsEnabled(...)`. |
+| `NALIX075` | PacketScope<T> must be disposed | Error | Pooling | All assemblies | `PacketScope<T>` wraps a pooled packet and must be disposed via `using` to return it to the pool. |
+| `NALIX078` | Avoid unbounded reflection in AOT-sensitive Nalix Core code | Warning | AOT | Core-only | `Assembly.GetTypes()`, `Expression.Compile()`, `MakeGenericType()`, `MethodInfo.Invoke()`, `Type.GetType(string)`, and other unbounded reflection. Use source-generated or compile-time alternatives. **Note:** `Activator.CreateInstance` detection is intentionally deferred. |
 
 ## Source Mapping
 

@@ -87,7 +87,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
         public int Port => _inner.Port;
         public bool IsIPv6 => _inner.IsIPv6;
         public bool HasPort => _inner.HasPort;
-#pragma warning disable NALIX072
+#pragma warning disable NALIX072 // ScopedEndpoint proxies INetworkEndpoint.Address; allocation is at the call site, not here.
         public string Address => _inner.Address;
 #pragma warning restore NALIX072
 
@@ -123,7 +123,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable
                 return $"op:{_op:X4}|policy:{_policyId ?? "null"}|ip:{buffer[..written]}";
             }
 
-#pragma warning disable NALIX072
+#pragma warning disable NALIX072 // ToString() fallback when TryFormatAddress fails; not a hot path.
             return $"op:{_op:X4}|policy:{_policyId ?? "null"}|ip:{_inner.Address}";
 #pragma warning restore NALIX072
         }

@@ -260,7 +260,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         }
         else
         {
-#pragma warning disable NALIX072
+#pragma warning disable NALIX072 // Validation check; one-time per endpoint, not a hot-path allocation.
             if (string.IsNullOrEmpty(key.Address))
             {
                 THROW_KEY_ADDRESS_EMPTY();
@@ -927,7 +927,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         }
         else
         {
-#pragma warning disable NALIX072
+#pragma warning disable NALIX072 // INetworkEndpoint lacks zero-allocation address API; deferred until interface is extended.
             ReadOnlySpan<char> charSpan = key.Address.AsSpan();
             ReadOnlySpan<byte> ipBytes = MemoryMarshal.AsBytes(charSpan);
             h = XxHash32.Compute(ipBytes);

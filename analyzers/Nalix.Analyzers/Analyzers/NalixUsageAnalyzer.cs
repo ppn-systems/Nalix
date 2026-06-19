@@ -2033,29 +2033,8 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    private static bool HasDynamicallyAccessedConstructorsAnnotation(IParameterSymbol parameter)
-    {
-        foreach (AttributeData attribute in parameter.GetAttributes())
-        {
-            if (attribute.AttributeClass?.Name == "DynamicallyAccessedMembersAttribute"
-                && attribute.ConstructorArguments.Length == 1
-                && attribute.ConstructorArguments[0].Value is int flags)
-            {
-                // DynamicallyAccessedMemberTypes flags for constructors:
-                // PublicParameterlessConstructor = 0x01
-                // PublicConstructors = 0x03
-                // NonPublicConstructors = 0x04
-                // All = -1
-                const int constructorMask = 0x01 | 0x02 | 0x04;
-                if ((flags & constructorMask) != 0 || flags == -1)
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
+    // NOTE: HasDynamicallyAccessedConstructorsAnnotation is deferred until
+    // Activator.CreateInstance detection is implemented (see NALIX078 report).
 
     // ─── NALIX074: Eager string formatting in DiagnosticLog ─────────────────
 
