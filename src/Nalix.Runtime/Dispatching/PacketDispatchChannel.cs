@@ -470,9 +470,21 @@ public sealed class PacketDispatchChannel
                         while (processed < _maxDrainPerWake &&
                                session.TryDequeue(out IBufferLease? lease))
                         {
-                            // Dispatch directly using await.
-                            // Zero-allocation for sync completion; Pooled for async.
-                            await this.ExecutePacketAsync(session.Connection, lease, ct).ConfigureAwait(false);
+                            try
+                            {
+                                // Dispatch directly using await.
+                                // Zero-allocation for sync completion; Pooled for async.
+                                await this.ExecutePacketAsync(session.Connection, lease, ct).ConfigureAwait(false);
+                            }
+                            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                            {
+                                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+                                {
+                                    DiagnosticsEvents.Write(
+                                        DiagnosticsEvents.Internal.Error,
+                                        new DiagnosticLog("RT.PacketDispatchChannel:DispatchWorkerLoopAsync", "dispatch-execution-error", ex));
+                                }
+                            }
                             processed++;
                         }
 #pragma warning restore CA2000
@@ -666,15 +678,22 @@ public sealed class PacketDispatchChannel
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (!connection.IsDisposed)
+            try
             {
-                connection.IncrementErrorCount();
+                if (!connection.IsDisposed)
+                {
+                    connection.IncrementErrorCount();
 
-                connection.ThrottledDiagnosticError(
-                    DiagnosticsEvents.Internal.Error,
-                    s_keyExecute,
-                    "RT.PacketDispatchChannel:ExecutePacketAsync",
-                    $"handler-error ep={connection.NetworkEndpoint}");
+                    connection.ThrottledDiagnosticError(
+                        DiagnosticsEvents.Internal.Error,
+                        s_keyExecute,
+                        "RT.PacketDispatchChannel:ExecutePacketAsync",
+                        $"handler-error ep={connection.NetworkEndpoint}");
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // Ignore ObjectDisposedException since the connection is going away
             }
         }
 
@@ -702,12 +721,22 @@ public sealed class PacketDispatchChannel
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            connection.IncrementErrorCount();
-            connection.ThrottledDiagnosticError(
-                DiagnosticsEvents.Internal.Error,
-                s_keyExecute,
-                "RT.PacketDispatchChannel:ExecutePacketAsync",
-                $"handler-error ep={connection.NetworkEndpoint}");
+            try
+            {
+                if (!connection.IsDisposed)
+                {
+                    connection.IncrementErrorCount();
+                    connection.ThrottledDiagnosticError(
+                        DiagnosticsEvents.Internal.Error,
+                        s_keyExecute,
+                        "RT.PacketDispatchChannel:ExecutePacketAsync",
+                        $"handler-error ep={connection.NetworkEndpoint}");
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // Ignore ObjectDisposedException since the connection is going away
+            }
         }
         finally
         {

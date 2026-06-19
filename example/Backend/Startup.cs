@@ -3,7 +3,7 @@
 
 using Backend.Middleware;
 using Microsoft.Extensions.Logging;
-using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Options;

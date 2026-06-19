@@ -128,42 +128,49 @@ internal static class DiagnosticThrottleExtensions
             return false;
         }
 
-        IObjectMap<AttributeKey, object>? attrs = connection.Attributes;
-        if (attrs is null)
+        try
         {
-            return true;
-        }
-
-        if (!attrs.TryGetValue(key.AttributeKey, out object? val) || val is not LogThrottleState state)
-        {
-            LogThrottleState newState = new()
+            IObjectMap<AttributeKey, object>? attrs = connection.Attributes;
+            if (attrs is null)
             {
-                LastLogTicks = Stopwatch.GetTimestamp()
-            };
+                return true;
+            }
 
-            // Use indexer (upsert) instead of Add to avoid ArgumentException
-            // when two threads race to insert the same throttle key concurrently.
-            attrs[key.AttributeKey] = newState;
+            if (!attrs.TryGetValue(key.AttributeKey, out object? val) || val is not LogThrottleState state)
+            {
+                LogThrottleState newState = new()
+                {
+                    LastLogTicks = Stopwatch.GetTimestamp()
+                };
 
+                // Use indexer (upsert) instead of Add to avoid ArgumentException
+                // when two threads race to insert the same throttle key concurrently.
+                attrs[key.AttributeKey] = newState;
+
+                return true;
+            }
+
+            long nowTicks = Stopwatch.GetTimestamp();
+            long lastTicks = Interlocked.Read(ref state.LastLogTicks);
+
+            if (nowTicks - lastTicks < s_defaultWindowTicks)
+            {
+                _ = Interlocked.Increment(ref state.SuppressedCount);
+                return false;
+            }
+
+            if (Interlocked.CompareExchange(ref state.LastLogTicks, nowTicks, lastTicks) != lastTicks)
+            {
+                _ = Interlocked.Increment(ref state.SuppressedCount);
+                return false;
+            }
+
+            suppressed = Interlocked.Exchange(ref state.SuppressedCount, 0);
             return true;
         }
-
-        long nowTicks = Stopwatch.GetTimestamp();
-        long lastTicks = Interlocked.Read(ref state.LastLogTicks);
-
-        if (nowTicks - lastTicks < s_defaultWindowTicks)
+        catch (ObjectDisposedException)
         {
-            _ = Interlocked.Increment(ref state.SuppressedCount);
             return false;
         }
-
-        if (Interlocked.CompareExchange(ref state.LastLogTicks, nowTicks, lastTicks) != lastTicks)
-        {
-            _ = Interlocked.Increment(ref state.SuppressedCount);
-            return false;
-        }
-
-        suppressed = Interlocked.Exchange(ref state.SuppressedCount, 0);
-        return true;
     }
 }

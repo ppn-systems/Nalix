@@ -70,11 +70,14 @@ public static class PacketRegistry
     /// <summary>
     /// Configures the shared Pool Manager for the entire packet ecosystem.
     /// </summary>
-    public static void Configure(IObjectPoolManager manager)
+    public static void Configure(IObjectPoolManager? manager)
     {
-        ArgumentNullException.ThrowIfNull(manager);
-
         Volatile.Write(ref Manager, manager);
+
+        if (manager is null)
+        {
+            return;
+        }
 
         _ = manager.SetMaxCapacity<Control>(256);
         _ = manager.SetMaxCapacity<TimeSync>(256);
