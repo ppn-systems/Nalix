@@ -2058,6 +2058,215 @@ public static class EndpointHelper
         await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Network");
     }
 
+    // ─── NALIX078: Unbounded reflection in AOT code ───────────────────────────
+
+    [Fact]
+    public async Task AssemblyGetTypesInCoreAssembly_ReportsNalix078()
+    {
+        const string source = """
+namespace Nalix.Framework.Injection;
+
+public static class Scanner
+{
+    public static System.Type[] Scan()
+    {
+        return typeof(Scanner).Assembly.GetTypes();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Framework", "NALIX078");
+    }
+
+    [Fact]
+    public async Task AppDomainGetAssembliesInCoreAssembly_ReportsNalix078()
+    {
+        const string source = """
+namespace Nalix.Framework.Injection;
+
+public static class Scanner
+{
+    public static System.Reflection.Assembly[] GetAll()
+    {
+        return System.AppDomain.CurrentDomain.GetAssemblies();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Framework", "NALIX078");
+    }
+
+    [Fact]
+    public async Task ExpressionCompileInCoreAssembly_ReportsNalix078()
+    {
+        const string source = """
+namespace Nalix.Framework.Injection;
+
+using System.Linq.Expressions;
+
+public static class Factory
+{
+    public static Func<T> CreateFactory<T>() where T : new()
+    {
+        Expression<Func<T>> expr = () => new T();
+        return expr.Compile();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Framework", "NALIX078");
+    }
+
+    [Fact]
+    public async Task MakeGenericTypeInCoreAssembly_ReportsNalix078()
+    {
+        const string source = """
+namespace Nalix.Framework.Injection;
+
+public static class GenericFactory
+{
+    public static object Create(System.Type itemType)
+    {
+        System.Type listType = typeof(System.Collections.Generic.List<>).MakeGenericType(itemType);
+        return System.Activator.CreateInstance(listType)!;
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Framework", "NALIX078");
+    }
+
+    [Fact]
+    public async Task MethodInfoInvokeInCoreAssembly_ReportsNalix078()
+    {
+        const string source = """
+namespace Nalix.Framework.Injection;
+
+using System.Reflection;
+
+public static class Reflector
+{
+    public static object? Call(MethodInfo method, object? target, object?[]? args)
+    {
+        return method.Invoke(target, args);
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Framework", "NALIX078");
+    }
+
+    [Fact]
+    public async Task TypeGetTypeStringInCoreAssembly_ReportsNalix078()
+    {
+        const string source = """
+namespace Nalix.Framework.Injection;
+
+public static class TypeResolver
+{
+    public static System.Type? Resolve(string name)
+    {
+        return System.Type.GetType(name);
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Framework", "NALIX078");
+    }
+
+    [Fact]
+    public async Task ReflectionInNonCoreAssembly_DoesNotReportNalix078()
+    {
+        const string source = """
+namespace MyApp.Reflection;
+
+public static class Scanner
+{
+    public static System.Type[] Scan()
+    {
+        return typeof(Scanner).Assembly.GetTypes();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "MyApp");
+    }
+
+    [Fact]
+    public async Task ReflectionInTestAssembly_DoesNotReportNalix078()
+    {
+        const string source = """
+namespace Nalix.Framework.Tests;
+
+public static class Scanner
+{
+    public static System.Type[] Scan()
+    {
+        return typeof(Scanner).Assembly.GetTypes();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Tests");
+    }
+
+    [Fact]
+    public async Task TypeofDoesNotReportNalix078()
+    {
+        const string source = """
+namespace Nalix.Framework.Injection;
+
+public static class TypeHelper
+{
+    public static System.Type GetMyType()
+    {
+        return typeof(string);
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Framework");
+    }
+
+    [Fact]
+    public async Task ActivatorCreateInstanceGeneric_DoesNotReportNalix078()
+    {
+        const string source = """
+namespace Nalix.Framework.Injection;
+
+public static class Factory
+{
+    public static T Create<T>() where T : new()
+    {
+        return System.Activator.CreateInstance<T>();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Framework");
+    }
+
+    [Fact]
+    public async Task ActivatorCreateInstanceStaticType_DoesNotReportNalix078()
+    {
+        const string source = """
+namespace Nalix.Framework.Injection;
+
+public static class Factory
+{
+    public static object Create()
+    {
+        return System.Activator.CreateInstance(typeof(System.Text.StringBuilder))!;
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Framework");
+    }
+
+    // Activator.CreateInstance(Type) detection is deferred.
+    // See research/analyzers/08-nalix078-aot-reflection.md for details.
+
     // ─── NALIX075: PacketScope must be disposed ────────────────────────────────
 
     [Fact]

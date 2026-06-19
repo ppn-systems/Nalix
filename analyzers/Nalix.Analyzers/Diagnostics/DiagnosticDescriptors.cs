@@ -517,4 +517,13 @@ internal static class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "PacketScope<T> wraps a pooled packet and must be disposed via 'using' to return it to the pool. Forgetting 'using' causes pool leaks.");
 
+    public static readonly DiagnosticDescriptor UnboundedReflectionInAotCode = new(
+        id: "NALIX078",
+        title: "Avoid unbounded reflection in AOT-sensitive Nalix Core code",
+        messageFormat: "Usage of '{0}' introduces unbounded reflection that may not be compatible with Native AOT trimming. Use source-generated or compile-time alternatives instead.",
+        category: "AOT",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Nalix Core assemblies targeting Native AOT should avoid runtime assembly scanning, dynamic code generation, and unannotated reflection. Use source-generated activators, compile-time registration, or DynamicallyAccessedMembers annotations.");
+
 }

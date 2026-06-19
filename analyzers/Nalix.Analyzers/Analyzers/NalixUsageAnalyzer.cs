@@ -78,6 +78,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.UnguardedCatchException,
             DiagnosticDescriptors.DisallowedCryptographyUsage,
             DiagnosticDescriptors.AllocatingEndpointFormatting,
+            DiagnosticDescriptors.UnboundedReflectionInAotCode,
             DiagnosticDescriptors.PacketScopeNotDisposed
         ];
 
@@ -134,6 +135,10 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                 operationContext => AnalyzeEndpointFormatting(operationContext),
                 OperationKind.Invocation,
                 OperationKind.PropertyReference);
+
+            startContext.RegisterOperationAction(
+                operationContext => AnalyzeReflectionUsage(operationContext),
+                OperationKind.Invocation);
 
             startContext.RegisterSyntaxNodeAction(
                 syntaxContext => AnalyzeLocalDeclaration(syntaxContext, symbols),
@@ -1879,6 +1884,169 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             }
 
             current = current.Parent;
+        }
+
+        return false;
+    }
+
+    // ─── NALIX078: Unbounded reflection in AOT-sensitive Core code ──────────
+
+    private static void AnalyzeReflectionUsage(OperationAnalysisContext context)
+    {
+        if (context.Operation is not IInvocationOperation invocation)
+        {
+            return;
+        }
+
+        string? assemblyName = context.Operation.SemanticModel?.Compilation?.Assembly.Name;
+        if (!IsNalixCoreAssembly(assemblyName))
+        {
+            return;
+        }
+
+        IMethodSymbol targetMethod = invocation.TargetMethod;
+        ITypeSymbol containingType = targetMethod.ContainingType;
+        string containingTypeFullName = containingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+        // Check for dangerous assembly scanning
+        if (targetMethod.Name is "GetTypes" or "GetExportedTypes"
+            && containingTypeFullName is "global::System.Reflection.Assembly")
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.UnboundedReflectionInAotCode,
+                invocation.Syntax.GetLocation(),
+                $"{containingType.Name}.{targetMethod.Name}"));
+            return;
+        }
+
+        if (targetMethod.Name == "GetAssemblies"
+            && containingTypeFullName is "global::System.AppDomain")
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.UnboundedReflectionInAotCode,
+                invocation.Syntax.GetLocation(),
+                $"{containingType.Name}.{targetMethod.Name}"));
+            return;
+        }
+
+        // Check for dynamic code generation
+        if (targetMethod.Name == "Compile"
+            && (containingTypeFullName is "global::System.Linq.Expressions.LambdaExpression"
+                || TypeInheritsFrom(containingType, "global::System.Linq.Expressions.LambdaExpression")))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.UnboundedReflectionInAotCode,
+                invocation.Syntax.GetLocation(),
+                $"{containingType.Name}.Compile"));
+            return;
+        }
+
+        // Check for dynamic generic construction
+        if (targetMethod.Name is "MakeGenericType" or "MakeGenericMethod"
+            && containingTypeFullName is "global::System.Type" or "global::System.Reflection.MethodInfo")
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.UnboundedReflectionInAotCode,
+                invocation.Syntax.GetLocation(),
+                $"{containingType.Name}.{targetMethod.Name}"));
+            return;
+        }
+
+        // Check for string-based type lookup
+        if (targetMethod.Name == "GetType"
+            && targetMethod.Parameters.Length >= 1
+            && targetMethod.Parameters[0].Type?.SpecialType == SpecialType.System_String
+            && containingTypeFullName is "global::System.Type" or "global::System.Reflection.Assembly")
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.UnboundedReflectionInAotCode,
+                invocation.Syntax.GetLocation(),
+                $"{containingType.Name}.{targetMethod.Name}"));
+            return;
+        }
+
+        // NOTE: Activator.CreateInstance(Type) detection is deferred.
+        // It requires reliable differentiation between:
+        //   - Activator.CreateInstance<T>() (allowed)
+        //   - Activator.CreateInstance(typeof(KnownType)) (allowed)
+        //   - Activator.CreateInstance(type) with unannotated runtime Type (report)
+        //   - Activator.CreateInstance(type) with [DynamicallyAccessedMembers] (allowed)
+        // This will be addressed in a future phase with more robust annotation detection.
+
+        // Check for reflection invocations on MemberInfo subtypes
+        if (IsReflectionInvokeOrAccessor(targetMethod, containingTypeFullName))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.UnboundedReflectionInAotCode,
+                invocation.Syntax.GetLocation(),
+                $"{containingType.Name}.{targetMethod.Name}"));
+        }
+    }
+
+    private static bool IsReflectionInvokeOrAccessor(IMethodSymbol method, string containingTypeFullName)
+    {
+        // MethodInfo.Invoke, ConstructorInfo.Invoke
+        if (method.Name == "Invoke"
+            && containingTypeFullName is
+                "global::System.Reflection.MethodInfo"
+                or "global::System.Reflection.ConstructorInfo"
+                or "global::System.Reflection.MethodBase")
+        {
+            return true;
+        }
+
+        // PropertyInfo.GetValue, PropertyInfo.SetValue
+        if (method.Name is "GetValue" or "SetValue"
+            && containingTypeFullName is "global::System.Reflection.PropertyInfo")
+        {
+            return true;
+        }
+
+        // FieldInfo.GetValue, FieldInfo.SetValue
+        if (method.Name is "GetValue" or "SetValue"
+            && containingTypeFullName is "global::System.Reflection.FieldInfo")
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TypeInheritsFrom(ITypeSymbol type, string baseTypeFullName)
+    {
+        ITypeSymbol? current = type.BaseType;
+        while (current is not null)
+        {
+            if (current.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == baseTypeFullName)
+            {
+                return true;
+            }
+
+            current = current.BaseType;
+        }
+
+        return false;
+    }
+
+    private static bool HasDynamicallyAccessedConstructorsAnnotation(IParameterSymbol parameter)
+    {
+        foreach (AttributeData attribute in parameter.GetAttributes())
+        {
+            if (attribute.AttributeClass?.Name == "DynamicallyAccessedMembersAttribute"
+                && attribute.ConstructorArguments.Length == 1
+                && attribute.ConstructorArguments[0].Value is int flags)
+            {
+                // DynamicallyAccessedMemberTypes flags for constructors:
+                // PublicParameterlessConstructor = 0x01
+                // PublicConstructors = 0x03
+                // NonPublicConstructors = 0x04
+                // All = -1
+                const int constructorMask = 0x01 | 0x02 | 0x04;
+                if ((flags & constructorMask) != 0 || flags == -1)
+                {
+                    return true;
+                }
+            }
         }
 
         return false;
