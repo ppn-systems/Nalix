@@ -112,21 +112,25 @@ public static partial class Bootstrap
         // Network-level options
         _ = ConfigurationManager.Instance.Get<SequenceOptions>();
         _ = ConfigurationManager.Instance.Get<TimingWheelOptions>();
+        _ = ConfigurationManager.Instance.Get<DatagramGuardOptions>();
         _ = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
         _ = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
         _ = ConfigurationManager.Instance.Get<ConnectionQuotaOptions>();
         _ = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
+        _ = ConfigurationManager.Instance.Get<ConnectionBanStoreOptions>();
         _ = ConfigurationManager.Instance.Get<ConnectionBlacklistStoreOptions>();
         _ = ConfigurationManager.Instance.Get<TrustedProxyOptions>();
         _ = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
+        _ = ConfigurationManager.Instance.Get<ForwardedHeadersOptions>();
+        _ = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
+        _ = ConfigurationManager.Instance.Get<ProxyProtocolOptions>();
 
         // Runtime-level options
         _ = ConfigurationManager.Instance.Get<DispatchOptions>();
+        _ = ConfigurationManager.Instance.Get<PacketDrainOptions>();
+        _ = ConfigurationManager.Instance.Get<TokenBucketOptions>();
         _ = ConfigurationManager.Instance.Get<SessionStoreOptions>();
-
-        // Security and concurrency options
-        //_ = ConfigurationManager.Instance.Get<ConcurrencyOptions>();
-        //_ = ConfigurationManager.Instance.Get<TokenBucketOptions>();
+        _ = ConfigurationManager.Instance.Get<DirectiveGuardOptions>();
 
         // 3. Hosting specific options
         HostingOptions hostingOptions = ConfigurationManager.Instance.Get<HostingOptions>();

@@ -43,28 +43,36 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IPoolab
 
     #region Properties
 
+    /// <inheritdoc/>
     public TransportFraming Framing { get; private set; } = TransportFraming.None;
 
+    /// <inheritdoc/>
     public Socket Socket => _socket?.Socket ?? throw new ObjectDisposedException(nameof(SocketTcpTransport));
 
+    /// <inheritdoc/>
     public Task? ReceiveLoopTask => _socket?.ReceiveLoopTask;
 
+    /// <inheritdoc/>
     public byte[]? StolenData => _socket?.StolenData;
 
+    /// <inheritdoc/>
     public ISequenceCounter SendSequence => _sendSequence;
 
+    /// <inheritdoc/>
     public ISequenceCounter ReceiveSequence => _receiveSequence;
 
     #endregion Properties
 
     #region Methods
 
+    /// <inheritdoc/>
     public void Initialize(Connection outer, SocketConnection socket)
     {
         _outer = outer ?? throw new ArgumentNullException(nameof(outer));
         _socket = socket ?? throw new ArgumentNullException(nameof(socket));
     }
 
+    /// <inheritdoc/>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Socket Unwrap()
@@ -73,6 +81,7 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IPoolab
         return _socket.Unwrap();
     }
 
+    /// <inheritdoc/>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void BeginReceive(CancellationToken cancellationToken = default)
@@ -82,6 +91,7 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IPoolab
         _socket.BeginReceive(cancellationToken);
     }
 
+    /// <inheritdoc/>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void UseFraming(TransportFraming framing)
@@ -91,6 +101,7 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IPoolab
         _socket.SetFraming(framing);
     }
 
+    /// <inheritdoc/>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Send(ReadOnlySpan<byte> message)
@@ -109,6 +120,7 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IPoolab
         }
     }
 
+    /// <inheritdoc/>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
@@ -146,16 +158,20 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IPoolab
         }
     }
 
+    /// <inheritdoc/>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint NextSendSequence() => _sendSequence.Next();
 
+    /// <inheritdoc/>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public uint NextReceiveSequence() => _receiveSequence.Next();
 
+    /// <inheritdoc/>
     public uint CurrentSendSequence => _sendSequence.Current();
 
+    /// <inheritdoc/>
     public uint CurrentReceiveSequence => _receiveSequence.Current();
 
     #endregion Methods
