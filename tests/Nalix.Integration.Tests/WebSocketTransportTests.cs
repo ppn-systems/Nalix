@@ -72,8 +72,8 @@ public class WebSocketTransportTests : IDisposable
     /// </summary>
     private sealed class TestWebSocketListener : WebSocketListenerBase
     {
-        public TestWebSocketListener(ushort port, string path, IProtocol protocol, IConnectionHub hub)
-            : base(port, path, protocol, hub) { }
+        public TestWebSocketListener(ushort port, string path, IProtocol protocol, IConnectionHub hub, IConnectionGuard guard)
+            : base(port, path, protocol, hub, guard) { }
     }
 
     private static ushort GetFreePort()
@@ -94,8 +94,9 @@ public class WebSocketTransportTests : IDisposable
         
         var protocol = new IntegrationTestProtocol();
         var hub = new ConnectionHub(); // Real hub
+        var guard = Nalix.Framework.Injection.InstanceManager.Instance.GetExistingInstance<IConnectionGuard>() ?? Nalix.Framework.Injection.InstanceManager.Instance.GetOrCreateInstance<Nalix.Network.RateLimiting.ConnectionGuard>();
 
-        using var server = new TestWebSocketListener(port, "/ws/", protocol, hub);
+        using var server = new TestWebSocketListener(port, "/ws/", protocol, hub, guard);
         server.Activate();
 
         // Wait a little for server to start
@@ -402,8 +403,9 @@ public class WebSocketTransportTests : IDisposable
 
         var protocol = new IntegrationTestProtocol();
         var hub = new ConnectionHub();
+        var guard = Nalix.Framework.Injection.InstanceManager.Instance.GetExistingInstance<IConnectionGuard>() ?? Nalix.Framework.Injection.InstanceManager.Instance.GetOrCreateInstance<Nalix.Network.RateLimiting.ConnectionGuard>();
 
-        using var server = new TestWebSocketListener(port, "/ws/", protocol, hub);
+        using var server = new TestWebSocketListener(port, "/ws/", protocol, hub, guard);
         server.Activate();
         await Task.Delay(1000);
 
@@ -448,8 +450,9 @@ public class WebSocketTransportTests : IDisposable
 
         var protocol = new IntegrationTestProtocol();
         var hub = new ConnectionHub();
+        var guard = Nalix.Framework.Injection.InstanceManager.Instance.GetExistingInstance<IConnectionGuard>() ?? Nalix.Framework.Injection.InstanceManager.Instance.GetOrCreateInstance<Nalix.Network.RateLimiting.ConnectionGuard>();
 
-        using var server = new TestWebSocketListener(port, "/ws/", protocol, hub);
+        using var server = new TestWebSocketListener(port, "/ws/", protocol, hub, guard);
         server.Activate();
         await Task.Delay(1000);
 

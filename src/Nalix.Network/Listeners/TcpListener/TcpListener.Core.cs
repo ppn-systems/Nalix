@@ -17,7 +17,6 @@ using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Internal.Initialization;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Options;
-using Nalix.Network.RateLimiting;
 
 #pragma warning disable IDE0079 // Remove unnecessary suppression
 #pragma warning disable CA2213 // Disposable fields should be disposed
@@ -40,7 +39,7 @@ public abstract partial class TcpListenerBase : IListener
     private readonly ProxyProtocolOptions _proxyConfig;
     private readonly TimingWheel _timing;
     private readonly ObjectPoolManager _pool;
-    private readonly ConnectionGuard _limiter;
+    private readonly IConnectionGuard _limiter;
     private int _state;
     private int _isDisposed;
     private int _stopInitiated;
@@ -90,10 +89,12 @@ public abstract partial class TcpListenerBase : IListener
     /// <param name="port">Gets or sets the port number for the network connection.</param>
     /// <param name="protocol">The protocol to handle the connections.</param>
     /// <param name="hub">The connection hub for managing active connections.</param>
+    /// <param name="guard"></param>
     [DebuggerStepThrough]
-    protected TcpListenerBase(ushort port, IProtocol protocol, IConnectionHub hub)
+    protected TcpListenerBase(ushort port, IProtocol protocol, IConnectionHub hub, IConnectionGuard guard)
     {
         ArgumentNullException.ThrowIfNull(hub, nameof(hub));
+        ArgumentNullException.ThrowIfNull(guard, nameof(guard));
         ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
 
         _isDisposed = 0;
@@ -110,7 +111,7 @@ public abstract partial class TcpListenerBase : IListener
 
         _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
         _pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-        _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
+        _limiter = guard;
 
         _config.Validate();
 
@@ -125,8 +126,9 @@ public abstract partial class TcpListenerBase : IListener
     /// </summary>
     /// <param name="protocol">The protocol to handle the connections.</param>
     /// <param name="hub">The connection hub for managing active connections.</param>
+    /// <param name="guard"></param>
     [DebuggerStepThrough]
-    protected TcpListenerBase(IProtocol protocol, IConnectionHub hub) : this(ConfigurationManager.Instance.Get<NetworkSocketOptions>().Port, protocol, hub)
+    protected TcpListenerBase(IProtocol protocol, IConnectionHub hub, IConnectionGuard guard) : this(ConfigurationManager.Instance.Get<NetworkSocketOptions>().Port, protocol, hub, guard)
     {
     }
 

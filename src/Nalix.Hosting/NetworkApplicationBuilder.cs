@@ -20,6 +20,8 @@ using Nalix.Framework.Memory.Objects;
 using Nalix.Hosting.Internal;
 using Nalix.Network.Connections;
 using Nalix.Network.Listeners.Udp;
+using Nalix.Network.RateLimiting;
+using Nalix.Abstractions.Security;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Routing;
 
@@ -117,6 +119,27 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         if (connectionHub is IConnectionBroadcaster broadcaster)
         {
             InstanceManager.Instance.Register<IConnectionBroadcaster>(broadcaster);
+        }
+
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder UseConnectionGuard(IConnectionGuard connectionGuard)
+    {
+        ArgumentNullException.ThrowIfNull(connectionGuard);
+
+        _state.HasCustomConnectionGuard = true;
+        InstanceManager.Instance.Register<IConnectionGuard>(connectionGuard);
+
+        if (connectionGuard is ConnectionGuard concrete)
+        {
+            InstanceManager.Instance.Register<ConnectionGuard>(concrete);
+        }
+
+        if (connectionGuard is IProofOfWorkPolicy policy)
+        {
+            InstanceManager.Instance.Register<IProofOfWorkPolicy>(policy);
         }
 
         return this;
@@ -283,6 +306,9 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                 IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()
                     ?? throw new InvalidOperationException("IConnectionHub is not registered. Call UseConnectionHub or ensure Build() is invoked.");
 
+                IConnectionGuard guard = InstanceManager.Instance.GetExistingInstance<IConnectionGuard>()
+                    ?? throw new InvalidOperationException("IConnectionGuard is not registered.");
+
                 IProtocol protocol = registration.Factory(dispatch);
 
                 ushort? port = registration.Port;
@@ -295,8 +321,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                 IListener listener;
 
                 listener = port.HasValue
-                    ? new TcpServerListener(port.Value, protocol, hub)
-                    : new TcpServerListener(protocol, hub);
+                    ? new TcpServerListener(port.Value, protocol, hub, guard)
+                    : new TcpServerListener(protocol, hub, guard);
 
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, NetworkTransport.TCP);
             });
@@ -321,6 +347,9 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                     authen = udpBuilder.Authen ?? authen;
                 }
 
+                IConnectionGuard guard = InstanceManager.Instance.GetExistingInstance<IConnectionGuard>()
+                    ?? throw new InvalidOperationException("IConnectionGuard is not registered.");
+
                 IListener listener;
 
                 if (mode == OperatingMode.Passthrough)
@@ -334,8 +363,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                     }
 
                     listener = port.HasValue
-                        ? new UdpPassthroughListener(port.Value, protocol, hub)
-                        : new UdpPassthroughListener(protocol, hub);
+                        ? new UdpPassthroughListener(port.Value, protocol, hub, guard)
+                        : new UdpPassthroughListener(protocol, hub, guard);
                 }
                 else
                 {
@@ -360,6 +389,9 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                     ?? throw new InvalidOperationException("IConnectionHub is not registered. Call UseConnectionHub or ensure Build() is invoked.");
                 IProtocol protocol = registration.Factory(dispatch);
 
+                IConnectionGuard guard = InstanceManager.Instance.GetExistingInstance<IConnectionGuard>()
+                    ?? throw new InvalidOperationException("IConnectionGuard is not registered.");
+
                 ushort? port = registration.Port;
                 string? path = registration.Path;
 
@@ -370,8 +402,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                 }
 
                 WebSocketServerListener listener = (port.HasValue && path is not null)
-                    ? new(port.Value, path, protocol, hub)
-                    : new(protocol, hub);
+                    ? new(port.Value, path, protocol, hub, guard)
+                    : new(protocol, hub, guard);
 
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, NetworkTransport.WEBSOCKET);
             });
@@ -386,6 +418,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
             ServiceRegistrar.RegisterLogger(_state);
             ServiceRegistrar.RegistererConnectionHub(_state);
+            ServiceRegistrar.RegisterConnectionGuard(_state);
             ServiceRegistrar.RegistererBufferPoolManager(_state);
         }
     }

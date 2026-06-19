@@ -7,11 +7,13 @@ using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Sessions;
+using Nalix.Abstractions.Security;
 using Nalix.Codec.DataFrames;
 using Nalix.Environment.Memory;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
+using Nalix.Network.RateLimiting;
 using Nalix.Runtime.Routing;
 using Nalix.Runtime.Sessions;
 
@@ -102,6 +104,30 @@ internal static class ServiceRegistrar
         catch
         {
             hub.Dispose();
+            throw;
+        }
+    }
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "On successful registration InstanceManager owns the SessionService lifetime; registration failure disposes the local instance.")]
+    public static void RegisterConnectionGuard(HostingBuilderContext state)
+    {
+        if (state.HasCustomConnectionGuard)
+        {
+            return;
+        }
+
+        ConnectionGuard guard = new();
+        try
+        {
+            InstanceManager.Instance.Register<IConnectionGuard>(guard);
+            InstanceManager.Instance.Register<IProofOfWorkPolicy>(guard);
+        }
+        catch
+        {
+            guard.Dispose();
             throw;
         }
     }

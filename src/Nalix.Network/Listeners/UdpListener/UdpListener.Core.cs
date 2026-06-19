@@ -99,7 +99,6 @@ public abstract partial class UdpListenerBase
         ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
         ArgumentNullException.ThrowIfNull(hub, nameof(hub));
 
-
         _options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
         _datagramGuardOptions = ConfigurationManager.Instance.Get<DatagramGuardOptions>();
         _connectionGuardOptions = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();

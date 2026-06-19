@@ -65,8 +65,8 @@ public class WebSocketConnectionTimeoutTests : IDisposable
 
     private sealed class TestWebSocketListener : WebSocketListenerBase
     {
-        public TestWebSocketListener(ushort port, string path, IProtocol protocol, IConnectionHub hub)
-            : base(port, path, protocol, hub) { }
+        public TestWebSocketListener(ushort port, string path, IProtocol protocol, IConnectionHub hub, IConnectionGuard guard)
+            : base(port, path, protocol, hub, guard) { }
     }
 
     private static ushort GetFreePort()
@@ -79,10 +79,11 @@ public class WebSocketConnectionTimeoutTests : IDisposable
     private static TestWebSocketListener StartTestServerRobustly(IProtocol protocol, IConnectionHub hub, out ushort port)
     {
         string lastReport = "";
+        var guard = Nalix.Framework.Injection.InstanceManager.Instance.GetExistingInstance<IConnectionGuard>() ?? Nalix.Framework.Injection.InstanceManager.Instance.GetOrCreateInstance<Nalix.Network.RateLimiting.ConnectionGuard>();
         for (int i = 0; i < 10; i++)
         {
             port = GetFreePort();
-            var server = new TestWebSocketListener(port, "/ws/", protocol, hub);
+            var server = new TestWebSocketListener(port, "/ws/", protocol, hub, guard);
             server.Activate();
             System.Threading.Thread.Sleep(500); // Give it a moment to fail if port is busy
             lastReport = server.GenerateReport();

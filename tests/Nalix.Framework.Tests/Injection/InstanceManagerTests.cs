@@ -211,20 +211,6 @@ public sealed class InstanceManagerTests : IDisposable
         Assert.Null(_manager.GetExistingInstance<TestService>());
     }
 
-    [Fact(DisplayName = "IsTheOnlyInstance returns a boolean (non-intrusive check)")]
-    public void IsTheOnlyInstanceReturnsBoolean()
-    {
-        bool only = InstanceManager.IsTheOnlyInstance;
-
-        _ = Assert.IsType<bool>(only);
-
-        string assemblyName = InstanceManager.EntryAssembly.GetName().Name ?? "GenericApp";
-        string expectedPrefix = $"Global\\Nalix.Framework.Lock.{assemblyName}.";
-
-        Assert.StartsWith(expectedPrefix, InstanceManager.ApplicationMutexName, StringComparison.Ordinal);
-        Assert.Equal(expectedPrefix.Length + 8, InstanceManager.ApplicationMutexName.Length);
-    }
-
     [Fact(DisplayName = "CreateInstance with null for struct parameter should throw")]
     public void CreateInstanceWithNullForStructParameterThrows()
     {

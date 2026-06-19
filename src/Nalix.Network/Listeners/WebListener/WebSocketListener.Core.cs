@@ -38,7 +38,7 @@ public abstract partial class WebSocketListenerBase : IListener
     private readonly SemaphoreSlim _lock;
     private readonly IConnectionHub _hub;
     private readonly TimingWheel _timing;
-    private readonly ConnectionGuard _limiter;
+    private readonly IConnectionGuard _limiter;
     private readonly NetworkWebSocketOptions _config;
     private readonly ForwardedHeadersOptions _forwardedConfig;
 
@@ -90,9 +90,10 @@ public abstract partial class WebSocketListenerBase : IListener
     /// <param name="protocol">The protocol to handle the connections.</param>
     /// <param name="hub">The connection hub for managing active connections.</param>
     [DebuggerStepThrough]
-    protected WebSocketListenerBase(ushort port, string path, IProtocol protocol, IConnectionHub hub)
+    protected WebSocketListenerBase(ushort port, string path, IProtocol protocol, IConnectionHub hub, IConnectionGuard guard)
     {
         ArgumentNullException.ThrowIfNull(hub, nameof(hub));
+        ArgumentNullException.ThrowIfNull(guard, nameof(guard));
         ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
 
         _isDisposed = 0;
@@ -104,7 +105,7 @@ public abstract partial class WebSocketListenerBase : IListener
         _state = (int)ListenerState.STOPPED;
 
         _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
-        _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
+        _limiter = guard;
 
         _config = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
         _forwardedConfig = ConfigurationManager.Instance.Get<ForwardedHeadersOptions>();
@@ -121,10 +122,10 @@ public abstract partial class WebSocketListenerBase : IListener
     /// <param name="protocol">The protocol to handle the connections.</param>
     /// <param name="hub">The connection hub for managing active connections.</param>
     [DebuggerStepThrough]
-    protected WebSocketListenerBase(IProtocol protocol, IConnectionHub hub)
+    protected WebSocketListenerBase(IProtocol protocol, IConnectionHub hub, IConnectionGuard guard)
         : this(ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().Port,
                ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().Path,
-               protocol, hub)
+               protocol, hub, guard)
     {
     }
 

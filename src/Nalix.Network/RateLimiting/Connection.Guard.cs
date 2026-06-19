@@ -9,7 +9,6 @@ using System.Net;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
@@ -34,8 +33,9 @@ namespace Nalix.Network.RateLimiting;
 [Injectable]
 [SkipLocalsInit]
 [DebuggerNonUserCode]
+[Injectable(typeof(IConnectionGuard))]
 [Injectable(typeof(IProofOfWorkPolicy))]
-public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable, IProofOfWorkPolicy
+public sealed partial class ConnectionGuard : IConnectionGuard, IProofOfWorkPolicy
 {
     #region Constants
 

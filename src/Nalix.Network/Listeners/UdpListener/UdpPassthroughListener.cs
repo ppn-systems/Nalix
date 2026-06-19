@@ -61,7 +61,7 @@ public sealed class UdpPassthroughListener : UdpListenerBase
 
 #pragma warning disable CA2213 // Singleton services — owned by InstanceManager, not by this listener.
     private readonly TimingWheel? _timing;
-    private readonly ConnectionGuard? _connGuard;
+    private readonly IConnectionGuard? _connGuard;
 #pragma warning restore CA2213
 
     #endregion Fields
@@ -71,19 +71,19 @@ public sealed class UdpPassthroughListener : UdpListenerBase
     /// <summary>
     /// Initializes a new instance of the <see cref="UdpPassthroughListener"/> class.
     /// </summary>
-    public UdpPassthroughListener(IProtocol protocol, IConnectionHub hub) : base(protocol, hub)
+    public UdpPassthroughListener(IProtocol protocol, IConnectionHub hub, IConnectionGuard guard) : base(protocol, hub)
     {
         _timing = InstanceManager.Instance.GetExistingInstance<TimingWheel>();
-        _connGuard = InstanceManager.Instance.GetExistingInstance<ConnectionGuard>();
+        _connGuard = guard;
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UdpPassthroughListener"/> class.
     /// </summary>
-    public UdpPassthroughListener(ushort port, IProtocol protocol, IConnectionHub hub) : base(port, protocol, hub)
+    public UdpPassthroughListener(ushort port, IProtocol protocol, IConnectionHub hub, IConnectionGuard guard) : base(port, protocol, hub)
     {
         _timing = InstanceManager.Instance.GetExistingInstance<TimingWheel>();
-        _connGuard = InstanceManager.Instance.GetExistingInstance<ConnectionGuard>();
+        _connGuard = guard;
     }
 
     #endregion Constructors
