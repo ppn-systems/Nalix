@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Diagnostics;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
@@ -65,7 +66,7 @@ public sealed partial class TokenBucketLimiter
                         "cleanup cancelled-due-to-timeout"));
             }
         }
-        catch (Exception ex) when (ex is not ObjectDisposedException)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex) && ex is not ObjectDisposedException)
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
             {

@@ -118,7 +118,7 @@ internal sealed class TcpFrameReader : IDisposable
                             throw;
                         }
                     }
-                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex) && ex is not OperationCanceledException)
                     {
                         _onError(ex);
                         break;

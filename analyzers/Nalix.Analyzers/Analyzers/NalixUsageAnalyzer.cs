@@ -29,7 +29,6 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.PacketContextTypeMismatch,
             DiagnosticDescriptors.HandlerPacketTypeMismatch,
             DiagnosticDescriptors.MiddlewareTypeMismatch,
-            DiagnosticDescriptors.BufferMiddlewareShouldNotUseStageAttribute,
             DiagnosticDescriptors.ControllerMissingPacketHandlerAttribute,
             DiagnosticDescriptors.PacketRegistryPacketMissingDeserializer,
             DiagnosticDescriptors.PacketBaseSelfTypeMismatch,
@@ -41,10 +40,9 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.SerializeDynamicSizeOnFixedMember,
             DiagnosticDescriptors.PacketDeserializeSignatureInvalid,
             DiagnosticDescriptors.PacketRegistryPacketMustBeConcrete,
-            DiagnosticDescriptors.BufferMiddlewareRegistrationTypeMismatch,
             DiagnosticDescriptors.ResetForPoolShouldCallBase,
             DiagnosticDescriptors.NegativeSerializeOrder,
-            DiagnosticDescriptors.PacketMemberOverlapsHeaderRegion,
+            DiagnosticDescriptors.ReservedPacketHeaderSlot,
             DiagnosticDescriptors.UnsupportedConfigurationPropertyType,
             DiagnosticDescriptors.ConfigurationPropertyNotBindable,
             DiagnosticDescriptors.MetadataProviderClearsOpcode,
@@ -52,7 +50,6 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.RequestOptionsRetryCountNegative,
             DiagnosticDescriptors.RequestOptionsTimeoutNegative,
             DiagnosticDescriptors.PacketMiddlewareMissingOrder,
-            DiagnosticDescriptors.BufferMiddlewareMissingOrder,
             DiagnosticDescriptors.InboundMiddlewareAlwaysExecuteIgnored,
             DiagnosticDescriptors.MiddlewareRegistrationDuplicateOrder,
             DiagnosticDescriptors.SerializeHeaderConflictsWithOrder,
@@ -77,7 +74,9 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.RedundantPacketContextPacketCast,
             DiagnosticDescriptors.MiddlewareRegistrationNullLiteral,
             DiagnosticDescriptors.RequestOptionsInfiniteTimeoutWithRetry,
-            DiagnosticDescriptors.GenericPacketHandlerMethod
+            DiagnosticDescriptors.GenericPacketHandlerMethod,
+            DiagnosticDescriptors.UnguardedCatchException,
+            DiagnosticDescriptors.PacketScopeNotDisposed
         ];
 
     public override void Initialize(AnalysisContext context)
@@ -119,6 +118,14 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             startContext.RegisterSyntaxNodeAction(
                 syntaxContext => AnalyzeMethodDeclaration(syntaxContext, symbols),
                 Microsoft.CodeAnalysis.CSharp.SyntaxKind.MethodDeclaration);
+
+            startContext.RegisterOperationAction(
+                operationContext => AnalyzeCatchClause(operationContext, symbols),
+                OperationKind.CatchClause);
+
+            startContext.RegisterSyntaxNodeAction(
+                syntaxContext => AnalyzeLocalDeclaration(syntaxContext, symbols),
+                Microsoft.CodeAnalysis.CSharp.SyntaxKind.LocalDeclarationStatement);
         });
     }
 
@@ -357,6 +364,17 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                 if (finalOrder.Value < 0)
                 {
                     Report(context, DiagnosticDescriptors.NegativeSerializeOrder, member, member.Name, finalOrder.Value);
+                }
+
+                if (isPacketBaseType
+                    && headerOrder.HasValue && headerOrder.Value == 0
+                    && SymbolEqualityComparer.Default.Equals(member.ContainingType, typeSymbol))
+                {
+                    Report(
+                        context,
+                        DiagnosticDescriptors.ReservedPacketHeaderSlot,
+                        member,
+                        member.Name);
                 }
 
 
@@ -1560,6 +1578,140 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                     Report(context, DiagnosticDescriptors.PotentialBufferLeaseLeak, p, name);
                 }
             }
+        }
+    }
+
+    // ─── NALIX073: Unguarded catch(Exception) in Nalix Core ──────────────────
+
+    private static void AnalyzeCatchClause(OperationAnalysisContext context, SymbolSet symbols)
+    {
+        ICatchClauseOperation catchClause = (ICatchClauseOperation)context.Operation;
+
+        if (catchClause.ExceptionType is null
+            || !IsSymbol(catchClause.ExceptionType, symbols.CaughtExceptionType))
+        {
+            return;
+        }
+
+        if (!IsInNalixCoreNamespace(context.ContainingSymbol))
+        {
+            return;
+        }
+
+        if (catchClause.Filter is not null && ContainsExceptionClassifierInvocation(catchClause.Filter, symbols))
+        {
+            return;
+        }
+
+        context.ReportDiagnostic(Diagnostic.Create(
+            DiagnosticDescriptors.UnguardedCatchException,
+            catchClause.Syntax.GetLocation()));
+    }
+
+    private static bool ContainsExceptionClassifierInvocation(IOperation filter, SymbolSet symbols)
+    {
+        // The filter itself may be the invocation (e.g. when (ExceptionClassifier.IsNonFatal(ex)))
+        if (filter is IInvocationOperation directInvocation
+            && IsSymbol(directInvocation.TargetMethod.ContainingType, symbols.ExceptionClassifierType)
+            && directInvocation.TargetMethod.Name == "IsNonFatal")
+        {
+            return true;
+        }
+
+        foreach (IOperation child in filter.ChildOperations)
+        {
+            if (ContainsExceptionClassifierInvocationRecursive(child, symbols))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsExceptionClassifierInvocationRecursive(IOperation operation, SymbolSet symbols)
+    {
+        if (operation is IInvocationOperation invocation
+            && IsSymbol(invocation.TargetMethod.ContainingType, symbols.ExceptionClassifierType)
+            && invocation.TargetMethod.Name == "IsNonFatal")
+        {
+            return true;
+        }
+
+        foreach (IOperation child in operation.ChildOperations)
+        {
+            if (ContainsExceptionClassifierInvocationRecursive(child, symbols))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsInNalixCoreNamespace(ISymbol? symbol)
+    {
+        if (symbol is null)
+        {
+            return false;
+        }
+
+        INamespaceSymbol? ns = symbol.ContainingNamespace;
+        while (ns is not null)
+        {
+            if (ns.Name == "Nalix")
+            {
+                return true;
+            }
+
+            ns = ns.ContainingNamespace;
+        }
+
+        return false;
+    }
+
+    // ─── NALIX075: PacketScope must be disposed ──────────────────────────────
+
+    private static void AnalyzeLocalDeclaration(SyntaxNodeAnalysisContext context, SymbolSet symbols)
+    {
+        if (context.Node is not LocalDeclarationStatementSyntax localDecl)
+        {
+            return;
+        }
+
+        if (localDecl.UsingKeyword.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.UsingKeyword))
+        {
+            return;
+        }
+
+        VariableDeclarationSyntax declaration = localDecl.Declaration;
+        ITypeSymbol? declaredType = context.SemanticModel.GetTypeInfo(declaration.Type, context.CancellationToken).Type;
+
+        if (declaredType is null)
+        {
+            return;
+        }
+
+        bool isPacketScope = false;
+        if (declaredType is INamedTypeSymbol namedType
+            && namedType.IsGenericType
+            && IsSymbol(namedType.OriginalDefinition, symbols.PacketScopeType))
+        {
+            isPacketScope = true;
+        }
+
+        if (!isPacketScope)
+        {
+            return;
+        }
+
+        foreach (VariableDeclaratorSyntax variable in declaration.Variables)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.PacketScopeNotDisposed,
+                variable.GetLocation(),
+                variable.Identifier.Text,
+                declaredType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
         }
     }
 }

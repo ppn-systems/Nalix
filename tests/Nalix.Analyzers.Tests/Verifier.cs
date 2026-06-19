@@ -191,7 +191,9 @@ internal static class Verifier<TCodeFix>
             "Nalix.Abstractions.Serialization.IFixedSizeSerializable",
             "Nalix.Abstractions.Networking.Packets.IPacketContext`1",
             "Nalix.Abstractions.IBufferLease",
-            "Nalix.Runtime.Dispatching.IPacketDispatch"
+            "Nalix.Runtime.Dispatching.IPacketDispatch",
+            "Nalix.Abstractions.Exceptions.ExceptionClassifier",
+            "Nalix.Codec.Pooling.PacketScope`1"
         ];
         string[] missingMetadata = [.. requiredMetadataNames.Where(name => compilation.GetTypeByMetadataName(name) is null)];
         Assert.True(missingMetadata.Length == 0, "Missing metadata: " + string.Join(", ", missingMetadata));
