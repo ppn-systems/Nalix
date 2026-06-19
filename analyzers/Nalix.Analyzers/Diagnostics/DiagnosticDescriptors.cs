@@ -526,4 +526,13 @@ internal static class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "Nalix Core assemblies targeting Native AOT should avoid runtime assembly scanning, dynamic code generation, and unannotated reflection. Use source-generated activators, compile-time registration, or DynamicallyAccessedMembers annotations.");
 
+    public static readonly DiagnosticDescriptor EagerStringFormattingInDiagnosticLog = new(
+        id: "NALIX074",
+        title: "Avoid eager string formatting in diagnostic logging",
+        messageFormat: "Eager string formatting in DiagnosticLog construction allocates even when diagnostics are disabled. Use constant strings or move formatting behind an IsEnabled check.",
+        category: "Performance",
+        defaultSeverity: DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "DiagnosticLog message arguments are eagerly evaluated. Interpolated strings, string.Format, or concatenation inside new DiagnosticLog(...) allocate even when the diagnostic event is disabled. In hot paths, prefer constant strings or guard formatting behind DiagnosticsEvents.Source.IsEnabled(...).");
+
 }

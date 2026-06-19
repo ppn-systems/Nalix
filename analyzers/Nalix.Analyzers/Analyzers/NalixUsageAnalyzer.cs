@@ -79,6 +79,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.DisallowedCryptographyUsage,
             DiagnosticDescriptors.AllocatingEndpointFormatting,
             DiagnosticDescriptors.UnboundedReflectionInAotCode,
+            DiagnosticDescriptors.EagerStringFormattingInDiagnosticLog,
             DiagnosticDescriptors.PacketScopeNotDisposed
         ];
 
@@ -139,6 +140,10 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             startContext.RegisterOperationAction(
                 operationContext => AnalyzeReflectionUsage(operationContext),
                 OperationKind.Invocation);
+
+            startContext.RegisterOperationAction(
+                operationContext => AnalyzeDiagnosticLogCreation(operationContext),
+                OperationKind.ObjectCreation);
 
             startContext.RegisterSyntaxNodeAction(
                 syntaxContext => AnalyzeLocalDeclaration(syntaxContext, symbols),
@@ -2051,6 +2056,119 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
 
         return false;
     }
+
+    // ─── NALIX074: Eager string formatting in DiagnosticLog ─────────────────
+
+    private static void AnalyzeDiagnosticLogCreation(OperationAnalysisContext context)
+    {
+        if (context.Operation is not IObjectCreationOperation creation)
+        {
+            return;
+        }
+
+        string? assemblyName = context.Operation.SemanticModel?.Compilation?.Assembly.Name;
+        if (!IsNalixCoreAssembly(assemblyName))
+        {
+            return;
+        }
+
+        if (creation.Type is null
+            || creation.Type.MetadataName != "DiagnosticLog"
+            || creation.Type.ContainingNamespace?.ToDisplayString() != "Nalix.Abstractions.Diagnostics")
+        {
+            return;
+        }
+
+        // Check the Message argument (index 1) for eager string formatting.
+        // DiagnosticLog(string Tag, string Message, Exception? Exception = null)
+        if (creation.Arguments.Length < 2)
+        {
+            return;
+        }
+
+        IArgumentOperation messageArg = creation.Arguments[1];
+
+        if (ContainsEagerStringFormatting(messageArg.Value)
+            && !IsInsideIsEnabledGuard(creation))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.EagerStringFormattingInDiagnosticLog,
+                creation.Syntax.GetLocation()));
+        }
+    }
+
+    private static bool IsInsideIsEnabledGuard(IOperation operation)
+    {
+        IOperation? current = operation.Parent;
+        while (current is not null)
+        {
+            // Check if we're inside an if statement whose condition calls IsEnabled
+            if (current is IConditionalOperation conditional
+                && ContainsIsEnabledInvocation(conditional.Condition))
+            {
+                return true;
+            }
+
+            current = current.Parent;
+        }
+
+        return false;
+    }
+
+    private static bool ContainsIsEnabledInvocation(IOperation operation)
+    {
+        if (operation is IInvocationOperation invocation
+            && invocation.TargetMethod.Name == "IsEnabled")
+        {
+            return true;
+        }
+
+        foreach (IOperation child in operation.ChildOperations)
+        {
+            if (ContainsIsEnabledInvocation(child))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsEagerStringFormatting(IOperation operation)
+    {
+        switch (operation)
+        {
+            case IInterpolatedStringOperation:
+                return true;
+
+            case IBinaryOperation binary:
+                // String concatenation uses BinaryOperatorKind.Add with string result type
+                return binary.OperatorKind == BinaryOperatorKind.Add
+                    && IsStringType(binary.Type);
+
+            case IInvocationOperation invocation:
+                return IsStringFormattingMethod(invocation.TargetMethod);
+
+            case IConversionOperation conversion:
+                return ContainsEagerStringFormatting(conversion.Operand);
+
+            default:
+                return false;
+        }
+    }
+
+    private static bool IsStringFormattingMethod(IMethodSymbol method)
+    {
+        if (method.ContainingType?.SpecialType != SpecialType.System_String)
+        {
+            return false;
+        }
+
+        return method.Name is "Format" or "Concat" or "Join";
+    }
+
+    private static bool IsStringType(ITypeSymbol? type)
+        => type?.SpecialType == SpecialType.System_String;
 
     // ─── NALIX075: PacketScope must be disposed ──────────────────────────────
 

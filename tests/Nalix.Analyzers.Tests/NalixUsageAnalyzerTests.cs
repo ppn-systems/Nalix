@@ -2267,6 +2267,189 @@ public static class Factory
     // Activator.CreateInstance(Type) detection is deferred.
     // See research/analyzers/08-nalix078-aot-reflection.md for details.
 
+    // ─── NALIX074: Eager string formatting in DiagnosticLog ───────────────────
+
+    [Fact]
+    public async Task InterpolationInDiagnosticLogInCoreAssembly_ReportsNalix074()
+    {
+        const string source = """
+namespace Nalix.Network.Internal;
+
+using Nalix.Abstractions.Diagnostics;
+
+public static class LogHelper
+{
+    public static void Log(string endpoint, int count)
+    {
+        DiagnosticsEvents.Write("test", new DiagnosticLog("tag", $"endpoint={endpoint} count={count}"));
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Network", "NALIX074");
+    }
+
+    [Fact]
+    public async Task StringFormatInDiagnosticLogInCoreAssembly_ReportsNalix074()
+    {
+        const string source = """
+namespace Nalix.Network.Internal;
+
+using Nalix.Abstractions.Diagnostics;
+
+public static class LogHelper
+{
+    public static void Log(string endpoint, int count)
+    {
+        DiagnosticsEvents.Write("test", new DiagnosticLog("tag", string.Format("endpoint={0} count={1}", endpoint, count)));
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Network", "NALIX074");
+    }
+
+    [Fact]
+    public async Task StringConcatInDiagnosticLogInCoreAssembly_ReportsNalix074()
+    {
+        const string source = """
+namespace Nalix.Network.Internal;
+
+using Nalix.Abstractions.Diagnostics;
+
+public static class LogHelper
+{
+    public static void Log(string endpoint)
+    {
+        DiagnosticsEvents.Write("test", new DiagnosticLog("tag", "remote=" + endpoint));
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Network", "NALIX074");
+    }
+
+    [Fact]
+    public async Task ConstantStringInDiagnosticLogInCoreAssembly_DoesNotReportNalix074()
+    {
+        const string source = """
+namespace Nalix.Network.Internal;
+
+using Nalix.Abstractions.Diagnostics;
+
+public static class LogHelper
+{
+    public static void Log()
+    {
+        DiagnosticsEvents.Write("test", new DiagnosticLog("tag", "connection-closed"));
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Network");
+    }
+
+    [Fact]
+    public async Task InterpolationOutsideDiagnosticLog_DoesNotReportNalix074()
+    {
+        const string source = """
+namespace Nalix.Network.Internal;
+
+public static class LogHelper
+{
+    public static string Format(string endpoint, int count)
+    {
+        return $"endpoint={endpoint} count={count}";
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Network");
+    }
+
+    [Fact]
+    public async Task DiagnosticLogInNonCoreAssembly_DoesNotReportNalix074()
+    {
+        const string source = """
+namespace MyApp.Logging;
+
+using Nalix.Abstractions.Diagnostics;
+
+public static class LogHelper
+{
+    public static void Log(string endpoint)
+    {
+        var log = new DiagnosticLog("tag", $"endpoint={endpoint}");
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "MyApp");
+    }
+
+    [Fact]
+    public async Task DiagnosticLogInTestAssembly_DoesNotReportNalix074()
+    {
+        const string source = """
+namespace Nalix.Network.Tests;
+
+using Nalix.Abstractions.Diagnostics;
+
+public static class LogHelper
+{
+    public static void Log(string endpoint)
+    {
+        var log = new DiagnosticLog("tag", $"endpoint={endpoint}");
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Tests");
+    }
+
+    [Fact]
+    public async Task NameofInDiagnosticLog_DoesNotReportNalix074()
+    {
+        const string source = """
+namespace Nalix.Network.Internal;
+
+using Nalix.Abstractions.Diagnostics;
+
+public static class LogHelper
+{
+    public static void Log()
+    {
+        DiagnosticsEvents.Write("test", new DiagnosticLog(nameof(LogHelper), "initialized"));
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Network");
+    }
+
+    [Fact]
+    public async Task InterpolationInsideIsEnabledGuard_DoesNotReportNalix074()
+    {
+        const string source = """
+namespace Nalix.Network.Internal;
+
+using Nalix.Abstractions.Diagnostics;
+
+public static class LogHelper
+{
+    public static void Log(string endpoint, int count)
+    {
+        if (DiagnosticsEvents.Source.IsEnabled("test"))
+        {
+            DiagnosticsEvents.Write("test", new DiagnosticLog("tag", $"endpoint={endpoint} count={count}"));
+        }
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsInAssemblyAsync(source, "Nalix.Network");
+    }
+
     // ─── NALIX075: PacketScope must be disposed ────────────────────────────────
 
     [Fact]
