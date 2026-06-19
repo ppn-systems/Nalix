@@ -11,7 +11,7 @@ public sealed class OsRandomTests
     public void Fill_ValidBuffer_FillsWithData()
     {
         byte[] buffer = new byte[32];
-        OsRandom.Fill(buffer);
+        OsCsprng.Fill(buffer);
 
         // Very unlikely to be all zeros
         bool allZero = true;
@@ -29,7 +29,7 @@ public sealed class OsRandomTests
     [Fact]
     public void Fill_EmptyBuffer_DoesNotThrow()
     {
-        OsRandom.Fill(Span<byte>.Empty);
+        OsCsprng.Fill(Span<byte>.Empty);
     }
 
     [Fact]
@@ -38,8 +38,8 @@ public sealed class OsRandomTests
         byte[] b1 = new byte[16];
         byte[] b2 = new byte[16];
 
-        OsRandom.Fill(b1);
-        OsRandom.Fill(b2);
+        OsCsprng.Fill(b1);
+        OsCsprng.Fill(b2);
 
         Assert.NotEqual(b1, b2);
     }
@@ -48,8 +48,8 @@ public sealed class OsRandomTests
     public void Fill_SmallBuffer_FillsCorrectly()
     {
         byte[] buffer = new byte[3];
-        OsRandom.Fill(buffer);
-        
+        OsCsprng.Fill(buffer);
+
         bool allZero = true;
         foreach (byte b in buffer)
         {
