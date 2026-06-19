@@ -54,7 +54,13 @@ internal static partial class TypeMetadata
                 {
                     PropertyInfo? prop = type.GetProperty(nameof(IFixedSizeSerializable.Size), Flags);
 
+                    // NALIX078: Intentional one-time metadata inspection during type cache initialization.
+                    // The type parameter T is annotated with [DynamicallyAccessedMembers(PropertyAccess)],
+                    // ensuring properties are preserved by the trimmer. This reads a static constant
+                    // (IFixedSizeSerializable.Size) and runs once per type, not on serialization hot paths.
+#pragma warning disable NALIX078
                     if (prop?.GetValue(null) is int size)
+#pragma warning restore NALIX078
                     {
                         IsFixedSizeSerializable = true;
                         SerializableFixedSize = size;
