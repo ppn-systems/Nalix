@@ -7,7 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Abstractions;
+using Nalix.Abstractions.Validation;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Internal.Buffers;
 using Nalix.Framework.Options;

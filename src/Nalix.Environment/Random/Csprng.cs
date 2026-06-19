@@ -49,28 +49,17 @@ public static class Csprng
         }
         catch (Exception ex) when (!ExceptionClassifier.IsNonFatal(ex))
         {
-            // BUG-31 fix: Do NOT throw from static constructor.
-            // A throw here causes TypeInitializationException on every future access,
-            // permanently killing the class. Instead, fall back gracefully.
-            s_f = OsRandom.Fill;
-            OsRandom.Reseed(TimeSpan.FromMinutes(1));
-
-            // Server: Listener is always registered before Csprng access.
-            // Throw here will propagate as TypeInitializationException on server — intentional.
-            // Client: Listener is not registered, fallback to OsRandom silently — acceptable.
             if (Listener.IsEnabled(DiagnosticsEvents.Random.Failure))
             {
-                // NO FALLBACK: OS CSPRNG is unavailable. Do NOT fall back to a non-cryptographic PRNG, as that would be a critical security failure.
-
                 DiagnosticsEvents.Write(
                     DiagnosticsEvents.Random.Failure,
                     new Nalix.Abstractions.Diagnostics.DiagnosticLog(
                         "ENV.Csprng:Internal",
                         "s-csprng-unavailable\r\nCRITICAL SECURITY FAILURE: OS CSPRNG is unavailable. " +
                         "Secure random generation has been aborted to prevent predictable cryptographic material from being used."));
-
-                throw new CipherException("OS CSPRNG is unavailable. Secure random generation has been aborted to prevent predictable cryptographic material from being used.", ex);
             }
+
+            throw new CipherException("OS CSPRNG is unavailable. Secure random generation has been aborted to prevent predictable cryptographic material from being used.", ex);
         }
 
         if (Listener.IsEnabled(DiagnosticsEvents.Random.Init))

@@ -126,7 +126,7 @@ public sealed partial class Connection :
     #region Properties
 
     /// <inheritdoc/>
-    public bool IsDisposed => _disposed;
+    public bool IsDisposed => _disposed || Volatile.Read(ref _backing) is null;
 
     /// <inheritdoc/>
     public bool IsUdpCreated => this.UdpTransport is not null;
@@ -535,6 +535,7 @@ public sealed partial class Connection :
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA1816:Dispose methods should call SuppressFinalize", Justification = "<Pending>")]
     private void PerformDestructiveCleanup()
     {
+        _disposed = true;
         ConnectionBacking? backing = Interlocked.Exchange(ref _backing, null);
         if (backing == null)
         {

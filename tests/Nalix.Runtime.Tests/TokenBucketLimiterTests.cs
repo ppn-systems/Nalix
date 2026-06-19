@@ -145,7 +145,7 @@ public sealed class TokenBucketLimiterTests
 
         string report = limiter.GenerateReport();
         report.Should().Contain("TokenBucketLimiter Status");
-        report.Should().Contain("report-ip");
+        report.Should().Contain("TrackedEndpoints    : 1");
     }
 
     [Fact]

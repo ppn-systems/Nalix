@@ -326,7 +326,8 @@ public sealed class ConnectionGuardTests
             AdaptivePowMinDifficulty = 12,
             AdaptivePowMaxDifficulty = 24,
             AdaptivePowStartRate = 10,
-            AdaptivePowMaxRate = 100
+            AdaptivePowMaxRate = 100,
+            EnableCapacityBasedPoW = false
         };
         using ConnectionGuard guard = new(options);
 
