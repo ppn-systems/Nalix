@@ -64,4 +64,30 @@ public interface INetworkEndpoint
     /// <see langword="false"/> (typically IPv4).
     /// </value>
     bool IsIPv6 { get; }
+
+    /// <summary>
+    /// Formats the IP address directly into a character span without heap allocation.
+    /// </summary>
+    /// <param name="destination">Buffer to write into.</param>
+    /// <param name="charsWritten">Number of characters written on success.</param>
+    /// <returns>True if the address was formatted; false if the destination was too small.</returns>
+    bool TryFormatAddress(System.Span<char> destination, out int charsWritten)
+    {
+        string address = this.Address;
+
+        if (address is null)
+        {
+            charsWritten = 0;
+            return false;
+        }
+
+        if (System.MemoryExtensions.AsSpan(address).TryCopyTo(destination))
+        {
+            charsWritten = address.Length;
+            return true;
+        }
+
+        charsWritten = 0;
+        return false;
+    }
 }
