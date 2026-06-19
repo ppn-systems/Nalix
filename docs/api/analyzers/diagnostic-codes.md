@@ -87,8 +87,91 @@ The source of truth is `analyzers/Nalix.Analyzers/Diagnostics/DiagnosticDescript
 | `NALIX073` | Unguarded catch(Exception) | Warning | Correctness | Core-only | Catch clauses should filter through `ExceptionClassifier.IsNonFatal()` to avoid swallowing fatal exceptions. |
 | `NALIX074` | Avoid eager string formatting in diagnostic logging | Info | Performance | Core-only | Interpolated strings, `string.Format`, or concatenation inside `new DiagnosticLog(...)` allocate even when diagnostics are disabled. Guard behind `IsEnabled(...)`. |
 | `NALIX075` | PacketScope<T> must be disposed | Error | Pooling | All assemblies | `PacketScope<T>` wraps a pooled packet and must be disposed via `using` to return it to the pool. |
-| `NALIX076` | Packet context escapes handler scope | Warning | Correctness | Core-only | `IPacketContext<T>` and its `Packet` are pooled and must not escape the handler scope. Capturing in a field, long-lived delegate, offloaded task, or collection causes use-after-return bugs. Extract needed data into locals before offloading. |
+| `NALIX076` | Packet context escapes handler scope | Warning | Correctness | Core-only | `IPacketContext<T>` and its `Packet` are pooled and must not escape the handler scope. Capturing in a field, long-lived delegate, offloaded task, or collection causes use-after-return bugs. Extract needed data into locals before offloading. See [NALIX076 Examples](#nalix076-examples). |
 | `NALIX078` | Avoid unbounded reflection in AOT-sensitive Nalix Core code | Warning | AOT | Core-only | `Assembly.GetTypes()`, `Expression.Compile()`, `MakeGenericType()`, `MethodInfo.Invoke()`, `Type.GetType(string)`, and other unbounded reflection. Use source-generated or compile-time alternatives. **Note:** `Activator.CreateInstance` detection is intentionally deferred. |
+
+---
+
+## NALIX076 Examples
+
+`IPacketContext<T>` and its `Packet` are pooled objects returned to the pool after the handler completes. Capturing them beyond the handler scope causes use-after-return bugs.
+
+### Allowed patterns
+
+**Extracting data into locals and sending responses:**
+
+```csharp
+public static async ValueTask HandleAsync(IPacketContext<MyPacket> context)
+{
+    MyPacket packet = context.Packet;
+    IConnection connection = context.Connection;
+
+    await context.Sender.SendAsync(packet).ConfigureAwait(false);
+}
+```
+
+**Passing context to a private helper that is awaited directly:**
+
+```csharp
+public static async ValueTask HandleAsync(IPacketContext<MyPacket> context)
+{
+    await ProcessAsync(context).ConfigureAwait(false);
+}
+
+private static async ValueTask ProcessAsync(IPacketContext<MyPacket> context)
+{
+    await context.Sender.SendAsync(context.Packet).ConfigureAwait(false);
+}
+```
+
+### Disallowed patterns
+
+**Assigning context to a field:**
+
+```csharp
+// NALIX076: Pooled PacketContext must not escape the handler scope
+private static IPacketContext<MyPacket>? s_saved;
+
+public static void Handle(IPacketContext<MyPacket> context)
+{
+    s_saved = context;
+}
+```
+
+**Offloading context to Task.Run:**
+
+```csharp
+// NALIX076: Offloading to 'Task.Run' with a delegate that captures a pooled context or packet
+public static void Handle(IPacketContext<MyPacket> context)
+{
+    _ = Task.Run(() => Process(context.Packet));
+}
+```
+
+**Event subscription capturing context:**
+
+```csharp
+// NALIX076: Event subscription with a delegate that captures a pooled context or packet
+public static void Handle(IPacketContext<MyPacket> context)
+{
+    SomeEvent += () => Process(context.Connection);
+}
+```
+
+### Known limitation (not detected by design)
+
+Pre-extracting a packet alias before offloading bypasses detection because NALIX076 does not perform full data-flow/alias analysis:
+
+```csharp
+// NOT detected — pre-extracted alias escapes via Task.Run
+public static void Handle(IPacketContext<MyPacket> context)
+{
+    MyPacket packet = context.Packet;
+    _ = Task.Run(() => Process(packet));
+}
+```
+
+This is an intentional trade-off in the first release. Extracting into a local is the recommended pattern regardless, and the analyzer focuses on the most direct escape paths.
 
 ## Source Mapping
 
