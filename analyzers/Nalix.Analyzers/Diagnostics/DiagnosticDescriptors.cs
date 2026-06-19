@@ -535,4 +535,13 @@ internal static class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "DiagnosticLog message arguments are eagerly evaluated. Interpolated strings, string.Format, or concatenation inside new DiagnosticLog(...) allocate even when the diagnostic event is disabled. In hot paths, prefer constant strings or guard formatting behind DiagnosticsEvents.Source.IsEnabled(...).");
 
+    public static readonly DiagnosticDescriptor PacketContextEscapesHandlerScope = new(
+        id: "NALIX076",
+        title: "Packet context must not escape handler scope",
+        messageFormat: "Pooled {0} must not escape the handler scope: {1}",
+        category: "Correctness",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "IPacketContext<T> and its Packet are pooled and returned after the handler completes. Capturing them in a field, long-lived delegate, or offloaded task causes use-after-return bugs. Extract needed data into locals before offloading work.");
+
 }

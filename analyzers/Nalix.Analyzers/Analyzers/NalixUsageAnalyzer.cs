@@ -80,7 +80,8 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.AllocatingEndpointFormatting,
             DiagnosticDescriptors.UnboundedReflectionInAotCode,
             DiagnosticDescriptors.EagerStringFormattingInDiagnosticLog,
-            DiagnosticDescriptors.PacketScopeNotDisposed
+            DiagnosticDescriptors.PacketScopeNotDisposed,
+            DiagnosticDescriptors.PacketContextEscapesHandlerScope
         ];
 
     public override void Initialize(AnalysisContext context)
@@ -148,6 +149,12 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             startContext.RegisterSyntaxNodeAction(
                 syntaxContext => AnalyzeLocalDeclaration(syntaxContext, symbols),
                 Microsoft.CodeAnalysis.CSharp.SyntaxKind.LocalDeclarationStatement);
+
+            startContext.RegisterOperationAction(
+                operationContext => AnalyzeContextEscape(operationContext, symbols),
+                OperationKind.SimpleAssignment,
+                OperationKind.Invocation,
+                OperationKind.EventAssignment);
         });
     }
 
@@ -2192,5 +2199,322 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                 variable.Identifier.Text,
                 declaredType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
         }
+    }
+
+    // ─── NALIX076: Packet context escape detection ────────────────────────────
+
+    private static void AnalyzeContextEscape(OperationAnalysisContext context, SymbolSet symbols)
+    {
+        string? assemblyName = context.Operation.SemanticModel?.Compilation?.Assembly.Name;
+        if (!IsNalixCoreAssembly(assemblyName))
+        {
+            return;
+        }
+
+        switch (context.Operation)
+        {
+            case ISimpleAssignmentOperation assignment:
+                AnalyzeFieldPropertyAssignment(context, assignment, symbols);
+                break;
+
+            case IInvocationOperation invocation:
+                AnalyzeContextEscapeInvocation(context, invocation, symbols);
+                break;
+
+            case IEventAssignmentOperation eventAssignment:
+                AnalyzeEventAssignment(context, eventAssignment, symbols);
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    private static void AnalyzeFieldPropertyAssignment(
+        OperationAnalysisContext context,
+        ISimpleAssignmentOperation assignment,
+        SymbolSet symbols)
+    {
+        if (assignment.Target is not IFieldReferenceOperation and not IPropertyReferenceOperation)
+        {
+            return;
+        }
+
+        // Skip null assignments (e.g., _context = null in ResetForPool)
+        if (assignment.Value.ConstantValue is { HasValue: true, Value: null })
+        {
+            return;
+        }
+
+        ITypeSymbol? valueType = assignment.Value.Type;
+        if (valueType is null)
+        {
+            return;
+        }
+
+        if (IsPacketContextType(valueType, symbols))
+        {
+            string targetDesc = assignment.Target switch
+            {
+                IFieldReferenceOperation f => $"field '{f.Field.Name}'",
+                IPropertyReferenceOperation p => $"property '{p.Property.Name}'",
+                _ => "member"
+            };
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.PacketContextEscapesHandlerScope,
+                assignment.Syntax.GetLocation(),
+                "PacketContext",
+                $"Assigning to {targetDesc} extends the pooled context lifetime beyond the handler."));
+        }
+        else if (IsPacketType(valueType, symbols))
+        {
+            string targetDesc = assignment.Target switch
+            {
+                IFieldReferenceOperation f => $"field '{f.Field.Name}'",
+                IPropertyReferenceOperation p => $"property '{p.Property.Name}'",
+                _ => "member"
+            };
+            context.ReportDiagnostic(Diagnostic.Create(
+                DiagnosticDescriptors.PacketContextEscapesHandlerScope,
+                assignment.Syntax.GetLocation(),
+                "Packet",
+                $"Assigning Packet to {targetDesc} extends the pooled packet lifetime beyond the handler."));
+        }
+    }
+
+    private static void AnalyzeContextEscapeInvocation(
+        OperationAnalysisContext context,
+        IInvocationOperation invocation,
+        SymbolSet symbols)
+    {
+        IMethodSymbol targetMethod = invocation.TargetMethod;
+
+        // Pattern: Task.Run(() => context/packet)
+        if (IsOffloadMethod(targetMethod) && invocation.Arguments.Length >= 1)
+        {
+            IArgumentOperation firstArg = invocation.Arguments[0];
+            if (ArgumentCapturesContextOrPacket(firstArg, symbols))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    DiagnosticDescriptors.PacketContextEscapesHandlerScope,
+                    invocation.Syntax.GetLocation(),
+                    "PacketContext",
+                    $"Offloading to '{targetMethod.ContainingType.Name}.{targetMethod.Name}' with a delegate that captures a pooled context or packet."));
+            }
+        }
+
+        // Pattern: collection.Add(context) / queue.Enqueue(context.Packet)
+        if (IsCollectionAddMethod(targetMethod) && invocation.Arguments.Length >= 1)
+        {
+            IArgumentOperation firstArg = invocation.Arguments[0];
+            if (IsPacketContextType(firstArg.Type, symbols) || IsPacketType(firstArg.Type, symbols))
+            {
+                string typeName = IsPacketContextType(firstArg.Type, symbols) ? "PacketContext" : "Packet";
+                context.ReportDiagnostic(Diagnostic.Create(
+                    DiagnosticDescriptors.PacketContextEscapesHandlerScope,
+                    invocation.Syntax.GetLocation(),
+                    typeName,
+                    $"Adding to a collection via '{targetMethod.Name}' extends the pooled lifetime beyond the handler."));
+            }
+        }
+    }
+
+    private static void AnalyzeEventAssignment(
+        OperationAnalysisContext context,
+        IEventAssignmentOperation eventAssignment,
+        SymbolSet symbols)
+    {
+        // IEventAssignmentOperation doesn't expose a Value property directly;
+        // walk child operations to find the delegate/value being assigned.
+        foreach (IOperation child in eventAssignment.ChildOperations)
+        {
+            if (child is IDelegateCreationOperation delegateCreation
+                && delegateCreation.Target is IAnonymousFunctionOperation lambda)
+            {
+                if (LambdaCapturesContextOrPacket(lambda, symbols))
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        DiagnosticDescriptors.PacketContextEscapesHandlerScope,
+                        eventAssignment.Syntax.GetLocation(),
+                        "PacketContext",
+                        "Event subscription with a delegate that captures a pooled context or packet."));
+                }
+
+                return;
+            }
+        }
+    }
+
+    private static bool IsOffloadMethod(IMethodSymbol method)
+    {
+        string name = method.Name;
+        string containingType = method.ContainingType?.ToDisplayString() ?? "";
+
+        // Task.Run
+        if (name == "Run" && containingType.StartsWith("System.Threading.Tasks.Task", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        // Task.Factory.StartNew
+        if (name == "StartNew" && containingType.Contains("TaskFactory", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        // ThreadPool.QueueUserWorkItem
+        if (name == "QueueUserWorkItem" && containingType.Contains("ThreadPool", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsCollectionAddMethod(IMethodSymbol method)
+    {
+        string name = method.Name;
+        return name is "Add" or "Enqueue" or "TryWrite" or "Push" or "Insert";
+    }
+
+    private static bool ArgumentCapturesContextOrPacket(IArgumentOperation argument, SymbolSet symbols)
+    {
+        // Check if the argument type itself is context/packet
+        if (IsPacketContextType(argument.Type, symbols) || IsPacketType(argument.Type, symbols))
+        {
+            return true;
+        }
+
+        // Check if it's a delegate/lambda that captures context/packet
+        if (argument.Value is IDelegateCreationOperation delegateCreation
+            && delegateCreation.Target is IAnonymousFunctionOperation lambda)
+        {
+            return LambdaCapturesContextOrPacket(lambda, symbols);
+        }
+
+        // Check if it's a method group
+        if (argument.Value is IMethodReferenceOperation methodRef)
+        {
+            // If the method takes a context/packet parameter, the delegate likely captures it
+            foreach (IParameterSymbol param in methodRef.Method.Parameters)
+            {
+                if (IsPacketContextType(param.Type, symbols) || IsPacketType(param.Type, symbols))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool LambdaCapturesContextOrPacket(IAnonymousFunctionOperation lambda, SymbolSet symbols)
+    {
+        // Walk the lambda body looking for references to context/packet types
+        foreach (IOperation descendant in lambda.Descendants())
+        {
+            switch (descendant)
+            {
+                case IParameterReferenceOperation paramRef:
+                    if (IsPacketContextType(paramRef.Type, symbols) || IsPacketType(paramRef.Type, symbols))
+                    {
+                        return true;
+                    }
+                    break;
+
+                case ILocalReferenceOperation localRef:
+                    if (IsPacketContextType(localRef.Type, symbols) || IsPacketType(localRef.Type, symbols))
+                    {
+                        return true;
+                    }
+                    break;
+
+                case IFieldReferenceOperation fieldRef:
+                    if (IsPacketContextType(fieldRef.Type, symbols) || IsPacketType(fieldRef.Type, symbols))
+                    {
+                        return true;
+                    }
+                    break;
+
+                case IPropertyReferenceOperation propRef:
+                    if (IsPacketContextType(propRef.Type, symbols) || IsPacketType(propRef.Type, symbols))
+                    {
+                        return true;
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsPacketContextType(ITypeSymbol? type, SymbolSet symbols)
+    {
+        if (type is null)
+        {
+            return false;
+        }
+
+        if (type is INamedTypeSymbol namedType && namedType.IsGenericType)
+        {
+            INamedTypeSymbol originalDef = namedType.OriginalDefinition;
+            if (IsSymbol(originalDef, symbols.PacketContextType) || IsSymbol(originalDef, symbols.PacketContextInterface))
+            {
+                return true;
+            }
+        }
+
+        // Check if the type implements IPacketContext<T>
+        foreach (INamedTypeSymbol iface in type.AllInterfaces)
+        {
+            if (iface.IsGenericType && IsSymbol(iface.OriginalDefinition, symbols.PacketContextInterface))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsPacketType(ITypeSymbol? type, SymbolSet symbols)
+    {
+        if (type is null)
+        {
+            return false;
+        }
+
+        // Check if it's the packet interface
+        if (IsSymbol(type, symbols.PacketInterface))
+        {
+            return true;
+        }
+
+        // Check if it implements IPacket
+        foreach (INamedTypeSymbol iface in type.AllInterfaces)
+        {
+            if (IsSymbol(iface, symbols.PacketInterface))
+            {
+                return true;
+            }
+        }
+
+        // Check if it inherits from PacketBase<T>
+        ITypeSymbol? current = type.BaseType;
+        while (current is not null)
+        {
+            if (current is INamedTypeSymbol namedBase
+                && namedBase.IsGenericType
+                && IsSymbol(namedBase.OriginalDefinition, symbols.PacketBaseType))
+            {
+                return true;
+            }
+
+            current = current.BaseType;
+        }
+
+        return false;
     }
 }
