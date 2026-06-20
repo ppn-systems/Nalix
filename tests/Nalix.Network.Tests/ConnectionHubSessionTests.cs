@@ -39,7 +39,7 @@ public sealed class ConnectionHubSessionTests
     public async Task CreateSession_CapturesConnectionState()
     {
         ISessionFactory factory = new SessionFactory();
-        using ConnectionHub hub = new(Substitute.For<ITaskManager>());
+        using ConnectionHub hub = new();
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
         using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
 
@@ -63,7 +63,7 @@ public sealed class ConnectionHubSessionTests
     {
         InMemorySessionStore store = new();
         SessionService service = new(store: store);
-        using ConnectionHub hub = new(Substitute.For<ITaskManager>());
+        using ConnectionHub hub = new();
         using SessionPersistenceObserver observer = new(hub, service);
         using ConnectedSocketScope scope1 = await ConnectedSocketScope.CreateAsync();
         using Connection connection1 = new(scope1.ServerSocket, s_testOpCodeExtractor);
@@ -113,7 +113,7 @@ public sealed class ConnectionHubSessionTests
     {
         InMemorySessionStore store = new();
         SessionService service = new(store: store);
-        using ConnectionHub hub = new(Substitute.For<ITaskManager>());
+        using ConnectionHub hub = new();
         using SessionPersistenceObserver observer = new(hub, service);
         using ConnectedSocketScope scope1 = await ConnectedSocketScope.CreateAsync();
         using Connection connection1 = new(scope1.ServerSocket, s_testOpCodeExtractor);
@@ -155,7 +155,7 @@ public sealed class ConnectionHubSessionTests
     {
         InMemorySessionStore store = new();
         SessionService service = new(store: store);
-        using ConnectionHub hub = new(Substitute.For<ITaskManager>());
+        using ConnectionHub hub = new();
         using SessionPersistenceObserver observer = new(hub, service);
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
         using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
@@ -183,7 +183,7 @@ public sealed class ConnectionHubSessionTests
     {
         InMemorySessionStore store = new();
         SessionService service = new(store: store);
-        using ConnectionHub hub = new(Substitute.For<ITaskManager>());
+        using ConnectionHub hub = new();
         using SessionPersistenceObserver observer = new(hub, service);
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
         using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);

@@ -20,19 +20,19 @@ public sealed class ListenerMetricsTests
 {
     private sealed class StubTcpListener : TcpListenerBase
     {
-        public StubTcpListener(IProtocol protocol, IConnectionHub hub, IConnectionGuard guard) : base(12345, protocol, hub, guard, Substitute.For<Nalix.Abstractions.Concurrency.ITaskManager>()) { }
+        public StubTcpListener(IProtocol protocol, IConnectionHub hub, IConnectionGuard guard) : base(12345, protocol, hub, guard) { }
     }
 
     private sealed class StubUdpListener : UdpListenerBase
     {
-        public StubUdpListener(IProtocol protocol, IConnectionHub hub) : base(12346, protocol, hub, Substitute.For<Nalix.Abstractions.Concurrency.ITaskManager>()) { }
+        public StubUdpListener(IProtocol protocol, IConnectionHub hub) : base(12346, protocol, hub) { }
 
         public override bool IsAuthenticated(IConnection connection, System.Net.EndPoint remoteEndPoint, ReadOnlySpan<byte> payload) => true;
     }
 
     private sealed class StubWebSocketListener : WebSocketListenerBase
     {
-        public StubWebSocketListener(IProtocol protocol, IConnectionHub hub, IConnectionGuard guard) : base(12347, "/ws", protocol, hub, guard, Substitute.For<Nalix.Abstractions.Concurrency.ITaskManager>()) { }
+        public StubWebSocketListener(IProtocol protocol, IConnectionHub hub, IConnectionGuard guard) : base(12347, "/ws", protocol, hub, guard) { }
     }
 
     [Fact]

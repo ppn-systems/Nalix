@@ -67,7 +67,7 @@ public class WebSocketConnectionTimeoutTests : IDisposable
 
     private sealed class TestWebSocketListener : WebSocketListenerBase
     {
-        public TestWebSocketListener(ushort port, string path, IProtocol protocol, IConnectionHub hub, IConnectionGuard guard) : base(port, path, protocol, hub, guard, NSubstitute.Substitute.For<Nalix.Abstractions.Concurrency.ITaskManager>()) { }
+        public TestWebSocketListener(ushort port, string path, IProtocol protocol, IConnectionHub hub, IConnectionGuard guard) : base(port, path, protocol, hub, guard) { }
     }
 
     private static ushort GetFreePort()
@@ -108,7 +108,7 @@ public class WebSocketConnectionTimeoutTests : IDisposable
         ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().EnableTimeout = true;
 
         var protocol = new IntegrationTestProtocol();
-        var hub = new ConnectionHub(Substitute.For<ITaskManager>());
+        var hub = new ConnectionHub();
 
         using var server = StartTestServerRobustly(protocol, hub, out ushort port);
         await Task.Delay(3500); // Remaining delay for slow CI
@@ -214,7 +214,7 @@ public class WebSocketConnectionTimeoutTests : IDisposable
         try
         {
             var protocol = new IntegrationTestProtocol();
-            var hub = new ConnectionHub(Substitute.For<ITaskManager>());
+            var hub = new ConnectionHub();
 
             using var server = StartTestServerRobustly(protocol, hub, out ushort port);
             await Task.Delay(3500); // Remaining delay for slow CI

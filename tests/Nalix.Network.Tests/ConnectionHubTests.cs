@@ -35,7 +35,7 @@ public sealed class ConnectionHubTests
     [Fact]
     public async Task RegisterConnection_IncrementsCount_AndAllowsLookup()
     {
-        using ConnectionHub hub = new(Substitute.For<ITaskManager>());
+        using ConnectionHub hub = new();
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
         using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
 
@@ -48,7 +48,7 @@ public sealed class ConnectionHubTests
     [Fact]
     public async Task UnregisterConnection_DecrementsCount_AndRaisesEvent()
     {
-        using ConnectionHub hub = new(Substitute.For<ITaskManager>());
+        using ConnectionHub hub = new();
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
         using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
 
@@ -67,7 +67,7 @@ public sealed class ConnectionHubTests
     [Fact]
     public async Task ListConnections_ByEndpoint_UsesAddressIndex()
     {
-        using ConnectionHub hub = new(Substitute.For<ITaskManager>());
+        using ConnectionHub hub = new();
         using ConnectedSocketScope scope1 = await ConnectedSocketScope.CreateAsync();
         using ConnectedSocketScope scope2 = await ConnectedSocketScope.CreateAsync();
         using Connection connection1 = new(scope1.ServerSocket, s_testOpCodeExtractor);
@@ -98,7 +98,7 @@ public sealed class ConnectionHubTests
 
         using FailingSessionStore failingStore = new();
         using SessionService sessionService = new(store: failingStore, policy: testPolicy);
-        using ConnectionHub hub = new(Substitute.For<ITaskManager>());
+        using ConnectionHub hub = new();
         using SessionPersistenceObserver observer = new(hub, sessionService);
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
         using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
