@@ -89,7 +89,6 @@ public static class PacketRegistry
         _ = manager.SetMaxCapacity<SessionTofu>(128);
         _ = manager.SetMaxCapacity<SessionInit>(128);
         _ = manager.SetMaxCapacity<SessionProof>(128);
-        _ = manager.SetMaxCapacity<SessionRekey>(128);
         _ = manager.SetMaxCapacity<SessionResume>(128);
         _ = manager.SetMaxCapacity<SessionChallenge>(128);
         _ = manager.SetMaxCapacity<SessionEstablished>(128);

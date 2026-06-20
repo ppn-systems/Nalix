@@ -4,10 +4,12 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
+using Nalix.Codec.Security;
 using Nalix.Environment.Random;
 using Nalix.SDK.Transport.Internal;
 
@@ -19,30 +21,30 @@ namespace Nalix.SDK.Transport.Extensions;
 public static class RekeyExtensions
 {
     /// <summary>
-    /// Performs a mid-session key rotation by generating a new 32-byte key, sending it securely via <see cref="SessionRekey"/>,
-    /// and resetting the session's sequence counters to prevent overflow (<see cref="Abstractions.Exceptions.CipherException"/>).
+    /// Performs a mid-session key rotation using HKDF ratcheting.
+    /// Sends a <see cref="ControlType.SESSION_REKEY"/> control packet to the server,
+    /// and resets the session's sequence counters to prevent overflow (<see cref="Abstractions.Exceptions.CipherException"/>).
     /// </summary>
     /// <param name="session">The transport session.</param>
     /// <param name="ct">The cancellation token.</param>
     /// <returns>A task that completes when the key rotation is successfully acknowledged by the server.</returns>
     public static async ValueTask RekeyAsync(this TransportSession session, CancellationToken ct = default)
     {
-        Span<byte> keyBuffer = stackalloc byte[Bytes32.Size];
-        Csprng.Fill(keyBuffer);
-        Bytes32 newKey = new(keyBuffer);
+        ArgumentNullException.ThrowIfNull(session);
+
+        Bytes32 newKey = HandshakeX25519.DeriveRekeySecret(session.State.Secret);
 
         ushort seqId = (ushort)Csprng.GetInt32(1, ushort.MaxValue);
 
-        using PacketScope<SessionRekey> lease = PacketFactory<SessionRekey>.Acquire();
-        SessionRekey rekeyPacket = lease.Value;
-        rekeyPacket.Initialize(newKey);
-        rekeyPacket.SequenceId = seqId;
+        using PacketScope<Control> lease = PacketFactory<Control>.Acquire();
+        Control rekeyPacket = lease.Value;
+        rekeyPacket.Initialize(ControlType.SESSION_REKEY, seqId, PacketFlags.SYSTEM, ProtocolReason.NONE);
 
-        // Send the SessionRekey packet and await the CIPHER_UPDATE_ACK from the server.
+        // Send the SESSION_REKEY packet and await the SESSION_REKEY_ACK from the server.
         // We use AwaitAsync to ensure the server has processed the new key before we switch our local state.
         _ = await PacketAwaiter.AwaitAsync<Control>(
             session,
-            predicate: p => p.Type == ControlType.CIPHER_UPDATE_ACK && p.SequenceId == seqId,
+            predicate: p => p.Type == ControlType.SESSION_REKEY_ACK && p.SequenceId == seqId,
             sendAsync: async token =>
             {
                 await session.SendAsync(rekeyPacket, token).ConfigureAwait(false);
