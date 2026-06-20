@@ -103,8 +103,8 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
 
     static PacketContext()
     {
-        _ = s_pool.SetMaxCapacity<PacketContext<TPacket>>(256);
-        _ = s_pool.Prealloc<PacketContext<TPacket>>(256);
+        _ = s_pool.SetMaxCapacity<PacketContext<TPacket>>(128);
+        _ = s_pool.Prealloc<PacketContext<TPacket>>(128);
     }
 
     /// <summary>
