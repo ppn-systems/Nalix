@@ -114,7 +114,13 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IPoolab
         ObjectDisposedException.ThrowIf(_socket is null, typeof(SocketTcpTransport));
 
         SocketConnection.SendResult result = _socket.Send(message);
-        if (result != SocketConnection.SendResult.Success)
+
+        if (result is SocketConnection.SendResult.PeerClosed or SocketConnection.SendResult.Aborted)
+        {
+            // Connection is already closed/closing. Swallow the error to prevent throw overhead.
+            return;
+        }
+        else if (result != SocketConnection.SendResult.Success)
         {
             throw Throw.GetSendFailed();
         }
@@ -139,10 +145,17 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IPoolab
         if (vt.IsCompletedSuccessfully)
         {
             SocketConnection.SendResult result = vt.Result;
-            if (result != SocketConnection.SendResult.Success)
+
+            if (result is SocketConnection.SendResult.PeerClosed or SocketConnection.SendResult.Aborted)
+            {
+                // Connection is already closed/closing. Swallow the error to prevent throw overhead.
+                return default;
+            }
+            else if (result != SocketConnection.SendResult.Success)
             {
                 return ValueTask.FromException(Throw.GetSendFailed());
             }
+
             return default;
         }
 

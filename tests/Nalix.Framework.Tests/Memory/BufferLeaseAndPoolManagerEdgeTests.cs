@@ -45,18 +45,7 @@ public sealed partial class MemoryTests
         Assert.Null(ex);
     }
 
-    [Fact]
-    public void GetAllocationForSizeWhenOutsideBoundsReturnsBoundaryAllocation()
-    {
-        using BufferPoolManager manager = new(MemoryTestSupport.CreateBufferOptions(enableMemoryTrimming: false));
 
-        double low = manager.GetAllocationForSize(manager.MinBufferSize - 1);
-        double exactMin = manager.GetAllocationForSize(manager.MinBufferSize);
-        double high = manager.GetAllocationForSize(manager.MaxBufferSize + 1024);
-
-        Assert.Equal(exactMin, low, 10);
-        Assert.Equal(0.25, high, 3);
-    }
 
 
     [Fact]

@@ -9,7 +9,6 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
-using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Internal.Buffers;
 
 namespace Nalix.Framework.Memory.Buffers;
@@ -17,9 +16,7 @@ namespace Nalix.Framework.Memory.Buffers;
 public sealed partial class BufferPoolManager
 {
     /// <summary>
-    /// Generates a report on the current state of the buffer pools with metrics.
-    /// The text report is meant for humans: it summarizes configuration,
-    /// capacities, and live usage in one place.
+    /// Generates a report on the current state of the buffer pool.
     /// </summary>
     /// <returns>A string containing the report.</returns>
     [DebuggerStepThrough]
@@ -30,8 +27,6 @@ public sealed partial class BufferPoolManager
 
         this.APPEND_REPORT_HEADER(sb);
         this.APPEND_SUSPICIOUS_BUFFERS(sb);
-        this.APPEND_REPORT_POOL_DETAILS(sb);
-        this.APPEND_REPORT_METRICS(sb);
 
         return sb.ToString();
     }
@@ -43,84 +38,19 @@ public sealed partial class BufferPoolManager
 
         writer.WriteStartObject();
         writer.WriteString("UtcNow", DateTime.UtcNow);
-        writer.WriteBoolean("Initialized", _isInitialized);
-        writer.WriteNumber("TotalBuffersConfigured", _config.TotalBuffers);
-        writer.WriteNumber("PoolCount", _bufferAllocations.Length);
-        writer.WriteNumber(nameof(this.MinBufferSize), this.MinBufferSize);
-        writer.WriteNumber(nameof(this.MaxBufferSize), this.MaxBufferSize);
-        writer.WriteBoolean("EnableTrimming", _config.EnableMemoryTrimming);
-        writer.WriteBoolean("EnableAnalytics", _config.EnableAnalytics);
-        writer.WriteBoolean("FallbackToArrayPool", _config.FallbackToArrayPool);
-        writer.WriteNumber("TrimIntervalMinutes", _config.TrimIntervalMinutes);
-        writer.WriteNumber("DeepTrimIntervalMinutes", _config.DeepTrimIntervalMinutes);
-        writer.WriteNumber("TrimCycleCount", _trimCycleCount);
-        writer.WriteNumber("FallbackCount", _fallbackCount);
-        writer.WriteNumber("BucketCacheHits", _suitablePoolSizeCacheHits);
-        writer.WriteNumber("BucketCacheMisses", _suitablePoolSizeCacheMisses);
-        writer.WriteNumber("PeakMemoryUsageBytes", _peakMemoryUsage);
-        writer.WriteNumber("ThroughputMBps", (DateTime.UtcNow - _startTime).TotalSeconds > 0
-            ? (double)this.GetTotalBytesRented() / (1024 * 1024) / (DateTime.UtcNow - _startTime).TotalSeconds
-            : 0);
+        writer.WriteNumber("RentCount", Volatile.Read(ref _rentCount));
+        writer.WriteNumber("ReturnCount", Volatile.Read(ref _returnCount));
+        writer.WriteNumber("TotalBytesRented", Volatile.Read(ref _totalBytesRented));
+        writer.WriteNumber("OutstandingCount", Volatile.Read(ref _rentCount) - Volatile.Read(ref _returnCount));
 
-        writer.WriteStartObject("ShrinkSafetyPolicy");
-        writer.WriteNumber("MinimumRetentionPercent", _shrinkPolicy.MinimumRetentionPercent);
-        writer.WriteNumber("ExponentialDecayFactor", _shrinkPolicy.ExponentialDecayFactor);
-        writer.WriteNumber("DynamicHeadroomPercent", _shrinkPolicy.DynamicHeadroomPercent);
-        writer.WriteNumber("AbsoluteMinimum", _shrinkPolicy.AbsoluteMinimum);
-        writer.WriteEndObject();
-
-        IReadOnlyCollection<SlabBucket> allBuckets = _slabPool.GetAllBuckets();
-
-        long totalHits = 0;
-        long totalMisses = 0;
-        long totalExpands = 0;
-        long totalShrinks = 0;
-
-        writer.WriteStartArray("Pools");
-        foreach (SlabBucket bucket in allBuckets)
-        {
-            BufferPoolState info = bucket.GetPoolInfo();
-            totalHits += info.Hits;
-            totalMisses += info.Misses;
-            totalExpands += info.Expands;
-            totalShrinks += info.Shrinks;
-
-            int inUse = info.TotalBuffers - info.FreeBuffers;
-            double usage = info.GetUsageRatio();
-            double miss = info.GetMissRate();
-
-            _ = _metricsCache.TryGetValue(info.BufferSize, out BufferPoolMetrics metrics);
-
-            string bytesReturned = metrics.TotalBytesReturned > 1_000_000
-                ? $"{metrics.TotalBytesReturned / 1_000_000}MB"
-                : $"{metrics.TotalBytesReturned / 1024}KB";
-
-            writer.WriteStartObject();
-            writer.WriteNumber("BufferSize", info.BufferSize);
-            writer.WriteNumber("Initial", info.InitialCapacity);
-            writer.WriteNumber("Total", info.TotalBuffers);
-            writer.WriteNumber("Free", info.FreeBuffers);
-            writer.WriteNumber("InUse", inUse);
-            writer.WriteNumber("Hits", info.Hits);
-            writer.WriteNumber("Expands", info.Expands);
-            writer.WriteNumber("Shrinks", info.Shrinks);
-            writer.WriteNumber("UsageRatio", usage);
-            writer.WriteNumber("MissRate", miss);
-            writer.WriteNumber("ShrinkSkipped", metrics.ShrinkSkipped);
-            writer.WriteString("BytesReturned", bytesReturned);
-            writer.WriteEndObject();
-        }
-        writer.WriteEndArray();
-
-        writer.WriteNumber("TotalHits", totalHits);
-        writer.WriteNumber("TotalMisses", totalMisses);
-        writer.WriteNumber("TotalExpands", totalExpands);
-        writer.WriteNumber("TotalShrinks", totalShrinks);
-        writer.WriteNumber("HitRate", (totalHits + totalMisses) > 0 ? (double)totalHits / (totalHits + totalMisses) : 1.0);
+        double uptimeSec = (DateTime.UtcNow - _startTime).TotalSeconds;
+        double throughputMBps = uptimeSec > 0
+            ? (double)Volatile.Read(ref _totalBytesRented) / (1024 * 1024) / uptimeSec
+            : 0;
+        writer.WriteNumber("ThroughputMBps", throughputMBps);
 
         writer.WriteEndObject();
     }
-
 
     #region Private: Reporting
 
@@ -210,132 +140,19 @@ public sealed partial class BufferPoolManager
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("======================================================================");
-        _ = sb.AppendLine("Overall Statistics");
+        _ = sb.AppendLine("Overall Statistics (ArrayPool.Shared wrapper)");
         _ = sb.AppendLine("======================================================================");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Initialized               : {_isInitialized}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Buffers (Configured): {_config.TotalBuffers}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Pools                     : {_bufferAllocations.Length}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Min Buffer SIZE           : {this.MinBufferSize}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Buffer SIZE           : {this.MaxBufferSize}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Enable Trimming           : {_config.EnableMemoryTrimming}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Enable Analytics          : {_config.EnableAnalytics}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Management Capacity : {_config.TotalBuffers}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Fallback to ArrayPool     : {_config.FallbackToArrayPool}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Trim Interval (min)       : {_config.TrimIntervalMinutes}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Deep Trim Interval (min)  : {_config.DeepTrimIntervalMinutes}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Trim Cycles Run           : {_trimCycleCount}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Fallback (ArrayPool)      : {_fallbackCount}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Bucket Cache Hits         : {_suitablePoolSizeCacheHits}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Bucket Cache Miss         : {_suitablePoolSizeCacheMisses}");
-        _ = sb.AppendLine();
-        _ = sb.AppendLine("Shrink Safety Policy:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  Minimum Retention       : {_shrinkPolicy.MinimumRetentionPercent * 100:F1}%");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  Exponential Decay Factor: {_shrinkPolicy.ExponentialDecayFactor}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  Dynamic Headroom        : {_shrinkPolicy.DynamicHeadroomPercent * 100:F1}%");
-        _ = sb.AppendLine();
-    }
-
-    [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void APPEND_REPORT_POOL_DETAILS(StringBuilder sb)
-    {
-        _ = sb.AppendLine("============================================================================");
-        _ = sb.AppendLine("Buffer Details (Dashboard):");
-        _ = sb.AppendLine("============================================================================");
-        _ = sb.AppendLine("SIZE     | CAPACITY (F/T/I)         | OPS (H/E/S)         | USAGE % | MISS %");
-        _ = sb.AppendLine("---------+--------------------------+---------------------+---------+-------");
-
-        List<SlabBucket> buckets = [.. _slabPool.GetAllBuckets()];
-        buckets.Sort(static (a, b) => a.GetPoolInfo().BufferSize.CompareTo(b.GetPoolInfo().BufferSize));
-
-        long totalHits = 0;
-        long totalMisses = 0;
-        long totalExpands = 0;
-        long totalShrinks = 0;
-
-        foreach (SlabBucket bucket in buckets)
-        {
-            BufferPoolState info = bucket.GetPoolInfo();
-            totalHits += info.Hits;
-            totalMisses += info.Misses;
-            totalExpands += info.Expands;
-            totalShrinks += info.Shrinks;
-
-            double usage = info.GetUsageRatio() * 100.0;
-            double miss = info.GetMissRate() * 100.0;
-
-            string capacity = $"{info.FreeBuffers.FormatCompact()} / {info.TotalBuffers.FormatCompact()} / {info.InitialCapacity.FormatCompact()}";
-            string ops = $"{info.Hits.FormatCompact()} / {info.Expands.FormatCompact()} / {info.Shrinks.FormatCompact()}";
-
-            _ = sb.AppendLine(CultureInfo.InvariantCulture,
-                $"{info.BufferSize,8} | {capacity,-24} | {ops,-19} | {usage,6:F2}% | {miss:F2}%");
-        }
-
-
-        double hitRate = (totalHits + totalMisses) > 0 ? (double)totalHits / (totalHits + totalMisses) : 1.0;
-
-        _ = sb.AppendLine("----------------------------------------------------------------------------");
-        _ = sb.AppendLine();
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Hits           : {totalHits}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Misses         : {totalMisses}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Hit Rate       : {hitRate * 100:F2}%");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Expands        : {totalExpands}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Shrinks        : {totalShrinks}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Rent Count                : {Volatile.Read(ref _rentCount)}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Return Count              : {Volatile.Read(ref _returnCount)}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Outstanding Count         : {Volatile.Read(ref _rentCount) - Volatile.Read(ref _returnCount)}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Bytes Rented        : {Volatile.Read(ref _totalBytesRented)}");
 
         double uptimeSec = (DateTime.UtcNow - _startTime).TotalSeconds;
-        double throughputMBps = uptimeSec > 0 ? (double)this.GetTotalBytesRented() / (1024 * 1024) / uptimeSec : 0;
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Throughput           : {throughputMBps:F2} MB/s");
-
-        long currentMem = 0;
-        foreach (SlabBucket bucket in _slabPool.GetAllBuckets())
-        {
-            BufferPoolState info = bucket.GetPoolInfo();
-            currentMem += (long)info.TotalBuffers * info.BufferSize;
-        }
-
-        (long targetBudget, long _, bool _) = this.COMPUTE_MEMORY_BUDGET();
-        double budgetUsage = targetBudget > 0 ? (double)currentMem / targetBudget * 100.0 : 0;
-
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Peak Memory (POH)    : {Volatile.Read(ref _peakMemoryUsage) / 1048576:N0} MB");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Current Memory (POH) : {currentMem / 1048576:N0} MB ({budgetUsage:F1}% of budget)");
-        _ = sb.AppendLine("---------------------------------------------------------------------------");
-    }
-
-    [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void APPEND_REPORT_METRICS(StringBuilder sb)
-    {
+        double throughputMBps = uptimeSec > 0 ? (double)Volatile.Read(ref _totalBytesRented) / (1024 * 1024) / uptimeSec : 0;
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Throughput                : {throughputMBps:F2} MB/s");
+        _ = sb.AppendLine("======================================================================");
         _ = sb.AppendLine();
-        _ = sb.AppendLine("===========================================================================");
-        _ = sb.AppendLine("Buffer Metrics (Shrink/Expand Operations):");
-        _ = sb.AppendLine("===========================================================================");
-        _ = sb.AppendLine("SIZE         | Shrink OK    | Shrink Skip  | Expand OK  | Bytes Returned   ");
-        _ = sb.AppendLine("-------------+--------------+--------------+------------+------------------");
-
-        List<SlabBucket> buckets = [.. _slabPool.GetAllBuckets()];
-        buckets.Sort(static (a, b) => a.GetPoolInfo().BufferSize.CompareTo(b.GetPoolInfo().BufferSize));
-
-        foreach (SlabBucket bucket in buckets)
-        {
-            BufferPoolState info = bucket.GetPoolInfo();
-
-            if (_metricsCache.TryGetValue(info.BufferSize, out BufferPoolMetrics metrics))
-            {
-                string bytesReturnedStr = metrics.TotalBytesReturned > 1_000_000
-                    ? $"{metrics.TotalBytesReturned / 1_000_000}MB"
-                    : $"{metrics.TotalBytesReturned / 1024}KB";
-
-                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,12} | {info.Shrinks,12} | {metrics.ShrinkSkipped,12} | {info.Expands,10} | {bytesReturnedStr}");
-            }
-            else
-            {
-                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,12} | {0,12} | {0,12} | {0,10} | {"0KB"}");
-            }
-        }
-
-        _ = sb.AppendLine("--------------------------------------------------------------------------");
     }
 
     #endregion Private: Reporting
 }
-
