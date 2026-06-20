@@ -1,0 +1,3369 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Nalix.Framework</name>
+    </assembly>
+    <members>
+        <member name="T:Nalix.Framework.DiagnosticsEvents">
+            <summary>
+            Central registry for all diagnostic event names used within the Framework module.
+            
+            Design goals:
+            - Provide strongly-typed event names (avoid magic strings)
+            - Keep naming consistent across modules
+            - Reduce duplication of prefixes (namespace already scopes context)
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.DiagnosticsEvents.ListenerName">
+            <summary>
+            The name of the <see cref="T:System.Diagnostics.DiagnosticListener"/> used by the Framework module.
+            Consumers can subscribe to this listener to observe all emitted events.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.DiagnosticsEvents.Source">
+            <summary>
+            Global diagnostic source for emitting events.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.DiagnosticsEvents.Write``1(System.String,``0)">
+            <summary>
+            Writes a diagnostic event payload through <see cref="F:Nalix.Framework.DiagnosticsEvents.Source"/> in an AOT-safe manner.
+            </summary>
+            <typeparam name="T">The diagnostic payload type.</typeparam>
+            <param name="name">The event name.</param>
+            <param name="payload">The event payload.</param>
+        </member>
+        <member name="T:Nalix.Framework.DiagnosticsEvents.Tasks">
+            <summary>
+            Task-related diagnostic events.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.DiagnosticsEvents.Tasks.Started">
+            <summary>
+            Fired when a worker task is started.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.DiagnosticsEvents.Tasks.Completed">
+            <summary>
+            Fired when a worker task completes successfully.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.DiagnosticsEvents.Tasks.Failed">
+            <summary>
+            Fired when a worker task fails with an exception.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.DiagnosticsEvents.Tasks.Cancelled">
+            <summary>
+            Fired when a worker task is cancelled.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.DiagnosticsEvents.Tasks.RecurringExecuted">
+            <summary>
+            Fired when a recurring job is executed.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.DiagnosticsEvents.Tasks.Dispatcher">
+            <summary>
+            Fired when the dispatcher starts or stops.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.DiagnosticsEvents.Tasks.Disposed">
+            <summary>
+            Fired when a worker is disposed or cleaned up.
+            </summary>
+        </member>
+        <member name="T:Nalix.Framework.DiagnosticsEvents.Memory">
+            <summary>
+            Memory and object pool diagnostic events.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.DiagnosticsEvents.Memory.PoolExpanded">
+            <summary>
+            Fired when a pool is expanded (capacity increased).
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.DiagnosticsEvents.Memory.PoolTrimmed">
+            <summary>
+            Fired when a pool is trimmed (unused objects released).
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.DiagnosticsEvents.Memory.PoolReturned">
+            <summary>
+            Fired when an object is returned to the pool.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.DiagnosticsEvents.Memory.PoolFailure">
+            <summary>
+            Fired when the pool encounters a failure (e.g. validation error).
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.DiagnosticsEvents.Memory.BufferAllocated">
+            <summary>
+            Fired when a buffer is allocated from the buffer pool.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.DiagnosticsEvents.Memory.BufferReleased">
+            <summary>
+            Fired when a buffer is released back to the pool.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.DiagnosticsEvents.Memory.SentinelWarning">
+            <summary>
+            Fired when a sentinel detects a leak or lifecycle issue.
+            </summary>
+        </member>
+        <member name="T:Nalix.Framework.DiagnosticsEvents.Injection">
+            <summary>
+            Dependency injection and instance management diagnostic events.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.DiagnosticsEvents.Injection.Registered">
+            <summary>
+            Fired when an instance is registered into the container.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.DiagnosticsEvents.Injection.Resolved">
+            <summary>
+            Fired when an instance is resolved from the container.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.DiagnosticsEvents.Injection.Failure">
+            <summary>
+            Fired when instance registration fails or throws.
+            </summary>
+        </member>
+        <member name="T:Nalix.Framework.Extensions.ReportExtensions">
+            <summary>
+            Provides extension methods and utilities for diagnostic reports.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Extensions.ReportExtensions.FormatCompact(System.Int64)">
+            <summary>
+            Formats a large number into a compact string (e.g., 1.2k, 3.5M).
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Extensions.ReportExtensions.FormatCompact(System.Int32)">
+            <summary>
+            Formats a large number into a compact string (e.g., 1.2k, 3.5M).
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Extensions.ReportExtensions.FormatGroup(System.Int64,System.Int64,System.Boolean)">
+            <summary>
+            Groups two values into a single compact string (e.g., "15 / 1024" or "1.2k / 5k").
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Extensions.ReportExtensions.FormatTypeName(System.String,System.Int32)">
+            <summary>
+            Formats a type name by shortening it if it exceeds a maximum length.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Extensions.ReportExtensions.FormatTimeSpan(System.TimeSpan)">
+            <summary>
+            Formats a TimeSpan into a compact human-readable string (e.g., 1.5s, 10m).
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Extensions.ReportExtensions.SaveReportToFile(Nalix.Abstractions.IReportable,System.String)">
+            <summary>
+            Saves the generated report of the manager to a file inside DataDirectory/reports.
+            </summary>
+            <param name="this">The reportable manager.</param>
+            <param name="prefix">Optional filename prefix, e.g. "buffer" or "object".</param>
+            <returns>The full path of the saved report file.</returns>
+            <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="this"/> is null.</exception>
+            <remarks>
+            File-system errors are allowed to propagate to the caller.
+            </remarks>
+        </member>
+        <member name="T:Nalix.Framework.Extensions.TaskExtensions">
+            <summary>
+            Provides extension methods for <see cref="T:System.Threading.Tasks.Task"/>
+            and <see cref="T:System.Threading.Tasks.Task`1"/>.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Extensions.TaskExtensions.Await(System.Threading.Tasks.Task)">
+            <summary>
+            <para>Suspends execution until the specified <see cref="T:System.Threading.Tasks.Task"/> is completed.</para>
+            <para>This method operates similarly to the <see langword="await"/> C# operator,
+            but is meant to be called from a non-<see langword="async"/> method.</para>
+            </summary>
+            <param name="this">The <see cref="T:System.Threading.Tasks.Task"/> on which this method is called.</param>
+            <exception cref="T:System.ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
+            <exception cref="T:System.Exception">Rethrows the original task failure when the awaited task completes faulted.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Extensions.TaskExtensions.Await(System.Threading.Tasks.ValueTask)">
+            <summary>
+            Blocks the current thread until the specified <see cref="T:System.Threading.Tasks.ValueTask"/> completes.
+            </summary>
+            <param name="this">The value task to wait for.</param>
+        </member>
+        <member name="M:Nalix.Framework.Extensions.TaskExtensions.Await``1(System.Threading.Tasks.ValueTask{``0})">
+            <summary>
+            Blocks the current thread until the specified <see cref="T:System.Threading.Tasks.ValueTask`1"/> completes
+            and returns its result.
+            </summary>
+            <typeparam name="TResult">The result type.</typeparam>
+            <param name="this">The value task to wait for.</param>
+            <returns>The completed result.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Extensions.TaskExtensions.Await``1(System.Threading.Tasks.Task{``0})">
+            <summary>
+            <para>Suspends execution until the specified <see cref="T:System.Threading.Tasks.Task"/> is completed
+            and returns its result.</para>
+            <para>This method operates similarly to the <see langword="await"/> C# operator,
+            but is meant to be called from a non-<see langword="async"/> method.</para>
+            </summary>
+            <typeparam name="TResult">The type of the @this's result.</typeparam>
+            <param name="this">The <see cref="T:System.Threading.Tasks.Task`1"/> on which this method is called.</param>
+            <returns>The result of <paramref name="this"/>.</returns>
+            <exception cref="T:System.ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
+            <exception cref="T:System.Exception">Rethrows the original task failure when the awaited task completes faulted.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Extensions.TaskExtensions.Await(System.Threading.Tasks.Task,System.Boolean)">
+            <summary>
+            <para>Suspends execution until the specified <see cref="T:System.Threading.Tasks.Task"/> is completed.</para>
+            <para>This method operates similarly to the <see langword="await" /> C# operator,
+            but is meant to be called from a non-<see langword="async" /> method.</para>
+            </summary>
+            <param name="this">The <see cref="T:System.Threading.Tasks.Task" /> on which this method is called.</param>
+            <param name="continueOnCapturedContext">If set to <see langword="true"/>,
+            attempts to marshal the continuation back to the original context captured.
+            This parameter has the same effect as calling the <see cref="M:System.Threading.Tasks.Task.ConfigureAwait(System.Boolean)"/>
+            method.</param>
+            <exception cref="T:System.ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
+            <exception cref="T:System.Exception">Rethrows the original task failure when the awaited task completes faulted.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Extensions.TaskExtensions.WithTimeout``1(System.Threading.Tasks.Task{``0},System.Int32)">
+            <summary>
+            Suspends execution until the specified <see cref="T:System.Threading.Tasks.Task`1"/> is completed or the timeout expires.
+            <para>
+            If the task completes within the specified timeout, its result is returned.
+            Otherwise, <c>default</c> is returned.
+            </para>
+            <para>
+            This method is useful for awaiting a task with a timeout in non-<see langword="async"/> methods.
+            </para>
+            </summary>
+            <typeparam name="T">The type of the result produced by the task.</typeparam>
+            <param name="this">The <see cref="T:System.Threading.Tasks.Task`1"/> to await.</param>
+            <param name="msTimeout">The timeout in milliseconds.</param>
+            <returns>
+            The result of the task if it completes within the timeout; otherwise, <c>default</c>.
+            </returns>
+            <exception cref="T:System.ArgumentNullException"><paramref name="this"/> is <see langword="null"/>.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">Thrown when <paramref name="msTimeout"/> is less than -1.</exception>
+            <exception cref="T:System.Exception">Rethrows the original task failure when the source task completes faulted before timeout.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Extensions.TaskExtensions.LinkCancellation``1(System.Threading.Tasks.TaskCompletionSource{``0},System.Threading.CancellationToken)">
+            <summary>
+            Registers cancellation such that the TCS will complete as canceled
+            if the token fires. Auto-disposes on leaving using-scope.
+            </summary>
+            <typeparam name="T">TCS payload type.</typeparam>
+            <param name="tcs">The TaskCompletionSource instance.</param>
+            <param name="token">Cancellation token.</param>
+            <returns>IDisposable registration handle.</returns>
+            <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="tcs"/> is null.</exception>
+        </member>
+        <member name="T:Nalix.Framework.Identifiers.Snowflake">
+            <summary>
+            Represents a 64-bit unique identifier composed of a value, machine identifier, and type.
+            Provides methods for creation, decomposition, and conversion to various formats.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Identifiers.Snowflake.Size">
+            <summary>
+            The size in bytes of the <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> structure.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Identifiers.Snowflake.Value">
+            <inheritdoc/>
+        </member>
+        <member name="P:Nalix.Framework.Identifiers.Snowflake.MachineId">
+            <inheritdoc/>
+        </member>
+        <member name="P:Nalix.Framework.Identifiers.Snowflake.Type">
+            <inheritdoc/>
+        </member>
+        <member name="P:Nalix.Framework.Identifiers.Snowflake.Sequence">
+            <summary>
+            Gets the sequence component of the identifier (14 bits).
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Identifiers.Snowflake.Empty">
+            <summary>
+            Gets an empty <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> instance with all components set to zero.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Identifiers.Snowflake.IsEmpty">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.#ctor(System.UInt32,System.UInt16,Nalix.Abstractions.Identity.SnowflakeType,System.UInt32)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> struct.
+            </summary>
+            <param name="timestamp">The Unix timestamp value (32 bits).</param>
+            <param name="machineId">The machine identifier (10 bits used).</param>
+            <param name="type">The identifier type (8 bits).</param>
+            <param name="sequence">The sequence number (14 bits).</param>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.#ctor(System.UInt32,System.UInt16,Nalix.Abstractions.Identity.SnowflakeType)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> struct.
+            </summary>
+            <param name="value">The main identifier value (32 bits).</param>
+            <param name="machineId">The machine identifier (10 bits used).</param>
+            <param name="type">The identifier type (8 bits).</param>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.#ctor(System.UInt64)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> struct from a <see cref="T:System.UInt64"/> value.
+            </summary>
+            <param name="value">The 64-bit unsigned integer representing the combined identifier value.</param>
+            <remarks>
+            This constructor allows direct initialization from a pre-composed 64-bit value,
+            which is useful for deserialization scenarios. No validation is performed on the input.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.NewId(System.UInt64)">
+            <summary>
+            Creates a new <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> from a <see cref="T:System.UInt64"/> value.
+            </summary>
+            <param name="value">The 64-bit unsigned integer representing the combined identifier value.</param>
+            <returns>A new <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> instance.</returns>
+            <remarks>
+            This method provides a fast way to construct a <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> from a pre-composed value.
+            It is particularly useful when deserializing identifiers from storage or network protocols.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.NewId(System.UInt32,System.UInt16,Nalix.Abstractions.Identity.SnowflakeType)">
+            <summary>
+            Creates a new <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> with the specified components.
+            </summary>
+            <param name="value">The main identifier value (32 bits).</param>
+            <param name="machineId">The machine identifier (16 bits).</param>
+            <param name="type">The identifier type (8 bits).</param>
+            <returns>A new <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> instance.</returns>
+            <remarks>
+            This method constructs a <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> from its individual components.
+            All parameters are validated to ensure they fit within their respective bit ranges.
+            </remarks>
+            <example>
+            <code>
+            var id = Snowflake.NewId(12345, 1001, SnowflakeType.USER);
+            Console.WriteLine(id.ToString()); // Outputs hex representation
+            </code>
+            </example>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.NewId(Nalix.Abstractions.Identity.SnowflakeType)">
+            <summary>
+            Creates a new <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> with the specified type using the configured machine identifier.
+            </summary>
+            <param name="type">The identifier type.</param>
+            <returns>A new <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> instance with a timestamp-based value.</returns>
+            <remarks>
+            This is the most commonly used factory method. It generates a unique identifier using:
+            - The current Unix timestamp (in seconds) as the value component
+            - The globally configured machine ID from <see cref="T:Nalix.Framework.Options.SnowflakeOptions"/>
+            - The specified type
+            This ensures both temporal and spatial uniqueness across distributed systems.
+            </remarks>
+            <example>
+            <code>
+            var id = Snowflake.NewId(SnowflakeType.SYSTEM);
+            Console.WriteLine(id.ToString()); // Outputs hex representation
+            </code>
+            </example>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.NewId(Nalix.Abstractions.Identity.SnowflakeType,System.UInt16)">
+            <summary>
+            Creates a new <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> with the specified type and machine identifier.
+            </summary>
+            <param name="type">The identifier type.</param>
+            <param name="machineId">The machine identifier. Defaults to 1 if not specified.</param>
+            <returns>A new <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> instance with a timestamp-based value.</returns>
+            <remarks>
+            This method generates a unique identifier by combining the current Unix timestamp (in seconds)
+            with the provided type and machine ID. The timestamp ensures temporal uniqueness.
+            </remarks>
+            <example>
+            <code>
+            var id = Snowflake.NewId(SnowflakeType.SYSTEM, 42);
+            Console.WriteLine(id.ToString());
+            </code>
+            </example>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.TryParse(System.String,Nalix.Framework.Identifiers.Snowflake@)">
+            <summary>
+            Attempts to parse a hexadecimal string into a <see cref="T:Nalix.Framework.Identifiers.Snowflake"/>.
+            </summary>
+            <param name="s">The hexadecimal string to parse (must be 14 characters).</param>
+            <param name="result">When this method returns, contains the parsed <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> if successful.</param>
+            <returns><c>true</c> if the string was parsed successfully; otherwise, <c>false</c>.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.GetHashCode">
+            <summary>
+            Returns the hash code for this identifier.
+            </summary>
+            <returns>A 32-bit signed integer hash code.</returns>
+            <remarks>
+            The hash code is computed efficiently from the underlying 64-bit value
+            and is suitable for use in hash-based collections like <see cref="T:System.Collections.Generic.Dictionary`2"/>.
+            This implementation ensures consistent hash values for equal identifiers.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.Equals(System.Object)">
+            <summary>
+            Determines whether this identifier is equal to the specified object.
+            </summary>
+            <param name="obj">The object to compare with this instance.</param>
+            <returns>
+            <c>true</c> if the object is a <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> and is equal to this instance;
+            otherwise, <c>false</c>.
+            </returns>
+            <remarks>
+            This method performs type checking and delegates to the strongly-typed <see cref="M:Nalix.Framework.Identifiers.Snowflake.Equals(Nalix.Framework.Identifiers.Snowflake)"/> method
+            for actual comparison. Returns <c>false</c> for null or non-<see cref="T:Nalix.Framework.Identifiers.Snowflake"/> objects.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.ToString">
+            <summary>
+            Returns the hexadecimal string representation of this identifier.
+            </summary>
+            <returns>A 16-character hexadecimal string representing this identifier (8 bytes = 16 hex digits).</returns>
+            <remarks>
+            This method efficiently serializes the identifier to a stack-allocated buffer before
+            converting to hexadecimal format. The returned string is always uppercase and fixed-length.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.op_Equality(Nalix.Framework.Identifiers.Snowflake,Nalix.Framework.Identifiers.Snowflake)">
+            <summary>
+            Determines whether two <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> instances are equal.
+            </summary>
+            <param name="left">The first identifier to compare.</param>
+            <param name="right">The second identifier to compare.</param>
+            <returns>
+            <c>true</c> if the identifiers are equal; otherwise, <c>false</c>.
+            </returns>
+            <remarks>
+            This operation compares the underlying 64-bit values for equality.
+            The comparison is performed in constant time to prevent timing attacks.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.op_Inequality(Nalix.Framework.Identifiers.Snowflake,Nalix.Framework.Identifiers.Snowflake)">
+            <summary>
+            Determines whether two <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> instances are not equal.
+            </summary>
+            <param name="left">The first identifier to compare.</param>
+            <param name="right">The second identifier to compare.</param>
+            <returns>
+            <c>true</c> if the identifiers are not equal; otherwise, <c>false</c>.
+            </returns>
+            <remarks>
+            This operation compares the underlying 64-bit values for inequality.
+            The comparison is performed in constant time to prevent timing attacks.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.op_LessThan(Nalix.Framework.Identifiers.Snowflake,Nalix.Framework.Identifiers.Snowflake)">
+            <summary>
+            Determines whether one <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> identifier is less than another.
+            </summary>
+            <param name="a">The first identifier to compare.</param>
+            <param name="b">The second identifier to compare.</param>
+            <returns>
+            <c>true</c> if <paramref name="a"/> is less than <paramref name="b"/>; otherwise, <c>false</c>.
+            </returns>
+            <remarks>
+            Comparison is performed on the underlying 64-bit values, providing a total ordering.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.op_GreaterThan(Nalix.Framework.Identifiers.Snowflake,Nalix.Framework.Identifiers.Snowflake)">
+            <summary>
+            Determines whether one <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> identifier is greater than another.
+            </summary>
+            <param name="a">The first identifier to compare.</param>
+            <param name="b">The second identifier to compare.</param>
+            <returns>
+            <c>true</c> if <paramref name="a"/> is greater than <paramref name="b"/>; otherwise, <c>false</c>.
+            </returns>
+            <remarks>
+            Comparison is performed on the underlying 64-bit values, providing a total ordering.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.op_LessThanOrEqual(Nalix.Framework.Identifiers.Snowflake,Nalix.Framework.Identifiers.Snowflake)">
+            <summary>
+            Determines whether one <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> identifier is less than or equal to another.
+            </summary>
+            <param name="a">The first identifier to compare.</param>
+            <param name="b">The second identifier to compare.</param>
+            <returns>
+            <c>true</c> if <paramref name="a"/> is less than or equal to <paramref name="b"/>; otherwise, <c>false</c>.
+            </returns>
+            <remarks>
+            Comparison is performed on the underlying 64-bit values, providing a total ordering.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.op_GreaterThanOrEqual(Nalix.Framework.Identifiers.Snowflake,Nalix.Framework.Identifiers.Snowflake)">
+            <summary>
+            Determines whether one <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> identifier is greater than or equal to another.
+            </summary>
+            <param name="a">The first identifier to compare.</param>
+            <param name="b">The second identifier to compare.</param>
+            <returns>
+            <c>true</c> if <paramref name="a"/> is greater than or equal to <paramref name="b"/>; otherwise, <c>false</c>.
+            </returns>
+            <remarks>
+            Comparison is performed on the underlying 64-bit values, providing a total ordering.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.CompareTo(Nalix.Framework.Identifiers.Snowflake)">
+            <summary>
+            Compares this <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> instance to another and returns an integer that indicates whether
+            the current instance precedes, follows, or occurs in the same position in the sort order as the other.
+            </summary>
+            <param name="other">The <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> to compare with this instance.</param>
+            <returns>
+            A value less than zero if this instance precedes <paramref name="other"/>.<br/>
+            Zero if this instance occurs in the same position as <paramref name="other"/>.<br/>
+            A value greater than zero if this instance follows <paramref name="other"/>.
+            </returns>
+            <remarks>
+            This method compares the underlying 64-bit values directly, providing efficient ordering.
+            The implementation uses branchless comparison for optimal CPU pipeline performance.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.Compare(Nalix.Framework.Identifiers.Snowflake,Nalix.Framework.Identifiers.Snowflake)">
+            <summary>
+            Compares two <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> instances and returns an integer that indicates whether
+            the first instance precedes, follows, or occurs in the same position in the sort order as the second.
+            </summary>
+            <param name="a">The first <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> to compare.</param>
+            <param name="b">The second <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> to compare.</param>
+            <returns>
+            A value less than zero if <paramref name="a"/> precedes <paramref name="b"/>.<br/>
+            Zero if <paramref name="a"/> occurs in the same position as <paramref name="b"/>.<br/>
+            A value greater than zero if <paramref name="a"/> follows <paramref name="b"/>.
+            </returns>
+            <remarks>
+            This static comparison method delegates to the instance <see cref="M:Nalix.Framework.Identifiers.Snowflake.CompareTo(Nalix.Framework.Identifiers.Snowflake)"/> method.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.Equals(Nalix.Framework.Identifiers.Snowflake,Nalix.Framework.Identifiers.Snowflake)">
+            <summary>
+            Determines whether two <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> instances are equal.
+            </summary>
+            <param name="a">The first <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> to compare.</param>
+            <param name="b">The second <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> to compare.</param>
+            <returns>
+            <c>true</c> if the two <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> instances are equal; otherwise, <c>false</c>.
+            </returns>
+            <remarks>
+            This static equality method delegates to the instance <see cref="M:Nalix.Framework.Identifiers.Snowflake.Equals(Nalix.Framework.Identifiers.Snowflake)"/> method.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.Equals(Nalix.Framework.Identifiers.Snowflake)">
+            <summary>
+            Determines whether this identifier is equal to another <see cref="T:Nalix.Framework.Identifiers.Snowflake"/>.
+            </summary>
+            <param name="other">The identifier to compare with this instance.</param>
+            <returns>
+            <c>true</c> if the identifiers are equal; otherwise, <c>false</c>.
+            </returns>
+            <remarks>
+            This method performs a direct comparison of the underlying 64-bit values.
+            The comparison is performed in constant time to prevent timing attacks.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.Equals(Nalix.Abstractions.Identity.ISnowflake)">
+            <summary>
+            Determines whether this identifier is equal to another <see cref="T:Nalix.Abstractions.Identity.ISnowflake"/>.
+            </summary>
+            <param name="other">The identifier to compare with this instance.</param>
+            <returns>
+            <c>true</c> if the identifiers are equal; otherwise, <c>false</c>.
+            </returns>
+            <remarks>
+            This method first checks if the provided instance is a <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> via pattern matching,
+            then delegates to the strongly-typed <see cref="M:Nalix.Framework.Identifiers.Snowflake.Equals(Nalix.Framework.Identifiers.Snowflake)"/> method.
+            Returns <c>false</c> if <paramref name="other"/> is null or not a <see cref="T:Nalix.Framework.Identifiers.Snowflake"/>.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.FromUInt64(System.UInt64)">
+            <summary>
+            Creates a <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> identifier from a 64-bit combined value.
+            </summary>
+            <param name="combined">The 64-bit unsigned integer containing all identifier components.</param>
+            <returns>A <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> instance constructed from the combined value.</returns>
+            <remarks>
+            This is the most efficient deserialization method as it directly uses the pre-composed value
+            without any decomposition or validation. Use this when the value is known to be valid.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.FromBytes(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Creates a <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> from an 8-byte span.
+            </summary>
+            <param name="bytes">The byte span containing the identifier data in little-endian format.</param>
+            <returns>A reconstructed <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> instance.</returns>
+            <exception cref="T:System.ArgumentException">
+            Thrown when <paramref name="bytes"/> is not exactly <see cref="F:Nalix.Framework.Identifiers.Snowflake.Size"/> (8) bytes.
+            </exception>
+            <remarks>
+            This method deserializes a <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> from a byte representation.
+            The expected layout is: [0-3]=Value (32 bits), [4-5]=MachineId (16 bits), [6]=Type (8 bits), [7]=Reserved (8 bits),
+            all in little-endian byte order. The method validates the buffer size before reading.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.FromBytes(System.Byte[])">
+            <summary>
+            Creates a <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> from an 8-byte array.
+            </summary>
+            <param name="bytes">The byte array containing the identifier data in little-endian format.</param>
+            <returns>A reconstructed <see cref="T:Nalix.Framework.Identifiers.Snowflake"/> instance.</returns>
+            <exception cref="T:System.ArgumentNullException">
+            Thrown when <paramref name="bytes"/> is <c>null</c>.
+            </exception>
+            <exception cref="T:System.ArgumentException">
+            Thrown when <paramref name="bytes"/> is not exactly <see cref="F:Nalix.Framework.Identifiers.Snowflake.Size"/> (8) bytes.
+            </exception>
+            <remarks>
+            This overload accepts a byte array and delegates to the span-based <see cref="M:Nalix.Framework.Identifiers.Snowflake.FromBytes(System.ReadOnlySpan{System.Byte})"/> method.
+            Prefer using the span-based overload when possible to avoid unnecessary array allocations.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.ToUInt64">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.ToByteArray">
+            <exception cref="T:System.OutOfMemoryException">Thrown when the runtime cannot allocate the destination byte array.</exception>
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.TryWriteBytes(System.Span{System.Byte},System.Int32@)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Framework.Identifiers.Snowflake.TryWriteBytes(System.Span{System.Byte})">
+            <inheritdoc/>
+        </member>
+        <member name="T:Nalix.Framework.Injection.DI.Singleton">
+            <summary>
+            Singleton class used to register and resolve services and instances using lazy loading.
+            Supports registering interfaces with implementations and factories for service creation.
+            Performance optimized for high-throughput applications.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Injection.DI.Singleton.IsDisposing">
+            <summary>
+            Gets a value indicating whether the Singleton container is currently in the process of disposing.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Injection.DI.Singleton.Register``1(``0,System.Boolean)">
+            <summary>
+            Registers an instance of a class for dependency injection.
+            </summary>
+            <typeparam name="TClass">The type of the class to register.</typeparam>
+            <param name="instance">The instance of the class to register.</param>
+            <param name="allowOverwrite">If true, allows overwriting an existing registration of the same type. Environment to false.</param>
+            <exception cref="T:System.ArgumentNullException">Thrown when the instance is null.</exception>
+            <exception cref="T:System.InvalidOperationException">Thrown when the type is already registered and overwrite is not allowed.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Injection.DI.Singleton.Register``2(System.Func{``1})">
+            <summary>
+            Registers an interface with its implementation type using lazy loading.
+            </summary>
+            <typeparam name="TInterface">The interface type.</typeparam>
+            <typeparam name="TImplementation">The implementation type of the interface.</typeparam>
+            <param name="factory">An optional factory function to create instances of the implementation.</param>
+            <exception cref="T:System.InvalidOperationException">Thrown if the interface has already been registered.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Injection.DI.Singleton.Resolve``1(System.Boolean)">
+            <summary>
+            Resolves or creates an instance of the requested type with optimized caching.
+            </summary>
+            <typeparam name="TClass">The type to resolve.</typeparam>
+            <param name="createIfNotExists">If true, creates the instance if not already registered. Environment to true.</param>
+            <returns>The resolved or newly created instance of the requested type.</returns>
+            <exception cref="T:System.InvalidOperationException">Thrown if the type cannot be resolved or created.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Injection.DI.Singleton.IsRegistered``1">
+            <summary>
+            Checks whether a specific type is registered.
+            </summary>
+            <typeparam name="TClass">The type to check for registration.</typeparam>
+            <returns>True if the type is registered, otherwise false.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Injection.DI.Singleton.Remove``1">
+            <summary>
+            Removes the registration of a specific type.
+            </summary>
+            <typeparam name="TClass">The type to remove from registration.</typeparam>
+        </member>
+        <member name="M:Nalix.Framework.Injection.DI.Singleton.Clear">
+            <summary>
+            Clears all registrations.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Injection.DI.Singleton.GET_ALL_CACHED_TYPES">
+            <summary>
+            Helper method to get all cached types for clearing
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Injection.DI.Singleton.RESOLVE_INTERNAL``1(System.Boolean)">
+            <summary>
+            Internal implementation of Resolve without caching
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Injection.DI.Singleton.Dispose">
+            <summary>
+            Disposes of the Singleton container, releasing any resources held by registered services.
+            Thread-safe implementation that ensures dispose operations are only executed once.
+            </summary>
+        </member>
+        <member name="T:Nalix.Framework.Injection.DI.SingletonActivatorCache">
+            <summary>
+            Compile-time factory registry for <see cref="T:Nalix.Framework.Injection.DI.SingletonBase`1"/> subclasses.
+            Factories are registered by source-generated <c>[ModuleInitializer]</c> code at assembly load time.
+            This class is the AOT-safe replacement for <c>Expression&lt;Func&lt;T&gt;&gt;.Compile()</c>.
+            </summary>
+            <remarks>
+            This type is <see langword="public"/> so that source-generated code in consuming assemblies
+            can register factories. Application code should not call these methods directly.
+            </remarks>
+        </member>
+        <member name="F:Nalix.Framework.Injection.DI.SingletonActivatorCache.s_factories">
+            <summary>
+            Maps closed-generic type handles to their compile-time-generated parameterless-ctor delegates.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Injection.DI.SingletonActivatorCache.Register(System.Type,System.Func{System.Object})">
+            <summary>
+            Registers a compile-time factory for a <see cref="T:Nalix.Framework.Injection.DI.SingletonBase`1"/> subclass.
+            Called by source-generated <c>[ModuleInitializer]</c> code — do not call manually.
+            </summary>
+            <param name="type">The concrete singleton type.</param>
+            <param name="factory">A delegate that calls <c>new T()</c> with zero reflection.</param>
+        </member>
+        <member name="M:Nalix.Framework.Injection.DI.SingletonActivatorCache.GetRequired``1">
+            <summary>
+            Retrieves the registered factory for <typeparamref name="T"/> or throws.
+            Called once per closed generic <c>SingletonBase&lt;T&gt;</c> during static field initialization.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Injection.DI.SingletonActivatorCache.GetRequired(System.Type)">
+            <summary>
+            Retrieves the registered factory for the given <paramref name="type"/> or throws.
+            This is the AOT-safe runtime lookup used by <see cref="T:Nalix.Framework.Injection.DI.Singleton"/> when resolving
+            interface-to-implementation mappings. Zero reflection.
+            </summary>
+            <param name="type">The concrete implementation type.</param>
+            <returns>The factory delegate registered by source-generated code.</returns>
+            <exception cref="T:System.InvalidOperationException">
+            Thrown when no source-generated activator exists for <paramref name="type"/>.
+            </exception>
+        </member>
+        <member name="T:Nalix.Framework.Injection.DI.SingletonBase`1">
+            <summary>
+            A high-performance generic thread-safe Singleton implementation using <see cref="T:System.Lazy`1"/>.
+            </summary>
+            <typeparam name="T">The type of the Singleton class.</typeparam>
+        </member>
+        <member name="F:Nalix.Framework.Injection.DI.SingletonBase`1.s_instance">
+            <summary>
+            Lazy with full publication safety.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Injection.DI.SingletonBase`1.s_ctor">
+            <summary>
+            Source-generated factory delegate — retrieved once per closed generic from
+            <see cref="T:Nalix.Framework.Injection.DI.SingletonActivatorCache"/>. 100 % Native AOT safe (no JIT / Expression.Compile).
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Injection.DI.SingletonBase`1._disposed">
+            <summary>
+            0 = not disposed, 1 = disposed
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Injection.DI.SingletonBase`1.Instance">
+            <summary>
+            Gets the singleton instance (creates on first access).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Injection.DI.SingletonBase`1.IsCreated">
+            <summary>
+            Returns true if the instance has been created, without forcing creation.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Injection.DI.SingletonBase`1.#ctor">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Framework.Injection.DI.SingletonBase`1.TryGetInstance(`0@)">
+            <summary>
+            Best-effort: returns existing instance if created, else false without creating it.
+            </summary>
+            <param name="instance">Instance</param>
+        </member>
+        <member name="M:Nalix.Framework.Injection.DI.SingletonBase`1.EnsureCreated">
+            <summary>Force-creates the instance (useful for warmup).</summary>
+        </member>
+        <member name="M:Nalix.Framework.Injection.DI.SingletonBase`1.Dispose">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Framework.Injection.DI.SingletonBase`1.Dispose(System.Boolean)">
+            <summary>
+            Releases resources held by the singleton instance.
+            </summary>
+            <param name="disposing"><see langword="true"/> when called from <see cref="M:Nalix.Framework.Injection.DI.SingletonBase`1.Dispose"/>.</param>
+        </member>
+        <member name="M:Nalix.Framework.Injection.DI.SingletonBase`1.DisposeManaged">
+            <summary>
+            Override to release managed state. Base does nothing.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Injection.DI.SingletonBase`1.CREATE_CONSTRUCTORS">
+            <summary>
+            Retrieves the source-generated factory delegate for <typeparamref name="T"/>
+            from <see cref="T:Nalix.Framework.Injection.DI.SingletonActivatorCache"/>.  This runs once per closed generic T.
+            </summary>
+            <exception cref="T:System.InvalidOperationException">
+            Thrown when no compile-time factory has been registered for <typeparamref name="T"/>.
+            Ensure the type is detected by the source generator and the assembly's
+            <c>[ModuleInitializer]</c> has completed.
+            </exception>
+        </member>
+        <member name="T:Nalix.Framework.Injection.InstanceManager">
+            <summary>
+            High-performance manager that maintains single instances of different types,
+            optimized for real-time server applications with thread safety and caching.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Injection.InstanceManager.RegisterActivator(System.Type,System.Func{System.Object[],System.Object})">
+            <summary>
+            Registers a compile-time activation factory for a concrete class type.
+            </summary>
+            <param name="type">The concrete class type.</param>
+            <param name="factory">The factory delegate.</param>
+        </member>
+        <member name="M:Nalix.Framework.Injection.InstanceManager.RegisterServiceMapping(System.Type,System.Type)">
+            <summary>
+            Registers a compile-time service mapping between a concrete type and its interface.
+            </summary>
+            <param name="concreteType">The concrete class type.</param>
+            <param name="serviceType">The service interface or base type.</param>
+        </member>
+        <member name="M:Nalix.Framework.Injection.InstanceManager.CreateInstanceWithInjection``1">
+            <summary>
+            Creates a new instance by auto-resolving all constructor parameters from the instance cache.
+            Selects the greedy constructor — the one with the most parameters where all are resolvable.
+            </summary>
+            <typeparam name="T">The type to create an instance of.</typeparam>
+            <returns>An instance with dependencies injected.</returns>
+            <exception cref="T:System.ObjectDisposedException"/>
+            <exception cref="T:Nalix.Abstractions.Exceptions.InternalErrorException">No suitable constructor found.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Injection.InstanceManager.CreateInstanceWithInjection(System.Type)">
+            <summary>
+            Creates a new instance by auto-resolving all constructor parameters from the instance cache.
+            Selects the greedy constructor — the one with the most parameters where all are resolvable.
+            </summary>
+            <param name="type">The type to create an instance of.</param>
+            <returns>An instance with dependencies injected.</returns>
+            <exception cref="T:System.ObjectDisposedException"/>
+            <exception cref="T:System.ArgumentNullException"/>
+            <exception cref="T:Nalix.Abstractions.Exceptions.InternalErrorException">No suitable constructor found.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Injection.InstanceManager.GetRegisteredTypeNames">
+            <summary>
+            Returns the names of types currently in the instance cache (for diagnostic messages).
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Injection.InstanceManager.s_processMutexInitSync">
+            <summary>
+            Keep one OS mutex for lifetime to ensure correctness and performance.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Injection.InstanceManager.ApplicationMutexName">
+            <inheritdoc/>
+        </member>
+        <member name="F:Nalix.Framework.Injection.InstanceManager._disposables">
+            <summary>
+            Track disposables uniquely to avoid duplicate dispose calls.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Injection.InstanceManager._instanceCache">
+            <summary>
+            Use RuntimeTypeHandle as key to reduce hashing overhead.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Injection.InstanceManager._activatorCache">
+            <summary>
+            Activator cache is keyed by (Type, ctor signature) to support overloads.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Injection.InstanceManager.s_slotsInvalidated">
+            <summary>
+            Near fields
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Injection.InstanceManager.IsTheOnlyInstance">
+            <summary>
+            Checks if this application is the only instance currently running.
+            This method initializes a process-wide named mutex once and holds it.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Injection.InstanceManager.CachedInstanceCount">
+            <summary>
+            Gets the number of cached instances.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Injection.InstanceManager.EntryAssembly">
+            <summary>
+            Gets the assembly that started the application.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Injection.InstanceManager.#ctor">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Framework.Injection.InstanceManager.Lockdown">
+            <summary>
+            Locks the InstanceManager, preventing any further registrations or reloads.
+            This should be called after application initialization is complete to prevent service hijacking.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Injection.InstanceManager.Register``1(``0)">
+            <summary>
+            Registers an instance of the specified type in the instance cache.
+            If the instance implements <see cref="T:System.IDisposable"/>, it will be tracked for disposal.
+            </summary>
+            <typeparam name="T">The type of the instance to register.</typeparam>
+            <param name="instance">The instance to register.</param>
+            <exception cref="T:System.ObjectDisposedException">Thrown when the manager has already been disposed.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Injection.InstanceManager.RegisterForClassOnly``1(``0)">
+            <summary>
+            Registers an instance of the specified type in the instance cache,
+            but only for the concrete class type (ignores interfaces).
+            </summary>
+            <typeparam name="T">The type of the instance to register.</typeparam>
+            <param name="instance">The instance to register.</param>
+        </member>
+        <member name="M:Nalix.Framework.Injection.InstanceManager.GetOrCreateInstance``1(System.Object[])">
+            <summary>
+            Gets or creates an instance of the specified type with high performance.
+            </summary>
+            <typeparam name="T">The type of instance to get or create.</typeparam>
+            <param name="args">The arguments to pass to the constructor if a new instance is created.</param>
+            <returns>The existing or newly created instance.</returns>
+            <exception cref="T:System.ObjectDisposedException">Thrown when the manager has already been disposed.</exception>
+            <exception cref="T:Nalix.Abstractions.Exceptions.InternalErrorException">Thrown when the requested instance cannot be created.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Injection.InstanceManager.GetOrCreateInstance(System.Type,System.Object[])">
+            <summary>
+            Gets or creates an instance of the specified type with optimized constructor caching.
+            </summary>
+            <param name="type">The type of the instance to get or create.</param>
+            <param name="args">The arguments to pass to the constructor if a new instance is created.</param>
+            <returns>The existing or newly created instance.</returns>
+            <exception cref="T:System.InvalidOperationException">
+            Thrown if the specified type does not have a suitable constructor or
+            if the instance manager has been disposed.
+            </exception>
+            <exception cref="T:System.ObjectDisposedException">Thrown when the manager has already been disposed.</exception>
+            <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="type"/> is null.</exception>
+            <exception cref="T:Nalix.Abstractions.Exceptions.InternalErrorException">Thrown when instance creation fails after constructor resolution.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Injection.InstanceManager.CreateInstance(System.Type,System.Object[])">
+            <summary>
+            Creates a new instance without caching it.
+            </summary>
+            <param name="type">The type of instance to create.</param>
+            <param name="args">Constructor arguments.</param>
+            <returns>A new instance of the specified type.</returns>
+            <exception cref="T:System.ObjectDisposedException">Thrown when the manager has already been disposed.</exception>
+            <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="type"/> is null.</exception>
+            <exception cref="T:System.InvalidOperationException">Thrown when no suitable constructor can be resolved.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Injection.InstanceManager.RemoveInstance(System.Type)">
+            <summary>
+            Removes the instance of the specified type from the cache.
+            </summary>
+            <param name="type">The type of the instance to remove.</param>
+            <returns><c>true</c> if the instance was successfully removed; otherwise, <c>false</c>.</returns>
+            <exception cref="T:System.ObjectDisposedException">Thrown when the manager has already been disposed.</exception>
+            <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="type"/> is null.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Injection.InstanceManager.HasInstance``1">
+            <summary>
+            Determines whether an instance of the specified type is cached.
+            </summary>
+            <typeparam name="T">The type to check.</typeparam>
+            <returns><c>true</c> if an instance of the specified type is cached; otherwise, <c>false</c>.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Injection.InstanceManager.GetExistingInstance``1">
+            <summary>
+            Gets an existing instance of the specified type without creating a new one if it doesn't exist.
+            </summary>
+            <typeparam name="T">The type of the instance to get.</typeparam>
+            <returns>The existing instance, or <c>null</c> if no instance exists.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Injection.InstanceManager.Clear(System.Boolean)">
+            <summary>
+            Clears all cached instances, optionally disposing them.
+            </summary>
+            <param name="dispose">If <c>true</c>, disposes any instances that implement <see cref="T:System.IDisposable"/>.</param>
+            <exception cref="T:System.ObjectDisposedException">Thrown when the manager has already been disposed.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Injection.InstanceManager.DisposeManaged">
+            <summary>
+            Disposes of all instances in the cache that implement <see cref="T:System.IDisposable"/>.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Injection.InstanceManager.GenerateReport">
+            <summary>
+            Generates a human-readable report of all cached instances.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Injection.InstanceManager.WriteReportData(System.Text.Json.Utf8JsonWriter)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Framework.Injection.InstanceManager.IsPacketDispatch(Nalix.Abstractions.IReportable)">
+            <summary>
+            Checks whether <paramref name="reportable"/> implements the <c>IPacketDispatch</c> interface.
+            </summary>
+            <remarks>
+            IPacketDispatch lives in Nalix.Runtime, which Nalix.Framework does not reference.
+            A direct <see langword="is"/> check is not possible without creating an unwanted
+            project dependency. This categorisation is purely for diagnostics.
+            </remarks>
+        </member>
+        <member name="T:Nalix.Framework.Injection.InstanceManager.ActivatorKey">
+            <summary>
+            Lightweight hashable key for constructor signature.
+            </summary>
+        </member>
+        <member name="T:Nalix.Framework.Memory.Buffers.BufferPoolManager">
+            <summary>
+            Manages pooled byte buffers, tracks pool metrics, and falls back to the shared
+            ArrayPool when a requested size cannot be satisfied by a managed pool.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Buffers.BufferPoolManager.CALCULATE_SAFE_SHRINK_STEP(Nalix.Framework.Memory.Buffers.BufferPoolState@,System.Int32)">
+            <summary>
+            Calculates shrink step with safety guardrails to prevent aggressive reduction.
+            </summary>
+            <param name="info">The current pool state snapshot.</param>
+            <param name="cycle">The current trim cycle number.</param>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Buffers.BufferPoolManager.TRIM_SINGLE_BUCKET(Nalix.Framework.Memory.Internal.Buffers.SlabBucket,Nalix.Framework.Memory.Buffers.BufferPoolState@,System.Int32)">
+            <summary>
+            Applies trim on a single bucket with metrics tracking.
+            </summary>
+            <param name="bucket">The bucket to trim.</param>
+            <param name="info">The current pool state snapshot.</param>
+            <param name="shrinkStep">The number of buffers to remove.</param>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Buffers.BufferPoolManager._slabPool">
+            <summary>
+            Slab-based buffer pool manager using standalone pinned arrays.
+            This unified manager handles both byte[] and ArraySegment requests.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Buffers.BufferPoolManager.MaxBufferSize">
+            <summary>Gets the largest buffer size from the buffer allocations list.</summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Buffers.BufferPoolManager.MinBufferSize">
+            <summary>Gets the smallest buffer size from the buffer allocations list.</summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Buffers.BufferPoolManager.RecurringName">
+            <summary>
+            Gets the recurring name used for buffer trimming operations.
+            This value is embedded in the recurring job name so trimming jobs from
+            different manager instances remain distinct.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Buffers.BufferPoolManager.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Framework.Memory.Buffers.BufferPoolManager"/> class.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Buffers.BufferPoolManager.#ctor(Nalix.Framework.Options.BufferOptions)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Framework.Memory.Buffers.BufferPoolManager"/> class.
+            </summary>
+            <param name="bufferConfig">
+            The buffer configuration to use. If <see langword="null"/>, the default configuration is loaded.
+            </param>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Buffers.BufferPoolManager.Rent(System.Int32)">
+            <summary>Rents a buffer of at least the requested size.</summary>
+            <param name="minimumLength">The minimum number of bytes required.</param>
+            <exception cref="T:System.ArgumentException">Thrown when <paramref name="minimumLength"/> cannot be serviced by the configured pools and fallback is disabled.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Buffers.BufferPoolManager.Return(System.Byte[],System.Boolean)">
+            <summary>Returns a buffer to the appropriate pool.</summary>
+            <param name="array">The buffer to return.</param>
+            <param name="arrayClear">Whether the buffer should be cleared before returning it.</param>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Buffers.BufferPoolManager.GetAllocationForSize(System.Int32)">
+            <summary>
+            Gets the allocation ratio for a given buffer size with caching for performance.
+            </summary>
+            <param name="size">The buffer size being queried.</param>
+            <exception cref="T:System.InvalidOperationException">Thrown when buffer allocation metadata is unavailable.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Buffers.BufferPoolManager.HANDLE_RENT_FAILURE(System.Int32,System.ArgumentException)">
+            <summary>
+            Handles rent failure by optionally falling back to ArrayPool.
+            This is the safety net for requests that the configured pools cannot
+            satisfy or that are rejected by the pool layout.
+            </summary>
+            <param name="size">The requested buffer size.</param>
+            <param name="ex">The exception describing the rent failure.</param>
+            <exception cref="T:System.ArgumentException">Rethrown when the requested buffer size is invalid and fallback is disabled.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Buffers.BufferPoolManager.HANDLE_RETURN_FAILURE(System.Byte[],System.ArgumentException)">
+            <summary>
+            Handles return failure by optionally returning buffer to fallback ArrayPool.
+            This is the mirror path for fallback allocations and buffers that do not
+            match a managed Nalix pool exactly.
+            </summary>
+            <param name="buffer">The buffer to return.</param>
+            <param name="ex">The exception describing the return failure.</param>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Buffers.BufferPoolManager.Dispose">
+            <summary>
+            Releases all resources of the buffer pools.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Buffers.BufferPoolManager.GenerateReport">
+            <summary>
+            Generates a report on the current state of the buffer pools with metrics.
+            The text report is meant for humans: it summarizes configuration,
+            capacities, and live usage in one place.
+            </summary>
+            <returns>A string containing the report.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Buffers.BufferPoolManager.WriteReportData(System.Text.Json.Utf8JsonWriter)">
+            <inheritdoc/>
+        </member>
+        <member name="T:Nalix.Framework.Memory.Buffers.BufferPoolManager.ShrinkSafetyPolicy">
+            <summary>
+            Safety policy for shrinking operations.
+            The shrink path is intentionally conservative so trimming never removes too
+            much capacity at once and causes the next burst to allocate again.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Buffers.BufferPoolManager.ShrinkSafetyPolicy.MinimumRetentionPercent">
+            <summary>
+            Minimum percentage of total buffers to retain.
+            This floor protects the pool from shrinking itself into constant churn.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Buffers.BufferPoolManager.ShrinkSafetyPolicy.ExponentialDecayFactor">
+            <summary>
+            The fraction of excess buffers to shrink per cycle.
+            Exponential decay factor (0.5 = shrink 50% of idle excess).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Buffers.BufferPoolManager.ShrinkSafetyPolicy.DynamicHeadroomPercent">
+            <summary>
+            The percentage of InUse buffers to add as dynamic headroom padding.
+            0.5 means keeping a safety cushion of 50% over the active usage.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Buffers.BufferPoolManager.ShrinkSafetyPolicy.AbsoluteMinimum">
+            <summary>
+            Minimum absolute buffers per pool.
+            The pool always keeps at least one buffer alive so it can recover quickly.
+            </summary>
+        </member>
+        <member name="T:Nalix.Framework.Memory.Buffers.BufferPoolManager.BufferPoolMetrics">
+            <summary>
+            Metrics for tracking shrink/expand operations on a pool.
+            These counters are used for diagnostics and for validating trim safety
+            decisions over time.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Buffers.BufferPoolManager.BufferPoolMetrics.TotalBytesReturned">
+            <summary>
+            Total bytes returned to ArrayPool via shrinking.
+            This is the amount of memory the pool actually gave back.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Buffers.BufferPoolManager.BufferPoolMetrics.ShrinkAttempted">
+            <summary>
+            Number of successful shrink operations.
+            Useful for seeing whether trimming is actively doing work or mostly idle.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Buffers.BufferPoolManager.BufferPoolMetrics.ShrinkSkipped">
+            <summary>
+            Number of shrinks skipped due to safety checks.
+            High values here usually mean the pool is already at or near its floor.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Buffers.BufferPoolManager.BufferPoolMetrics.ExpandAttempted">
+            <summary>
+            Number of successful expand operations.
+            This tells us how often the pool had to grow to satisfy demand.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Buffers.BufferPoolManager.BufferPoolMetrics.LastChangeTime">
+            <summary>
+            Last timestamp when pool state changed.
+            Helps correlate trimming decisions with recent allocation pressure.
+            </summary>
+        </member>
+        <member name="T:Nalix.Framework.Memory.Buffers.BufferPoolResizeDirection">
+            <summary>
+            Specifies the direction of a buffer pool resize operation.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Buffers.BufferPoolResizeDirection.Increase">
+            <summary>The pool is expanding to handle more demand.</summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Buffers.BufferPoolResizeDirection.Decrease">
+            <summary>The pool is shrinking to release memory.</summary>
+        </member>
+        <member name="T:Nalix.Framework.Memory.Buffers.BufferPoolState">
+            <summary>
+            Information about the buffer pool with optimized memory layout.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Buffers.BufferPoolState.Misses">
+            <summary>
+            Number of misses.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Buffers.BufferPoolState.Hits">
+            <summary>
+            Number of hits (successful reuses).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Buffers.BufferPoolState.BufferSize">
+            <summary>
+            Size of each buffer in bytes.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Buffers.BufferPoolState.FreeBuffers">
+            <summary>
+            Number of free buffers.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Buffers.BufferPoolState.TotalBuffers">
+            <summary>
+            Total number of buffers.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Buffers.BufferPoolState.InitialCapacity">
+            <summary>
+            Initial number of buffers the pool started with.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Buffers.BufferPoolState.Expands">
+            <summary>Number of times the pool has expanded.</summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Buffers.BufferPoolState.Shrinks">
+            <summary>Number of times the pool has shrunk.</summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Buffers.BufferPoolState.CanShrink">
+            <summary>
+            Gets a value indicating whether the pool can be shrunk (free &gt;= 50%).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Buffers.BufferPoolState.NeedsExpansion">
+            <summary>
+            Gets a value indicating whether the pool likely needs expansion (free &lt;= 25%).
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Buffers.BufferPoolState.GetUsageRatio">
+            <summary>
+            Gets the usage ratio of the buffer pool.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Buffers.BufferPoolState.GetMissRate">
+            <summary>
+            Gets the miss rate as a ratio of total requests (Hits + Misses).
+            </summary>
+        </member>
+        <member name="T:Nalix.Framework.Memory.Internal.Buffers.SlabBucket">
+            <summary>
+            Manages a pool of standalone pinned byte arrays for a single buffer size class.
+            Each buffer is an independent pinned array allocated on the Pinned Object Heap.
+            </summary>
+        </member>
+        <member name="E:Nalix.Framework.Memory.Internal.Buffers.SlabBucket.ResizeOccurred">
+            <summary>
+            Occurs when the bucket needs to resize (expand or shrink).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Internal.Buffers.SlabBucket.SegmentSize">
+            <summary>Gets the buffer size this bucket manages.</summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Internal.Buffers.SlabBucket.TotalBuffers">
+            <summary>Gets the total number of managed buffers (free + in use).</summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Internal.Buffers.SlabBucket.FreeBuffers">
+            <summary>Gets the approximate number of free buffers available.</summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.Buffers.SlabBucket.#ctor(System.Int32,System.Int32,System.Int32,Nalix.Abstractions.Validation.ReturnValidation)">
+            <summary>
+            Initializes a new <see cref="T:Nalix.Framework.Memory.Internal.Buffers.SlabBucket"/> for standalone arrays of the given size.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.Buffers.SlabBucket.TryRent(System.Byte[]@)">
+            <summary>
+            Attempts to acquire a buffer from the thread-local cache or the shared ring.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.Buffers.SlabBucket.IncreaseCapacity(System.Int32)">
+            <summary>Increases capacity by adding more standalone arrays.</summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.Buffers.SlabBucket.DecreaseCapacity(System.Int32)">
+            <summary>Decreases capacity by dropping free buffers and releasing slabs.</summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.Buffers.SlabBucket.TrackRentedAddress(System.Byte[])">
+            <summary>
+            Tracks a buffer address as rented when validation is enabled.
+            No-op when <see cref="F:Nalix.Abstractions.Validation.ReturnValidation.Disabled"/>.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.Buffers.SlabBucket.TryUntrackRentedAddress(System.IntPtr)">
+            <summary>
+            Attempts to untrack a rented buffer address. Returns true if the return is valid.
+            </summary>
+            <returns>
+            <c>true</c> if validation passed (or validation is disabled);
+            <c>false</c> if the return is invalid (double-return detected).
+            </returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.Buffers.SlabBucket.AllocateAndEnqueue(System.Int32)">
+            <summary>
+            Allocates individual pinned arrays and enqueues them.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.Buffers.SlabBucket.DrainCacheToRing(Nalix.Framework.Memory.Internal.Buffers.SlabBucket.ThreadLocalCache)">
+            <summary>Drains the current thread's cache to the shared ring.</summary>
+        </member>
+        <member name="T:Nalix.Framework.Memory.Internal.Buffers.SlabPoolManager">
+            <summary>
+            Orchestrates multiple <see cref="T:Nalix.Framework.Memory.Internal.Buffers.SlabBucket"/> instances — one per configured buffer
+            size class — providing best-fit buffer lookup and unified lifecycle management.
+            </summary>
+            <remarks>
+            This unified manager handles both <see cref="T:System.ArraySegment`1"/> and raw <c>byte[]</c> 
+            requests by utilizing standalone pinned slabs.
+            </remarks>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Internal.Buffers.SlabPoolManager._sortedBuckets">
+            <summary>Buckets sorted by size for binary search lookup.</summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Internal.Buffers.SlabPoolManager._buckets">
+            <summary>Buckets keyed by segment size.</summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Internal.Buffers.SlabPoolManager._fastBucketMap">
+            <summary>Fast lookup for sizes up to 4KB with 16-byte granularity (indices 0..256).</summary>
+        </member>
+        <member name="E:Nalix.Framework.Memory.Internal.Buffers.SlabPoolManager.ResizeOccurred">
+            <summary>Occurs when any bucket managed by this pool manager needs to resize.</summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.Buffers.SlabPoolManager.#ctor">
+            <summary>
+            Initializes a new <see cref="T:Nalix.Framework.Memory.Internal.Buffers.SlabPoolManager"/>.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.Buffers.SlabPoolManager.CreateBucket(System.Int32,System.Int32,System.Int32,Nalix.Abstractions.Validation.ReturnValidation)">
+            <summary>
+            Creates and registers a <see cref="T:Nalix.Framework.Memory.Internal.Buffers.SlabBucket"/> for the given segment size.
+            No-op if a bucket for this size already exists.
+            </summary>
+            <param name="segmentSize">The segment size in bytes.</param>
+            <param name="initialCapacity">Number of segments to preallocate.</param>
+            <param name="cacheDepth">The thread-local cache depth.</param>
+            <param name="returnValidation">Rented-address validation mode for the bucket.</param>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.Buffers.SlabPoolManager.TryRent(System.Int32,System.Byte[]@)">
+            <summary>
+            Rents a standalone array of at least the requested size.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.Buffers.SlabPoolManager.TryReturn(System.Byte[])">
+            <summary>
+            Returns a raw array to its owning bucket based on array length.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.Buffers.SlabPoolManager.GetAllBuckets">
+            <summary>
+            Gets all registered buckets for diagnostics and reporting.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.Buffers.SlabPoolManager.FindBucket(System.Int32)">
+            <summary>
+            Finds the smallest bucket that can satisfy the requested size.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.Buffers.SlabPoolManager.RebuildSortedKeys">
+            <summary>
+            Rebuilds the sorted size array after a bucket is added.
+            Must be called under _lock.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.Buffers.SlabPoolManager.Dispose">
+            <inheritdoc/>
+        </member>
+        <member name="T:Nalix.Framework.Memory.Internal.PoolTypes.PoolSentinel">
+            <summary>
+            A diagnostic sentinel attached to rented objects to track their lifetime
+            and detect leaks via finalization.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Internal.PoolTypes.PoolSentinel.TotalLeaked">
+            <summary>
+            Gets the total number of objects that were leaked (GC'd without return).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Internal.PoolTypes.PoolSentinel.RentTimestamp">
+            <summary>
+            Gets the timestamp when the object was rented.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Internal.PoolTypes.PoolSentinel.StackTrace">
+            <summary>
+            Gets the stack trace captured during the rent operation.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Internal.PoolTypes.PoolSentinel.ObjectType">
+            <summary>
+            Gets the type of the pooled object.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Internal.PoolTypes.PoolSentinel.IsAlive">
+            <summary>
+            Gets if the target is still alive.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Internal.PoolTypes.PoolSentinel.IsReturned">
+            <summary>
+            Gets if the associated object has been returned to the pool.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.PoolTypes.PoolSentinel.#ctor(System.Object,System.Boolean)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Framework.Memory.Internal.PoolTypes.PoolSentinel"/> class.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.PoolTypes.PoolSentinel.MarkReturned">
+            <summary>
+            Marks the associated object as returned to the pool.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.PoolTypes.PoolSentinel.Finalize">
+            <summary>
+            Finalizer to detect leaks.
+            </summary>
+        </member>
+        <member name="T:Nalix.Framework.Memory.Internal.PoolTypes.ThreadLocalCache`1">
+            <summary>
+            A fast, lock-free, zero-allocation thread-local cache slot for a specific poolable type.
+            </summary>
+            <typeparam name="T">The poolable type.</typeparam>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.PoolTypes.ThreadLocalCache`1.TryPop(System.Object)">
+            <summary>
+            Tries to pop the cached instance for the current thread.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.PoolTypes.ThreadLocalCache`1.TryPush(System.Object,`0)">
+            <summary>
+            Tries to push an instance to the thread-local cache slot.
+            </summary>
+        </member>
+        <member name="T:Nalix.Framework.Memory.Internal.PoolTypes.TypePool">
+            <summary>
+            Type-specific object pool implementation backed by a preallocated fixed-slot array.
+            <para>
+            Objects are stored in <see cref="T:Nalix.Abstractions.IPoolable"/>?[] slots.
+            <see cref="M:Nalix.Framework.Memory.Internal.PoolTypes.TypePool.TryPop(Nalix.Abstractions.IPoolable@)"/> scans slots and uses <see cref="M:System.Threading.Interlocked.Exchange``1(``0@,``0)"/>
+            to atomically claim a non-null slot.
+            <see cref="M:Nalix.Framework.Memory.Internal.PoolTypes.TypePool.TryPush(Nalix.Abstractions.IPoolable)"/> scans slots and uses <see cref="M:System.Threading.Interlocked.CompareExchange``1(``0@,``0,``0)"/>
+            to atomically fill an empty slot.
+            This design allocates only once during construction and keeps hot-path operations allocation-free.
+            </para>
+            </summary>
+            <remarks>
+            Initializes a new instance of the <see cref="T:Nalix.Framework.Memory.Internal.PoolTypes.TypePool"/> class.
+            </remarks>
+            <param name="maxCapacity">The maximum capacity of this pool.</param>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.PoolTypes.TypePool.#ctor(System.Int32)">
+            <summary>
+            Type-specific object pool implementation backed by a preallocated fixed-slot array.
+            <para>
+            Objects are stored in <see cref="T:Nalix.Abstractions.IPoolable"/>?[] slots.
+            <see cref="M:Nalix.Framework.Memory.Internal.PoolTypes.TypePool.TryPop(Nalix.Abstractions.IPoolable@)"/> scans slots and uses <see cref="M:System.Threading.Interlocked.Exchange``1(``0@,``0)"/>
+            to atomically claim a non-null slot.
+            <see cref="M:Nalix.Framework.Memory.Internal.PoolTypes.TypePool.TryPush(Nalix.Abstractions.IPoolable)"/> scans slots and uses <see cref="M:System.Threading.Interlocked.CompareExchange``1(``0@,``0,``0)"/>
+            to atomically fill an empty slot.
+            This design allocates only once during construction and keeps hot-path operations allocation-free.
+            </para>
+            </summary>
+            <remarks>
+            Initializes a new instance of the <see cref="T:Nalix.Framework.Memory.Internal.PoolTypes.TypePool"/> class.
+            </remarks>
+            <param name="maxCapacity">The maximum capacity of this pool.</param>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Internal.PoolTypes.TypePool._slots">
+            <summary>
+            Preallocated fixed-slot array. Once constructed, the reference never changes;
+            individual slots are atomically swapped between null and non-null.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Internal.PoolTypes.TypePool._count">
+            <summary>
+            Conservative count of objects in the pool.
+            <para>
+            Incremented by <see cref="M:Nalix.Framework.Memory.Internal.PoolTypes.TypePool.TryPush(Nalix.Abstractions.IPoolable)"/> before the CAS attempt (optimistic);
+            decremented by <see cref="M:Nalix.Framework.Memory.Internal.PoolTypes.TypePool.TryPop(Nalix.Abstractions.IPoolable@)"/> after a successful slot exchange.
+            This means the count can temporarily exceed the true number of non-null slots
+            (e.g., when a push fails its CAS and decrements) or briefly dip negative
+            under concurrent pop/clear races. External consumers should treat
+            <see cref="P:Nalix.Framework.Memory.Internal.PoolTypes.TypePool.AvailableCount"/> as a best-effort approximation.
+            </para>
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Internal.PoolTypes.TypePool.AvailableCount">
+            <summary>
+            Gets the number of objects available in this pool.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Internal.PoolTypes.TypePool.MaxCapacity">
+            <summary>
+            Gets the maximum capacity of this pool.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.PoolTypes.TypePool.SetMaxCapacity(System.Int32)">
+            <summary>
+            Sets the maximum capacity of this pool.
+            </summary>
+            <param name="maxCapacity">The maximum capacity of this pool.</param>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.PoolTypes.TypePool.TryPush(Nalix.Abstractions.IPoolable)">
+            <summary>
+            Tries to add an object to the pool.
+            </summary>
+            <param name="obj">The object to add.</param>
+            <returns>True if the object was added, false if the pool is full.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.PoolTypes.TypePool.TryPop(Nalix.Abstractions.IPoolable@)">
+            <summary>
+            Tries to get an object from the pool.
+            </summary>
+            <param name="obj">The object from the pool.</param>
+            <returns>True if an object was retrieved, false if the pool is empty.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.PoolTypes.TypePool.Clear">
+            <summary>
+            Clears all objects from this pool.
+            </summary>
+            <returns>The number of objects removed.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.PoolTypes.TypePool.Trim(System.Int32,System.Double)">
+            <summary>
+            Trims the pool to a target size based on a percentage of the maximum capacity.
+            </summary>
+            <param name="percentage">
+            The percentage of the maximum capacity to keep (0-100).
+            <list type="bullet">
+              <item><description><c>0</c> = no trim (pool is at or below its safety floor).</description></item>
+              <item><description><c>1–99</c> = keep <c>percentage</c>% of <see cref="P:Nalix.Framework.Memory.Internal.PoolTypes.TypePool.MaxCapacity"/>.</description></item>
+              <item><description><c>100</c> = keep up to full <see cref="P:Nalix.Framework.Memory.Internal.PoolTypes.TypePool.MaxCapacity"/>.</description></item>
+              <item><description><c>&lt; 0</c> = clear all objects.</description></item>
+            </list>
+            </param>
+            <param name="decayFactor">Fraction of excess objects to remove (0.0-1.0). Default is 1.0 (remove all excess).</param>
+            <returns>The number of objects removed.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Internal.PoolTypes.TypePool.ToArray">
+            <summary>
+            Gets the objects in this pool as an array.
+            </summary>
+            <remarks>This is primarily for diagnostic purposes and should not be used in performance-critical code.</remarks>
+            <returns>An array containing the objects in this pool.</returns>
+        </member>
+        <member name="T:Nalix.Framework.Memory.Objects.ObjectMap`2">
+             <summary>
+             Represents a thread-safe key-value map backed by <see cref="T:System.Collections.Concurrent.ConcurrentDictionary`2"/>,
+             integrated with an object pool to reduce allocations and improve performance in high-concurrency scenarios.
+             </summary>
+             <typeparam name="TKey">The type of keys in the map.</typeparam>
+             <typeparam name="TValue">The type of values in the map.</typeparam>
+             <remarks>
+             This type is designed for server environments where dictionaries are frequently created and accessed
+             concurrently across multiple threads.
+            
+             Instead of allocating new instances, use <see cref="M:Nalix.Framework.Memory.Objects.ObjectMap`2.Rent"/> and <see cref="M:Nalix.Framework.Memory.Objects.ObjectMap`2.Return"/> to reuse objects
+             and minimize garbage collection pressure.
+            
+             ⚠️ Notes:
+             <list type="bullet">
+             <item>
+             <description>All operations are thread-safe via <see cref="T:System.Collections.Concurrent.ConcurrentDictionary`2"/>.</description>
+             </item>
+             <item>
+             <description>The instance must not be used after calling <see cref="M:Nalix.Framework.Memory.Objects.ObjectMap`2.Return"/>.</description>
+             </item>
+             <item>
+             <description>
+             Enumeration represents a moment-in-time snapshot and may not reflect subsequent updates.
+             </description>
+             </item>
+             </list>
+             </remarks>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Objects.ObjectMap`2.s_objectMapPool">
+            <summary>
+            Gets the shared object pool for <see cref="T:Nalix.Framework.Memory.Objects.ObjectMap`2"/>.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Objects.ObjectMap`2._dict">
+            <summary>
+            The underlying thread-safe dictionary.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Objects.ObjectMap`2.Item(`0)">
+            <summary>
+            Gets or sets the value associated with the specified key.
+            </summary>
+            <exception cref="T:System.Collections.Generic.KeyNotFoundException">
+            Thrown when the key does not exist during a get operation.
+            </exception>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Objects.ObjectMap`2.Keys">
+            <summary>
+            Gets a collection containing the keys in the map.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Objects.ObjectMap`2.Values">
+            <summary>
+            Gets a collection containing the values in the map.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Objects.ObjectMap`2.Count">
+            <summary>
+            Gets the number of elements contained in the map.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Objects.ObjectMap`2.IsReadOnly">
+            <summary>
+            Gets a value indicating whether the map is read-only.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectMap`2.Add(`0,`1)">
+            <summary>
+            Adds the specified key and value to the map.
+            </summary>
+            <exception cref="T:System.ArgumentException">
+            Thrown when an element with the same key already exists.
+            </exception>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectMap`2.Add(System.Collections.Generic.KeyValuePair{`0,`1})">
+            <summary>
+            Adds the specified key and value to the map.
+            </summary>
+            <exception cref="T:System.ArgumentException">
+            Thrown when an element with the same key already exists.
+            </exception>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectMap`2.ContainsKey(`0)">
+            <summary>
+            Determines whether the map contains the specified key.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectMap`2.Remove(`0)">
+            <summary>
+            Attempts to remove the value with the specified key.
+            </summary>
+            <returns><c>true</c> if the element was removed; otherwise, <c>false</c>.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectMap`2.TryGetValue(`0,`1@)">
+            <summary>
+            Attempts to get the value associated with the specified key.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectMap`2.Clear">
+            <summary>
+            Removes all elements from the map.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectMap`2.Contains(System.Collections.Generic.KeyValuePair{`0,`1})">
+            <summary>
+            Determines whether the map contains a specific key/value pair.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectMap`2.CopyTo(System.Collections.Generic.KeyValuePair{`0,`1}[],System.Int32)">
+            <summary>
+            Copies the elements of the map to an array, starting at the specified index.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectMap`2.Remove(System.Collections.Generic.KeyValuePair{`0,`1})">
+            <summary>
+            Attempts to remove a specific key/value pair from the map.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectMap`2.GetEnumerator">
+            <summary>
+            Returns an enumerator that iterates through the map.
+            </summary>
+            <remarks>
+            The enumerator represents a snapshot of the collection at a point in time.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectMap`2.System#Collections#IEnumerable#GetEnumerator">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectMap`2.ResetForPool">
+            <summary>
+            Resets the internal state before returning the instance to the pool.
+            </summary>
+            <remarks>
+            Clears all entries while preserving internal capacity for reuse efficiency.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectMap`2.Return">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectMap`2.Rent">
+            <summary>
+            Retrieves an instance from the object pool.
+            </summary>
+            <returns>A reusable <see cref="T:Nalix.Framework.Memory.Objects.ObjectMap`2"/> instance.</returns>
+            <remarks>
+            The returned instance is logically empty but may retain internal capacity.
+            Always call <see cref="M:Nalix.Framework.Memory.Objects.ObjectMap`2.Return"/> after use.
+            </remarks>
+        </member>
+        <member name="T:Nalix.Framework.Memory.Objects.ObjectPoolManager">
+            <summary>
+            Provides thread-safe access to a collection of object pools.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Objects.ObjectPoolManager._poolDict">
+            <summary>
+            Thread-safe storage for pools
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Objects.ObjectPoolManager._metricsDict">
+            <summary>
+            Per-pool metrics tracking
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Objects.ObjectPoolManager._config">
+            <summary>
+            Configuration for object pool diagnostics.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Objects.ObjectPoolManager._activeSentinels">
+            <summary>
+            Tracks active sentinels for lifetime and leak detection.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Objects.ObjectPoolManager._sentinelTracker">
+            <summary>
+            Tracks weak references to sentinels for scanning.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Objects.ObjectPoolManager._totalGetOperations">
+            <summary>
+            Statistics tracking
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Objects.ObjectPoolManager.PoolCount">
+            <summary>
+            Gets the total number of pools currently managed.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Objects.ObjectPoolManager.PeakPoolCount">
+            <summary>
+            Gets the peak number of pools at any time.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Objects.ObjectPoolManager.TotalGetOperations">
+            <summary>
+            Gets the total number of get operations performed.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Objects.ObjectPoolManager.TotalReturnOperations">
+            <summary>
+            Gets the total number of return operations performed.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Objects.ObjectPoolManager.TotalCacheHits">
+            <summary>
+            Gets the total number of cache hits (objects retrieved from pool).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Objects.ObjectPoolManager.TotalCacheMisses">
+            <summary>
+            Gets the total number of cache misses (new objects created).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Objects.ObjectPoolManager.CacheHitRate">
+            <summary>
+            Gets the overall cache hit rate as a percentage (0-100).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Objects.ObjectPoolManager.Uptime">
+            <summary>
+            Gets the uptime of the pool manager.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Objects.ObjectPoolManager.UnhealthyPoolCount">
+            <summary>
+            Gets the number of unhealthy pools (those with high failure rates).
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectPoolManager.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Framework.Memory.Objects.ObjectPoolManager"/> class using the global configuration.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectPoolManager.#ctor(Nalix.Framework.Options.ObjectPoolOptions)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Framework.Memory.Objects.ObjectPoolManager"/> class with specific options.
+            </summary>
+            <param name="config">The configuration options to use.</param>
+            <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="config"/> is null.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectPoolManager.Get``1">
+            <summary>Gets or creates and returns an instance of <typeparamref name="T"/>.</summary>
+            <typeparam name="T">The poolable type to retrieve.</typeparam>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectPoolManager.Return``1(``0)">
+            <summary>Returns an instance of <typeparamref name="T"/> to the pool for future reuse.</summary>
+            <typeparam name="T">The poolable type to return.</typeparam>
+            <param name="obj">The object to return.</param>
+            <exception cref="T:System.ArgumentNullException"><paramref name="obj"/> is <c>null</c>.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectPoolManager.GetTypedPool``1">
+            <summary>Gets or creates a type-specific pool adapter for <typeparamref name="T"/>.</summary>
+            <typeparam name="T">The poolable type.</typeparam>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectPoolManager.Prealloc``1(System.Int32)">
+            <summary>Creates and adds multiple new instances of <typeparamref name="T"/> to the pool.</summary>
+            <typeparam name="T">The poolable type.</typeparam>
+            <param name="count">The number of instances to preallocate.</param>
+            <exception cref="T:System.ArgumentOutOfRangeException">Thrown when <paramref name="count"/> is less than or equal to zero.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectPoolManager.SetMaxCapacity``1(System.Int32)">
+            <summary>Sets the maximum capacity for a specific type's pool.</summary>
+            <typeparam name="T">The poolable type.</typeparam>
+            <param name="maxCapacity">The maximum number of items to retain.</param>
+            <returns><see langword="true"/> when the target pool was updated or created; otherwise, <see langword="false"/>.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectPoolManager.ResetMetrics">
+            <summary>
+            Resets all global and per-pool metrics to baseline (zero).
+            Use this between benchmark runs to ensure a clean slate for diagnostic reports.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectPoolManager.GetTypeInfo``1">
+            <summary>Gets information about a specific type's pool.</summary>
+            <typeparam name="T">The poolable type.</typeparam>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectPoolManager.ClearPool``1">
+            <summary>Clears all objects from a specific type's pool.</summary>
+            <typeparam name="T">The poolable type.</typeparam>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectPoolManager.ClearAllPools">
+            <summary>Clears all objects from all pools.</summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectPoolManager.PerformHealthCheck">
+            <summary>
+            Performs a health check on all pools and identifies unhealthy ones.
+            </summary>
+            <returns>Number of unhealthy pools detected.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectPoolManager.ResetStatistics">
+            <summary>
+            Initialize all statistics for the pool manager.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectPoolManager.GetOrCreatePool``1">
+            <summary>
+            Gets or creates an <see cref="T:Nalix.Framework.Memory.Pools.ObjectPool"/> for <typeparamref name="T"/>.
+            </summary>
+            <typeparam name="T"></typeparam>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectPoolManager.Dispose">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectPoolManager.GenerateReport">
+            <summary>
+            Generates a comprehensive report on the current state of all pools with detailed metrics.
+            </summary>
+            <returns>A string containing the detailed report.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.ObjectPoolManager.WriteReportData(System.Text.Json.Utf8JsonWriter)">
+            <inheritdoc/>
+        </member>
+        <member name="T:Nalix.Framework.Memory.Objects.ObjectPoolManager.PoolMetrics">
+            <summary>
+            Detailed metrics for tracking pool performance and health.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Objects.ObjectPoolManager.PoolMetrics.CacheMisses">
+            <summary>
+            Failed to get from pool, created new
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Objects.ObjectPoolManager.PoolMetrics.CacheHits">
+            <summary>
+            Got from pool successfully
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Objects.ObjectPoolManager.PoolMetrics.TrimCount">
+            <summary>
+            Number of objects evicted/trimmed from this pool.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Objects.ObjectPoolManager.PoolMetrics.Outstanding">
+            <summary>
+            Number of objects currently checked out (Get without Return)
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Objects.ObjectPoolManager.PoolMetrics.PeakOutstanding">
+            <summary>
+            Maximum concurrent outstanding objects recorded.
+            </summary>
+        </member>
+        <member name="T:Nalix.Framework.Memory.Objects.TypedObjectPool`1">
+            <summary>
+            A type-specific adapter for the object pool that eliminates the need for runtime type checking.
+            </summary>
+            <typeparam name="T">The type of objects managed by this pool.</typeparam>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.TypedObjectPool`1.#ctor(Nalix.Framework.Memory.Pools.ObjectPool,Nalix.Framework.Memory.Objects.ObjectPoolManager)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Framework.Memory.Objects.TypedObjectPool`1"/> class.
+            </summary>
+            <param name="parentPool">The parent object pool.</param>
+            <param name="manager">The optional object pool manager for statistics tracking.</param>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.TypedObjectPool`1.Get">
+            <summary>
+            Gets an object from the pool.
+            </summary>
+            <returns>An instance of <typeparamref name="T"/>.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.TypedObjectPool`1.Return(`0)">
+            <summary>
+            Returns an object to the pool.
+            </summary>
+            <param name="obj">The object to return.</param>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.TypedObjectPool`1.GetMultiple(System.Int32)">
+            <summary>
+            Gets multiple objects from the pool.
+            </summary>
+            <param name="count">The number of objects to get.</param>
+            <returns>A list containing the requested objects.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.TypedObjectPool`1.ReturnMultiple(System.Collections.Generic.IEnumerable{`0})">
+            <summary>
+            Returns multiple objects to the pool.
+            </summary>
+            <param name="objects">The objects to return.</param>
+            <returns>The number of objects successfully returned to the pool.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.TypedObjectPool`1.Clear">
+            <summary>
+            Clears this type's pool.
+            </summary>
+            <returns>The number of objects removed.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.TypedObjectPool`1.Prealloc(System.Int32)">
+            <summary>
+            Preallocates objects in the pool.
+            </summary>
+            <param name="count">The number of objects to preallocate.</param>
+            <returns>The number of objects successfully preallocated.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.TypedObjectPool`1.GetInfo">
+            <summary>
+            Gets information about this type's pool.
+            </summary>
+            <returns>A dictionary containing pool statistics for this type.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.TypedObjectPool`1.SetMaxCapacity(System.Int32)">
+            <summary>
+            Sets the maximum capacity for this type's pool.
+            </summary>
+            <param name="maxCapacity">The maximum capacity.</param>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Objects.TypedObjectPool`1.Trim(System.Int32)">
+            <summary>
+            Trims this type's pool to a target size.
+            </summary>
+            <param name="percentage">The percentage of the maximum capacity to keep (0-100).</param>
+            <returns>The number of objects removed.</returns>
+        </member>
+        <member name="T:Nalix.Framework.Memory.Pools.ListPool`1">
+            <summary>
+            Provides a pool of reusable <see cref="T:System.Collections.Generic.List`1"/> instances, similar to ArrayPool,
+            optimized for high-performance real-time server scenarios.
+            </summary>
+            <typeparam name="T">The type of elements in the lists.</typeparam>
+            <remarks>
+            Initializes a new instance of the <see cref="T:Nalix.Framework.Memory.Pools.ListPool`1"/> class.
+            </remarks>
+            <param name="maxPoolSize">The maximum number of lists to keep in the pool.</param>
+            <param name="initialCapacity">The initial capacity of new lists.</param>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ListPool`1.#ctor(System.Int32,System.Int32)">
+            <summary>
+            Provides a pool of reusable <see cref="T:System.Collections.Generic.List`1"/> instances, similar to ArrayPool,
+            optimized for high-performance real-time server scenarios.
+            </summary>
+            <typeparam name="T">The type of elements in the lists.</typeparam>
+            <remarks>
+            Initializes a new instance of the <see cref="T:Nalix.Framework.Memory.Pools.ListPool`1"/> class.
+            </remarks>
+            <param name="maxPoolSize">The maximum number of lists to keep in the pool.</param>
+            <param name="initialCapacity">The initial capacity of new lists.</param>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Pools.ListPool`1.DefaultMaxPoolSize">
+            <summary>
+            Configuration constants
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Pools.ListPool`1._listBag">
+            <summary>
+            Thread-safe storage for pooled lists
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Pools.ListPool`1._rented">
+            <summary>
+            Statistics tracking
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Pools.ListPool`1.Instance">
+            <summary>
+            Gets the singleton instance of the <see cref="T:Nalix.Framework.Memory.Pools.ListPool`1"/>.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Pools.ListPool`1.AvailableCount">
+            <summary>
+            Gets the number of lists currently available in the pool.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Pools.ListPool`1.CreatedCount">
+            <summary>
+            Gets the total number of lists created by this pool.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Pools.ListPool`1.RentedCount">
+            <summary>
+            Gets the number of lists currently rented from the pool.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Pools.ListPool`1.TotalRentOperations">
+            <summary>
+            Gets the total number of rent operations performed.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Pools.ListPool`1.TotalReturnOperations">
+            <summary>
+            Gets the total number of return operations performed.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Pools.ListPool`1.TrimmedCount">
+            <summary>
+            Gets the number of lists that have been trimmed from the pool.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Pools.ListPool`1.UptimeMs">
+            <summary>
+            Gets the uptime of the pool in milliseconds.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ListPool`1.#ctor">
+            <summary>
+            Initializes the default instance of the <see cref="T:Nalix.Framework.Memory.Pools.ListPool`1"/>.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ListPool`1.Rent(System.Int32)">
+            <summary>
+            Rents a <see cref="T:System.Collections.Generic.List`1"/> instance from the pool.
+            </summary>
+            <param name="minimumCapacity">Optional. The minimum capacity required for the list.</param>
+            <returns>A <see cref="T:System.Collections.Generic.List`1"/> instance that can be used and then returned to the pool.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ListPool`1.Return(System.Collections.Generic.List{`0},System.Boolean)">
+            <summary>
+            Returns a <see cref="T:System.Collections.Generic.List`1"/> to the pool.
+            </summary>
+            <param name="list">The list to return to the pool.</param>
+            <param name="clearItems">Whether to clear the list before returning it. Standard is true.</param>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ListPool`1.Prealloc(System.Int32,System.Int32)">
+            <summary>
+            Creates and initializes multiple lists in the pool.
+            </summary>
+            <param name="count">The number of lists to preallocate.</param>
+            <param name="capacity">The capacity for each preallocated list.</param>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ListPool`1.Trim(System.Int32)">
+            <summary>
+            Trims the pool to a specified size.
+            </summary>
+            <param name="maximumSize">The maximum number of lists to keep in the pool.</param>
+            <returns>The number of lists removed from the pool.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ListPool`1.Clear">
+            <summary>
+            Clears all lists from the pool.
+            </summary>
+            <returns>The number of lists removed from the pool.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ListPool`1.GetStatistics">
+            <summary>
+            Gets statistics about the pool's usage.
+            </summary>
+            <returns>A dictionary containing statistics about the pool.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ListPool`1.ResetStatistics">
+            <summary>
+            Resets the statistics of the pool.
+            </summary>
+        </member>
+        <member name="T:Nalix.Framework.Memory.Pools.ObjectPool">
+            <summary>
+            A thread-safe pool that stores and reuses <see cref="T:Nalix.Abstractions.IPoolable"/> instances by type.
+            Objects are reset before being returned to the pool so callers always receive a
+            clean instance on the next rent.
+            </summary>
+            <remarks>
+            Each pooled type gets its own internal bucket and capacity limit. The pool is
+            intentionally simple: rent fast, reset on return, and discard when full.
+            </remarks>
+            <param name="defaultMaxItemsPerType">The default maximum number of items to keep per pooled type.</param>
+            <param name="threadCacheDepth">
+            Maximum thread-local slots per type. <c>0</c> (default) disables thread-local caching.
+            Keep at <c>0</c> for async/await workloads to prevent object stranding on idle threads.
+            </param>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ObjectPool.#ctor(System.Int32,System.Int32)">
+            <summary>
+            A thread-safe pool that stores and reuses <see cref="T:Nalix.Abstractions.IPoolable"/> instances by type.
+            Objects are reset before being returned to the pool so callers always receive a
+            clean instance on the next rent.
+            </summary>
+            <remarks>
+            Each pooled type gets its own internal bucket and capacity limit. The pool is
+            intentionally simple: rent fast, reset on return, and discard when full.
+            </remarks>
+            <param name="defaultMaxItemsPerType">The default maximum number of items to keep per pooled type.</param>
+            <param name="threadCacheDepth">
+            Maximum thread-local slots per type. <c>0</c> (default) disables thread-local caching.
+            Keep at <c>0</c> for async/await workloads to prevent object stranding on idle threads.
+            </param>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Pools.ObjectPool.DefaultMaxSize">
+            <summary>
+            Standard maximum pool size used when the caller does not provide a positive limit.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Pools.ObjectPool._typePools">
+            <summary>
+            Type-specific storage for pooled objects.
+            Each concrete type gets its own bucket so instances never cross type boundaries.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Pools.ObjectPool._totalCreated">
+            <summary>
+            Statistics tracking for diagnostics and capacity tuning.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Pools.ObjectPool._defaultMaxItemsPerType">
+            <summary>
+            Configuration for the default per-type pool capacity.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Memory.Pools.ObjectPool._threadCacheDepth">
+            <summary>
+            Maximum thread-local slots per type. <c>0</c> disables thread-local caching entirely.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Pools.ObjectPool.Default">
+            <summary>
+            Gets the singleton instance of the object pool.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Pools.ObjectPool.TotalCreatedCount">
+            <summary>
+            Gets the total number of objects created across all pooled types.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Pools.ObjectPool.TotalAvailableCount">
+            <summary>
+            Gets the total number of objects currently available across all pools.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Pools.ObjectPool.TypeCount">
+            <summary>
+            Gets the number of distinct object types currently being pooled.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Pools.ObjectPool.TotalReturnedCount">
+            <summary>
+            Gets the total number of objects returned to the pool.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Pools.ObjectPool.TotalRentedCount">
+            <summary>
+            Gets the total number of objects rented from the pool.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Pools.ObjectPool.TotalDroppedCount">
+            <summary>
+            Gets the total number of objects dropped (discarded) because the pool was full.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Memory.Pools.ObjectPool.UptimeMs">
+            <summary>
+            Gets the pool uptime in milliseconds.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ObjectPool.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Framework.Memory.Pools.ObjectPool"/> class with default settings.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ObjectPool.GetWithInfo``1">
+            <summary>
+            Gets an object from the pool and returns whether it was a cache hit (reused from pool) or miss (newly created).
+            This is the single source of truth for hit/miss counting → eliminates TOCTOU in ObjectPoolManager.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ObjectPool.Get``1">
+            <summary>
+            Gets an instance of <typeparamref name="T"/>, creating a new one when the pool is empty.
+            </summary>
+            <typeparam name="T">The type of object to get from the pool.</typeparam>
+            <returns>An instance of <typeparamref name="T"/>.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ObjectPool.Return``1(``0)">
+            <summary>
+            Returns an instance of <typeparamref name="T"/> to the pool for future reuse.
+            </summary>
+            <typeparam name="T">The type of object to return to the pool.</typeparam>
+            <param name="obj">The object to return to the pool.</param>
+            <exception cref="T:System.ArgumentNullException">Thrown when obj is null.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ObjectPool.Prealloc``1(System.Int32)">
+            <summary>
+            Preallocates and stores multiple new instances of <typeparamref name="T"/> in the pool.
+            </summary>
+            <typeparam name="T">The type of objects to preallocate.</typeparam>
+            <param name="count">The number of instances to preallocate.</param>
+            <returns>The number of instances successfully added to the pool.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ObjectPool.SetMaxCapacity``1(System.Int32)">
+            <summary>
+            Sets the maximum capacity for a specific type's pool.
+            </summary>
+            <typeparam name="T">The type to configure.</typeparam>
+            <param name="maxCapacity">The maximum capacity for the type's pool.</param>
+            <returns>True if the capacity was set, false otherwise.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ObjectPool.GetTypeInfo``1">
+            <summary>
+            Gets information about a specific type's pool.
+            </summary>
+            <typeparam name="T">The type to get information about.</typeparam>
+            <returns>A dictionary containing pool statistics for the type.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ObjectPool.GetStatistics">
+            <summary>
+            Gets statistics about the pool's usage.
+            </summary>
+            <returns>A dictionary containing statistics about the pool.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ObjectPool.Clear">
+            <summary>
+            Clears all objects from the pool.
+            </summary>
+            <returns>The total number of objects removed.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ObjectPool.ClearType``1">
+            <summary>
+            Clears a specific type's pool.
+            </summary>
+            <typeparam name="T">The type to clear from the pool.</typeparam>
+            <returns>The number of objects removed.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ObjectPool.Trim(System.Int32,System.Double)">
+            <summary>
+            Trims all type pools to their target sizes.
+            </summary>
+            <param name="percentage">
+            The percentage of the maximum capacity to keep (0-100).
+            <c>0</c> = no trim (safety floor), <c>1–99</c> = keep that percentage of max capacity,
+            <c>100</c> = keep up to full capacity. Negative values are clamped to <c>0</c>.
+            </param>
+            <param name="decayFactor">Fraction of excess objects to remove (0.0-1.0). Default is 1.0 (remove all excess).</param>
+            <returns>The total number of objects removed.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ObjectPool.ResetStatistics">
+            <summary>
+            Resets the statistics of the pool.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ObjectPool.GetAllTypeInfo">
+            <summary>
+            Gets information about all type pools.
+            </summary>
+            <returns>A list of dictionaries containing information about each type pool.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ObjectPool.ReturnMultiple``1(System.Collections.Generic.IEnumerable{``0})">
+            <summary>
+            Batch returns multiple objects to the pool.
+            </summary>
+            <typeparam name="T">The type of objects to return.</typeparam>
+            <param name="objects">The objects to return to the pool.</param>
+            <returns>The number of objects successfully returned to the pool.</returns>
+            <exception cref="T:System.ArgumentNullException">Thrown when objects is null.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ObjectPool.GetMultiple``1(System.Int32)">
+            <summary>
+            Gets multiple objects from the pool at once.
+            </summary>
+            <typeparam name="T">The type of objects to get.</typeparam>
+            <param name="count">The number of objects to get.</param>
+            <returns>A list containing the requested objects.</returns>
+            <exception cref="T:System.ArgumentException">Thrown when count is less than or equal to zero.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Memory.Pools.ObjectPool.CreateTypedPool``1">
+            <summary>
+            Creates a new type-specific pool for more efficient operations without runtime type checking.
+            </summary>
+            <typeparam name="T">The type of objects to manage in the pool.</typeparam>
+            <returns>A type-specific pool for <typeparamref name="T"/>.</returns>
+        </member>
+        <member name="T:Nalix.Framework.Options.BufferOptions">
+            <summary>
+            Configuration for buffer settings with validation and performance/security options.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.TotalBuffers">
+            <summary>
+            The total number of buffers to create across all pools.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.EnableMemoryTrimming">
+            <summary>
+            Enables memory trimming to periodically recover unused buffers.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.TrimIntervalMinutes">
+            <summary>
+            Time interval in minutes between memory trimming operations.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.DeepTrimIntervalMinutes">
+            <summary>
+            Time interval in minutes for deep trimming operations.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.EnableAnalytics">
+            <summary>
+            Enable buffer usage analytics to optimize allocation strategy.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.AdaptiveGrowthFactor">
+            <summary>
+            Adaptive growth factor for high-demand buffer sizes.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.MaxMemoryPercentage">
+            <summary>
+            Maximum percentage of system memory to use for buffer pools.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.ThreadCacheDepth">
+            <summary>
+            Maximum depth for the per-thread buffer cache.
+            WARNING: Do not enable (keep at 0) in highly asynchronous environments (async/await) 
+            using the ThreadPool, as it will lead to memory hoarding on threads and inaccurate metrics.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.SuitablePoolSizeCacheLimit">
+            <summary>
+            Maximum size of the internal suitable pool size cache.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.FallbackToArrayPool">
+            <summary>
+            Whether to fall back to <see cref="P:System.Buffers.ArrayPool`1.Shared"/> when no suitable pool exists.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.ExpandThresholdPercent">
+            <summary>
+            Free/Total ratio threshold to trigger expansion.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.ShrinkThresholdPercent">
+            <summary>
+            Free/Total ratio threshold to allow shrink.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.MinimumIncrease">
+            <summary>
+            Minimum increase step when growing a pool.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.MaxBufferIncreaseLimit">
+            <summary>
+            Maximum one-shot buffer increase to cap memory spikes.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.BufferAllocations">
+            <summary>
+            Semicolon-separated list of buffer size and ratio pairs. Example: "1024,0.40; 2048,0.25".
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.MaxMemoryBytes">
+            <summary>
+            Maximum memory in bytes that buffer pools can use. 0 means no limit.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.EnableBufferLeakDetection">
+            <summary>
+            Enables GC-based leak detection using finalizers.
+            When enabled, a sentinel is attached to rented objects to report if they are GC'd without being returned.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.EnableBufferLeakStackTrace">
+            <summary>
+            Enable capturing stack traces for buffer leaks.
+            Capturing stack trace is extremely expensive and should be disabled
+            during high-concurrency benchmarks.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.UsageAggressiveFactor">
+            <summary>
+            Multiplier for usage-based growth acceleration.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.MissRateAggressiveFactor">
+            <summary>
+            Multiplier for miss-rate based growth acceleration.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.ExpansionSoftCapRatio">
+            <summary>
+            Soft cap ratio for pool expansion relative to current total buffers.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.InitialSlabTrackingCapacity">
+            <summary>
+            Initial internal capacity for the slab tracking dictionary.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.ReturnValidation">
+            <summary>
+            Controls rented-address validation in the buffer pool's <c>SlabBucket</c>.
+            </summary>
+            <remarks>
+            <para>
+            <see cref="F:Nalix.Abstractions.Validation.ReturnValidation.Disabled"/> disables rented-address tracking entirely,
+            eliminating <c>ConcurrentDictionary</c> allocations from the hot path.
+            This is the default for production and benchmarks.
+            </para>
+            <para>
+            <see cref="F:Nalix.Abstractions.Validation.ReturnValidation.SilentDrop"/> enables tracking and silently
+            drops invalid returns.
+            </para>
+            <para>
+            <see cref="F:Nalix.Abstractions.Validation.ReturnValidation.ThrowOnError"/> enables tracking and throws on invalid returns.
+            Use this for tests and debugging only.
+            </para>
+            </remarks>
+        </member>
+        <member name="P:Nalix.Framework.Options.BufferOptions.SuspiciousThresholdSeconds">
+            <summary>
+            Threshold in seconds after which an outstanding object is considered "suspicious".
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Options.BufferOptions.Validate">
+            <summary>
+            Validates the configuration options and throws an exception if validation fails.
+            </summary>
+            <exception cref="T:Nalix.Abstractions.Exceptions.ValidationException">
+            Thrown when one or more validation attributes fail.
+            </exception>
+            <exception cref="T:System.ArgumentException">
+            Thrown by <see cref="M:Nalix.Framework.Options.BufferOptions.ParseBufferAllocations(System.String)"/> and wrapped into a validation failure when the allocation pattern is malformed.
+            </exception>
+        </member>
+        <member name="M:Nalix.Framework.Options.BufferOptions.ParseBufferAllocations(System.String)">
+            <summary>
+            Parses the buffer allocation settings with caching for repeated configurations.
+            </summary>
+            <param name="bufferAllocationsString">Semicolon-separated <c>size,ratio</c> pairs.</param>
+            <returns>The parsed allocation pairs sorted by allocation size.</returns>
+            <exception cref="T:System.ArgumentException">Thrown when <paramref name="bufferAllocationsString"/> is blank or malformed.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Options.BufferOptions.ValidateDataAnnotations">
+            <summary>
+            Auto-generated method that validates all properties marked with validation attributes.
+            </summary>
+        </member>
+        <member name="T:Nalix.Framework.Options.ObjectPoolOptions">
+            <summary>
+            Configuration for object pool diagnostics and performance settings.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.ObjectPoolOptions.EnableDiagnostics">
+            <summary>
+            Enables advanced diagnostics for object pools.
+            When disabled, overhead is minimized for production performance.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.ObjectPoolOptions.EnableMetrics">
+            <summary>
+            Enables lightweight traffic metrics for object pools (gets, returns, hit rate, traffic).
+            Safe for production high-performance usage.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.ObjectPoolOptions.CaptureStackTraces">
+            <summary>
+            Captures stack traces when objects are rented from the pool.
+            Extremely expensive; enable only for debugging leaks. Requires EnableDiagnostics=true.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.ObjectPoolOptions.SuspiciousThresholdSeconds">
+            <summary>
+            Threshold in seconds after which an outstanding object is considered "suspicious".
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.ObjectPoolOptions.EnableLeakDetection">
+            <summary>
+            Enables GC-based leak detection using finalizers.
+            When enabled, a sentinel is attached to rented objects to report if they are GC'd without being returned.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.ObjectPoolOptions.LifetimeReservoirSize">
+            <summary>
+            The number of recent lifetime samples to keep for p95 calculation.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.ObjectPoolOptions.EnableObjectTrimming">
+            <summary>
+            Enables automatic trimming of object pools (same as BufferPoolManager).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.ObjectPoolOptions.TrimIntervalMinutes">
+            <summary>
+            Interval between routine trim cycles (minutes).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.ObjectPoolOptions.DeepTrimIntervalMinutes">
+            <summary>
+            Interval for deep (more aggressive) trim cycles.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.ObjectPoolOptions.BaseKeepPercentage">
+            <summary>
+            Gets or sets the base percentage of capacity to keep during normal maintenance cycles.
+            Default value is 75% (trims 25%).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.ObjectPoolOptions.DeepTrimPercentage">
+            <summary>
+            Gets or sets the percentage of capacity to keep during deep/aggressive cleanup cycles.
+            Default value is 25% (trims 75%).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.ObjectPoolOptions.TrimDecayFactor">
+            <summary>
+            Fraction of excess objects to remove per trim cycle (0.0–1.0).
+            Lower values make trimming more gradual (e.g., 0.5 = remove half the excess each cycle).
+            Default is 0.5 (exponential decay).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.ObjectPoolOptions.HotHitRateThreshold">
+            <summary>
+            Gets or sets the hit rate threshold that marks a pool as "hot".
+            Hot pools are trimmed less aggressively to preserve performance.
+            Default value is 85%.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.ObjectPoolOptions.MinimumKeepObjects">
+            <summary>
+            Gets or sets the minimum number of objects that should always remain in a pool.
+            This prevents excessive trimming and reduces allocation spikes.
+            Default value is 8.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.ObjectPoolOptions.DefaultMaxPoolSize">
+            <summary>
+            Gets or sets the default maximum capacity for newly created object pools.
+            Default value is 2048. This applies to pools like BufferLease and ConnectionEventArgs.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.ObjectPoolOptions.DefaultPreallocate">
+            <summary>
+            Number of instances to preallocate when a new object type pool is created.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.ObjectPoolOptions.ThreadCacheDepth">
+            <summary>
+            Maximum number of objects held in per-thread cache slots, per pooled type.
+            Set to <c>0</c> (default) to disable thread-local caching entirely.
+            <para>
+            WARNING: Do not enable in highly asynchronous environments (async/await) using
+            the ThreadPool. Thread-local caches keep objects on the thread that returned them,
+            so a continuation that resumes on a different thread will miss the cache.
+            This leads to objects being stranded on idle threads and inaccurate
+            <c>AvailableCount</c> reporting.
+            </para>
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Options.ObjectPoolOptions.Validate">
+            <summary>
+            Validates the configuration options and throws an exception if validation fails.
+            </summary>
+            <exception cref="T:Nalix.Abstractions.Exceptions.ValidationException">
+            Thrown when one or more validation attributes fail.
+            </exception>
+        </member>
+        <member name="M:Nalix.Framework.Options.ObjectPoolOptions.ValidateDataAnnotations">
+            <summary>
+            Auto-generated method that validates all properties marked with validation attributes.
+            </summary>
+        </member>
+        <member name="T:Nalix.Framework.Options.RecurringOptions">
+            <summary>
+            Provides configuration options for scheduling recurring tasks.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.RecurringOptions.Tag">
+            <summary>
+            Gets an optional tag for identifying the recurring task.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.RecurringOptions.NonReentrant">
+            <summary>
+            Gets a value indicating whether the recurring task is non-reentrant.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.RecurringOptions.Jitter">
+            <summary>
+            Gets an optional jitter to randomize the start time of the recurring task.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.RecurringOptions.ExecutionTimeout">
+            <summary>
+            Gets an optional timeout for a single run, after which the run is cancelled.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.RecurringOptions.FailuresBeforeBackoff">
+            <summary>
+            Gets the number of consecutive failures before backoff is applied.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.RecurringOptions.BackoffCap">
+            <summary>
+            Gets the maximum backoff duration after consecutive failures.
+            </summary>
+        </member>
+        <member name="T:Nalix.Framework.Options.SnowflakeOptions">
+            <summary>
+            Identifier configuration options.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.SnowflakeOptions.MachineId">
+            <summary>
+            Machine ID (1-1023) used in distributed ID generation.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Options.SnowflakeOptions.Validate">
+            <summary>
+            Validates the configuration options.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Options.SnowflakeOptions.ValidateDataAnnotations">
+            <summary>
+            Auto-generated method that validates all properties marked with validation attributes.
+            </summary>
+        </member>
+        <member name="T:Nalix.Framework.Options.TaskManagerOptions">
+            <summary>
+            Provides configuration options for the <see cref="T:Nalix.Framework.Tasks.TaskManager"/>.
+            </summary>
+            <remarks>
+            <para>
+            This class allows customization of TaskManager behavior such as cleanup intervals
+            for completed workers. All properties have sensible defaults.
+            </para>
+            <example>
+            <code>
+            var options = new TaskManagerOptions
+            {
+                CleanupInterval = TimeSpan.FromSeconds(60) // Cleanup every 60 seconds
+            };
+            var taskManager = new TaskManager(options);
+            </code>
+            </example>
+            </remarks>
+        </member>
+        <member name="P:Nalix.Framework.Options.TaskManagerOptions.IsEnableLatency">
+            <summary>
+            Gets a value indicating whether latency measurement is enabled.
+            </summary>
+            <remarks>
+            When set to <see langword="true"/>, the system will collect and report
+            latency information for diagnostic or performance monitoring purposes.
+            </remarks>
+        </member>
+        <member name="P:Nalix.Framework.Options.TaskManagerOptions.DynamicAdjustmentEnabled">
+            <summary>
+            Enables or disables dynamic concurrency adjustment. Default is true.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.TaskManagerOptions.MaxWorkers">
+            <summary>
+            Maximum number of workers in the entire TaskManager (global limit). Defaults to 100.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.TaskManagerOptions.ThresholdHighCpu">
+            <summary>
+            High CPU utilization threshold to reduce concurrency. Default is 80%.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.TaskManagerOptions.ThresholdLowCpu">
+            <summary>
+            Low CPU utilization threshold to increase concurrency. Default is 40%.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.TaskManagerOptions.ObservingInterval">
+            <summary>
+            Time interval for monitoring system load (default 5 seconds).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.TaskManagerOptions.CpuWarmupDuration">
+            <summary>
+            Duration of the CPU measurement warmup period (default 60 seconds).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.TaskManagerOptions.AdjustmentStreakRequired">
+            <summary>
+            Number of consecutive samples above/below threshold required to adjust concurrency.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.TaskManagerOptions.BusyWaitThreshold">
+            <summary>
+            Maximum duration for a busy-wait spin in recurring tasks (default 200 microseconds).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.TaskManagerOptions.BackoffMaxPower">
+            <summary>
+            Maximum exponent for recurring task failure backoff (default 5 = 2^5 = 32x).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.TaskManagerOptions.BackoffBaseInterval">
+            <summary>
+            Base interval for recurring task failure backoff (default 1 second).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.TaskManagerOptions.CleanupInterval">
+            <summary>
+            Gets or sets the interval at which completed workers are cleaned up.
+            Default is 30 seconds. Must be at least 1 second.
+            </summary>
+            <value>
+            A <see cref="T:System.TimeSpan"/> representing the cleanup interval.
+            </value>
+        </member>
+        <member name="M:Nalix.Framework.Options.TaskManagerOptions.Validate">
+            <summary>
+            Validates the options and throws if any values are invalid.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Options.TaskManagerOptions.ValidateDataAnnotations">
+            <summary>
+            Auto-generated method that validates all properties marked with validation attributes.
+            </summary>
+        </member>
+        <member name="T:Nalix.Framework.Options.WorkerOptions">
+            <summary>
+            Provides configuration options for worker tasks.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.WorkerOptions.Tag">
+            <summary>
+            Gets an optional tag for identifying the worker.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.WorkerOptions.MachineId">
+            <summary>
+            Gets the optional machine identifier for the worker instance.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.WorkerOptions.IdType">
+            <summary>
+            Gets the optional identifier type for the worker instance.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.WorkerOptions.Priority">
+            <summary>
+            Gets the scheduler priority for this worker while it is queued.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.WorkerOptions.ExecutionTimeout">
+            <summary>
+            Gets the optional execution timeout for the worker instance.
+            If set, the worker will be cancelled if execution exceeds this duration.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.WorkerOptions.RetainFor">
+            <summary>
+            Gets the duration for which finished workers are retained for diagnostics.
+            Set to <c>null</c> or <see cref="F:System.TimeSpan.Zero"/> to auto-remove.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.WorkerOptions.GroupConcurrencyLimit">
+            <summary>
+            Gets the optional per-group concurrency cap. If set, executions in this group are gated.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.WorkerOptions.TryAcquireSlotImmediately">
+            <summary>
+            Gets a value indicating whether to acquire group slot immediately or cancel if unavailable. Default: false (wait).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.WorkerOptions.CancellationToken">
+            <summary>
+            Gets the cancellation token that is linked to the worker's execution.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.WorkerOptions.OnCompleted">
+            <summary>
+            Gets the action to invoke when the worker has completed successfully.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.WorkerOptions.OnFailed">
+            <summary>
+            Gets the action to invoke when the worker has failed.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.WorkerOptions.OSPriority">
+            <summary>
+            Gets the optional OS-level thread priority for the worker.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Options.WorkerOptions.ProcessorAffinity">
+            <summary>
+            Gets or sets the preferred CPU core index (0-based) for dedicated thread affinity.
+            Only effective when <see cref="P:Nalix.Framework.Options.WorkerOptions.OSPriority"/> is also set.
+            </summary>
+        </member>
+        <member name="T:Nalix.Framework.ReportRegistry">
+            <summary>
+            A thread-safe, multi-purpose registry that maps enum keys and component types to reportable diagnostic instances.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.ReportRegistry.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Framework.ReportRegistry"/> class.
+            </summary>
+            <remarks>
+            Internal visibility is required for the source-generated singleton activator.
+            Still not publicly constructible — the class is <see langword="sealed"/>.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.ReportRegistry.Register``1(System.Enum,``0)">
+            <summary>
+            Registers a reportable instance for the specified enum key and type.
+            </summary>
+            <typeparam name="T">The diagnostic or component type under which to register.</typeparam>
+            <param name="key">The enum key.</param>
+            <param name="instance">The reportable instance.</param>
+            <exception cref="T:System.ArgumentNullException"><paramref name="key"/> or <paramref name="instance"/> is null.</exception>
+        </member>
+        <member name="M:Nalix.Framework.ReportRegistry.Get``1(System.Enum)">
+            <summary>
+            Retrieves a registered reportable instance by its enum key and type.
+            </summary>
+            <typeparam name="T">The registered diagnostic or component type.</typeparam>
+            <param name="key">The enum key used during registration.</param>
+            <returns>The registered instance, or null if not found.</returns>
+            <exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception>
+        </member>
+        <member name="M:Nalix.Framework.ReportRegistry.Unregister``1(System.Enum)">
+            <summary>
+            Unregisters the instance associated with the specified enum key and type.
+            </summary>
+            <typeparam name="T">The diagnostic or component type.</typeparam>
+            <param name="key">The enum key.</param>
+            <returns>True if the instance was found and removed; otherwise, false.</returns>
+            <exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception>
+        </member>
+        <member name="M:Nalix.Framework.ReportRegistry.Clear">
+            <summary>
+            Clears all registrations in the registry.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.ReportRegistry.DisposeManaged">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Framework.ReportRegistry.WriteReportData(System.Text.Json.Utf8JsonWriter)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Framework.ReportRegistry.WriteReportData``1(System.Text.Json.Utf8JsonWriter)">
+            <summary>
+            Writes report data for all registered instances of type <typeparamref name="T"/> to the specified JSON writer.
+            </summary>
+            <typeparam name="T">The type of reportable instances to include.</typeparam>
+            <param name="writer">The JSON writer to write to.</param>
+            <exception cref="T:System.ArgumentNullException"><paramref name="writer"/> is null.</exception>
+        </member>
+        <member name="M:Nalix.Framework.ReportRegistry.GenerateReport">
+            <inheritdoc />
+        </member>
+        <member name="T:Nalix.Framework.Tasks.TaskManager">
+            <summary>
+            Coordinates background worker tasks and recurring jobs with shared concurrency,
+            cancellation, timing, and reporting support.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.SET_THREAD_AFFINITY(System.Int32,System.String)">
+            <summary>
+            Pins the current thread to the specified CPU core.
+            Falls back gracefully if the core index is invalid or the OS is unsupported.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.Dispose">
+            <inheritdoc/>
+        </member>
+        <member name="P:Nalix.Framework.Tasks.TaskManager.Title">
+            <summary>
+            Gets a compact status line for consoles and diagnostics.
+            </summary>
+            <remarks>
+            The title is intentionally short so it can be shown in window titles or
+            one-line dashboards without formatting or truncation logic.
+            </remarks>
+        </member>
+        <member name="P:Nalix.Framework.Tasks.TaskManager.ConcurrencyLimitRatio">
+            <inheritdoc/>
+        </member>
+        <member name="P:Nalix.Framework.Tasks.TaskManager.AverageWorkerUptime">
+            <summary>
+            Gets the average execution time for worker tasks in milliseconds.
+            </summary>
+            <remarks>
+            The value is derived from the accumulated stopwatch ticks and the number
+            of completed executions, so it reflects the long-term average rather than
+            the most recent run.
+            </remarks>
+        </member>
+        <member name="P:Nalix.Framework.Tasks.TaskManager.AverageRecurringExecutionTime">
+            <summary>
+            Gets the average execution time for recurring tasks in milliseconds.
+            </summary>
+            <remarks>
+            This uses the same tick-based accounting as worker timings so the report
+            stays consistent across both task types.
+            </remarks>
+        </member>
+        <member name="P:Nalix.Framework.Tasks.TaskManager.WorkerErrorCount">
+            <summary>
+            Gets the total worker errors observed.
+            </summary>
+            <remarks>
+            The counter is read with <see langword="Volatile.Read"/> because it
+            may be incremented from worker completion paths on different threads.
+            </remarks>
+        </member>
+        <member name="P:Nalix.Framework.Tasks.TaskManager.RecurringErrorCount">
+            <summary>
+            Gets the total recurring task errors observed.
+            </summary>
+            <remarks>
+            The counter is read with <see langword="Volatile.Read"/> because it
+            may be updated concurrently by recurring execution paths.
+            </remarks>
+        </member>
+        <member name="P:Nalix.Framework.Tasks.TaskManager.PeakRunningWorkerCount">
+            <summary>
+            Gets the peak number of concurrently running workers observed.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Tasks.TaskManager.AverageWorkerWaitTime">
+            <summary>
+            Gets the average time workers spent in the queue before starting, in milliseconds.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Tasks.TaskManager.P95WorkerUptime">
+            <summary>
+            Gets the 95th percentile worker uptime in milliseconds (approximation).
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Tasks.TaskManager.P99WorkerUptime">
+            <summary>
+            Gets the 99th percentile worker uptime in milliseconds (approximation).
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.#ctor(Nalix.Framework.Options.TaskManagerOptions)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Framework.Tasks.TaskManager"/> class.
+            </summary>
+            <remarks>
+            The constructor wires up shared concurrency gates, periodic cleanup, and
+            optional monitoring workers before any user-defined task is scheduled.
+            </remarks>
+            <param name="options">Optional configuration options for the TaskManager.</param>
+            <exception cref="T:System.ArgumentOutOfRangeException">Thrown when <paramref name="options"/> contains invalid scheduling limits.</exception>
+            <exception cref="T:System.InvalidOperationException">Thrown when startup monitoring workers cannot be scheduled.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Framework.Tasks.TaskManager"/> class.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.ScheduleWorker(System.String,System.String,System.Func{Nalix.Abstractions.Concurrency.IWorkerContext,System.Threading.CancellationToken,System.Threading.Tasks.ValueTask},Nalix.Abstractions.Concurrency.IWorkerOptions)">
+            <inheritdoc/>
+            <exception cref="T:System.ArgumentException">Thrown if the name is null or whitespace.</exception>
+            <exception cref="T:System.ArgumentNullException">Thrown if the work delegate is null.</exception>
+            <exception cref="T:Nalix.Abstractions.Exceptions.InternalErrorException">Thrown if the worker cannot be added.</exception>
+            <exception cref="T:System.ObjectDisposedException">Thrown if the manager has already been disposed.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.ScheduleWorker(Nalix.Abstractions.Concurrency.IWorker)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.ScheduleWorker``1(System.String,System.Action{``0},``0)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.ScheduleRecurring(System.String,System.TimeSpan,System.Func{System.Threading.CancellationToken,System.Threading.Tasks.ValueTask},Nalix.Abstractions.Concurrency.IRecurringOptions)">
+            <inheritdoc/>
+            <exception cref="T:System.ArgumentException">Thrown if the name is null or whitespace.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">Thrown if the interval is less than or equal to zero.</exception>
+            <exception cref="T:System.ArgumentNullException">Thrown if the work delegate is null.</exception>
+            <exception cref="T:Nalix.Abstractions.Exceptions.InternalErrorException">Thrown if a recurring task with the same name already exists.</exception>
+            <exception cref="T:System.ObjectDisposedException">Thrown if the manager has already been disposed.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.RunOnceAsync(System.String,System.Func{System.Threading.CancellationToken,System.Threading.Tasks.ValueTask},System.Threading.CancellationToken)">
+            <inheritdoc/>
+            <exception cref="T:System.ArgumentException">Thrown if the name is null or whitespace.</exception>
+            <exception cref="T:System.ArgumentNullException">Thrown if the work delegate is null.</exception>
+            <exception cref="T:System.OperationCanceledException">Thrown when the supplied <paramref name="ct"/> is cancelled while <paramref name="work"/> is running.</exception>
+            <exception cref="T:System.Exception">Propagates any exception thrown by <paramref name="work"/> after it is logged.</exception>
+            <exception cref="T:System.ObjectDisposedException">Thrown if the manager has already been disposed.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.SetGroupConcurrencyLimit(System.String,System.Int32)">
+            <summary>
+            Dynamically updates the concurrency limit for the specified task group at runtime.
+            </summary>
+            <param name="group">
+            The name of the task group whose concurrency limit will be updated.
+            </param>
+            <param name="limit">
+            The maximum number of concurrent tasks allowed for the group.
+            </param>
+            <exception cref="T:System.ArgumentException">
+            Thrown when <paramref name="group"/> is <see langword="null"/>, empty, or whitespace.
+            </exception>
+            <exception cref="T:System.ObjectDisposedException">
+            Thrown when the current <c>TaskManager</c> instance has already been disposed.
+            </exception>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.PauseRecurring(System.String)">
+            <summary>
+            Pauses the specified recurring job.
+            </summary>
+            <param name="name">
+            The unique name of the recurring job to pause.
+            </param>
+            <remarks>
+            While paused, scheduled executions for the recurring job are skipped
+            until <see cref="M:Nalix.Framework.Tasks.TaskManager.ResumeRecurring(System.String)"/> is called.
+            </remarks>
+            <exception cref="T:System.ArgumentNullException">
+            Thrown when <paramref name="name"/> is <see langword="null"/>.
+            </exception>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.ResumeRecurring(System.String)">
+            <summary>
+            Resumes a previously paused recurring job.
+            </summary>
+            <param name="name">
+            The unique name of the recurring job to resume.
+            </param>
+            <remarks>
+            Once resumed, the recurring job continues executing according
+            to its configured schedule.
+            </remarks>
+            <exception cref="T:System.ArgumentNullException">
+            Thrown when <paramref name="name"/> is <see langword="null"/>.
+            </exception>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.CancelAllWorkers">
+            <inheritdoc/>
+            <exception cref="T:System.ObjectDisposedException">Thrown when a matched worker's cancellation source has already been disposed.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.CancelWorker(Nalix.Abstractions.Identity.ISnowflake)">
+            <inheritdoc/>
+            <exception cref="T:System.ObjectDisposedException">Thrown when the matched worker's cancellation source has already been disposed.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.CancelGroup(System.String)">
+            <inheritdoc/>
+            <exception cref="T:System.ObjectDisposedException">Thrown when a matched worker's cancellation source has already been disposed.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.CancelRecurring(System.String)">
+            <inheritdoc/>
+            <exception cref="T:System.ArgumentNullException">Thrown if the name is null or whitespace.</exception>"
+            <exception cref="T:System.ObjectDisposedException">Thrown when the matched recurring task's cancellation source has already been disposed.</exception>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.GetWorkers(System.Boolean,System.String)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.GetRecurring">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.TryGetWorker(Nalix.Abstractions.Identity.ISnowflake,Nalix.Abstractions.Concurrency.IWorkerHandle@)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.TryGetRecurring(System.String,Nalix.Abstractions.Concurrency.IRecurringHandle@)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.WaitGroupAsync(System.String,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="T:Nalix.Framework.Tasks.TaskManager.CpuMetricsSnapshot">
+            <summary>
+            Snapshot of CPU metrics for safe concurrent access.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.GET_WORKER_UPTIME_PERCENTILE(System.Double)">
+            <summary>
+            Calculates an approximate percentile for worker execution time based on histogram buckets.
+            </summary>
+            <param name="percentile">The percentile to calculate (e.g., 0.95 for P95).</param>
+            <returns>The approximate latency in milliseconds.</returns>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.GenerateReport">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.WriteReportData(System.Text.Json.Utf8JsonWriter)">
+            <inheritdoc/>
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskManager.WorkerState._isRunning">
+            <summary>
+            Stores whether the worker is currently executing.
+            <para>0 means idle, 1 means running.</para>
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskManager.WorkerState._totalRuns">
+            <summary>
+            Total number of completed attempts, including success, cancellation, and failure.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskManager.WorkerState._startedUtcTicks">
+            <summary>
+            Start timestamp for the most recent execution, stored as UTC ticks.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskManager.WorkerState._lastHeartbeatUtcTicks">
+            <summary>
+            Last heartbeat timestamp for the current or most recent execution.
+            <para>0 means there is no heartbeat yet.</para>
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskManager.WorkerState._completedUtcTicks">
+            <summary>
+            Completion timestamp for cleanup retention.
+            <para>0 means the worker has not completed yet.</para>
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskManager.WorkerState._scheduledUtcTicks">
+            <summary>
+            Timestamp of when the worker was scheduled (added to queue).
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskManager.WorkerState.Task">
+            <summary>
+            Holds the actual scheduled task so the manager can observe or clean it up.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Tasks.TaskManager.WorkerState.CompletedUtc">
+            <summary>
+            Gets the completion time used by retention and cleanup logic.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Tasks.TaskManager.WorkerState.ScheduledUtc">
+            <summary>
+            Gets the time when the worker was scheduled.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.WorkerState.MarkStart">
+            <summary>
+            Marks the worker as running and resets completion metadata for a new execution.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.WorkerState.MarkStop">
+            <summary>
+            Marks the worker as finished after a successful execution.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.WorkerState.MarkError(System.Exception)">
+            <summary>
+            Marks the worker as finished after an error path.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.WorkerState.Beat">
+            <summary>
+            Refreshes the heartbeat timestamp to show that the worker is still alive.
+            </summary>
+        </member>
+        <member name="P:Nalix.Framework.Tasks.TaskManager.WorkerState.Progress">
+            <summary>
+            Gets the total amount of progress accumulated by the worker.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.WorkerState.Add(System.Int64,System.String)">
+            <summary>
+            Adds progress and optionally stores a human-readable note for diagnostics.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskManager.WorkerState.Cancel">
+            <summary>
+            Requests cancellation of the worker token source.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskManager.RecurringState._totalRuns">
+            <summary>
+            Total number of times the recurring job has been attempted.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskManager.RecurringState._isRunning">
+            <summary>
+            Stores whether the recurring job is currently executing.
+            <para>0 means idle, 1 means running.</para>
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskManager.RecurringState._lastRunUtcTicks">
+            <summary>
+            Timestamp of the most recent execution start in UTC ticks.
+            </summary>
+        </member>
+        <member name="T:Nalix.Framework.Tasks.TaskNaming">
+            <summary>
+            Provides a standardized naming scheme for worker groups, worker instances,
+            and recurring jobs.
+            <para>
+            Conventions:
+            - Groups use path-style segments with '/' separators, because they often describe hierarchy.
+            - Workers and recurring jobs use dot-style segments with '.' separators, because they read like identifiers.
+            - All names are normalized to lowercase-safe tokens before they are concatenated.
+            </para>
+            </summary>
+            <remarks>
+            This is a general-purpose library. Specific domains (TCP, limiter, etc.)
+            should build on top of these helpers rather than hardcoding names here.
+            </remarks>
+        </member>
+        <member name="T:Nalix.Framework.Tasks.TaskNaming.Tags">
+            <summary>
+            Canonical short tags used when building task names.
+            Applications may add their own tags, but these keep the built-in naming
+            scheme consistent across the framework.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskNaming.Tags.Tcp">
+            Tag for TCP-related tasks.
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskNaming.Tags.Udp">
+            Tag for UDP-related tasks.
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskNaming.Tags.WebSocket">
+            Tag for WebSocket-related tasks.
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskNaming.Tags.Net">
+            Tag for generic network tasks.
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskNaming.Tags.Time">
+            Tag for time synchronization or scheduling tasks.
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskNaming.Tags.Sync">
+            Tag for synchronization-related tasks.
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskNaming.Tags.Wheel">
+            Tag for wheel-based timing tasks.
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskNaming.Tags.Process">
+            <summary>
+            Tag for tasks that process data or requests.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskNaming.Tags.Worker">
+            <summary>
+            Tag for tasks that synchronize time or state.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskNaming.Tags.Accept">
+            <summary>
+            Tag for tasks that accept connections or requests.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskNaming.Tags.Cleanup">
+            <summary>
+            Tag for tasks that perform cleanup operations.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskNaming.Tags.Service">
+            <summary>
+            Tag for tasks related to service operations.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskNaming.Tags.Dispatch">
+            <summary>
+            Tag for tasks that dispatch work or messages.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskNaming.Tags.Logging">
+            <summary>
+            Tag for tasks that handle logging or telemetry.
+            </summary>
+        </member>
+        <member name="F:Nalix.Framework.Tasks.TaskNaming.Tags.Proxy">
+            <summary>
+            Tag for tasks that manage proxies or intermediaries.
+            </summary>
+        </member>
+        <member name="T:Nalix.Framework.Tasks.TaskNaming.Recurring">
+            <summary>
+            Builds recurring job names using the framework's dot-style convention.
+            </summary>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskNaming.Recurring.CleanupJobId(System.String,System.Int32)">
+            <summary>
+            Builds a recurring job name that combines a sanitized prefix, a built-in tag,
+            and a fixed-width hexadecimal instance key.
+            </summary>
+            <remarks>
+            This keeps job names stable and sortable while still allowing the caller to
+            provide a human-readable prefix.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Framework.Tasks.TaskNaming.SanitizeToken(System.String)">
+            <summary>
+            Sanitizes an arbitrary string into a safe token for task names.
+            </summary>
+            <remarks>
+            The sanitizer keeps only letters, digits, hyphen, underscore, and period.
+            Any other character is replaced with an underscore so callers can pass in
+            user input without accidentally breaking the naming format.
+            </remarks>
+        </member>
+    </members>
+</doc>

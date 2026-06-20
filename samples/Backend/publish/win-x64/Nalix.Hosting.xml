@@ -1,0 +1,1053 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Nalix.Hosting</name>
+    </assembly>
+    <members>
+        <member name="T:Nalix.Hosting.Bootstrap">
+            <summary>
+            Provides bootstrapping and global initialization for Nalix server-side hosting.
+            </summary>
+        </member>
+        <member name="M:Nalix.Hosting.Bootstrap.Initialize">
+            <summary>
+            Initializes the Nalix Hosting environment with server-optimized settings.
+            This is called automatically by the module initializer, but can be called manually if needed.
+            </summary>
+        </member>
+        <member name="T:Nalix.Hosting.INetworkApplicationBuilder">
+            <summary>
+            Configures a <see cref="T:Nalix.Hosting.NetworkApplication"/> using a fluent builder API.
+            </summary>
+        </member>
+        <member name="M:Nalix.Hosting.INetworkApplicationBuilder.Build">
+            <summary>
+            Builds a <see cref="T:Nalix.Hosting.NetworkApplication"/> from the current configuration.
+            </summary>
+            <returns>The configured <see cref="T:Nalix.Hosting.NetworkApplication"/> instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.INetworkApplicationBuilder.Configure``1(System.Action{``0})">
+            <summary>
+            Configures a Nalix options object before the host starts.
+            </summary>
+            <typeparam name="TOptions">The configuration type to mutate.</typeparam>
+            <param name="configure">The callback used to configure the options instance.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.INetworkApplicationBuilder.ConfigureDispatchOptions(System.Action{Nalix.Runtime.Routing.PacketDispatchOptions{Nalix.Abstractions.Networking.Packets.IPacket}})">
+            <summary>
+            Configures the options for the packet dispatcher.
+            </summary>
+            <param name="configure">The callback used to configure dispatcher options.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.INetworkApplicationBuilder.ConfigureDispatch(System.Func{System.Action{Nalix.Runtime.Routing.PacketDispatchOptions{Nalix.Abstractions.Networking.Packets.IPacket}},Nalix.Runtime.Dispatching.IPacketDispatch})">
+            <summary>
+            Configures the host to use a custom packet dispatcher.
+            </summary>
+            <param name="factory">A factory delegate that receives the compiled dispatch options configuration and returns an <see cref="T:Nalix.Runtime.Dispatching.IPacketDispatch"/>.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.INetworkApplicationBuilder.UseLogger(Microsoft.Extensions.Logging.ILogger)">
+            <summary>
+            Sets the logger instance used by the hosted Nalix runtime.
+            </summary>
+            <param name="logger">The logger to register into the Nalix runtime.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.INetworkApplicationBuilder.UseConnectionHub(Nalix.Abstractions.Networking.IConnectionHub)">
+            <summary>
+            Sets the <see cref="T:Nalix.Abstractions.Networking.IConnectionHub"/> instance used by the hosted Nalix runtime.
+            </summary>
+            <param name="connectionHub">The connection hub to register into the Nalix runtime.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.INetworkApplicationBuilder.UseBufferPoolManager(Nalix.Abstractions.IBufferPoolManager)">
+            <summary>
+            Explicitly registers a <see cref="T:Nalix.Abstractions.IBufferPoolManager"/> instance to be used by the application.
+            </summary>
+            <param name="manager">The manager instance to use.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.INetworkApplicationBuilder.UseObjectPoolManager(Nalix.Abstractions.IObjectPoolManager)">
+            <summary>
+            Explicitly registers a <see cref="T:Nalix.Framework.Memory.Objects.ObjectPoolManager"/> instance to be used by the application.
+            </summary>
+            <param name="manager">The manager instance to use.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.INetworkApplicationBuilder.MapHandlers``1">
+            <summary>
+            Adds a packet controller type using the default Nalix activator.
+            </summary>
+            <typeparam name="THandler">The packet controller type to register.</typeparam>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.INetworkApplicationBuilder.MapHandlers``1(System.Func{``0})">
+            <summary>
+            Adds a packet controller type using an explicit factory.
+            </summary>
+            <typeparam name="THandler">The packet controller type to register.</typeparam>
+            <param name="factory">The factory used to create controller instances.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.INetworkApplicationBuilder.MapHandlers(System.Type)">
+            <summary>
+            Adds a packet controller type directly (primarily for static classes).
+            </summary>
+            <param name="controllerType">The type of the controller to register.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.INetworkApplicationBuilder.ListenTcp``1">
+            <summary>
+            Binds a TCP protocol using a fluent builder for port and factory configuration.
+            </summary>
+            <typeparam name="TProtocol">The protocol type to host.</typeparam>
+            <returns>A fluent builder to configure the binding.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.INetworkApplicationBuilder.ListenUdp``1">
+            <summary>
+            Binds a UDP protocol using a fluent builder for port, factory, and authentication configuration.
+            </summary>
+            <typeparam name="TProtocol">The protocol type to host.</typeparam>
+            <returns>A fluent builder to configure the binding.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.INetworkApplicationBuilder.ListenWebSocket``1">
+            <summary>
+            Binds a WebSocket protocol using a fluent builder for port, path, and factory configuration.
+            </summary>
+            <typeparam name="TProtocol">The protocol type to host.</typeparam>
+            <returns>A fluent builder to configure the WebSocket binding.</returns>
+        </member>
+        <member name="T:Nalix.Hosting.Internal.DiagnosticChannel">
+            <summary>
+            Bridges <see cref="T:System.Diagnostics.DiagnosticListener"/> events from Nalix.Environment, Nalix.Framework,
+            Nalix.Network, and Nalix.Runtime into <see cref="T:Microsoft.Extensions.Logging.ILogger"/> for centralized observability.
+            </summary>
+        </member>
+        <member name="T:Nalix.Hosting.Internal.HostingBuilderContext">
+            <summary>
+            Represents the mutable state accumulated while building a network hosting pipeline.
+            </summary>
+            <remarks>
+            This context is used internally during application startup to collect
+            configuration, protocol bindings, packet metadata providers, and handler
+            registrations before the hosting runtime is finalized.
+            </remarks>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.HostingBuilderContext.Options">
+            <summary>
+            Gets the registered options configurations.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.HostingBuilderContext.Handlers">
+            <summary>
+            Gets the registered packet handler descriptors.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.HostingBuilderContext.TcpBindings">
+            <summary>
+            Gets the TCP protocol bindings configured for the host.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.HostingBuilderContext.UdpBindings">
+            <summary>
+            Gets the UDP protocol bindings configured for the host.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.HostingBuilderContext.WebSocketBindings">
+            <summary>
+            Gets the WebSocket protocol bindings configured for the host.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.HostingBuilderContext.PacketDispatchOptionsConfigurators">
+            <summary>
+            Gets the configuration delegates applied to
+            <see cref="T:Nalix.Runtime.Routing.PacketDispatchOptions`1"/>.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.HostingBuilderContext.Logger">
+            <summary>
+            Gets or sets the logger used during host construction.
+            </summary>
+            <value>
+            Defaults to <see cref="P:Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance"/> when no logger is provided.
+            </value>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.HostingBuilderContext.HasCustomConnectionHub">
+            <summary>
+            Indicates whether the user has explicitly configured a custom
+            <see cref="T:Nalix.Abstractions.Networking.IConnectionHub"/> via <c>UseConnectionHub</c>.
+            When <c>true</c>, the host will not create a default hub.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.HostingBuilderContext.HasCustomBufferPoolManager">
+            <summary>
+            Indicates whether the user has explicitly configured a custom
+            <see cref="T:Nalix.Framework.Memory.Buffers.BufferPoolManager"/> via <c>UseBufferPoolManager</c>.
+            When <c>true</c>, the host will not create a default manager.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.HostingBuilderContext.CustomDispatchFactory">
+            <summary>
+            A custom factory for creating the packet dispatcher.
+            </summary>
+        </member>
+        <member name="T:Nalix.Hosting.Internal.OptionsConfiguration">
+            <summary>
+            Describes an options configuration applied during host building.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.OptionsConfiguration.OptionsType">
+            <summary>
+            Gets the options type being configured. Retained for diagnostics only.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.OptionsConfiguration.Apply">
+            <summary>
+            Gets the AOT-safe delegate that loads, configures, and validates the options instance.
+            The delegate was captured at generic registration time, so the closed generic type
+            is known to the compiler and does not require runtime <c>MakeGenericMethod</c>.
+            </summary>
+        </member>
+        <member name="M:Nalix.Hosting.Internal.OptionsConfiguration.#ctor(System.Type,System.Action)">
+            <summary>
+            Initialises a new <see cref="T:Nalix.Hosting.Internal.OptionsConfiguration"/> with a pre-captured typed delegate.
+            </summary>
+            <param name="optionsType">The options type (for diagnostics).</param>
+            <param name="apply">
+            A delegate that loads, configures, and validates the options instance.
+            </param>
+        </member>
+        <member name="T:Nalix.Hosting.Internal.PacketAssemblyDescriptor">
+            <summary>
+            Describes an assembly used for packet type discovery.
+            </summary>
+            <param name="Assembly">
+            The assembly containing packet definitions.
+            </param>
+            <param name="RequirePacketAttribute">
+            Indicates whether discovered types must be annotated with a packet attribute
+            to be considered valid packets.
+            </param>
+        </member>
+        <member name="M:Nalix.Hosting.Internal.PacketAssemblyDescriptor.#ctor(System.Reflection.Assembly,System.Boolean)">
+            <summary>
+            Describes an assembly used for packet type discovery.
+            </summary>
+            <param name="Assembly">
+            The assembly containing packet definitions.
+            </param>
+            <param name="RequirePacketAttribute">
+            Indicates whether discovered types must be annotated with a packet attribute
+            to be considered valid packets.
+            </param>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.PacketAssemblyDescriptor.Assembly">
+            <summary>
+            The assembly containing packet definitions.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.PacketAssemblyDescriptor.RequirePacketAttribute">
+            <summary>
+            Indicates whether discovered types must be annotated with a packet attribute
+            to be considered valid packets.
+            </summary>
+        </member>
+        <member name="T:Nalix.Hosting.Internal.PacketAssemblyPathDescriptor">
+            <summary>
+            Describes an assembly path used for packet type discovery.
+            </summary>
+            <param name="AssemblyPath">
+            The path to an assembly containing packet definitions.
+            </param>
+            <param name="RequirePacketAttribute">
+            Indicates whether discovered types must be annotated with a packet attribute
+            to be considered valid packets.
+            </param>
+        </member>
+        <member name="M:Nalix.Hosting.Internal.PacketAssemblyPathDescriptor.#ctor(System.String,System.Boolean)">
+            <summary>
+            Describes an assembly path used for packet type discovery.
+            </summary>
+            <param name="AssemblyPath">
+            The path to an assembly containing packet definitions.
+            </param>
+            <param name="RequirePacketAttribute">
+            Indicates whether discovered types must be annotated with a packet attribute
+            to be considered valid packets.
+            </param>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.PacketAssemblyPathDescriptor.AssemblyPath">
+            <summary>
+            The path to an assembly containing packet definitions.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.PacketAssemblyPathDescriptor.RequirePacketAttribute">
+            <summary>
+            Indicates whether discovered types must be annotated with a packet attribute
+            to be considered valid packets.
+            </summary>
+        </member>
+        <member name="T:Nalix.Hosting.Internal.PacketNamespaceDescriptor">
+            <summary>
+            Describes a packet namespace filter used during packet discovery.
+            </summary>
+            <param name="PacketNamespace">The namespace to match.</param>
+            <param name="Recursive">
+            Indicates whether sub-namespaces should be included.
+            </param>
+            <param name="AssemblyPath">
+            Optional assembly path scope. When null, currently loaded assemblies are used.
+            </param>
+        </member>
+        <member name="M:Nalix.Hosting.Internal.PacketNamespaceDescriptor.#ctor(System.String,System.Boolean,System.String)">
+            <summary>
+            Describes a packet namespace filter used during packet discovery.
+            </summary>
+            <param name="PacketNamespace">The namespace to match.</param>
+            <param name="Recursive">
+            Indicates whether sub-namespaces should be included.
+            </param>
+            <param name="AssemblyPath">
+            Optional assembly path scope. When null, currently loaded assemblies are used.
+            </param>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.PacketNamespaceDescriptor.PacketNamespace">
+            <summary>The namespace to match.</summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.PacketNamespaceDescriptor.Recursive">
+            <summary>
+            Indicates whether sub-namespaces should be included.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.PacketNamespaceDescriptor.AssemblyPath">
+            <summary>
+            Optional assembly path scope. When null, currently loaded assemblies are used.
+            </summary>
+        </member>
+        <member name="T:Nalix.Hosting.Internal.HandlerDescriptor">
+            <summary>
+            Describes a packet handler and its creation strategy.
+            </summary>
+            <param name="HandlerType">
+            The concrete handler type.
+            </param>
+            <param name="Factory">
+            A factory delegate used to create handler instances.
+            </param>
+        </member>
+        <member name="M:Nalix.Hosting.Internal.HandlerDescriptor.#ctor(System.Type,System.Func{System.Object})">
+            <summary>
+            Describes a packet handler and its creation strategy.
+            </summary>
+            <param name="HandlerType">
+            The concrete handler type.
+            </param>
+            <param name="Factory">
+            A factory delegate used to create handler instances.
+            </param>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.HandlerDescriptor.HandlerType">
+            <summary>
+            The concrete handler type.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.HandlerDescriptor.Factory">
+            <summary>
+            A factory delegate used to create handler instances.
+            </summary>
+        </member>
+        <member name="T:Nalix.Hosting.Internal.TcpProtocolBinding">
+            <summary>
+            Represents a binding between a TCP transport and a protocol implementation.
+            </summary>
+            <param name="ProtocolType">
+            The protocol runtime type.
+            </param>
+            <param name="Factory">
+            A factory delegate that creates the protocol using an
+            <see cref="T:Nalix.Runtime.Dispatching.IPacketDispatch"/> instance.
+            </param>
+            <param name="Port">
+            Optional explicit port to listen on. If null, the default configured port is used.
+            </param>
+            <param name="BindingBuilder">
+            Optional mutable builder populated by <c>ListenTcp</c> fluent API.
+            When present, <see cref="P:Nalix.Hosting.Internal.TcpProtocolBinding.Port"/> is resolved from this builder at build time.
+            </param>
+        </member>
+        <member name="M:Nalix.Hosting.Internal.TcpProtocolBinding.#ctor(System.Type,System.Func{Nalix.Runtime.Dispatching.IPacketDispatch,Nalix.Abstractions.Networking.IProtocol},System.Nullable{System.UInt16},System.Object)">
+            <summary>
+            Represents a binding between a TCP transport and a protocol implementation.
+            </summary>
+            <param name="ProtocolType">
+            The protocol runtime type.
+            </param>
+            <param name="Factory">
+            A factory delegate that creates the protocol using an
+            <see cref="T:Nalix.Runtime.Dispatching.IPacketDispatch"/> instance.
+            </param>
+            <param name="Port">
+            Optional explicit port to listen on. If null, the default configured port is used.
+            </param>
+            <param name="BindingBuilder">
+            Optional mutable builder populated by <c>ListenTcp</c> fluent API.
+            When present, <see cref="P:Nalix.Hosting.Internal.TcpProtocolBinding.Port"/> is resolved from this builder at build time.
+            </param>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.TcpProtocolBinding.ProtocolType">
+            <summary>
+            The protocol runtime type.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.TcpProtocolBinding.Factory">
+            <summary>
+            A factory delegate that creates the protocol using an
+            <see cref="T:Nalix.Runtime.Dispatching.IPacketDispatch"/> instance.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.TcpProtocolBinding.Port">
+            <summary>
+            Optional explicit port to listen on. If null, the default configured port is used.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.TcpProtocolBinding.BindingBuilder">
+            <summary>
+            Optional mutable builder populated by <c>ListenTcp</c> fluent API.
+            When present, <see cref="P:Nalix.Hosting.Internal.TcpProtocolBinding.Port"/> is resolved from this builder at build time.
+            </summary>
+        </member>
+        <member name="T:Nalix.Hosting.Internal.UdpProtocolBinding">
+            <summary>
+            Represents a binding between a protocol type and its creation factory for UDP.
+            </summary>
+            <param name="ProtocolType">The type of the protocol.</param>
+            <param name="Factory">The factory used to create the protocol instance.</param>
+            <param name="Port">The optional port to listen on.</param>
+            <param name="Authentication">The optional authentication predicate used to validate incoming datagrams.</param>
+            <param name="BindingBuilder">
+            Optional mutable builder populated by <c>ListenUdp</c> fluent API.
+            When present, <see cref="P:Nalix.Hosting.Internal.UdpProtocolBinding.Port"/> and <see cref="P:Nalix.Hosting.Internal.UdpProtocolBinding.Authentication"/> are resolved from this builder at build time.
+            </param>
+        </member>
+        <member name="M:Nalix.Hosting.Internal.UdpProtocolBinding.#ctor(System.Type,System.Func{Nalix.Runtime.Dispatching.IPacketDispatch,Nalix.Abstractions.Networking.IProtocol},System.Nullable{System.UInt16},System.Func{Nalix.Abstractions.Networking.IConnection,System.Net.EndPoint,System.ReadOnlySpan{System.Byte},System.Boolean},System.Object)">
+            <summary>
+            Represents a binding between a protocol type and its creation factory for UDP.
+            </summary>
+            <param name="ProtocolType">The type of the protocol.</param>
+            <param name="Factory">The factory used to create the protocol instance.</param>
+            <param name="Port">The optional port to listen on.</param>
+            <param name="Authentication">The optional authentication predicate used to validate incoming datagrams.</param>
+            <param name="BindingBuilder">
+            Optional mutable builder populated by <c>ListenUdp</c> fluent API.
+            When present, <see cref="P:Nalix.Hosting.Internal.UdpProtocolBinding.Port"/> and <see cref="P:Nalix.Hosting.Internal.UdpProtocolBinding.Authentication"/> are resolved from this builder at build time.
+            </param>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.UdpProtocolBinding.ProtocolType">
+            <summary>The type of the protocol.</summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.UdpProtocolBinding.Factory">
+            <summary>The factory used to create the protocol instance.</summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.UdpProtocolBinding.Port">
+            <summary>The optional port to listen on.</summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.UdpProtocolBinding.Authentication">
+            <summary>The optional authentication predicate used to validate incoming datagrams.</summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.UdpProtocolBinding.BindingBuilder">
+            <summary>
+            Optional mutable builder populated by <c>ListenUdp</c> fluent API.
+            When present, <see cref="P:Nalix.Hosting.Internal.UdpProtocolBinding.Port"/> and <see cref="P:Nalix.Hosting.Internal.UdpProtocolBinding.Authentication"/> are resolved from this builder at build time.
+            </summary>
+        </member>
+        <member name="T:Nalix.Hosting.Internal.WebSocketProtocolBinding">
+            <summary>
+            Represents a binding between a protocol type and its creation factory for WebSocket.
+            </summary>
+            <param name="ProtocolType">The type of the protocol.</param>
+            <param name="Factory">The factory used to create the protocol instance.</param>
+            <param name="Port">The optional port to listen on.</param>
+            <param name="Path">The optional HTTP path prefix to listen on.</param>
+            <param name="BindingBuilder">
+            Optional mutable builder populated by <c>ListenWebSocket</c> fluent API.
+            When present, <see cref="P:Nalix.Hosting.Internal.WebSocketProtocolBinding.Port"/> and <see cref="P:Nalix.Hosting.Internal.WebSocketProtocolBinding.Path"/> are resolved from this builder at build time.
+            </param>
+        </member>
+        <member name="M:Nalix.Hosting.Internal.WebSocketProtocolBinding.#ctor(System.Type,System.Func{Nalix.Runtime.Dispatching.IPacketDispatch,Nalix.Abstractions.Networking.IProtocol},System.Nullable{System.UInt16},System.String,System.Object)">
+            <summary>
+            Represents a binding between a protocol type and its creation factory for WebSocket.
+            </summary>
+            <param name="ProtocolType">The type of the protocol.</param>
+            <param name="Factory">The factory used to create the protocol instance.</param>
+            <param name="Port">The optional port to listen on.</param>
+            <param name="Path">The optional HTTP path prefix to listen on.</param>
+            <param name="BindingBuilder">
+            Optional mutable builder populated by <c>ListenWebSocket</c> fluent API.
+            When present, <see cref="P:Nalix.Hosting.Internal.WebSocketProtocolBinding.Port"/> and <see cref="P:Nalix.Hosting.Internal.WebSocketProtocolBinding.Path"/> are resolved from this builder at build time.
+            </param>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.WebSocketProtocolBinding.ProtocolType">
+            <summary>The type of the protocol.</summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.WebSocketProtocolBinding.Factory">
+            <summary>The factory used to create the protocol instance.</summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.WebSocketProtocolBinding.Port">
+            <summary>The optional port to listen on.</summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.WebSocketProtocolBinding.Path">
+            <summary>The optional HTTP path prefix to listen on.</summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.WebSocketProtocolBinding.BindingBuilder">
+            <summary>
+            Optional mutable builder populated by <c>ListenWebSocket</c> fluent API.
+            When present, <see cref="P:Nalix.Hosting.Internal.WebSocketProtocolBinding.Port"/> and <see cref="P:Nalix.Hosting.Internal.WebSocketProtocolBinding.Path"/> are resolved from this builder at build time.
+            </summary>
+        </member>
+        <member name="T:Nalix.Hosting.Internal.ListenerBinding">
+            <summary>
+            Represents a binding between a network <see cref="T:Nalix.Abstractions.Networking.IListener"/> and
+            its associated <see cref="T:Nalix.Abstractions.Networking.IProtocol"/> implementation.
+            </summary>
+            <remarks>
+            This structure is used internally by the hosting infrastructure to
+            describe how incoming connections or datagrams are handled,
+            including the transport type and protocol metadata.
+            </remarks>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.ListenerBinding.Transport">
+            <summary>
+            Gets the transport protocol type of the listener.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.ListenerBinding.Listener">
+            <summary>
+            Gets the network listener responsible for accepting connections
+            or receiving datagrams.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.ListenerBinding.Protocol">
+            <summary>
+            Gets the protocol instance used to process incoming data.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Internal.ListenerBinding.ProtocolType">
+            <summary>
+            Gets the runtime type of the associated protocol.
+            </summary>
+            <remarks>
+            This value is cached to avoid repeated reflection calls when
+            resolving protocol handlers.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Hosting.Internal.ListenerBinding.#ctor(Nalix.Abstractions.Networking.IListener,Nalix.Abstractions.Networking.IProtocol,System.Type,Nalix.Abstractions.Networking.NetworkTransport)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Hosting.Internal.ListenerBinding"/> struct.
+            </summary>
+            <param name="listener">
+            The listener responsible for receiving network traffic.
+            </param>
+            <param name="protocol">
+            The protocol used to handle received messages.
+            </param>
+            <param name="protocolType">
+            The concrete runtime type of the protocol.
+            </param>
+            <param name="transport">
+            The transport protocol type used by the listener.
+            </param>
+        </member>
+        <member name="T:Nalix.Hosting.Internal.TcpServerListener">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.Internal.TcpServerListener.#ctor(Nalix.Abstractions.Networking.IProtocol,Nalix.Abstractions.Networking.IConnectionHub)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.Internal.TcpServerListener.#ctor(System.UInt16,Nalix.Abstractions.Networking.IProtocol,Nalix.Abstractions.Networking.IConnectionHub)">
+            <inheritdoc />
+        </member>
+        <member name="T:Nalix.Hosting.Internal.UdpServerListener">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.Internal.UdpServerListener.#ctor(Nalix.Abstractions.Networking.IProtocol,Nalix.Abstractions.Networking.IConnectionHub)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.Internal.UdpServerListener.#ctor(System.UInt16,Nalix.Abstractions.Networking.IProtocol,Nalix.Abstractions.Networking.IConnectionHub)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.Internal.UdpServerListener.#ctor(System.UInt16,Nalix.Abstractions.Networking.IProtocol,Nalix.Abstractions.Networking.IConnectionHub,System.Func{Nalix.Abstractions.Networking.IConnection,System.Net.EndPoint,System.ReadOnlySpan{System.Byte},System.Boolean})">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.Internal.UdpServerListener.#ctor(Nalix.Abstractions.Networking.IProtocol,Nalix.Abstractions.Networking.IConnectionHub,System.Func{Nalix.Abstractions.Networking.IConnection,System.Net.EndPoint,System.ReadOnlySpan{System.Byte},System.Boolean})">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.Internal.UdpServerListener.IsAuthenticated(Nalix.Abstractions.Networking.IConnection,System.Net.EndPoint,System.ReadOnlySpan{System.Byte})">
+            <inheritdoc />
+        </member>
+        <member name="T:Nalix.Hosting.Internal.WebSocketServerListener">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.Internal.WebSocketServerListener.#ctor(Nalix.Abstractions.Networking.IProtocol,Nalix.Abstractions.Networking.IConnectionHub)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.Internal.WebSocketServerListener.#ctor(System.UInt16,System.String,Nalix.Abstractions.Networking.IProtocol,Nalix.Abstractions.Networking.IConnectionHub)">
+            <inheritdoc />
+        </member>
+        <member name="T:Nalix.Hosting.IProtocolBindingBuilder">
+            <summary>
+            Fluent builder for configuring a protocol binding before attaching it to the host.
+            </summary>
+        </member>
+        <member name="M:Nalix.Hosting.IProtocolBindingBuilder.OnPort(System.UInt16)">
+            <summary>
+            Sets the port to listen on, overriding the default from <c>NetworkSocketOptions</c>.
+            </summary>
+            <param name="port">The port number.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.IProtocolBindingBuilder.WithMode(Nalix.Abstractions.Networking.OperatingMode)">
+            <summary>
+            Configures how UDP traffic is handled by the listener.
+            </summary>
+            <param name="mode">
+            The UDP operating mode.
+            <see cref="F:Nalix.Abstractions.Networking.OperatingMode.Server"/> enables session management,
+            authentication, and protocol processing.
+            <see cref="F:Nalix.Abstractions.Networking.OperatingMode.Passthrough"/> forwards raw datagrams
+            without protocol-level handling.
+            </param>
+            <returns>
+            The current binding builder instance.
+            </returns>
+        </member>
+        <member name="M:Nalix.Hosting.IProtocolBindingBuilder.WithFactory(System.Func{Nalix.Runtime.Dispatching.IPacketDispatch,Nalix.Abstractions.Networking.IProtocol})">
+            <summary>
+            Uses a custom factory to create protocol instances instead of the default activator.
+            </summary>
+            <param name="factory">The factory delegate.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.IProtocolBindingBuilder.WithAuthentication(System.Func{Nalix.Abstractions.Networking.IConnection,System.Net.EndPoint,System.ReadOnlySpan{System.Byte},System.Boolean})">
+            <summary>
+            Adds a custom authentication predicate for UDP datagrams.
+            Only applicable when binding via <see cref="M:Nalix.Hosting.INetworkApplicationBuilder.ListenUdp``1"/>.
+            </summary>
+            <param name="authen">The authentication predicate.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.IProtocolBindingBuilder.Bind">
+            <summary>
+            Finalizes this binding and returns the parent <see cref="T:Nalix.Hosting.INetworkApplicationBuilder"/>
+            so that additional configuration or <c>Build()</c> can be chained.
+            </summary>
+            <returns>The parent application builder.</returns>
+        </member>
+        <member name="T:Nalix.Hosting.IWebSocketBindingBuilder">
+            <summary>
+            Fluent builder for configuring a WebSocket protocol binding before attaching it to the host.
+            </summary>
+        </member>
+        <member name="M:Nalix.Hosting.IWebSocketBindingBuilder.OnPort(System.UInt16)">
+            <summary>
+            Sets the port to listen on, overriding the default from <c>NetworkWebSocketOptions</c>.
+            </summary>
+            <param name="port">The port number.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.IWebSocketBindingBuilder.WithPath(System.String)">
+            <summary>
+            Sets the HTTP path prefix to listen on, overriding the default from <c>NetworkWebSocketOptions</c>.
+            </summary>
+            <param name="path">The HTTP path prefix (e.g., "/nalix").</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.IWebSocketBindingBuilder.WithFactory(System.Func{Nalix.Runtime.Dispatching.IPacketDispatch,Nalix.Abstractions.Networking.IProtocol})">
+            <summary>
+            Uses a custom factory to create protocol instances instead of the default activator.
+            </summary>
+            <param name="factory">The factory delegate.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.IWebSocketBindingBuilder.Bind">
+            <summary>
+            Finalizes this binding and returns the parent <see cref="T:Nalix.Hosting.INetworkApplicationBuilder"/>
+            so that additional configuration or <c>Build()</c> can be chained.
+            </summary>
+            <returns>The parent application builder.</returns>
+        </member>
+        <member name="T:Nalix.Hosting.NetworkApplication">
+            <summary>
+            Represents a runnable host for Nalix TCP servers.
+            </summary>
+            <remarks>
+            Use <see cref="M:Nalix.Hosting.NetworkApplication.CreateBuilder"/> to configure a host instance, then call
+            <see cref="M:Nalix.Hosting.NetworkApplication.ActivateAsync(System.Threading.CancellationToken)"/>, <see cref="M:Nalix.Hosting.NetworkApplication.RunAsync(System.Threading.CancellationToken)"/>,
+            or the lifecycle methods inherited from <see cref="T:Nalix.Abstractions.IActivatable"/> and
+            <see cref="T:Nalix.Abstractions.IActivatableAsync"/>.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplication.CreateMinimal(System.Nullable{System.UInt16})">
+            <summary>
+            Creates a minimal <see cref="T:Nalix.Hosting.NetworkApplication"/> with sensible defaults:
+            <list type="bullet">
+              <item>Default logger</item>
+              <item>Default ConnectionHub + BufferPoolManager</item>
+              <item>Default TCP binding on port from configuration (or 8080)</item>
+              <item>Automatic handler scanning from calling assembly</item>
+            </list>
+            </summary>
+            <param name="port">Optional port override. If null, uses configuration or defaults to 8080.</param>
+            <returns>A ready-to-run minimal NetworkApplication.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplication.CreateBuilder">
+            <summary>
+            Creates a new builder for <see cref="T:Nalix.Hosting.NetworkApplication"/>.
+            </summary>
+            <returns>A new <see cref="T:Nalix.Hosting.NetworkApplicationBuilder"/> instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplication.RunAsync(System.Threading.CancellationToken)">
+            <summary>
+            Runs the host until cancellation is requested.
+            </summary>
+            <param name="cancellationToken">A token that stops the host when canceled.</param>
+            <returns>A task that completes when the host has stopped.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplication.ActivateAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplication.DeactivateAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplication.DisposeAsync">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplication.Dispose">
+            <inheritdoc />
+        </member>
+        <member name="T:Nalix.Hosting.NetworkApplicationBuilder">
+            <summary>
+            Builds a <see cref="T:Nalix.Hosting.NetworkApplication"/> using Microsoft-style fluent configuration.
+            </summary>
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilder.Configure``1(System.Action{``0})">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilder.ConfigureDispatchOptions(System.Action{Nalix.Runtime.Routing.PacketDispatchOptions{Nalix.Abstractions.Networking.Packets.IPacket}})">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilder.ConfigureDispatch(System.Func{System.Action{Nalix.Runtime.Routing.PacketDispatchOptions{Nalix.Abstractions.Networking.Packets.IPacket}},Nalix.Runtime.Dispatching.IPacketDispatch})">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilder.UseLogger(Microsoft.Extensions.Logging.ILogger)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilder.UseConnectionHub(Nalix.Abstractions.Networking.IConnectionHub)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilder.UseBufferPoolManager(Nalix.Abstractions.IBufferPoolManager)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilder.UseObjectPoolManager(Nalix.Abstractions.IObjectPoolManager)">
+            <summary>
+            Explicitly registers a <see cref="T:Nalix.Abstractions.IObjectPoolManager"/> instance to be used by the application.
+            </summary>
+            <param name="manager">The manager instance to use.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilder.MapHandlers``1">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilder.MapHandlers``1(System.Func{``0})">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilder.MapHandlers(System.Type)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilder.ListenTcp``1">
+            <inheritdoc />
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilder.ListenUdp``1">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilder.ListenWebSocket``1">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilder.Build">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilder.CreateProtocol``1(Nalix.Runtime.Dispatching.IPacketDispatch)">
+            <summary>
+            Creates a protocol instance using the most appropriate constructor.
+            If the protocol type has a constructor accepting <see cref="T:Nalix.Runtime.Dispatching.IPacketDispatch"/>,
+            the provided dispatch instance is injected. Otherwise, the parameterless constructor is used.
+            </summary>
+            <typeparam name="TProtocol">The protocol type to instantiate.</typeparam>
+            <param name="dispatch">The packet dispatch instance to inject if the protocol supports it.</param>
+            <returns>A new protocol instance.</returns>
+        </member>
+        <member name="T:Nalix.Hosting.NetworkApplicationBuilderExtensions">
+            <summary>
+            Provides <c>Use…</c> extension methods that opt-in to macro-level hosting
+            features (security, session management, system control) following the
+            ASP.NET Core convention: <c>Use</c> = enable a feature pipeline stage.
+            </summary>
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilderExtensions.UseTimeSync(Nalix.Hosting.INetworkApplicationBuilder)">
+            <summary>
+            Enables time synchronization packet handling, allowing clients to synchronize
+            </summary>
+            <param name="builder">The application builder.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilderExtensions.UseSystemControl(Nalix.Hosting.INetworkApplicationBuilder)">
+            <summary>
+            Enables system-level control packet handling (DISCONNECT, CIPHER_UPDATE, TIME_SYNC, etc.).
+            </summary>
+            <param name="builder">The application builder.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilderExtensions.UseSecureConnections(Nalix.Hosting.INetworkApplicationBuilder,System.String)">
+            <summary>
+            Enables the X25519 handshake and key exchange protocol, and initializes
+            the server identity certificate.
+            </summary>
+            <param name="builder">The application builder.</param>
+            <param name="certificatePath">
+            Optional explicit path to the server certificate file.
+            When <see langword="null"/>, falls back to the default certificate location.
+            </param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilderExtensions.UseSessions(Nalix.Hosting.INetworkApplicationBuilder)">
+            <summary>
+            Enables server-side session management. Registers the
+            <see cref="T:Nalix.Runtime.Handlers.SessionHandlers"/> controller and, when the session store
+            is enabled, automatically injects the
+            <see cref="T:Nalix.Abstractions.Networking.Sessions.ISessionService"/>
+            and <see cref="T:Nalix.Runtime.Sessions.SessionPersistenceObserver"/>.
+            </summary>
+            <param name="builder">The application builder.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilderExtensions.UseSessionService(Nalix.Hosting.INetworkApplicationBuilder,Nalix.Runtime.Sessions.SessionService)">
+            <summary>
+            Sets the <see cref="T:Nalix.Abstractions.Networking.Sessions.ISessionService"/> instance used by the hosted Nalix runtime.
+            </summary>
+            <param name="builder">The application builder.</param>
+            <param name="sessionService">The session service to register.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilderExtensions.UseSessionStore(Nalix.Hosting.INetworkApplicationBuilder,Nalix.Abstractions.Networking.Sessions.ISessionStore)">
+            <summary>
+            Sets the <see cref="T:Nalix.Abstractions.Networking.Sessions.ISessionStore"/> instance used by the default session service.
+            </summary>
+            <param name="builder">The application builder.</param>
+            <param name="sessionStore">The session store to register.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="M:Nalix.Hosting.NetworkApplicationBuilderExtensions.UseSessionFactory(Nalix.Hosting.INetworkApplicationBuilder,Nalix.Abstractions.Networking.Sessions.ISessionFactory)">
+            <summary>
+            Sets the <see cref="T:Nalix.Abstractions.Networking.Sessions.ISessionFactory"/> instance used by the default session service.
+            </summary>
+            <param name="builder">The application builder.</param>
+            <param name="sessionFactory">The session factory to register.</param>
+            <returns>The current builder instance.</returns>
+        </member>
+        <member name="T:Nalix.Hosting.Options.HostingOptions">
+            <summary>
+            Provides configuration options for Nalix hosting and bootstrapping.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Options.HostingOptions.DisableConsoleClear">
+            <summary>
+            Gets or sets a value indicating whether to disable clearing the console on startup.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Options.HostingOptions.DisableStartupBanner">
+            <summary>
+            Gets or sets a value indicating whether to disable the startup banner.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Options.HostingOptions.MinWorkerThreads">
+            <summary>
+            Gets or sets the minimum number of worker threads in the ThreadPool.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Options.HostingOptions.MinCompletionPortThreads">
+            <summary>
+            Gets or sets the minimum number of completion port threads in the ThreadPool.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Options.HostingOptions.EnableGlobalExceptionHandling">
+            <summary>
+            Gets or sets a value indicating whether to enable global unhandled exception handling and logging.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Options.HostingOptions.EnableHighPrecisionTimer">
+            <summary>
+            Gets or sets a value indicating whether to enable high-precision timers on Windows.
+            </summary>
+        </member>
+        <member name="M:Nalix.Hosting.Options.HostingOptions.Validate">
+            <summary>
+            Validates the configuration options.
+            </summary>
+        </member>
+        <member name="M:Nalix.Hosting.Options.HostingOptions.ValidateDataAnnotations">
+            <summary>
+            Auto-generated method that validates all properties marked with validation attributes.
+            </summary>
+        </member>
+        <member name="T:Nalix.Hosting.Protocols.DefaultFrameProcessor">
+            <summary>
+            Provides the default implementation for processing inbound network frames.
+            </summary>
+            <remarks>
+            This processor applies the configured inbound frame pipeline,
+            validates transport sequence numbers, replaces the connection buffer
+            when transforms produce a new lease, and forwards the resulting message
+            to the associated protocol.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Hosting.Protocols.DefaultFrameProcessor.#ctor(Nalix.Abstractions.Networking.IProtocol)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Hosting.Protocols.DefaultFrameProcessor"/> class.
+            </summary>
+            <param name="protocol">
+            The protocol that will receive successfully processed messages.
+            </param>
+            <exception cref="T:System.ArgumentNullException">
+            Thrown when <paramref name="protocol"/> is <see langword="null"/>.
+            </exception>
+        </member>
+        <member name="M:Nalix.Hosting.Protocols.DefaultFrameProcessor.ProcessFrame(System.Object,Nalix.Abstractions.Networking.IConnectionEventArgs)">
+             <summary>
+             Processes an incoming network frame from a connected client.
+             Applies inbound pipeline transformations (e.g., decrypt, decompress),
+             optionally replaces the underlying buffer lease, then forwards the
+             processed message to the protocol layer for handling.
+             </summary>
+             <param name="sender">The source of the event triggering this frame processing.</param>
+             <param name="args">Connection event arguments containing the frame data and connection context.</param>
+             <remarks>
+             This method is performance-critical and is intentionally marked with <see cref="T:System.Diagnostics.DebuggerStepThroughAttribute"/>
+             to avoid stepping into during debugging sessions.
+            
+             Pipeline behavior:
+             <list type="number">
+             <item>Validates and extracts the buffer lease from event args.</item>
+             <item>Applies inbound transformations via <c>FramePipeline.ProcessInbound</c>.</item>
+             <item>Replaces the lease if pipeline produces a new buffer.</item>
+             <item>Forwards the event to protocol handler.</item>
+             </list>
+             </remarks>
+             <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="args"/> is null.</exception>
+             <exception cref="T:System.InvalidOperationException">Thrown when lease is missing from event args.</exception>
+             <exception cref="T:Nalix.Abstractions.Exceptions.CipherException">May occur during cryptographic processing.</exception>
+             <exception cref="T:System.InvalidCastException">May occur during frame decoding.</exception>
+             <exception cref="T:Nalix.Abstractions.Exceptions.SerializationFailureException">Thrown when deserialization fails.</exception>
+             <exception cref="T:System.Exception">Unhandled exceptions are logged and reported to connection error handler.</exception>
+        </member>
+        <member name="T:Nalix.Hosting.Protocols.DefaultOpCodeExtractor">
+            <summary>
+            Extracts operation codes from the default Nalix packet header format.
+            </summary>
+        </member>
+        <member name="M:Nalix.Hosting.Protocols.DefaultOpCodeExtractor.Extract(System.ReadOnlySpan{System.Byte})">
+            <inheritdoc />
+        </member>
+        <member name="T:Nalix.Hosting.Protocols.DefaultProtocol">
+            <summary>
+            A ready-to-use protocol that forwards all inbound packets to the dispatch pipeline.
+            Use this when your server does not need custom protocol-level logic.
+            </summary>
+            <remarks>
+            <para>
+            Most Nalix servers only need to route packets into the dispatcher.
+            <see cref="T:Nalix.Hosting.Protocols.DefaultProtocol"/> eliminates the boilerplate of creating a protocol class
+            that simply calls <c>IPacketDispatch.HandlePacket</c>.
+            </para>
+            <para>Usage with the hosting builder:</para>
+            <code>
+            using var app = NetworkApplication.CreateBuilder()
+                .ListenTcp&lt;DefaultProtocol&gt;().Bind()
+                .MapHandlers&lt;MyHandler&gt;()
+                .Build();
+            </code>
+            </remarks>
+        </member>
+        <member name="P:Nalix.Hosting.Protocols.DefaultProtocol.FrameProcessor">
+            <inheritdoc/>
+        </member>
+        <member name="P:Nalix.Hosting.Protocols.DefaultProtocol.OpCodeExtractor">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Hosting.Protocols.DefaultProtocol.#ctor(Nalix.Runtime.Dispatching.IPacketDispatch)">
+            <summary>
+            Creates a new <see cref="T:Nalix.Hosting.Protocols.DefaultProtocol"/> that routes packets into the given dispatch pipeline.
+            </summary>
+            <param name="dispatch">The packet dispatcher responsible for routing and handling packets.</param>
+            <exception cref="T:System.ArgumentNullException"><paramref name="dispatch"/> is <see langword="null"/>.</exception>
+        </member>
+        <member name="M:Nalix.Hosting.Protocols.DefaultProtocol.ProcessMessage(System.Object,Nalix.Abstractions.Networking.IConnectionEventArgs)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Hosting.Protocols.DefaultProtocol.ValidateConnection(Nalix.Abstractions.Networking.IConnection)">
+            <inheritdoc />
+        </member>
+        <member name="T:Nalix.Hosting.Resource">
+            <summary>
+              A strongly-typed resource class, for looking up localized strings, etc.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Resource.ResourceManager">
+            <summary>
+              Returns the cached ResourceManager instance used by this class.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Resource.Culture">
+            <summary>
+              Overrides the current thread's CurrentUICulture property for all
+              resource lookups using this strongly typed resource class.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Resource.Banner1">
+            <summary>
+              Looks up a localized string similar to     _   __      ___.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Resource.Banner2">
+            <summary>
+              Looks up a localized string similar to    / | / /___ _/ (_)  __.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Resource.Banner3">
+            <summary>
+              Looks up a localized string similar to   /  |/ / __ `/ / / |/_/.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Resource.Banner4">
+            <summary>
+              Looks up a localized string similar to  / /|  / /_/ / / /&gt;  &lt;.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Resource.Banner5">
+            <summary>
+              Looks up a localized string similar to /_/ |_/\__,_/_/_/_/|_|  SERVER CORE.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Resource.Separator">
+            <summary>
+              Looks up a localized string similar to ------------------------------------------------------------------.
+            </summary>
+        </member>
+        <member name="P:Nalix.Hosting.Resource.ServerGC">
+            <summary>
+              Looks up a localized string similar to [WARN] Server GC is NOT enabled. Performance may be degraded in high-load scenarios..
+            </summary>
+        </member>
+    </members>
+</doc>

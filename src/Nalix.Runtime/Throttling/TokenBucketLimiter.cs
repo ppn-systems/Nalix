@@ -18,6 +18,7 @@ using Nalix.Environment.Configuration;
 using Nalix.Environment.Hashing;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Framework.Tasks;
 using Nalix.Runtime.Options;
 
 namespace Nalix.Runtime.Throttling;
@@ -51,7 +52,6 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     private readonly int _cleanupIntervalSec;
     private readonly long _initialBalanceMicro;
     private readonly TokenBucketOptions _options;
-    private readonly ITaskManager? _taskManager;
     private readonly bool _adaptiveThrottlingEnabled;
 
     private int _totalEndpointCount;
@@ -100,9 +100,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         {
             _shards[i] = new Shard();
         }
-
-        _taskManager = InstanceManager.Instance.GetExistingInstance<ITaskManager>();
-        _adaptiveThrottlingEnabled = _options.AdaptiveThrottlingEnabled && _taskManager is not null;
+        _adaptiveThrottlingEnabled = _options.AdaptiveThrottlingEnabled && InstanceManager.Instance.GetExistingInstance<TaskManager>() is not null;
 
         int poolCapacity = Math.Clamp(_options.MaxTrackedEndpoints / 2, 1024, 65536);
         _ = s_pool.SetMaxCapacity<EndpointState>(poolCapacity);
@@ -119,7 +117,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
             return 1.0;
         }
 
-        return _taskManager!.ConcurrencyLimitRatio;
+        return InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ConcurrencyLimitRatio;
     }
 
     /// <summary>

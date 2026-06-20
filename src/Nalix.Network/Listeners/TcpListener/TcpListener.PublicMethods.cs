@@ -13,6 +13,7 @@ using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
+using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 
@@ -136,7 +137,7 @@ public abstract partial class TcpListenerBase
             IWorkerHandle[] acceptWorkers = new IWorkerHandle[_config.MaxParallel];
             for (int i = 0; i < _config.MaxParallel; i++)
             {
-                acceptWorkers[i] = _taskManager.ScheduleWorker(
+                acceptWorkers[i] = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                     name: $"{TaskNaming.Tags.Tcp}.{TaskNaming.Tags.Accept}.{i}",
                     group: $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Tcp}/{_port}",
                     work: async (ctx, ct) => await this.AcceptConnectionsAsync(ctx, ct).ConfigureAwait(false),

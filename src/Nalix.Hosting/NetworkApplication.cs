@@ -12,6 +12,7 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Framework;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Tasks;
 using Nalix.Hosting.Internal;
 using Nalix.Hosting.Protocols;
 using Nalix.Runtime.Dispatching;
@@ -275,8 +276,8 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
                 // These groups usually start with 'net/' or 'time/'
                 try
                 {
-                    await taskManager.WaitGroupAsync("net/*", cancellationToken).ConfigureAwait(false);
-                    await taskManager.WaitGroupAsync("time/*", cancellationToken).ConfigureAwait(false);
+                    await InstanceManager.Instance.GetOrCreateInstance<TaskManager>().WaitGroupAsync("net/*", cancellationToken).ConfigureAwait(false);
+                    await InstanceManager.Instance.GetOrCreateInstance<TaskManager>().WaitGroupAsync("time/*", cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {

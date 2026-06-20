@@ -36,7 +36,7 @@ public sealed partial class ConnectionGuard
     {
         TaskManager taskManager = InstanceManager.Instance.GetOrCreateInstance<TaskManager>();
 
-        _cleanupJob = taskManager.ScheduleRecurring(
+        _cleanupJob = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
             name: TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()),
             interval: _cleanupInterval,
             work: _ =>
@@ -56,7 +56,7 @@ public sealed partial class ConnectionGuard
 
         if (_banRepository.IsEnabled)
         {
-            _saveJob = taskManager.ScheduleRecurring(
+            _saveJob = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
                 name: TaskNaming.Recurring.CleanupJobId(RecurringName + ".save", this.GetHashCode()),
                 interval: _banRepository.AutoSaveInterval,
                 work: _ =>
@@ -73,7 +73,7 @@ public sealed partial class ConnectionGuard
             );
         }
 
-        _ewmaJob = taskManager.ScheduleRecurring(
+        _ewmaJob = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
             name: TaskNaming.Recurring.CleanupJobId(RecurringName + ".ewma", this.GetHashCode()),
             interval: TimeSpan.FromSeconds(1),
             work: _ =>
@@ -327,7 +327,7 @@ public sealed partial class ConnectionGuard
     {
         TaskManager taskManager = InstanceManager.Instance.GetOrCreateInstance<TaskManager>();
 
-        _hotReloadJob = taskManager.ScheduleRecurring(
+        _hotReloadJob = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
             name: TaskNaming.Recurring.CleanupJobId(RecurringName + ".reload", this.GetHashCode()),
             interval: TimeSpan.FromSeconds(60),
             work: _ =>

@@ -1,7 +1,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Networking;
 using Nalix.Network.Listeners.Udp;
 
@@ -13,20 +12,20 @@ internal sealed class UdpServerListener : UdpListenerBase
     private readonly Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool>? _authen;
 
     /// <inheritdoc />
-    public UdpServerListener(IProtocol protocol, IConnectionHub hub, ITaskManager taskManager)
-        : base(protocol, hub, taskManager) { }
+    public UdpServerListener(IProtocol protocol, IConnectionHub hub)
+        : base(protocol, hub) { }
 
     /// <inheritdoc />
-    public UdpServerListener(ushort port, IProtocol protocol, IConnectionHub hub, ITaskManager taskManager)
-        : base(port, protocol, hub, taskManager) { }
+    public UdpServerListener(ushort port, IProtocol protocol, IConnectionHub hub)
+        : base(port, protocol, hub) { }
 
     /// <inheritdoc />
-    public UdpServerListener(ushort port, IProtocol protocol, IConnectionHub hub, ITaskManager taskManager, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
-        : base(port, protocol, hub, taskManager) => _authen = authen;
+    public UdpServerListener(ushort port, IProtocol protocol, IConnectionHub hub, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
+        : base(port, protocol, hub) => _authen = authen;
 
     /// <inheritdoc />
-    public UdpServerListener(IProtocol protocol, IConnectionHub hub, ITaskManager taskManager, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
-        : base(protocol, hub, taskManager) => _authen = authen;
+    public UdpServerListener(IProtocol protocol, IConnectionHub hub, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
+        : base(protocol, hub) => _authen = authen;
 
     /// <inheritdoc />
     public override bool IsAuthenticated(IConnection connection, System.Net.EndPoint remoteEndPoint, ReadOnlySpan<byte> payload)

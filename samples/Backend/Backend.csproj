@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<Nullable>enable</Nullable>
+		<OutputType>Exe</OutputType>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>Backend</RootNamespace>
+		<ServerGarbageCollection>true</ServerGarbageCollection>
+		<RuntimeIdentifiers>linux-x64;win-x64;linux-arm64</RuntimeIdentifiers>
+		<ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+
+		<ApplicationIcon>app.ico</ApplicationIcon>
+
+		<Optimize>true</Optimize>
+		<TieredCompilation>true</TieredCompilation>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+
+	<!--
+	  Native AOT toggle.
+	  Use /p:AotBuild=true from the build script — this is a LOCAL property that
+	  does NOT propagate to analyzer/library dependencies (unlike /p:PublishAot).
+	-->
+	<PropertyGroup Condition="'$(AotBuild)' == 'true'">
+		<PublishAot>true</PublishAot>
+		<PublishTrimmed Condition="'$(NoTrim)' != 'true'">true</PublishTrimmed>
+		<StripSymbols>true</StripSymbols>
+		<TrimMode>full</TrimMode>
+		<InvariantGlobalization>false</InvariantGlobalization>
+
+		<!-- Disable features not needed in a server AOT binary -->
+		<DebuggerSupport>false</DebuggerSupport>
+		<EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>
+		<EventSourceSupport>false</EventSourceSupport>
+		<HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>
+		<MetadataUpdaterSupport>false</MetadataUpdaterSupport>
+		<UseSystemResourceKeys>true</UseSystemResourceKeys>
+		<StackTraceSupport>false</StackTraceSupport>
+		<IlcOptimizationPreference>Speed</IlcOptimizationPreference>
+		<IlcFoldIdenticalMethodBodies>true</IlcFoldIdenticalMethodBodies>
+	</PropertyGroup>
+
+	<!-- Ensure the entry-point assembly is rooted during trimming/AOT -->
+	<ItemGroup Condition="'$(AotBuild)' == 'true'">
+		<TrimmerRootAssembly Include="Backend" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\extensions\Nalix.Logging\Nalix.Logging.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Network\Nalix.Network.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Runtime\Nalix.Runtime.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Hosting\Nalix.Hosting.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
+		<ProjectReference Include="..\..\extensions\Nalix.Observability\Nalix.Observability.csproj" />
+
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.8" />
+	</ItemGroup>
+
+</Project>

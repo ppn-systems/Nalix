@@ -10,6 +10,7 @@ using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
+using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 
@@ -60,7 +61,7 @@ public abstract partial class TcpListenerBase
                 AllowSynchronousContinuations = false,
             });
 
-        _processWorker = _taskManager.ScheduleWorker(
+        _processWorker = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
             name: $"{TaskNaming.Tags.Tcp}.{TaskNaming.Tags.Accept}.{TaskNaming.Tags.Dispatch}.{_port}",
             group: $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Tcp}/{_port}",
             work: this.PROCESS_CHANNEL_LOOP_ASYNC,

@@ -14,6 +14,7 @@ using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
+using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Connections;
@@ -243,7 +244,7 @@ public abstract partial class WebSocketListenerBase
                 AllowSynchronousContinuations = false,
             });
 
-        _processWorker = _taskManager.ScheduleWorker(
+        _processWorker = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
             name: $"{TaskNaming.Tags.Net}.{TaskNaming.Tags.WebSocket}.{TaskNaming.Tags.Accept}.{_port}",
             group: $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.WebSocket}/{_port}",
             work: this.PROCESS_CHANNEL_LOOP_ASYNC,

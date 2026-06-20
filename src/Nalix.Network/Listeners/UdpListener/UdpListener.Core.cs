@@ -43,7 +43,6 @@ public abstract partial class UdpListenerBase
     private readonly ushort _port;
     private readonly SemaphoreSlim _lock;
     private readonly IConnectionHub _hub;
-    private readonly ITaskManager _taskManager;
     private readonly DatagramGuard _rateLimiter;
 
     private Socket? _socket;
@@ -93,10 +92,9 @@ public abstract partial class UdpListenerBase
     /// <param name="port">The UDP port to listen on.</param>
     /// <param name="protocol">The protocol handler for processing datagrams.</param>
     /// <param name="hub">The connection hub for managing active connections.</param>
-    /// <param name="taskManager">The task manager.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="protocol"/> is <c>null</c>.</exception>
     [DebuggerStepThrough]
-    protected UdpListenerBase(ushort port, IProtocol protocol, IConnectionHub hub, ITaskManager taskManager)
+    protected UdpListenerBase(ushort port, IProtocol protocol, IConnectionHub hub)
     {
         ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
         ArgumentNullException.ThrowIfNull(hub, nameof(hub));
@@ -110,7 +108,6 @@ public abstract partial class UdpListenerBase
         _connectionGuardOptions.Validate();
 
         _hub = hub;
-        _taskManager = taskManager ?? throw new ArgumentNullException(nameof(taskManager));
         _port = port;
         this.Protocol = protocol;
         _lock = new SemaphoreSlim(1, 1);
@@ -136,9 +133,8 @@ public abstract partial class UdpListenerBase
     /// </summary>
     /// <param name="protocol">The protocol handler for processing datagrams.</param>
     /// <param name="hub">The connection hub for managing active connections.</param>
-    /// <param name="taskManager">The task manager.</param>
     [DebuggerStepThrough]
-    protected UdpListenerBase(IProtocol protocol, IConnectionHub hub, ITaskManager taskManager) : this(ConfigurationManager.Instance.Get<NetworkSocketOptions>().Port, protocol, hub, taskManager)
+    protected UdpListenerBase(IProtocol protocol, IConnectionHub hub) : this(ConfigurationManager.Instance.Get<NetworkSocketOptions>().Port, protocol, hub)
     {
     }
 

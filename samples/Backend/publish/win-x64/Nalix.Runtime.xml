@@ -1,0 +1,2223 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Nalix.Runtime</name>
+    </assembly>
+    <members>
+        <member name="T:Nalix.Runtime.DiagnosticsEvents">
+            <summary>
+            Provides the diagnostic event source and event-name registry for the
+            <c>Nalix.Runtime</c> module.
+            </summary>
+            <remarks>
+            Runtime components should emit events through <see cref="F:Nalix.Runtime.DiagnosticsEvents.Source"/> instead
+            of depending directly on a logging abstraction. Host/runtime layers may
+            subscribe to this listener and bridge events to logging, metrics, tracing,
+            or telemetry systems.
+            </remarks>
+        </member>
+        <member name="F:Nalix.Runtime.DiagnosticsEvents.ListenerName">
+            <summary>
+            The diagnostic listener name used by the Runtime module.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.DiagnosticsEvents.Source">
+            <summary>
+            The shared diagnostic listener used to publish Runtime diagnostic events.
+            </summary>
+            <remarks>
+            Hot paths should always call <see cref="M:System.Diagnostics.DiagnosticListener.IsEnabled(System.String)"/>
+            before allocating event payload objects.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Runtime.DiagnosticsEvents.Write``1(System.String,``0)">
+            <summary>
+            Writes a diagnostic event payload through <see cref="F:Nalix.Runtime.DiagnosticsEvents.Source"/> in an AOT-safe manner.
+            </summary>
+            <typeparam name="T">The diagnostic payload type.</typeparam>
+            <param name="name">The event name.</param>
+            <param name="payload">The event payload.</param>
+        </member>
+        <member name="T:Nalix.Runtime.DiagnosticsEvents.Internal">
+            <summary>
+            Diagnostic event names for internal Runtime module faults, warnings, and traces.
+            </summary>
+            <remarks>
+            These events are intended for infrastructure diagnostics and should not
+            expose raw packet payloads, secrets, keys, tokens, or sensitive user data.
+            </remarks>
+        </member>
+        <member name="F:Nalix.Runtime.DiagnosticsEvents.Internal.Trace">
+            <summary>
+            Raised for internal trace-level diagnostic messages.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.DiagnosticsEvents.Internal.Debug">
+            <summary>
+            Raised for internal debug-level diagnostic messages.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.DiagnosticsEvents.Internal.Information">
+            <summary>
+            Raised for internal informational diagnostic messages.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.DiagnosticsEvents.Internal.Warning">
+            <summary>
+            Raised for internal warning-level diagnostic messages.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.DiagnosticsEvents.Internal.Error">
+            <summary>
+            Raised for internal error-level diagnostic messages.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.DiagnosticsEvents.Internal.Critical">
+            <summary>
+            Raised for internal critical diagnostic messages.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Dispatching.IDispatchSession">
+            <summary>
+            Defines an exclusive processing session for a single connection's mailbox.
+            While active, the holder has sole ownership of the connection's packet queue,
+            ensuring strict in-order delivery without cross-worker interference.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Dispatching.IDispatchSession.Connection">
+            <summary>
+            Gets the connection claimed by this session.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.IDispatchSession.TryDequeue(Nalix.Abstractions.IBufferLease@)">
+            <summary>
+            Attempts to dequeue the next highest-priority packet from the claimed connection.
+            </summary>
+            <param name="raw">
+            When this method returns <see langword="true"/>, contains the dequeued packet lease.
+            </param>
+            <returns>
+            <see langword="true"/> if a packet was dequeued; <see langword="false"/> if the
+            connection's mailbox is empty.
+            </returns>
+        </member>
+        <member name="T:Nalix.Runtime.Dispatching.IDispatchChannel`1">
+            <summary>
+            Defines the contract for a dispatch channel that manages the queuing, retrieval,
+            and association of packets with connections.
+            </summary>
+            <typeparam name="TPacket"></typeparam>
+        </member>
+        <member name="P:Nalix.Runtime.Dispatching.IDispatchChannel`1.TotalPackets">
+            <summary>
+            Gets the current number of packets in the dispatch queue.
+            </summary>
+            <value>
+            The total number of packets currently enqueued for processing.
+            </value>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.IDispatchChannel`1.Push(Nalix.Abstractions.Networking.IConnection,Nalix.Abstractions.IBufferLease)">
+            <summary>
+            Adds a packet to the dispatch queue, associating it with a specific connection.
+            </summary>
+            <param name="connection">
+            The connection associated with the packet.
+            </param>
+            <param name="raw">
+            The packet to be added to the queue.
+            </param>
+            <exception cref="T:System.ArgumentNullException">
+            Thrown when <paramref name="raw"/> or <paramref name="connection"/> is <see langword="null"/>.
+            </exception>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.IDispatchChannel`1.TryClaim(Nalix.Runtime.Dispatching.IDispatchSession@)">
+            <summary>
+            Attempts to claim exclusive processing rights over a connection's mailbox.
+            Returns a session that allows the caller to dequeue packets sequentially.
+            Disposing the session releases the claim and re-enqueues the connection
+            if it still has pending packets.
+            </summary>
+            <param name="session">
+            When this method returns <see langword="true"/>, contains the exclusive dispatch session.
+            </param>
+            <returns>
+            <see langword="true"/> if a connection was claimed; <see langword="false"/> if no
+            connection has pending packets.
+            </returns>
+        </member>
+        <member name="T:Nalix.Runtime.Dispatching.InlinePacketDispatcher">
+            <summary>
+            A lightweight packet dispatcher that executes handlers inline on the thread pool
+            without the overhead of a dedicated dispatch queue or background worker loops.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.InlinePacketDispatcher.#ctor(System.Action{Nalix.Runtime.Routing.PacketDispatchOptions{Nalix.Abstractions.Networking.Packets.IPacket}})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Runtime.Dispatching.InlinePacketDispatcher"/> class.
+            </summary>
+            <param name="options">Option builder.</param>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.InlinePacketDispatcher.Activate(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.InlinePacketDispatcher.Deactivate(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.InlinePacketDispatcher.Dispose">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.InlinePacketDispatcher.HandlePacket(Nalix.Abstractions.IBufferLease,Nalix.Abstractions.Networking.IConnection)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.InlinePacketDispatcher.GenerateReport">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.InlinePacketDispatcher.WriteReportData(System.Text.Json.Utf8JsonWriter)">
+            <inheritdoc/>
+        </member>
+        <member name="T:Nalix.Runtime.Dispatching.IPacketDispatch">
+            <summary>
+            Dispatches incoming packets from either raw transport data or already
+            deserialized packet objects.
+            </summary>
+            <remarks>
+            Implementations decide how packets are turned into handler calls and how
+            the associated connection should be used during dispatch.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.IPacketDispatch.HandlePacket(Nalix.Abstractions.IBufferLease,Nalix.Abstractions.Networking.IConnection)">
+            <summary>
+            Handles an incoming packet represented as a pooled buffer lease.
+            </summary>
+            <param name="lease">
+            The pooled buffer containing the raw packet data.
+            </param>
+            <param name="connection">
+            The connection from which the packet was received.
+            </param>
+        </member>
+        <member name="T:Nalix.Runtime.Dispatching.IPacketHandlerBuilder`1">
+            <summary>
+            A builder interface exposed to source-generated code to allow registering packet handlers
+            without needing access to internal framework structures.
+            </summary>
+            <typeparam name="TPacket">The base packet type for the dispatch pipeline.</typeparam>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.IPacketHandlerBuilder`1.RegisterHandler(System.UInt16,Nalix.Abstractions.Networking.Packets.PacketMetadata,System.String,System.Object,System.Type,System.Type,System.Func{System.Object,Nalix.Runtime.Dispatching.PacketContext{`0},System.Threading.Tasks.ValueTask{System.Object}})">
+            <summary>
+            Registers a new packet handler.
+            </summary>
+            <param name="opCode">The protocol opcode.</param>
+            <param name="metadata">The metadata describing the handler's attributes.</param>
+            <param name="methodName">The name of the handler method (for logging purposes).</param>
+            <param name="instance">The controller instance, or null if all handlers are static.</param>
+            <param name="returnType">The expected return type of the handler method.</param>
+            <param name="expectedPacketType">The specific expected packet type, or null if any packet is accepted.</param>
+            <param name="invoker">The compiled zero-allocation proxy delegate that executes the handler.</param>
+        </member>
+        <member name="T:Nalix.Runtime.Dispatching.IPacketHandlerCompiler">
+            <summary>
+            A non-generic compiler interface implemented by source-generated code.
+            Allows the <see cref="T:Nalix.Runtime.Dispatching.PacketHandlerRegistry"/> to invoke the generic builder without reflection.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.IPacketHandlerCompiler.InitializeDependencies">
+            <summary>
+            Initializes dependencies for all generated controllers before building handlers.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.IPacketHandlerCompiler.Build``1(Nalix.Runtime.Dispatching.IPacketHandlerBuilder{``0},System.Func{System.Object})">
+            <summary>
+            Builds and registers handlers into the generic builder.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Dispatching.PacketContext`1">
+            Carries a packet, its connection, and the metadata needed while a handler is
+            executing. Instances are pooled so dispatch can reuse context objects without
+            allocating on every packet.
+        </member>
+        <member name="P:Nalix.Runtime.Dispatching.PacketContext`1.IsReliable">
+            <inheritdoc/>
+        </member>
+        <member name="P:Nalix.Runtime.Dispatching.PacketContext`1.SkipOutbound">
+            <inheritdoc/>
+        </member>
+        <member name="P:Nalix.Runtime.Dispatching.PacketContext`1.Packet">
+            <inheritdoc/>
+        </member>
+        <member name="P:Nalix.Runtime.Dispatching.PacketContext`1.Connection">
+            <inheritdoc/>
+        </member>
+        <member name="P:Nalix.Runtime.Dispatching.PacketContext`1.Attributes">
+            <inheritdoc/>
+        </member>
+        <member name="P:Nalix.Runtime.Dispatching.PacketContext`1.Sender">
+            <inheritdoc/>
+        </member>
+        <member name="P:Nalix.Runtime.Dispatching.PacketContext`1.CancellationToken">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketContext`1.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Runtime.Dispatching.PacketContext`1"/> class for pooling.
+            </summary>
+            <remarks>
+            The constructor leaves the context in the pooled state with placeholder
+            values so the object pool can hand it out later through <see cref="M:Nalix.Runtime.Dispatching.PacketContext`1.Initialize(`0,Nalix.Abstractions.Networking.IConnection,Nalix.Abstractions.Networking.Packets.PacketMetadata,System.Boolean,System.Boolean,System.Threading.CancellationToken)"/>.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketContext`1.Initialize(`0,Nalix.Abstractions.Networking.IConnection,Nalix.Abstractions.Networking.Packets.PacketMetadata,System.Boolean,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+            Initializes the context with the specified packet, connection, and metadata.
+            </summary>
+            <param name="packet">The packet to process.</param>
+            <param name="connection">The connection associated with the packet.</param>
+            <param name="descriptor">The metadata describing the packet.</param>
+            <param name="reliable">Whether the packet was received over a reliable transport.</param>
+            <param name="ownsPacket">Indicates whether the context owns the packet and is responsible for its disposal.</param>
+            <param name="token">The cancellation token for the context.</param>
+            <remarks>
+            This method marks the pooled instance as in use before populating the
+            packet-specific fields so the dispatcher can return it safely later.
+            </remarks>
+            <exception cref="T:Nalix.Abstractions.Exceptions.InternalErrorException"></exception>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketContext`1.Return">
+            <summary>
+            Returns the context to the object pool once dispatch has finished with it.
+            </summary>
+            <remarks>
+            The state transition prevents double-return and makes the pool handoff idempotent
+            if multiple cleanup paths race to dispose the same context.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketContext`1.ResetForPool">
+            <summary>
+            Resets the context so it can be safely reused by the object pool.
+            </summary>
+            <remarks>
+            The sender is returned to the shared pool first, then all packet-specific
+            references are cleared so the next renter sees a clean context.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketContext`1.Dispose">
+            <summary>
+            Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Dispatching.PacketContextBridge">
+            <summary>
+            Provides a zero-reflection bridge to transition from a generic IPacket context
+            to a strongly-typed context for specific packet handlers.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketContextBridge.Create``2(Nalix.Runtime.Dispatching.PacketContext{``1},``0)">
+            <summary>
+            Creates a strongly-typed packet context by renting from the object pool
+            and initializing it with the properties of the base context.
+            </summary>
+            <typeparam name="TConcrete">The concrete packet type.</typeparam>
+            <typeparam name="TBase">The base packet type of the pipeline.</typeparam>
+            <param name="baseContext">The original generic packet context.</param>
+            <param name="concretePacket">The downcasted concrete packet.</param>
+            <returns>A rented, initialized packet context for the specific type.</returns>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketContextBridge.Return``1(Nalix.Runtime.Dispatching.PacketContext{``0})">
+            <summary>
+            Returns a bridge context to the object pool without disposing the borrowed packet.
+            The original base context retains packet ownership and is responsible for its disposal.
+            </summary>
+            <typeparam name="TConcrete">The concrete packet type.</typeparam>
+            <param name="bridgeContext">The bridge context to return.</param>
+        </member>
+        <member name="T:Nalix.Runtime.Dispatching.PacketDispatchChannel">
+            <summary>
+            High-performance packet dispatch channel with coalesced wake-up signaling.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketDispatchChannel.#ctor(System.Action{Nalix.Runtime.Routing.PacketDispatchOptions{Nalix.Abstractions.Networking.Packets.IPacket}})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Runtime.Dispatching.PacketDispatchChannel"/> class.
+            </summary>
+            <param name="options">Option builder.</param>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketDispatchChannel.Activate(System.Threading.CancellationToken)">
+            <summary>
+            Starts background dispatch workers.
+            </summary>
+            <param name="cancellationToken">External cancellation token.</param>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketDispatchChannel.Deactivate(System.Threading.CancellationToken)">
+            <summary>
+            Stops dispatch workers.
+            </summary>
+            <param name="cancellationToken">Unused optional token for compatibility.</param>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketDispatchChannel.HandlePacket(Nalix.Abstractions.IBufferLease,Nalix.Abstractions.Networking.IConnection)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketDispatchChannel.GenerateReport">
+            <summary>
+            Generates a human-readable diagnostic report.
+            </summary>
+            <returns>Formatted report.</returns>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketDispatchChannel.WriteReportData(System.Text.Json.Utf8JsonWriter)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketDispatchChannel.Dispose">
+            <summary>
+            Releases dispatcher resources.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Dispatching.PacketDispatcherBase`1">
+            <summary>
+            Serves as the base class for packet dispatchers, offering Abstractions configuration and logging support.
+            </summary>
+            <typeparam name="TPacket">
+            The packet type that implements both <see cref="T:Nalix.Abstractions.Networking.Packets.IPacket"/>.
+            </typeparam>
+        </member>
+        <member name="P:Nalix.Runtime.Dispatching.PacketDispatcherBase`1.Options">
+            <summary>
+            Gets the configuration options for this dispatcher instance.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketDispatcherBase`1.#ctor(Nalix.Runtime.Routing.PacketDispatchOptions{`0})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Runtime.Dispatching.PacketDispatcherBase`1"/> class
+            using the provided <paramref name="options"/>.
+            </summary>
+            <param name="options">
+            The dispatcher configuration options. Must not be <see langword="null"/>.
+            </param>
+            <exception cref="T:System.ArgumentNullException">
+            Thrown if <paramref name="options"/> is <see langword="null"/>.
+            </exception>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketDispatcherBase`1.#ctor(System.Action{Nalix.Runtime.Routing.PacketDispatchOptions{`0}})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Runtime.Dispatching.PacketDispatcherBase`1"/> class
+            with optional configuration logic.
+            </summary>
+            <param name="configure">
+            An optional delegate to configure the <see cref="T:Nalix.Runtime.Routing.PacketDispatchOptions`1"/> instance.
+            </param>
+        </member>
+        <member name="T:Nalix.Runtime.Dispatching.PacketHandlerRegistry">
+            <summary>
+            A registry that acts as a bridge between the compile-time source generated handler bootstraps
+            and the runtime <see cref="T:Nalix.Runtime.Routing.PacketDispatchOptions`1"/>.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketHandlerRegistry.Register(System.Type,Nalix.Runtime.Dispatching.IPacketHandlerCompiler)">
+            <summary>
+            Registers a source-generated compiler callback for a specific controller type.
+            This method is called by the generated ModuleInitializer.
+            </summary>
+            <param name="controllerType">The type of the controller.</param>
+            <param name="compiler">The callback to build the handlers.</param>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketHandlerRegistry.TryBuildHandlers``1(System.Type,Nalix.Runtime.Dispatching.IPacketHandlerBuilder{``0},System.Func{System.Object})">
+            <summary>
+            Attempts to build handlers for the specified controller type using the registered compiler.
+            </summary>
+            <param name="controllerType">The controller type to resolve.</param>
+            <param name="builder">The handler builder to receive the definitions.</param>
+            <param name="factory">The factory to instantiate the controller if needed.</param>
+            <returns>True if a compiler was found and handlers were built; otherwise, false.</returns>
+        </member>
+        <member name="T:Nalix.Runtime.Dispatching.PacketSender">
+            <summary>
+            Default packet sender that serializes a packet, optionally compresses it,
+            optionally encrypts it, and then forwards the final buffer to the connection.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketSender.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Runtime.Dispatching.PacketSender"/> class.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketSender.Initialize``1(Nalix.Abstractions.Networking.Packets.IPacketContext{``0})">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketSender.ResetForPool">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketSender.SendAsync(Nalix.Abstractions.Networking.Packets.IPacket,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Runtime.Dispatching.PacketSender.SendAsync(Nalix.Abstractions.Networking.Packets.IPacket,System.Boolean,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="T:Nalix.Runtime.Routing.PacketDispatchOptions`1">
+            <summary>
+            Configures how packet handlers are stored, how middleware is applied, and
+            how dispatch failures are reported.
+            </summary>
+            <typeparam name="TPacket">The type of packet being dispatched.</typeparam>
+        </member>
+        <member name="F:Nalix.Runtime.Routing.PacketDispatchOptions`1._errorHandler">
+            <summary>
+            Gets or sets a custom error handler invoked when packet processing fails.
+            </summary>
+            <remarks>
+            If not set, exceptions are only logged. You can override this to trigger alerts or retries.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Runtime.Routing.PacketDispatchOptions`1.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Runtime.Routing.PacketDispatchOptions`1"/> class.
+            </summary>
+            <remarks>
+            The constructor sets up the default transport pipeline so a caller gets a
+            functional decrypt/decompress path without having to wire everything manually.
+            </remarks>
+        </member>
+        <member name="P:Nalix.Runtime.Routing.PacketDispatchOptions`1.Drain">
+            <summary>
+            Gets the concurrency options for draining packets from the channel.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Routing.PacketDispatchOptions`1.Metrics">
+            <summary>
+            Gets the aggregated metrics for the pipeline.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Routing.PacketDispatchOptions`1.MiddlewareMetrics">
+            <summary>
+            Gets the metrics for each individual middleware instance in the pipeline.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Routing.PacketDispatchOptions`1.ExecuteTerminalHandler(Nalix.Runtime.Internal.Compilation.PacketHandler{`0},Nalix.Runtime.Dispatching.PacketContext{`0},System.Threading.CancellationToken)">
+            <summary>
+            Executes the terminal packet handler with explicit parameters.
+            This method replaces the former per-packet-captured InvokeHandlerAsync local function.
+            No delegate, closure, or async state machine is allocated for synchronous completions.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Routing.PacketDispatchOptions`1.MapExceptionToProtocol(System.Exception)">
+            <summary>
+            Maps an exception to the protocol-level response that should be sent back to the peer.
+            </summary>
+            <param name="ex">The exception raised by handler execution or dispatch plumbing.</param>
+            <exception cref="T:System.NotImplementedException"></exception>
+        </member>
+        <member name="M:Nalix.Runtime.Routing.PacketDispatchOptions`1.WithErrorHandling(System.Action{System.Exception,System.UInt16})">
+            <summary>
+            Registers a custom error hook that receives handler exceptions before the dispatcher
+            emits the protocol-level failure response.
+            </summary>
+            <param name="errorHandler">
+            An action that takes an exception and the packet ID, which allows custom handling of errors
+            that occur while processing packets.
+            </param>
+            <returns>
+            The current <see cref="T:Nalix.Runtime.Routing.PacketDispatchOptions`1"/> instance for method chaining.
+            </returns>
+        </member>
+        <member name="M:Nalix.Runtime.Routing.PacketDispatchOptions`1.WithMiddleware(Nalix.Abstractions.Middleware.IPacketMiddleware{`0})">
+            <summary>
+            Adds a packet middleware component to the execution pipeline.
+            </summary>
+            <param name="middleware">
+            The <see cref="T:Nalix.Abstractions.Middleware.IPacketMiddleware`1"/> instance that will be invoked during packet processing.
+            </param>
+            <returns>
+            The current <see cref="T:Nalix.Runtime.Routing.PacketDispatchOptions`1"/> instance for method chaining.
+            </returns>
+        </member>
+        <member name="M:Nalix.Runtime.Routing.PacketDispatchOptions`1.WithDispatchLoopCount(System.Nullable{System.Int32})">
+            <summary>
+            Overrides the number of worker loops used by the packet dispatcher.
+            </summary>
+            <param name="loopCount">
+            The number of worker loops to start. Must be between 1 and 64.
+            If <see langword="null"/>, the dispatcher chooses automatically based on the host CPU.
+            </param>
+            <returns>The current options instance.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException"></exception>
+        </member>
+        <member name="M:Nalix.Runtime.Routing.PacketDispatchOptions`1.WithErrorHandlingMiddleware(System.Boolean,System.Action{System.Exception,System.Type})">
+            <summary>
+            Configures how packet middleware reacts when one of the middleware stages throws.
+            </summary>
+            <param name="continueOnError">
+            A value indicating whether the pipeline should continue processing subsequent middleware
+            when an exception occurs. If <see langword="true"/>, execution continues; otherwise, the
+            pipeline is terminated.
+            </param>
+            <param name="errorHandler">
+            An optional delegate that is invoked when an exception is thrown. The delegate receives
+            the <see cref="T:System.Exception"/> instance and the <see cref="T:System.Type"/> of the packet
+            being processed. If <see langword="null"/>, no custom error handling is applied.
+            </param>
+            <returns>
+            The current <see cref="T:Nalix.Runtime.Routing.PacketDispatchOptions`1"/> instance, allowing for method chaining.
+            </returns>
+            <remarks>
+            This method allows fine-grained control over error handling behavior in the middleware pipeline.
+            Use <paramref name="continueOnError"/> with caution, as continuing after exceptions may lead
+            to inconsistent state depending on middleware implementation.
+            </remarks>
+            <exception cref="T:System.ArgumentNullException">
+            Thrown if required dependencies within the pipeline are not initialized.
+            </exception>
+        </member>
+        <member name="M:Nalix.Runtime.Routing.PacketDispatchOptions`1.WithHandler``1">
+            <summary>
+            Registers a controller type and scans its public methods for packet handler attributes.
+            The controller is instantiated via <see cref="M:Nalix.Framework.Injection.InstanceManager.CreateInstanceWithInjection``1"/>,
+            which auto-resolves constructor parameters from the instance cache.
+            </summary>
+            <typeparam name="TController">The type of the controller to register.</typeparam>
+            <returns>The current <see cref="T:Nalix.Runtime.Routing.PacketDispatchOptions`1"/> instance for chaining.</returns>
+        </member>
+        <member name="M:Nalix.Runtime.Routing.PacketDispatchOptions`1.WithHandler``1(``0)">
+            <summary>
+            Registers a handler using an existing controller instance.
+            </summary>
+            <typeparam name="TController">The type of the controller to register.</typeparam>
+            <param name="instance">An existing instance of <typeparamref name="TController"/>.</param>
+            <returns>
+            The current <see cref="T:Nalix.Runtime.Routing.PacketDispatchOptions`1"/> instance for chaining.
+            </returns>
+        </member>
+        <member name="M:Nalix.Runtime.Routing.PacketDispatchOptions`1.WithHandler``1(System.Func{``0})">
+            <summary>
+            Registers a controller factory and scans the produced instance for packet handlers.
+            </summary>
+            <typeparam name="TController">
+            The type of the controller to register.
+            </typeparam>
+            <param name="factory">
+            A function that returns an instance of <typeparamref name="TController"/>.
+            </param>
+            <returns>The current <see cref="T:Nalix.Runtime.Routing.PacketDispatchOptions`1"/> instance for chaining.</returns>
+            <remarks>
+            During registration the dispatcher does more than just compile delegates:
+            it also records the concrete packet type expected by each handler so it can
+            warn about runtime type mismatches before the handler body runs.
+            <para>
+            This is especially important for legacy direct-packet handlers, because a
+            mismatch there would otherwise surface later as an expression-tree cast
+            failure with very little context.
+            </para>
+            <para>
+            Context-style handlers do not need that extra mapping because the packet is
+            carried inside <c>PacketContext&lt;TPacket&gt;</c> and the handler can decide
+            how to inspect it.
+            </para>
+            </remarks>
+            <exception cref="T:Nalix.Abstractions.Exceptions.InternalErrorException"></exception>
+        </member>
+        <member name="M:Nalix.Runtime.Routing.PacketDispatchOptions`1.WithHandler(System.Type)">
+            <summary>
+            Registers a controller type directly, primarily for static classes.
+            </summary>
+            <param name="controllerType">The type of the controller to register.</param>
+            <returns>The current <see cref="T:Nalix.Runtime.Routing.PacketDispatchOptions`1"/> instance for chaining.</returns>
+        </member>
+        <member name="M:Nalix.Runtime.Routing.PacketDispatchOptions`1.WithHandler(System.Type,System.Func{System.Object})">
+            <summary>
+            Registers a controller type directly with a factory for instantiation.
+            </summary>
+            <param name="controllerType">The type of the controller to register.</param>
+            <param name="factory">The factory to create instances of the controller.</param>
+            <returns>The current <see cref="T:Nalix.Runtime.Routing.PacketDispatchOptions`1"/> instance for chaining.</returns>
+        </member>
+        <member name="M:Nalix.Runtime.Routing.PacketDispatchOptions`1.Nalix#Runtime#Dispatching#IPacketHandlerBuilder{TPacket}#RegisterHandler(System.UInt16,Nalix.Abstractions.Networking.Packets.PacketMetadata,System.String,System.Object,System.Type,System.Type,System.Func{System.Object,Nalix.Runtime.Dispatching.PacketContext{`0},System.Threading.Tasks.ValueTask{System.Object}})">
+            <summary>
+            Registers a new packet handler generated by the source generator.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Routing.PacketDispatchOptions`1.TryResolveHandler(System.UInt16,Nalix.Runtime.Internal.Compilation.PacketHandler{`0}@)">
+            <summary>
+            Attempts to resolve a cached packet handler descriptor for the specified opcode.
+            </summary>
+            <param name="opCode">The opcode of the packet handler to resolve.</param>
+            <param name="handler">
+            When this method returns, contains the cached handler descriptor associated with
+            <paramref name="opCode"/>.
+            </param>
+            <returns>
+            <see langword="true"/> if a handler descriptor was found; otherwise <see langword="false"/>.
+            </returns>
+        </member>
+        <member name="M:Nalix.Runtime.Routing.PacketDispatchOptions`1.ExecuteResolvedHandlerAsync(Nalix.Runtime.Internal.Compilation.PacketHandler{`0}@,`0,Nalix.Abstractions.Networking.IConnection,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+            Executes a resolved handler with a pooled packet context and returns the context
+            to the object pool afterward.
+            </summary>
+            <param name="descriptor">Resolved handler descriptor.</param>
+            <param name="packet">Incoming packet.</param>
+            <param name="connection">Source connection.</param>
+            <param name="reliable">Indicates whether the packet was received via a reliable transport.</param>
+            <param name="token">Cancellation token for dispatch.</param>
+        </member>
+        <member name="T:Nalix.Runtime.Extensions.ConnectionExtensions">
+            <summary>
+            Provides extension methods for <see cref="T:Nalix.Abstractions.Networking.IConnectionHub"/> to support packet-based broadcast and multicast.
+            </summary>
+            <summary>
+            Provides extension methods for the <see cref="T:Nalix.Abstractions.Networking.IConnection"/> interface to support connection management operations.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Extensions.ConnectionExtensions.BroadcastAsync(Nalix.Abstractions.Networking.IConnectionBroadcaster,Nalix.Abstractions.Networking.Packets.IPacket,Nalix.Abstractions.Networking.NetworkTransport,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+            Broadcasts a packet to all active connections.
+            The packet is serialized once, and the compression/encryption pipeline is applied per-connection.
+            </summary>
+            <param name="hub">The connection hub.</param>
+            <param name="packet">The packet to broadcast.</param>
+            <param name="transport">The network transport protocol to use.</param>
+            <param name="enableEncrypt">Whether to encrypt the packet (defaults to true).</param>
+            <param name="cancellationToken">A token to cancel the operation.</param>
+            <returns>A task representing the asynchronous broadcast operation.</returns>
+        </member>
+        <member name="M:Nalix.Runtime.Extensions.ConnectionExtensions.MulticastAsync(Nalix.Abstractions.Networking.IConnectionBroadcaster,System.Collections.Generic.IReadOnlyCollection{Nalix.Abstractions.Networking.IConnection},Nalix.Abstractions.Networking.Packets.IPacket,Nalix.Abstractions.Networking.NetworkTransport,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+            Multicasts a packet to a specific collection of connections.
+            The packet is serialized once, and the compression/encryption pipeline is applied per-connection.
+            </summary>
+            <param name="hub">The connection hub.</param>
+            <param name="connections">The read-only collection of connections to receive the message.</param>
+            <param name="packet">The packet to multicast.</param>
+            <param name="transport">The network transport protocol to use.</param>
+            <param name="enableEncrypt">Whether to encrypt the packet (defaults to true).</param>
+            <param name="cancellationToken">A token to cancel the operation.</param>
+            <returns>A task representing the asynchronous multicast operation.</returns>
+        </member>
+        <member name="M:Nalix.Runtime.Extensions.ConnectionExtensions.GetRuntimeState(Nalix.Abstractions.Networking.IConnection)">
+            <summary>
+            Gets or creates the runtime specific state for the connection.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Extensions.ConnectionExtensions.GetSequenceState(Nalix.Abstractions.Networking.IConnection)">
+            <summary>
+            Gets or creates the sequence state for the connection.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Extensions.ConnectionExtensions.GetHub(Nalix.Abstractions.Networking.IConnection)">
+            <summary>
+            Gets the connection hub that owns this connection from its attributes.
+            </summary>
+            <param name="connection">The connection to get the hub for.</param>
+            <returns>The owning <see cref="T:Nalix.Abstractions.Networking.IConnectionHub"/>, or <c>null</c> if not found.</returns>
+        </member>
+        <member name="M:Nalix.Runtime.Extensions.ConnectionExtensions.SendAsync(Nalix.Abstractions.Networking.Packets.IPacketSender,Nalix.Abstractions.Networking.Protocols.ControlType,Nalix.Abstractions.Networking.Protocols.ProtocolReason,Nalix.Abstractions.Networking.Protocols.ProtocolAdvice,Nalix.Runtime.Extensions.ControlDirectiveOptions)">
+            <summary>
+            Sends a control directive asynchronously over the connection.
+            </summary>
+            <param name="sender">The connection to send the directive on.</param>
+            <param name="controlType">The type of control message to send.</param>
+            <param name="reason">The reason code associated with the control message.</param>
+            <param name="action">The suggested action for the recipient.</param>
+            <param name="options">Optional directive metadata and payload arguments.</param>
+            <returns>A task representing the asynchronous send operation.</returns>
+        </member>
+        <member name="M:Nalix.Runtime.Extensions.ConnectionExtensions.SendAsync``1(Nalix.Abstractions.Networking.IConnection,``0,Nalix.Abstractions.Networking.NetworkTransport,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+            Serializes and sends a packet over the specified transport asynchronously, applying the necessary framing (encryption/compression).
+            </summary>
+            <typeparam name="TPacket">The type of the packet.</typeparam>
+            <param name="connection">The connection to send the packet on.</param>
+            <param name="packet">The packet to send.</param>
+            <param name="transport">The transport to use (defaults to TCP).</param>
+            <param name="enableEncrypt">Whether to encrypt the packet (defaults to true).</param>
+            <param name="ct">The cancellation token.</param>
+            <returns>A task representing the asynchronous send operation.</returns>
+        </member>
+        <member name="T:Nalix.Runtime.Extensions.ControlDirectiveOptions">
+            <summary>
+            Optional metadata and payload arguments for a control directive.
+            </summary>
+            <param name="Flags">Optional control flags to include with the message.</param>
+            <param name="SequenceId">
+            Correlation id to map this directive to a prior request (0 = server-initiated / no correlation).
+            </param>
+            <param name="Arg0">Optional argument 0 for the directive.</param>
+            <param name="Arg1">Optional argument 1 for the directive.</param>
+            <param name="Arg2">Optional argument 2 for the directive.</param>
+        </member>
+        <member name="M:Nalix.Runtime.Extensions.ControlDirectiveOptions.#ctor(Nalix.Abstractions.Networking.Protocols.ControlFlags,System.UInt16,System.UInt32,System.UInt32,System.UInt16)">
+            <summary>
+            Optional metadata and payload arguments for a control directive.
+            </summary>
+            <param name="Flags">Optional control flags to include with the message.</param>
+            <param name="SequenceId">
+            Correlation id to map this directive to a prior request (0 = server-initiated / no correlation).
+            </param>
+            <param name="Arg0">Optional argument 0 for the directive.</param>
+            <param name="Arg1">Optional argument 1 for the directive.</param>
+            <param name="Arg2">Optional argument 2 for the directive.</param>
+        </member>
+        <member name="P:Nalix.Runtime.Extensions.ControlDirectiveOptions.Flags">
+            <summary>Optional control flags to include with the message.</summary>
+        </member>
+        <member name="P:Nalix.Runtime.Extensions.ControlDirectiveOptions.SequenceId">
+            <summary>
+            Correlation id to map this directive to a prior request (0 = server-initiated / no correlation).
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Extensions.ControlDirectiveOptions.Arg0">
+            <summary>Optional argument 0 for the directive.</summary>
+        </member>
+        <member name="P:Nalix.Runtime.Extensions.ControlDirectiveOptions.Arg1">
+            <summary>Optional argument 1 for the directive.</summary>
+        </member>
+        <member name="P:Nalix.Runtime.Extensions.ControlDirectiveOptions.Arg2">
+            <summary>Optional argument 2 for the directive.</summary>
+        </member>
+        <member name="T:Nalix.Runtime.Handlers.HandshakeHandlers">
+            <summary>
+            Provides handlers for the default server-side X25519 handshake protocol.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Handlers.HandshakeHandlers.HandleSessionInitAsync(Nalix.Abstractions.Networking.Packets.IPacketContext{Nalix.Codec.ProtocolFrames.SessionInit})">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Runtime.Handlers.HandshakeHandlers.HandleSessionProofAsync(Nalix.Abstractions.Networking.Packets.IPacketContext{Nalix.Codec.ProtocolFrames.SessionProof})">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Runtime.Handlers.HandshakeHandlers.Initialize">
+            <summary>
+            Initializes the handshake handlers with the default certificate.
+            </summary>
+            <remarks>
+            This is called automatically by the host builder if no custom certificate path is specified.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Runtime.Handlers.HandshakeHandlers.SetCertificatePath(System.String)">
+            <summary>
+            Sets a custom path for the server identity certificate and initializes it.
+            </summary>
+            <param name="path">The absolute path to the certificate file.</param>
+        </member>
+        <member name="M:Nalix.Runtime.Handlers.HandshakeHandlers.ConfigureContextPool(System.Int32,System.Int32)">
+            <summary>
+            Configures the internal object pool limits for handshake contexts.
+            </summary>
+            <param name="maxCapacity">The maximum number of contexts to retain in the pool.</param>
+            <param name="preallocCount">The number of contexts to preallocate immediately.</param>
+        </member>
+        <member name="P:Nalix.Runtime.Handlers.HandshakeHandlers.ServerPublicKey">
+            <summary>
+            Gets the server's public key (derived from the certificate).
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Handlers.ProofOfWorkHandlers">
+            <summary>
+            Provides handlers for Proof-of-Work negotiation and verification.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Handlers.ProofOfWorkHandlers.HandleAsync(Nalix.Abstractions.Networking.Packets.IPacketContext{Nalix.Codec.ProtocolFrames.ProofOfWorkProof})">
+            <summary>
+            Handles the incoming POW_PROOF packet containing the client's solution.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Handlers.SessionHandlers">
+            <summary>
+            Handles dedicated session resume packets.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Handlers.SessionHandlers.HandleAsync(Nalix.Abstractions.Networking.Packets.IPacketContext{Nalix.Codec.ProtocolFrames.SessionResume})">
+            <summary>
+            Handles a session resume request and restores the connection state when the token is valid.
+            </summary>
+            <param name="context">The typed packet context for the incoming session signal.</param>
+            <returns>The acknowledgement signal when the resume succeeds; otherwise <see langword="null"/> after disconnecting.</returns>
+        </member>
+        <member name="M:Nalix.Runtime.Handlers.SessionHandlers.RestoreSessionSnapshot(Nalix.Abstractions.Networking.IConnection,Nalix.Abstractions.Networking.Sessions.SessionEntry)">
+            <summary>
+            Restores the saved session snapshot onto the live connection before acknowledging resume.
+            </summary>
+            <param name="connection">The connection being resumed.</param>
+            <param name="session">The stored session entry.</param>
+        </member>
+        <member name="M:Nalix.Runtime.Handlers.SessionHandlers.HandleFailureAsync(Nalix.Abstractions.Networking.Packets.IPacketContext{Nalix.Codec.ProtocolFrames.SessionResume},Nalix.Abstractions.Networking.Protocols.ProtocolReason)">
+            <summary>
+            Sends a failure acknowledgement and disconnects the connection.
+            </summary>
+            <param name="context">The connection to close.</param>
+            <param name="reason">The failure reason to report.</param>
+        </member>
+        <member name="T:Nalix.Runtime.Handlers.SessionRekeyHandlers">
+            <summary>
+            Handles session rekey packets to perform symmetric key rotation mid-session and prevent sequence counter overflows.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Handlers.SessionRekeyHandlers.HandleAsync(Nalix.Abstractions.Networking.Packets.IPacketContext{Nalix.Codec.ProtocolFrames.SessionRekey})">
+            <summary>
+            Handles a session rekey request, updates the session secret, resets sequence counters, and sends an ACK.
+            </summary>
+            <param name="context">The typed packet context for the incoming rekey signal.</param>
+            <returns>A ValueTask representing the asynchronous operation.</returns>
+        </member>
+        <member name="T:Nalix.Runtime.Handlers.SystemControlHandlers">
+            <summary>
+            Provides handlers for system-level control packets like PING and PONG.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Handlers.SystemControlHandlers.HandleAsync(Nalix.Abstractions.Networking.Packets.IPacketContext{Nalix.Codec.ProtocolFrames.Control})">
+            <summary>
+            Handles incoming system control packets.
+            </summary>
+            <param name="context">The packet context.</param>
+            <returns>A responding control packet or null.</returns>
+        </member>
+        <member name="M:Nalix.Runtime.Handlers.SystemControlHandlers.HandlePowRequestAsync(Nalix.Abstractions.Networking.Packets.IPacketContext{Nalix.Codec.ProtocolFrames.Control})">
+            <summary>
+            Handles the incoming POW_REQUEST control packet.
+            Note: This method is called directly by SystemControlHandlers, so it does not need a [PacketOpcode] attribute.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Handlers.SystemTimeSyncHandlers">
+            <summary>
+            Provides handlers for system-level time synchronization packets (PING, PONG, TIMESYNC).
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Handlers.SystemTimeSyncHandlers.HandleAsync(Nalix.Abstractions.Networking.Packets.IPacketContext{Nalix.Codec.ProtocolFrames.TimeSync})">
+            <summary>
+            Handles incoming time synchronization packets.
+            </summary>
+            <param name="context">The packet context.</param>
+            <returns>A responding TimeSync packet or null.</returns>
+        </member>
+        <member name="T:Nalix.Runtime.Internal.Compilation.PacketHandler`1">
+            <summary>
+            Immutable dispatch record that pairs packet metadata with the compiled invoker
+            used to execute a packet handler without reflection on the hot path.
+            </summary>
+            <typeparam name="TPacket">The packet type handled by this delegate.</typeparam>
+            <param name="opCode">The opcode mapped to this handler.</param>
+            <param name="metadata">Dispatch metadata used for runtime policies.</param>
+            <param name="controllerInstance">The controller instance that owns the handler method.</param>
+            <param name="methodName">The name of the handler method.</param>
+            <param name="returnType">The handler return type.</param>
+            <param name="compiledInvoker">Compiled delegate used to invoke the handler.</param>
+            <param name="expectedPacketType">
+            Cached concrete packet runtime type expected by the handler, or <see langword="null"/>
+            when runtime packet type checks are not required.
+            </param>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Compilation.PacketHandler`1.#ctor(System.UInt16,Nalix.Abstractions.Networking.Packets.PacketMetadata,System.Object,System.String,System.Type,System.Func{System.Object,Nalix.Runtime.Dispatching.PacketContext{`0},System.Threading.Tasks.ValueTask{System.Object}},System.Type)">
+            <summary>
+            Immutable dispatch record that pairs packet metadata with the compiled invoker
+            used to execute a packet handler without reflection on the hot path.
+            </summary>
+            <typeparam name="TPacket">The packet type handled by this delegate.</typeparam>
+            <param name="opCode">The opcode mapped to this handler.</param>
+            <param name="metadata">Dispatch metadata used for runtime policies.</param>
+            <param name="controllerInstance">The controller instance that owns the handler method.</param>
+            <param name="methodName">The name of the handler method.</param>
+            <param name="returnType">The handler return type.</param>
+            <param name="compiledInvoker">Compiled delegate used to invoke the handler.</param>
+            <param name="expectedPacketType">
+            Cached concrete packet runtime type expected by the handler, or <see langword="null"/>
+            when runtime packet type checks are not required.
+            </param>
+        </member>
+        <member name="F:Nalix.Runtime.Internal.Compilation.PacketHandler`1.OpCode">
+            <summary>
+            The OpCode associated with this packet handler.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.Internal.Compilation.PacketHandler`1.ReturnType">
+            <summary>
+            The return type of the handler method.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.Internal.Compilation.PacketHandler`1.Metadata">
+            <summary>
+            Metadata for this handler, including timeout, rate limiting, and permissions.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.Internal.Compilation.PacketHandler`1.Instance">
+            <summary>
+            The controller instance to invoke the handler on (cached for reuse).
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.Internal.Compilation.PacketHandler`1.MethodName">
+            <summary>
+            The name of the handler method, useful for debugging or logging.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.Internal.Compilation.PacketHandler`1.Invoker">
+            <summary>
+            A compiled delegate for invoking the handler directly.
+            This is the performance-critical entry point used every time a packet is dispatched.
+            It avoids reflection, parameter boxing, and per-call delegate allocation.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.Internal.Compilation.PacketHandler`1.ExpectedPacketType">
+            <summary>
+            Concrete packet type expected by this handler, or <see langword="null"/>
+            when no strict runtime type check is required.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Compilation.PacketHandler`1.ExecuteAsync(Nalix.Runtime.Dispatching.PacketContext{`0})">
+            <summary>
+            Executes the handler using the compiled delegate for maximum performance.
+            This is the zero-allocation path that the dispatcher calls for every packet.
+            </summary>
+            <param name="context">The packet context containing the request and metadata.</param>
+            <returns>
+            A <see cref="T:System.Threading.Tasks.ValueTask`1"/> that completes with the handler’s result.
+            </returns>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Compilation.PacketHandler`1.CanExecute(Nalix.Runtime.Dispatching.PacketContext{`0})">
+            <summary>
+            Determines whether this handler can be executed for the specified packet context.
+            </summary>
+            <param name="context">The packet context to validate for execution.</param>
+            <returns><see langword="true"/> if the handler can be executed; otherwise, <see langword="false"/>.</returns>
+            <remarks>
+            This method can be extended to implement validation logic such as:
+            <list type="bullet">
+            <item><description>Permission checks</description></item>
+            <item><description>Rate limiting</description></item>
+            <item><description>Custom filters</description></item>
+            </list>
+            </remarks>
+        </member>
+        <member name="T:Nalix.Runtime.Internal.Diagnostics.ThrottleKey">
+            <summary>
+            Represents a pre-computed throttle key that eliminates per-call string allocation.
+            Construct once (typically as a <c>static readonly</c> field), reuse forever.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Internal.Diagnostics.ThrottleKey.AttributeKey">
+            <summary>
+            The fully-qualified attribute key (<c>"sys.log." + name</c>).
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Diagnostics.ThrottleKey.#ctor(System.String)">
+            <summary>
+            Creates a new <see cref="T:Nalix.Runtime.Internal.Diagnostics.ThrottleKey"/>.
+            </summary>
+            <param name="name">
+            A short, dot-separated name that uniquely identifies the throttle bucket
+            (e.g. <c>"dispatch.execute"</c>).
+            </param>
+            <exception cref="T:System.ArgumentException">
+            Thrown when <paramref name="name"/> is <see langword="null"/> or empty.
+            </exception>
+        </member>
+        <member name="T:Nalix.Runtime.Internal.Diagnostics.DiagnosticThrottleExtensions">
+            <summary>
+            Provides extension methods for throttled diagnostic logging using connection attributes.
+            Prevents log flooding for events that happen frequently per-connection.
+            Uses the same throttle window and suppression logic as the former ILogger-based implementation.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Diagnostics.DiagnosticThrottleExtensions.ThrottledDiagnosticWarning(Nalix.Abstractions.Networking.IConnection,System.String,Nalix.Runtime.Internal.Diagnostics.ThrottleKey,System.String,System.String)">
+            <summary>
+            Emits a throttled warning-level diagnostic event.
+            At most one event is emitted per 20-second window per connection per key.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Diagnostics.DiagnosticThrottleExtensions.ThrottledDiagnosticError(Nalix.Abstractions.Networking.IConnection,System.String,Nalix.Runtime.Internal.Diagnostics.ThrottleKey,System.String,System.String,System.Exception)">
+            <summary>
+            Emits a throttled error-level diagnostic event.
+            At most one event is emitted per 20-second window per connection per key.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Internal.Pipelines.PacketPipeline">
+            <summary>
+            Shared zero-allocation helpers for serializing and framing packets.
+            Used by both PacketSender (unicast) and ConnectionHubExtensions (broadcast/multicast).
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Pipelines.PacketPipeline.Serialize(Nalix.Abstractions.Networking.Packets.IPacket)">
+            <summary>
+            Serializes a packet into a pooled BufferLease.
+            The caller owns the returned lease and must dispose it.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Pipelines.PacketPipeline.ProcessAndSendAsync(Nalix.Abstractions.Networking.IConnection,Nalix.Abstractions.Networking.IConnection.ITransport,Nalix.Abstractions.IBufferLease,System.Boolean,System.Boolean,System.Int32,System.Threading.CancellationToken,System.Boolean)">
+            <summary>
+            Applies FramePipeline.ProcessOutbound + UDP signing (if applicable) per-connection,
+            then sends via the specified transport.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource">
+            <inheritdoc />
+        </member>
+        <member name="P:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource.IsActive">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource.OnRent">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource.ResetForPool">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource.Await(System.Threading.Tasks.ValueTask,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource.System#Threading#Tasks#Sources#IValueTaskSource#GetResult(System.Int16)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource.System#Threading#Tasks#Sources#IValueTaskSource#GetStatus(System.Int16)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource.System#Threading#Tasks#Sources#IValueTaskSource#OnCompleted(System.Action{System.Object},System.Object,System.Int16,System.Threading.Tasks.Sources.ValueTaskSourceOnCompletedFlags)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource.Start(System.Threading.Tasks.ValueTask,System.Threading.CancellationToken)">
+            <summary>
+            Bắt đầu race giữa <paramref name="task"/> và <paramref name="cancellationToken"/>.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource.AwaitTaskAsync(System.Threading.Tasks.ValueTask)">
+            <summary>
+            Await task gốc và forward kết quả vào <see cref="F:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource._core"/>.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource`1">
+            <summary>
+            Provides a pooled <see cref="T:System.Threading.Tasks.Sources.IValueTaskSource`1"/> that enables awaiting a <see cref="T:System.Threading.Tasks.ValueTask`1"/>
+            with cancellation support without allocating a <see cref="T:System.Threading.Tasks.Task"/> via <c>AsTask()</c>.
+            </summary>
+            <typeparam name="T">The result type of the underlying operation.</typeparam>
+            <remarks>
+            <para>
+            This type is designed for high-performance scenarios where <see cref="T:System.Threading.Tasks.ValueTask`1"/> is used
+            and allocations on the asynchronous path must be minimized.
+            </para>
+            <para>
+            Instances are managed by an <see cref="T:Nalix.Framework.Memory.Objects.ObjectPoolManager"/> and must not be created directly.
+            Use <see cref="M:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource`1.Await(System.Threading.Tasks.ValueTask{`0},System.Threading.CancellationToken)"/> to obtain a usable <see cref="T:System.Threading.Tasks.ValueTask`1"/>.
+            </para>
+            <para>
+            Lifecycle:
+            <list type="number">
+            <item>
+            Rent from pool and initialize via <see cref="M:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource`1.Await(System.Threading.Tasks.ValueTask{`0},System.Threading.CancellationToken)"/>.
+            </item>
+            <item>
+            Await the returned <see cref="T:System.Threading.Tasks.ValueTask`1"/>.
+            </item>
+            <item>
+            The instance is automatically returned to the pool after <see cref="M:System.Threading.Tasks.Sources.IValueTaskSource`1.GetResult(System.Int16)"/> completes.
+            </item>
+            </list>
+            </para>
+            <para>
+            This type is not thread-safe for concurrent consumption of the same instance.
+            </para>
+            </remarks>
+        </member>
+        <member name="P:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource`1.IsActive">
+            <summary>
+            Gets a value indicating whether the instance is currently in use.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource`1.OnRent">
+            <summary>
+            Initializes the instance after it is rented from the pool.
+            </summary>
+            <remarks>
+            This method is called by the pool infrastructure and should not be invoked manually.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource`1.ResetForPool">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource`1.Await(System.Threading.Tasks.ValueTask{`0},System.Threading.CancellationToken)">
+            <summary>
+            Creates a <see cref="T:System.Threading.Tasks.ValueTask`1"/> that awaits the specified <paramref name="task"/>
+            with support for cancellation.
+            </summary>
+            <param name="task">The operation to await.</param>
+            <param name="cancellationToken">A token used to cancel the operation.</param>
+            <returns>
+            A <see cref="T:System.Threading.Tasks.ValueTask`1"/> that completes when either the underlying operation
+            completes or the cancellation token is triggered.
+            </returns>
+            <remarks>
+            <para>
+            Fast paths:
+            <list type="bullet">
+            <item>
+            If <paramref name="task"/> has already completed successfully, it is returned directly.
+            </item>
+            <item>
+            If <paramref name="cancellationToken"/> cannot be canceled, the original task is returned.
+            </item>
+            <item>
+            If the token is already canceled, a canceled <see cref="T:System.Threading.Tasks.ValueTask`1"/> is returned.
+            </item>
+            </list>
+            </para>
+            <para>
+            Otherwise, a pooled <see cref="T:System.Threading.Tasks.Sources.IValueTaskSource`1"/> is used to coordinate completion
+            between the task and the cancellation token.
+            </para>
+            </remarks>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource`1.System#Threading#Tasks#Sources#IValueTaskSource{T}#GetResult(System.Int16)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource`1.System#Threading#Tasks#Sources#IValueTaskSource{T}#GetStatus(System.Int16)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource`1.System#Threading#Tasks#Sources#IValueTaskSource{T}#OnCompleted(System.Action{System.Object},System.Object,System.Int16,System.Threading.Tasks.Sources.ValueTaskSourceOnCompletedFlags)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource`1.AwaitTaskAsync(System.Threading.Tasks.ValueTask{`0})">
+            <summary>
+            Await task gốc và forward kết quả vào <see cref="F:Nalix.Runtime.Internal.Pooling.CancellableValueTaskSource`1._core"/>.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Internal.RateLimiting.DirectiveGuard">
+            <summary>
+            Connection-scoped anti-spam guard for inbound directive responses.
+            Uses connection attributes to track last send times and suppress burst replies.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.RateLimiting.DirectiveGuard.TryAcquire(Nalix.Abstractions.Networking.IConnection,System.Func{Nalix.Runtime.Internal.RuntimeConnectionState,System.Int64},System.Action{Nalix.Runtime.Internal.RuntimeConnectionState,System.Int64},System.Nullable{System.Int32})">
+            <summary>
+            Attempts to acquire permission to send a directive for the provided attribute key.
+            </summary>
+            <param name="connection">Target connection.</param>
+            <param name="stateSelector">A function to select the timestamp field from RuntimeConnectionState.</param>
+            <param name="stateUpdater">An action to update the timestamp field in RuntimeConnectionState.</param>
+            <param name="cooldownMs">
+            Optional cooldown window in milliseconds. If null, <see cref="P:Nalix.Runtime.Options.DirectiveGuardOptions.DefaultCooldownMs"/> is used.
+            </param>
+            <returns>
+            <c>true</c> if sending is allowed now; otherwise <c>false</c> when suppressed by cooldown.
+            </returns>
+        </member>
+        <member name="T:Nalix.Runtime.Internal.Routing.DispatchChannel`1">
+            <summary>
+            Provides a priority-aware dispatch channel optimized for high-frequency enqueue/dequeue traffic.
+            </summary>
+            <typeparam name="TPacket">The packet type handled by the channel.</typeparam>
+        </member>
+        <member name="P:Nalix.Runtime.Internal.Routing.DispatchChannel`1.TotalPackets">
+            <summary>
+            Gets the total queued packet count across all connections.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Internal.Routing.DispatchChannel`1.PeakPackets">
+            <summary>
+            Gets the highest number of queued packets reached.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Internal.Routing.DispatchChannel`1.HasPacket">
+            <summary>
+            Gets a value indicating whether any packet is available.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Internal.Routing.DispatchChannel`1.TotalConnections">
+            <summary>
+            Gets the total number of active connections currently tracked by the channel.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Internal.Routing.DispatchChannel`1.ReadyConnections">
+            <summary>
+            Gets the number of connections that currently have at least one packet ready to be dispatched.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Internal.Routing.DispatchChannel`1.TotalEvicted">
+            <summary>
+            Gets the total number of packets evicted (dropped) because of capacity limits.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Internal.Routing.DispatchChannel`1.PendingPerPriority">
+            <summary>
+            Gets a snapshot of the number of ready connections per priority level.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Routing.DispatchChannel`1.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Runtime.Internal.Routing.DispatchChannel`1"/> class.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Routing.DispatchChannel`1.TryClaim(Nalix.Runtime.Dispatching.IDispatchSession@)">
+            <summary>
+            Attempts to claim exclusive processing rights over a connection's mailbox.
+            Uses Weighted Round-Robin (DRR) to prevent priority starvation.
+            The returned session grants sole ownership of the connection's packet queue;
+            disposing it releases the claim and re-enqueues the connection if it still
+            has pending packets.
+            </summary>
+            <param name="session">The exclusive dispatch session when successful.</param>
+            <returns><see langword="true"/> when a connection was claimed.</returns>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Routing.DispatchChannel`1.Release(Nalix.Runtime.Internal.Routing.DispatchChannel{`0}.ConnectionState)">
+            <summary>
+            Releases a previously claimed connection back to the ready queue
+            if it still has pending packets.
+            </summary>
+            <param name="state">The connection state to release.</param>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Routing.DispatchChannel`1.Push(Nalix.Abstractions.Networking.IConnection,Nalix.Abstractions.IBufferLease)">
+            <summary>
+            Enqueues a packet for a specific connection.
+            </summary>
+            <param name="connection">The destination connection.</param>
+            <param name="raw">The packet lease to enqueue.</param>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Routing.DispatchChannel`1.Dispose">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Routing.DispatchChannel`1.PushCore(Nalix.Abstractions.Networking.IConnection,Nalix.Abstractions.IBufferLease,System.Boolean@,System.Boolean)">
+            <summary>
+            Enqueues a packet and reports whether a new ready entry was generated.
+            </summary>
+            <param name="connection">The destination connection.</param>
+            <param name="raw">The packet lease to enqueue.</param>
+            <param name="readyEmitted">When <see langword="true"/>, indicates that a ready queue entry was emitted.</param>
+            <param name="noBlock">When <see langword="true"/>, block-mode overflow will fail fast instead of waiting for capacity.</param>
+            <returns><see langword="true"/> if the packet was successfully enqueued.</returns>
+        </member>
+        <member name="T:Nalix.Runtime.Internal.Routing.DispatchChannel`1.DispatchSession">
+            <summary>
+            Grants exclusive processing rights over a single connection's mailbox.
+            While the session is active, only the holder may dequeue packets from
+            the underlying connection, guaranteeing strict in-order delivery.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Internal.Routing.DispatchChannel`1.DispatchSession.Connection">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Routing.DispatchChannel`1.DispatchSession.TryDequeue(Nalix.Abstractions.IBufferLease@)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.Routing.DispatchChannel`1.DispatchSession.Dispose">
+            <summary>
+            Releases the exclusive claim. If the connection still has pending
+            packets, it is re-enqueued into the ready queue for any worker
+            to claim next.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Internal.Routing.PaddedSequence">
+            <summary>
+            Cache-line padded 64-bit counter used to reduce false sharing on hot atomic counters.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Internal.RuntimeConnectionState">
+            <summary>
+            Maintains runtime-specific state for a connection, such as handshake status and directive throttling lock.
+            Pooled to avoid allocations.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.Internal.RuntimeConnectionState.HandshakeState">
+            <summary>
+            Gets or sets the handshake context state stored during the negotiation process.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.Internal.RuntimeConnectionState.HandshakeEstablished">
+            <summary>
+            Gets or sets a value indicating whether a handshake has been successfully established.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.Internal.RuntimeConnectionState.InboundDirectiveTimeoutLastSentAtMs">
+            <summary>
+            Stores the last monotonic timestamp (ms) when a TIMEOUT directive was sent.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.Internal.RuntimeConnectionState.InboundDirectiveRateLimitedLastSentAtMs">
+            <summary>
+            Stores the last monotonic timestamp (ms) when a RATE_LIMITED directive was sent.
+            Shared by rate-limit and concurrency middleware to avoid duplicate bursts.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.Internal.RuntimeConnectionState.InboundDirectiveUnauthorizedLastSentAtMs">
+            <summary>
+            Stores the last monotonic timestamp (ms) when an UNAUTHORIZED directive was sent.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.Internal.RuntimeConnectionState.InboundControlLogLastSentAtMs">
+            <summary>
+            Stores the last monotonic timestamp (ms) when a control log entry was emitted.
+            Prevents log flooding from repeated ERROR/FAIL/NOTICE packets.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Internal.RuntimeConnectionState.DirectiveGuardLock">
+            <summary>
+            Synchronization lock used to coordinate anti-spam directive send guards per connection.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Internal.RuntimeConnectionState.ResetForPool">
+            <inheritdoc/>
+        </member>
+        <member name="T:Nalix.Runtime.Middleware.MiddlewarePipeline`1">
+            <summary>
+            Represents a thread-safe middleware pipeline responsible for processing packets
+            through inbound and outbound stages with configurable error handling.
+            </summary>
+            <typeparam name="TPacket">The packet type being processed by the pipeline.</typeparam>
+        </member>
+        <member name="P:Nalix.Runtime.Middleware.MiddlewarePipeline`1.IsEmpty">
+            <summary>
+            Gets a value indicating whether the pipeline has no middleware in any stage.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Middleware.MiddlewarePipeline`1.MiddlewareMetrics">
+            <summary>
+            Gets the metrics for each individual middleware instance.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Middleware.MiddlewarePipeline`1.Metrics">
+            <summary>
+            Gets the aggregated metrics for the pipeline.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Middleware.MiddlewarePipeline`1.Clear">
+            <summary>
+            Clears all registered middleware.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Middleware.MiddlewarePipeline`1.Use(Nalix.Abstractions.Middleware.IPacketMiddleware{`0})">
+            <summary>
+            Registers middleware into the pipeline.
+            </summary>
+            <param name="middleware">Middleware instance.</param>
+            <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="middleware"/> is null.</exception>
+            <exception cref="T:Nalix.Abstractions.Exceptions.InternalErrorException">Thrown when middleware is already registered.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">Thrown for unsupported stage metadata.</exception>
+        </member>
+        <member name="M:Nalix.Runtime.Middleware.MiddlewarePipeline`1.ConfigureErrorHandling(System.Boolean,System.Action{System.Exception,System.Type})">
+            <summary>
+            Configures error handling behavior for middleware execution.
+            </summary>
+            <param name="continueOnError">Whether to continue the chain after middleware exceptions.</param>
+            <param name="errorHandler">Optional callback invoked for middleware exceptions.</param>
+        </member>
+        <member name="M:Nalix.Runtime.Middleware.MiddlewarePipeline`1.ExecuteAsync(Nalix.Runtime.Dispatching.PacketContext{`0},Nalix.Runtime.Routing.PacketDispatchOptions{`0},Nalix.Runtime.Internal.Compilation.PacketHandler{`0},System.Threading.CancellationToken)">
+            <summary>
+            Executes the middleware pipeline for a packet context with a typed terminal handler.
+            No per-packet delegate or closure is allocated; the terminal handler is invoked directly.
+            </summary>
+            <param name="context">Packet execution context.</param>
+            <param name="dispatch">Dispatch options that own the terminal handler.</param>
+            <param name="descriptor">Resolved packet handler descriptor.</param>
+            <param name="ct">Cancellation token.</param>
+            <returns>A value task representing pipeline completion.</returns>
+        </member>
+        <member name="M:Nalix.Runtime.Middleware.MiddlewarePipeline`1.RecordError">
+            <inheritdoc/>
+        </member>
+        <member name="T:Nalix.Runtime.Middleware.PipelineMetrics">
+            <summary>
+            Represents aggregated metrics for a middleware pipeline.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Middleware.PipelineMetrics.ActiveExecutions">
+            <summary>
+            Gets the number of packets currently being processed.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Middleware.PipelineMetrics.TotalExecutions">
+            <summary>
+            Gets the total number of packets processed by the pipeline.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Middleware.PipelineMetrics.TotalExecutionTicks">
+            <summary>
+            Gets the total execution time of the pipeline in ticks.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Middleware.PipelineMetrics.MaxExecutionTicks">
+            <summary>
+            Gets the highest execution time of a single packet in ticks.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Middleware.PipelineMetrics.TotalErrors">
+            <summary>
+            Gets the total number of non-fatal errors swallowed by the pipeline.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Middleware.PipelineMetrics.AverageExecutionTime">
+            <summary>
+            Gets the average execution time per packet.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Middleware.PerMiddlewareMetrics">
+            <summary>
+            Represents metrics for a specific middleware instance within the pipeline.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Middleware.PerMiddlewareMetrics.MiddlewareType">
+            <summary>
+            Gets the type of the middleware.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Middleware.PerMiddlewareMetrics.TotalErrors">
+            <summary>
+            Gets the total number of non-fatal errors swallowed by this middleware.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Middleware.PerMiddlewareMetrics.TotalExecutions">
+            <summary>
+            Gets the total number of packets processed by this middleware.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Middleware.PerMiddlewareMetrics.TotalExecutionTicks">
+            <summary>
+            Gets the total execution time spent in this middleware in ticks.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Middleware.PerMiddlewareMetrics.MaxExecutionTicks">
+            <summary>
+            Gets the highest execution time spent in this middleware in ticks.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Middleware.Standard.PermissionMiddleware">
+            <summary>
+            Middleware that checks the permission level of the current connection
+            before allowing the packet to proceed to the next handler.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Middleware.Standard.PermissionMiddleware.InvokeAsync(Nalix.Abstractions.Networking.Packets.IPacketContext{Nalix.Abstractions.Networking.Packets.IPacket},System.Func{System.Threading.CancellationToken,System.Threading.Tasks.ValueTask})">
+            <summary>
+            Invokes the concurrency middleware, enforcing concurrency limits on incoming packets.
+            No async state machine is allocated when the user is authorized and the chain completes synchronously.
+            </summary>
+            <param name="context">The packet context containing the packet and connection information.</param>
+            <param name="next">The next middleware delegate in the pipeline.</param>
+            <returns>A task that represents the asynchronous operation.</returns>
+        </member>
+        <member name="T:Nalix.Runtime.Middleware.Standard.RateLimitMiddleware">
+            <summary>
+            Middleware that enforces rate limiting for inbound packets based on the remote IP address.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Middleware.Standard.RateLimitMiddleware.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Runtime.Middleware.Standard.RateLimitMiddleware"/> class
+            using rate limit options retrieved from the global configuration store.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Middleware.Standard.RateLimitMiddleware.#ctor(Nalix.Runtime.Throttling.PolicyRateLimiter,Nalix.Runtime.Throttling.TokenBucketLimiter)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Runtime.Middleware.Standard.RateLimitMiddleware"/> class
+            with explicit dependencies.
+            </summary>
+            <param name="policyRate">The policy rate limiter.</param>
+            <param name="tokenBucket">The token bucket limiter.</param>
+        </member>
+        <member name="M:Nalix.Runtime.Middleware.Standard.RateLimitMiddleware.InvokeAsync(Nalix.Abstractions.Networking.Packets.IPacketContext{Nalix.Abstractions.Networking.Packets.IPacket},System.Func{System.Threading.CancellationToken,System.Threading.Tasks.ValueTask})">
+            <summary>
+            Invokes the rate limiting middleware for inbound packets. Checks if the packet exceeds the configured rate limit for the remote IP address.
+            If the rate limit is exceeded, the packet is not processed further.
+            No async state machine is allocated when the request is allowed and the chain completes synchronously.
+            </summary>
+            <param name="context">The packet context containing the packet, connection, and metadata.</param>
+            <param name="next">The next middleware delegate in the pipeline.</param>
+            <returns>A task that represents the asynchronous operation.</returns>
+        </member>
+        <member name="T:Nalix.Runtime.Middleware.Standard.TimeoutMiddleware">
+            <summary>
+            Middleware that enforces a timeout for packet processing. If the next middleware or handler does not complete within the specified timeout,
+            a timeout response is sent to the client.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Middleware.Standard.TimeoutMiddleware.InvokeAsync(Nalix.Abstractions.Networking.Packets.IPacketContext{Nalix.Abstractions.Networking.Packets.IPacket},System.Func{System.Threading.CancellationToken,System.Threading.Tasks.ValueTask})">
+            <inheritdoc/>
+        </member>
+        <member name="T:Nalix.Runtime.Options.DirectiveGuardOptions">
+            <summary>
+            Configuration for inbound directive anti-spam guard behavior.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.DirectiveGuardOptions.DefaultCooldownMs">
+            <summary>
+            Minimum interval (milliseconds) between repeated directives of the same category per connection.
+            Set to 0 to disable suppression.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Options.DirectiveGuardOptions.Validate">
+            <summary>
+            Validates option values.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Options.DirectiveGuardOptions.ValidateDataAnnotations">
+            <summary>
+            Auto-generated method that validates all properties marked with validation attributes.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Options.DispatchOptions">
+            <summary>
+            Options for dispatch channels (per-connection queue bound and drop behavior).
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.DispatchOptions.MaxPerConnectionQueue">
+            <summary>
+            Max items allowed in a single connection queue.
+            Set to 0 to disable bounding (NOT recommended for production).
+            </summary>
+            <remarks>
+            SEC-36: Default changed from 0 (unlimited) to 4096 to prevent memory DoS.
+            An unbounded queue allows attackers to flood packets faster than handlers process them.
+            Values above 1,048,576 are rejected to avoid oversized per-priority ring allocations.
+            </remarks>
+        </member>
+        <member name="P:Nalix.Runtime.Options.DispatchOptions.DropPolicy">
+            <summary>
+            Drop strategy when the per-connection queue is full.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.DispatchOptions.BlockTimeout">
+            <summary>
+            Block timeout in milliseconds for push operations when the queue is full and DropPolicy is BLOCK.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.DispatchOptions.PriorityWeights">
+            <summary>
+            Relative weights for each priority level (NONE..URGENT).
+            Used by Weighted Round-Robin to prevent starvation.
+            Default: "1,2,4,8,16" (URGENT is 16x more likely to be served than NONE).
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.DispatchOptions.BucketCountMultiplier">
+            <summary>
+            Multiplier for the internal bucket count based on processor count.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.DispatchOptions.MinBucketCount">
+            <summary>
+            Minimum number of internal buckets for the dispatch channel.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.DispatchOptions.MaxBucketCount">
+            <summary>
+            Maximum number of internal buckets for the dispatch channel.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Options.DispatchOptions.Validate">
+            <summary>
+            Validates the configuration options and throws an exception if validation fails.
+            </summary>
+            <exception cref="T:Nalix.Abstractions.Exceptions.ValidationException">
+            Thrown when one or more validation attributes fail.
+            </exception>
+        </member>
+        <member name="M:Nalix.Runtime.Options.DispatchOptions.ValidateDataAnnotations">
+            <summary>
+            Auto-generated method that validates all properties marked with validation attributes.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Options.PacketDrainOptions">
+            <summary>
+            Configures concurrency and worker limits for draining packets from the channel.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.PacketDrainOptions.Count">
+            <summary>
+            Specifies how many worker loops the dispatcher should start.
+            When <c>0</c>, the dispatcher chooses <c>Math.Clamp(Environment.ProcessorCount, MinDispatchLoops, MaxDispatchLoops)</c>.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.PacketDrainOptions.MaxDrainPerWakeMultiplier">
+            <summary>
+            Multiplier for the number of packets to drain from the connection hub per wake signal.
+            Default: 5.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.PacketDrainOptions.MinDrainPerWake">
+            <summary>
+            Minimum number of packets to drain per wake signal.
+            Default: 64.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.PacketDrainOptions.MaxDrainPerWake">
+            <summary>
+            Maximum number of packets to drain per wake signal.
+            Default: 2048.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.PacketDrainOptions.MinDispatchLoops">
+            <summary>
+            Minimum number of worker loops to start.
+            Default: 1.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.PacketDrainOptions.MaxDispatchLoops">
+            <summary>
+            Maximum number of worker loops to start.
+            Default: 64.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.PacketDrainOptions.DispatchProcessorAffinities">
+            <summary>
+            Comma-separated list of CPU core indices to pin the packet dispatch worker threads.
+            Example: "0,2,4,6". Leave empty to run on the OS default ThreadPool.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.PacketDrainOptions.VirtualOpCodeOffset">
+            <summary>
+            The offset added to the Minecraft Packet ID to map it to a unique Nalix OpCode.
+            Default is 0x1000 (4096).
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Options.PacketDrainOptions.Validate">
+            <summary>
+            Validates the configuration options and throws if any values are invalid.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Options.PacketDrainOptions.ValidateDataAnnotations">
+            <summary>
+            Auto-generated method that validates all properties marked with validation attributes.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Options.SessionStoreOptions">
+            <summary>
+            Store options for resumable sessions, controlling how long inactive sessions are retained before expiration.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.SessionStoreOptions.Enabled">
+            <summary>
+            Enables or disables the session store. When enabled, sessions that meet the persistence criteria will be retained for the configured TTL after becoming inactive.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.SessionStoreOptions.SessionTtl">
+            <summary>
+            Gets or sets the time-to-live for resumable sessions.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.SessionStoreOptions.MinAttributesForPersistence">
+            <summary>
+            Gets or sets the minimum number of attributes in the ObjectMap required to persist a session.
+            This helps prevent DDoS by not saving "empty" sessions from handshake-only connections.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Options.SessionStoreOptions.Validate">
+            <summary>
+            Validates the configuration options.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Options.SessionStoreOptions.ValidateDataAnnotations">
+            <summary>
+            Auto-generated method that validates all properties marked with validation attributes.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Options.TokenBucketOptions">
+            <summary>
+            Provides configuration options for a high-performance token-bucket rate limiter.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.TokenBucketOptions.CapacityTokens">
+            <summary>
+            Gets or sets the maximum number of tokens (bucket capacity).
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.TokenBucketOptions.RefillTokensPerSecond">
+            <summary>
+            Gets or sets the refill rate in tokens per second.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.TokenBucketOptions.HardLockoutSeconds">
+            <summary>
+            Gets or sets the hard lockout duration in seconds after a throttle decision.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.TokenBucketOptions.StaleEntrySeconds">
+            <summary>
+            Gets or sets the duration in seconds after which an idle endpoint entry is considered stale.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.TokenBucketOptions.CleanupIntervalSeconds">
+            <summary>
+            Gets or sets the cleanup interval in seconds.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.TokenBucketOptions.TokenScale">
+            <summary>
+            Gets or sets the fixed-point resolution for token arithmetic (micro-tokens per token).
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.TokenBucketOptions.ShardCount">
+            <summary>
+            Gets or sets the number of shards for endpoint partitioning.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.TokenBucketOptions.SoftViolationWindowSeconds">
+            <summary>
+            Gets or sets the time window in seconds for tracking soft rate limit violations.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.TokenBucketOptions.MaxSoftViolations">
+            <summary>
+            Gets or sets the maximum number of soft violations allowed within the soft violation window.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.TokenBucketOptions.CooldownResetSec">
+            <summary>
+            Gets or sets the cooldown reset duration in seconds.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.TokenBucketOptions.MaxTrackedEndpoints">
+            <summary>
+            Gets or sets the maximum number of endpoints that can be tracked simultaneously.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.TokenBucketOptions.AdaptiveThrottlingEnabled">
+            <summary>
+            Gets or sets a value indicating whether adaptive rate limiting (based on server load) is enabled.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.TokenBucketOptions.InitialTokens">
+            <summary>
+            Gets or sets the initial number of tokens for new endpoints.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.TokenBucketOptions.MaxEvictionCapacity">
+            <summary>
+            Maximum capacity for the eviction queue to prevent spikes in cleanup latency.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Options.TokenBucketOptions.MinReportCapacity">
+            <summary>
+            Minimum initial capacity for report list to avoid reallocations.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Options.TokenBucketOptions.Validate">
+            <summary>
+            Validates the configuration options and throws an exception if validation fails.
+            </summary>
+            <exception cref="T:Nalix.Abstractions.Exceptions.ValidationException">
+            Thrown when one or more validation attributes fail.
+            </exception>
+        </member>
+        <member name="M:Nalix.Runtime.Options.TokenBucketOptions.ValidateDataAnnotations">
+            <summary>
+            Auto-generated method that validates all properties marked with validation attributes.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Security.FileCertificateStore">
+            <summary>
+            Implements <see cref="T:Nalix.Abstractions.Security.ICertificateStore"/> using the local file system.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Security.FileCertificateStore.Load(System.String)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Runtime.Security.FileCertificateStore.Save(System.String,Nalix.Abstractions.Primitives.Bytes32,Nalix.Abstractions.Primitives.Bytes32)">
+            <inheritdoc/>
+        </member>
+        <member name="T:Nalix.Runtime.Sessions.DefaultSessionPersistencePolicy">
+            <summary>
+            Default implementation of <see cref="T:Nalix.Abstractions.Networking.Sessions.ISessionPersistencePolicy"/> that checks the handshake status 
+            and minimum attribute count requirements.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Sessions.DefaultSessionPersistencePolicy.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Runtime.Sessions.DefaultSessionPersistencePolicy"/> class.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Sessions.DefaultSessionPersistencePolicy.ShouldPersist(Nalix.Abstractions.Networking.IConnection)">
+            <inheritdoc/>
+        </member>
+        <member name="T:Nalix.Runtime.Sessions.InMemorySessionStore">
+            <summary>
+            An in-memory implementation of <see cref="T:Nalix.Abstractions.Networking.Sessions.ISessionStore"/> backed by a <see cref="T:System.Collections.Concurrent.ConcurrentDictionary`2"/>.
+            Suitable for single-node deployments. For distributed scenarios, replace with a Redis-backed store.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Sessions.InMemorySessionStore.ExecuteAsync(Nalix.Abstractions.Concurrency.IWorkerContext,System.Threading.CancellationToken)">
+            <summary>
+            Executes the scavenging loop. This method is intended to be called by a <see cref="T:Nalix.Abstractions.Concurrency.ITaskManager"/> worker.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Sessions.InMemorySessionStore.StoreAsync(Nalix.Abstractions.Networking.Sessions.SessionEntry,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Runtime.Sessions.InMemorySessionStore.ConsumeAsync(System.UInt64,System.Threading.CancellationToken)">
+            <inheritdoc />
+            <remarks>
+            SEC-33 fix: Uses <c>ConcurrentDictionary.TryRemove</c> for atomic
+            retrieve-and-remove. Only one concurrent caller can successfully consume a given token.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Runtime.Sessions.InMemorySessionStore.GenerateReport">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Runtime.Sessions.InMemorySessionStore.WriteReportData(System.Text.Json.Utf8JsonWriter)">
+            <inheritdoc />
+        </member>
+        <member name="T:Nalix.Runtime.Sessions.SessionFactory">
+            <summary>
+            Default implementation of <see cref="T:Nalix.Abstractions.Networking.Sessions.ISessionFactory"/> that captures transport sequence numbers,
+            security keys, and connection attributes.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Sessions.SessionFactory.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Runtime.Sessions.SessionFactory"/> class.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Sessions.SessionFactory.CreateSession(Nalix.Abstractions.Networking.IConnection)">
+            <inheritdoc/>
+        </member>
+        <member name="T:Nalix.Runtime.Sessions.SessionPersistenceObserver">
+            <summary>
+            Observes connection unregistrations and automatically persists session data if applicable.
+            Decouples the session service from the connection hub.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Sessions.SessionPersistenceObserver.#ctor(Nalix.Abstractions.Networking.IConnectionHub,Nalix.Abstractions.Networking.Sessions.ISessionService)">
+            <summary>
+            Initializes a new instance of the SessionPersistenceObserver and subscribes to hub events.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Sessions.SessionPersistenceObserver.Dispose">
+            <inheritdoc/>
+        </member>
+        <member name="T:Nalix.Runtime.Sessions.SessionService">
+            <summary>
+            Coordinates session persistence by applying lifecycle policies and delegating to factory and storage.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Sessions.SessionService.#ctor(Nalix.Abstractions.Networking.Sessions.ISessionFactory,Nalix.Abstractions.Networking.Sessions.ISessionStore,Nalix.Abstractions.Networking.Sessions.ISessionPersistencePolicy)">
+            <summary>
+            Coordinates session persistence by applying lifecycle policies and delegating to factory and storage.
+            </summary>
+            <param name="factory">The factory used to create session snapshots.</param>
+            <param name="store">The underlying storage engine.</param>
+            <param name="policy">The policy to determine if sessions should be persisted.</param>
+        </member>
+        <member name="M:Nalix.Runtime.Sessions.SessionService.SaveSessionAsync(Nalix.Abstractions.Networking.IConnection,System.Threading.CancellationToken)">
+            <summary>
+            Attempts to persist the session for the specified connection if it meets the required policies.
+            </summary>
+            <param name="connection">The connection to persist.</param>
+            <param name="cancellationToken">A cancellation token for the operation.</param>
+            <returns>A <see cref="T:System.Threading.Tasks.ValueTask"/> representing the operation.</returns>
+        </member>
+        <member name="M:Nalix.Runtime.Sessions.SessionService.ConsumeAsync(System.UInt64,System.Threading.CancellationToken)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Runtime.Sessions.SessionService.Dispose">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Runtime.Sessions.SessionService.GenerateReport">
+            <inheritdoc />
+        </member>
+        <member name="M:Nalix.Runtime.Sessions.SessionService.WriteReportData(System.Text.Json.Utf8JsonWriter)">
+            <inheritdoc />
+        </member>
+        <member name="T:Nalix.Runtime.Throttling.PolicyRateLimiter">
+            <summary>
+            Provides a policy-based rate limiting mechanism using a shared stateless token bucket engine.
+            </summary>
+            <remarks>
+            <para>
+            <see cref="T:Nalix.Runtime.Throttling.PolicyRateLimiter"/> extracts rate limit policies (RPS and burst capacity)
+            directly from packet attributes and evaluates them against a single, highly-optimized 
+            <see cref="T:Nalix.Runtime.Throttling.TokenBucketLimiter"/> backend.
+            </para>
+            <para>
+            By utilizing the dynamic <see cref="T:Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitPolicy"/> API, this class
+            completely eliminates the need for policy caching, quantization, and background eviction 
+            threads, resulting in near-zero allocation and bounded memory footprint regardless of 
+            how many distinct policies are defined by the user.
+            </para>
+            <para>
+            This class is thread-safe and optimized for high-throughput network environments.
+            </para>
+            </remarks>
+        </member>
+        <member name="F:Nalix.Runtime.Throttling.PolicyRateLimiter.s_defaults">
+            <summary>
+            Gets the default rate limiting options used for global configuration (shard count, cleanups).
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Throttling.PolicyRateLimiter.ScopedEndpoint">
+            <summary>
+            A composite endpoint key that isolates token buckets by IP Address, and either Operation Code or a specific Policy ID.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.PolicyRateLimiter.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Runtime.Throttling.PolicyRateLimiter"/> class.
+            </summary>
+            <remarks>
+            Default rate limiting options are loaded from configuration at startup to initialize the shared engine.
+            </remarks>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.PolicyRateLimiter.Evaluate(Nalix.Abstractions.Networking.Packets.IPacketContext{Nalix.Abstractions.Networking.Packets.IPacket})">
+            <summary>
+            Performs a rate limit check for the specified operation code and packet context.
+            </summary>
+            <param name="context">The packet context containing connection, endpoint, and rate limit metadata.</param>
+            <returns>
+            A <see cref="T:Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitDecision"/> indicating whether the request
+            is allowed, throttled, or denied.
+            </returns>
+            <exception cref="T:System.ObjectDisposedException">Thrown when the limiter has been disposed.</exception>
+            <exception cref="T:System.ArgumentNullException">Thrown when <paramref name="context"/> is <c>null</c>.</exception>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.PolicyRateLimiter.GenerateReport">
+            <summary>
+            Generates a human-readable diagnostic report describing the current rate limiter state.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.PolicyRateLimiter.WriteReportData(System.Text.Json.Utf8JsonWriter)">
+            <inheritdoc/>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.PolicyRateLimiter.Dispose">
+            <summary>
+            Releases all resources used by the <see cref="T:Nalix.Runtime.Throttling.PolicyRateLimiter"/>.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.PolicyRateLimiter.EXTRACT_DYNAMIC_POLICY(Nalix.Abstractions.Networking.Packets.PacketRateLimitAttribute)">
+            <summary>
+            Creates a dynamic rate limit policy structurally compatible with the token bucket engine.
+            Quantization is no longer required due to stateless evaluation.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Throttling.TokenBucketLimiter">
+            <summary>
+            High-performance token-bucket based rate limiter with per-endpoint state,
+            using Stopwatch ticks for time arithmetic and fixed-point token precision.
+            Provides precise Retry-After and Credit for client backoff and flow control.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.TokenBucketLimiter.CLEANUP_STALE_ENDPOINTS">
+            <summary>
+            Periodic cleanup of stale endpoints to bound memory use.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.TokenBucketLimiter.PERFORM_STALE_CLEANUP(System.Int64,System.Threading.CancellationToken)">
+            <summary>
+            Performs cleanup of stale endpoints across all shards.
+            </summary>
+            <param name="now"></param>
+            <param name="token"></param>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.TokenBucketLimiter.TRY_REMOVE_STALE_ENDPOINT(System.Collections.Generic.KeyValuePair{Nalix.Abstractions.Networking.INetworkEndpoint,Nalix.Runtime.Throttling.TokenBucketLimiter.EndpointState},System.Int64,System.Int64,Nalix.Runtime.Throttling.TokenBucketLimiter.Shard)">
+            <summary>
+            Attempts to remove a stale endpoint with double-check pattern.
+            </summary>
+            <param name="kv"></param>
+            <param name="now"></param>
+            <param name="staleTicks"></param>
+            <param name="shard"></param>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.TokenBucketLimiter.ENFORCE_LIMIT_IF_NEEDED(System.Threading.CancellationToken)">
+            <summary>
+            Enforces MaxTrackedEndpoints limit if exceeded.
+            </summary>
+            <param name="token"></param>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.TokenBucketLimiter.REMOVE_OLDEST_ENDPOINTS(System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Evicts the oldest endpoints across all shards.
+            </summary>
+            <param name="count"></param>
+            <param name="cancellationToken"></param>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.TokenBucketLimiter.SCHEDULE_CLEANUP_JOB">
+            <summary>
+            Schedules the recurring cleanup job.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.Throttling.TokenBucketLimiter.RecurringName">
+            <summary>
+            Recurring job name for cleanup task. Format: "token.bucket".
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.TokenBucketLimiter.#ctor(Nalix.Runtime.Options.TokenBucketOptions)">
+            <summary>
+            Creates a new TokenBucketLimiter with provided options.
+            </summary>
+            <param name="options">Configuration options for the limiter.</param>
+            <exception cref="T:Nalix.Abstractions.Exceptions.InternalErrorException">Thrown when options validation fails.</exception>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.TokenBucketLimiter.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Runtime.Throttling.TokenBucketLimiter"/> class with default options.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.TokenBucketLimiter.Evaluate(Nalix.Abstractions.Networking.INetworkEndpoint)">
+            <summary>
+            Checks and consumes 1 token for the given endpoint.  Returns decision with RetryAfter and Credit.
+            </summary>
+            <param name="key">The network endpoint to check.</param>
+            <returns>A decision indicating whether the request is allowed.</returns>
+            <exception cref="T:System.ObjectDisposedException">Thrown when the limiter has been disposed.</exception>
+            <exception cref="T:System.ArgumentNullException">Thrown when key is null.</exception>
+            <exception cref="T:System.ArgumentException">Thrown when key address is null or empty.</exception>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.TokenBucketLimiter.Evaluate(Nalix.Abstractions.Networking.INetworkEndpoint,Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitPolicy@)">
+            <summary>
+            Checks and consumes 1 token for the given endpoint using a dynamically provided policy.
+            </summary>
+            <param name="key">The network endpoint to check.</param>
+            <param name="policy">The dynamic rate limit policy to apply.</param>
+            <returns>A decision indicating whether the request is allowed.</returns>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.TokenBucketLimiter.CalculateInitialBalance">
+            <summary>
+            Calculates the initial micro-token balance for new endpoints based on configuration.
+            </summary>
+            <returns>Initial balance in micro-tokens. </returns>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.TokenBucketLimiter.CalculateInitialBalance(Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitPolicy@)">
+            <summary>
+            Calculates the initial micro-token balance for new endpoints based on dynamic policy.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.TokenBucketLimiter.Dispose">
+            <inheritdoc />
+            <summary>
+            Synchronously disposes the limiter and cancels cleanup job.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.TokenBucketLimiter.DisposeAsync">
+            <inheritdoc />
+            <summary>
+            Asynchronously disposes the limiter (delegates to sync Dispose).
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.TokenBucketLimiter.GenerateReport">
+            <summary>
+            Generates a human-readable diagnostic report of the limiter state.
+            </summary>
+            <returns>Formatted string report.</returns>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.TokenBucketLimiter.WriteReportData(System.Text.Json.Utf8JsonWriter)">
+            <inheritdoc/>
+        </member>
+        <member name="T:Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitDecision">
+            <summary>
+            Decision result for a rate-limit check.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitDecision.Allowed">
+            <summary>True if request is allowed (token consumed).</summary>
+        </member>
+        <member name="P:Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitDecision.RetryAfterMs">
+            <summary>Milliseconds until at least 1 token becomes available (0 if allowed or no soft backoff).</summary>
+        </member>
+        <member name="P:Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitDecision.Credit">
+            <summary>Remaining whole tokens (credit) after the check.</summary>
+        </member>
+        <member name="P:Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitDecision.Reason">
+            <summary>Reason for throttling; NONE if allowed.</summary>
+        </member>
+        <member name="T:Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitPolicy">
+            <summary>
+            Defines a dynamic rate limit policy for evaluation.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitPolicy.Rps">
+            <summary>Requests per second.</summary>
+        </member>
+        <member name="P:Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitPolicy.CapacityMicro">
+            <summary>Capacity in micro-tokens.</summary>
+        </member>
+        <member name="P:Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitPolicy.RefillPerTick">
+            <summary>Tokens to refill per stopwatch tick.</summary>
+        </member>
+        <member name="P:Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitPolicy.RefillPerSecMicro">
+            <summary>Tokens to refill per second in micro-tokens.</summary>
+        </member>
+        <member name="P:Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitPolicy.TokenScale">
+            <summary>The scale factor for tokens.</summary>
+        </member>
+        <member name="P:Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitPolicy.MaxSoftViolations">
+            <summary>Maximum soft violations before hard lockout.</summary>
+        </member>
+        <member name="P:Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitPolicy.HardLockoutSeconds">
+            <summary>Hard lockout duration in seconds after exceeding soft violation threshold.</summary>
+        </member>
+        <member name="M:Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitPolicy.#ctor(System.Int32,System.Double,System.Int32,System.Double,System.Int32,System.Int32)">
+            <summary>
+            Initializes a new instance of the dynamic policy.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitReason">
+            <summary>
+            Throttling reason taxonomy.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitReason.None">
+            <summary>NONE. </summary>
+        </member>
+        <member name="F:Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitReason.SoftThrottle">
+            <summary>
+            The request was denied due to a soft throttle, typically when the rate limit is exceeded but not enough to trigger a hard lockout.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.Throttling.TokenBucketLimiter.RateLimitReason.HardLockout">
+            <summary>
+            The request was denied due to a hard lockout, typically after repeated violations or exceeding a critical threshold.
+            </summary>
+        </member>
+        <member name="T:Nalix.Runtime.Throttling.TokenBucketLimiter.Shard">
+            <summary>A shard contains a dictionary of endpoint states.</summary>
+        </member>
+        <member name="T:Nalix.Runtime.Timekeeping.TimeSynchronizer">
+            <summary>
+            Emits periodic time synchronization ticks at a target cadence (~16 ms, ~60 Hz).
+            Designed as a lightweight singleton-style service with explicit enable/disable control.
+            </summary>
+        </member>
+        <member name="F:Nalix.Runtime.Timekeeping.TimeSynchronizer.DefaultPeriod">
+            <summary>
+            Target period for ~60 FPS cadence.
+            </summary>
+        </member>
+        <member name="E:Nalix.Runtime.Timekeeping.TimeSynchronizer.TimeSynchronized">
+            <summary>
+            Raised every tick with the current Unix timestamp in milliseconds.
+            NOTE: Handlers should be lightweight. Consider enabling FireAndForget if handlers may block.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Timekeeping.TimeSynchronizer.IsRunning">
+            <summary>
+            True if the background loop is currently running.
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Timekeeping.TimeSynchronizer.IsTimeSyncEnabled">
+            <summary>
+            True if synchronization is enabled (and the loop should run).
+            </summary>
+        </member>
+        <member name="P:Nalix.Runtime.Timekeeping.TimeSynchronizer.Period">
+            <summary>
+            Gets or sets the tick period. Only applied on (re)start.
+            </summary>
+            <exception cref="T:System.ArgumentOutOfRangeException"></exception>
+        </member>
+        <member name="P:Nalix.Runtime.Timekeeping.TimeSynchronizer.FireAndForget">
+            <summary>
+            If true, handlers are dispatched to the ThreadPool to avoid blocking the tick loop.
+            Default is false for minimal overhead.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Timekeeping.TimeSynchronizer.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Nalix.Runtime.Timekeeping.TimeSynchronizer"/> class.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Timekeeping.TimeSynchronizer.Activate(System.Threading.CancellationToken)">
+            <summary>
+            Enables synchronization and ensures the loop is running.
+            </summary>
+            <param name="cancellationToken"></param>
+        </member>
+        <member name="M:Nalix.Runtime.Timekeeping.TimeSynchronizer.Deactivate(System.Threading.CancellationToken)">
+            <summary>
+            Disables synchronization and stops the loop.
+            </summary>
+            <param name="cancellationToken"></param>
+        </member>
+        <member name="M:Nalix.Runtime.Timekeeping.TimeSynchronizer.Restart">
+            <summary>
+            Starts or restarts the loop to apply new settings.
+            </summary>
+        </member>
+        <member name="M:Nalix.Runtime.Timekeeping.TimeSynchronizer.Dispose">
+            <inheritdoc/>
+        </member>
+    </members>
+</doc>
