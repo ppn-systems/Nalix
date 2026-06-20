@@ -45,9 +45,6 @@ public sealed partial class BufferPoolManager : IBufferPoolManager, IDisposable
     [SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Architectural interface alignment")]
     public int MinBufferSize => 0;
 
-    /// <summary>The recurring name for trimming operations, kept for backwards compatibility.</summary>
-    public static readonly string RecurringName = "buf.trim";
-
     /// <summary>
     /// Initializes a new instance of the <see cref="BufferPoolManager"/> class.
     /// </summary>
