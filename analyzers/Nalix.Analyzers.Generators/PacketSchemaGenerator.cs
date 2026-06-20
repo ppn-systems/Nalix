@@ -256,6 +256,11 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
                     continue;
                 }
 
+                if (member.Name is "Header" or "_header")
+                {
+                    continue;
+                }
+
                 ITypeSymbol memberType = GET_MEMBER_TYPE(member);
                 string resetValue = GET_RESET_VALUE(memberType);
                 _ = sb.AppendLine($"        this.{member.Name} = {resetValue};");

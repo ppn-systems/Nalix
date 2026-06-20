@@ -12,7 +12,7 @@
 
 ### Packet Type Definition
 - Use CRTP: `sealed class MyPacket : PacketBase<MyPacket>` — the self-type parameter is mandatory for source generator trigger
-- `[SerializeHeader]` on the class triggers `PacketRegistryGenerator` to emit the static opcode → type mapping
+- `[Packet]` on the class triggers `PacketRegistryGenerator` to emit the static opcode → type mapping
 - `[SerializeOrder(n)]` on **every** serializable field, starting from 0, no gaps — generator emits fields in this exact order into the wire format
 - Opcode must be **globally unique** across all registered packet types — `PacketRegistry` is a static dict; collision is silent at compile time and produces wrong deserialization at runtime
 
@@ -75,7 +75,7 @@ Without this, no code is generated and the serializer fails at runtime with a mi
 
 - **Generator not attached = silent runtime failure**: If the generator reference is wrong (missing `OutputItemType="Analyzer"`), no formatter is generated. The error only appears at runtime when `FormatterProvider` throws a missing-formatter exception.
 
-- **HKDF label changes break all existing clients**: The handshake proof label is compiled into both client and server. Changing it on the server makes every existing client fail the `CLIENT_FINISH` proof check — they will all get `DECRYPTION_FAILED`.
+- **HKDF label changes break all existing clients**: The handshake proof label is compiled into both client and server. Changing it on the server makes every existing client fail the `SESSION_PROOF` check — they will all get `DECRYPTION_FAILED`.
 
 - **Compressing ciphertext wastes CPU**: If you accidentally reverse the pipeline (encrypt then compress), LZ4 produces near-zero compression on high-entropy ciphertext — you pay compression CPU cost for no benefit.
 

@@ -12,30 +12,31 @@
 
 ### Handler Shape
 - Handler class: `sealed` + `[PacketHandler("Namespace")]`
-- Handler method: **must be `static async ValueTask`** — instance methods are not resolved by `PacketDispatcherBase`
+- Handler method: static or instance `ValueTask`/`Task`/`void` resolved by the generator compiler
 - Every method requires: `[PacketOpcode(ushort)]`, `[PacketPermission(PermissionLevel)]`, `[PacketEncryption(bool)]`
 - Pre-auth guard: check `connection.Secret.IsZero` before processing — true = not yet authenticated → disconnect
 
-### Auto-Registered Handlers
-`NetworkApplicationBuilder` always registers these four — **do not register them again**:
+### Built-in Handlers (Opt-in)
+System handlers are registered via `UseSecureConnections()`, `UseSessions()`, `UseSystemControl()`, or `UseTimeSync()`:
 
 | Handler | Opcode |
 | :--- | :--- |
-| `KeyExchangeHandlers` | `KEY_EXCHANGE` |
-| `HandshakeHandlers` | `CLIENT_HELLO`, `CLIENT_FINISH` |
-| `SessionHandlers` | `SESSION_RESUME` |
-| `SystemControlHandlers` | Error, throttle, cipher, ping |
+| `HandshakeHandlers` | `SESSION_INIT`, `SESSION_PROOF` |
+| `ProofOfWorkHandlers` | `POW_PROOF` |
+| `SessionHandlers` | `SESSION_SIGNAL` (resume request/response) |
+| `SystemControlHandlers` | `SYSTEM_CONTROL` (disconnect, error, rekey, etc.) |
+| `SystemTimeSyncHandlers`| `SYSTEM_TIMESYNC` (ping, timesync request) |
 
 ### Protocol Ordering Invariant
-`KEY_EXCHANGE` → `CLIENT_HELLO` → `CLIENT_FINISH` → application opcodes
+`SESSION_INIT` → `SESSION_PROOF` → application opcodes
 
-`KeyExchangeHandlers` checks `ConnectionAttributes.HandshakeEstablished` and calls `Disconnect()` if already set. Breaking this order causes a hard disconnect at runtime, not a soft error.
+Calling handshake handlers after `HandshakeEstablished` is set causes a hard disconnect.
 
 ### Handshake Two-Stage Protocol
-- **`CLIENT_HELLO`**: generate ephemeral X25519 key pair, compute two shared secrets — EE (ephemeral-ephemeral, forward secrecy) + SE (static-ephemeral, auth) — derive master secret via HKDF-Extract (no salt over both)
-- **`CLIENT_FINISH`**: validate client proof, derive session key, call `SaveSessionAsync()` — **session is saved here, not at HELLO**
-- Both EE and SE results must be non-zero — zero output = reject with `DECRYPTION_FAILED`
-- All intermediate secrets (EE, SE, master) are `ZeroMemory`'d immediately after use — they remain GC-visible until zeroed
+- **`SESSION_INIT`**: generate ephemeral X25519 key pair, compute shared secrets EE (ephemeral-ephemeral) + SE (static-ephemeral) — derive master secret via HKDF-Extract.
+- **`SESSION_PROOF`**: validate client proof, derive session key, call `SaveSessionAsync()` — **session is saved here, not at INIT**.
+- Both EE and SE results must be non-zero — zero output = reject with `DECRYPTION_FAILED`.
+- All intermediate secrets (EE, SE, master) are `ZeroMemory`'d immediately after use.
 
 ### Middleware Execution
 Three internal lists execute in order: **Inbound → (handler) → OutboundAlways → Outbound**

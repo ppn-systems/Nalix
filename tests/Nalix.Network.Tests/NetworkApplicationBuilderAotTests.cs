@@ -74,11 +74,12 @@ public sealed class NetworkApplicationBuilderAotTests
     private static IProtocol InvokeCreateProtocol<TProtocol>(IPacketDispatch dispatch) where TProtocol : class, IProtocol
     {
         MethodInfo method = typeof(NetworkApplicationBuilder)
-            .GetMethod("CreateProtocol", BindingFlags.Static | BindingFlags.NonPublic)!
+            .GetMethod("CreateProtocol", BindingFlags.Instance | BindingFlags.NonPublic)!
             .MakeGenericMethod(typeof(TProtocol));
         try
         {
-            return (IProtocol)method.Invoke(null, [dispatch])!;
+            NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
+            return (IProtocol)method.Invoke(builder, [dispatch])!;
         }
         catch (TargetInvocationException ex) when (ex.InnerException is not null)
         {

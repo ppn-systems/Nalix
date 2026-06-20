@@ -16,14 +16,18 @@ Key methods on `INetworkApplicationBuilder`:
 | Method | Purpose |
 | :--- | :--- |
 | `Configure<TOptions>(Action<TOptions>)` | Bind config POCO (INI → options) |
-| `ConfigureLogging(ILogger)` | Inject logger into the application |
-| `ConfigureConnectionHub(IConnectionHub)` | Override default connection hub |
-| `ConfigureSessionService(ISessionService)` | Override default session service |
-| `ConfigureSessionStore(ISessionStore)` | Override default session store |
-| `ConfigureSessionFactory(ISessionFactory)` | Override default session factory |
+| `UseLogger(ILogger)` | Inject logger into the application |
+| `UseConnectionHub(IConnectionHub)` | Override default connection hub |
+| `UseConnectionGuard(IConnectionGuard)` | Override default connection guard |
+| `UseBufferPoolManager(IBufferPoolManager)` | Explicitly register buffer pool manager |
+| `UseObjectPoolManager(IObjectPoolManager)` | Explicitly register object pool manager |
+| `UseTimeSync()` | Opt-in to time sync packet handlers |
+| `UseSystemControl()` | Opt-in to system control packet handlers |
+| `UseSecureConnections(certPath?)` | Opt-in to X25519 secure handshake handlers |
+| `UseSessions()` | Opt-in to session handlers & registration |
+| `UseSessionService / Store / Factory` | Explicitly override session management services |
 | `ConfigureDispatchOptions(Action<PacketDispatchOptions<IPacket>>)` | Wire middleware, tune dispatch |
 | `MapHandlers<THandler>()` | Register a packet controller |
-| `ScanHandlers<TMarker>()` | Register all handlers in the assembly containing `TMarker` |
 | `ListenTcp<TProtocol>().Bind()` | Bind a TCP listener |
 | `ListenUdp<TProtocol>().Bind()` | Bind a UDP listener |
 | `ListenWebSocket<TProtocol>().Bind()` | Bind a WebSocket listener |
@@ -31,18 +35,18 @@ Key methods on `INetworkApplicationBuilder`:
 
 ### Startup Sequence (Fixed Order)
 1. `Configure<TOptions>()` — config loading/binding
-2. `Configure*()` calls — service wiring (logging, hub, session, pool managers, etc.)
-3. Handler registration via `MapHandlers<T>()` / `ScanHandlers<T>()` — opcode-keyed, order does not matter
+2. `Use*()` calls — service wiring, opting into security, sessions, time sync, system control
+3. Handler registration via `MapHandlers<T>()` — opcode-keyed, order does not matter
 4. Middleware wiring via `ConfigureDispatchOptions(opts => opts.WithMiddleware(...))` — **execution order = registration order**
 5. `Build()` — finalizes the builder
 6. `await host.ActivateAsync()` or `await host.RunAsync()`
 
-### Auto-Registered Handlers
-`NetworkApplicationBuilder` always registers these four — do not register them again:
-- `KeyExchangeHandlers`
-- `HandshakeHandlers`
-- `SessionHandlers`
-- `SystemControlHandlers`
+### Built-in System Handlers (Opt-in)
+The system handlers are registered by calling the corresponding builder `Use*` extension method:
+- `UseSecureConnections()` registers `HandshakeHandlers` & `ProofOfWorkHandlers`
+- `UseSessions()` registers `SessionHandlers`
+- `UseSystemControl()` registers `SystemControlHandlers`
+- `UseTimeSync()` registers `SystemTimeSyncHandlers`
 
 ### Lifecycle
 - `ActivateAsync()` starts packet dispatch — does not directly manage socket open/close
@@ -62,10 +66,9 @@ Key methods on `INetworkApplicationBuilder`:
 ```csharp
 using var host = NetworkApplication.CreateBuilder()
     .ListenTcp<MyProtocol>().Bind()
-    .ConfigureLogging(NLogix.Host.Instance)
+    .UseLogger(NLogix.Host.Instance)
     .Configure<NetworkSocketOptions>(opt => opt.Port = 8080)
     .MapHandlers<MyPacketHandler>()
-    .ScanHandlers<MyMarkerType>()           // scan all handlers in that assembly
     .ConfigureDispatchOptions(opts => {
         opts.WithMiddleware(new AuthMiddleware());       // order = execution order
         opts.WithMiddleware(new RateLimitMiddleware());

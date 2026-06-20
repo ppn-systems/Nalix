@@ -13,7 +13,7 @@
 ### `BufferLease` Lifecycle
 - `BufferLease` is ref-counted: `Retain()` increments, `Dispose()` decrements — reaches zero = returned to pool
 - **Call `Retain()` before any async handoff** — if the original owner `Dispose()`s while you still hold it, the buffer is reclaimed mid-use
-- `Detach()` removes the buffer from the pool permanently — useful for zero-copy handoffs where the consumer takes ownership; detached leases must be manually freed
+- `ReleaseOwnership()` detaches the raw buffer permanently from the lease shell, preventing pool return on disposal; the caller is then responsible for returning/freeing the buffer
 - Thread-local cache absorbs small bursts before falling back to the shared pool
 
 ### `DataReader` / `DataWriter`

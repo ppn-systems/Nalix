@@ -1,4 +1,4 @@
-# Nalix — Claude Code Skills
+# Nalix - Claude Code Skills
 
 This directory contains per-project Claude Code skills for the **Nalix** ecosystem — a modular, high-performance networking framework for .NET 10.
 
@@ -8,18 +8,17 @@ This directory contains per-project Claude Code skills for the **Nalix** ecosyst
 - Prefer existing Nalix infrastructure before external packages.
 
 ```plaintext
-Level 0 : Nalix.Analyzers               → (Roslyn only, netstandard2.0, packed into Abstractions)
-Level 0 : Nalix.Analyzers.CodeFixes     → Analyzers (packed into Abstractions)
-Level 0 : Nalix.Analyzers.Generators    → (Roslyn only, netstandard2.0, packed into Abstractions)
-Level 0 : Nalix.Abstractions            → (zero deps, packs analyzers)
-Level 1 : Nalix.Environment             → Abstractions
-Level 2 : Nalix.Codec                   → Abstractions, Environment, Analyzers.Generators (generator)
-Level 2 : Nalix.Framework               → Abstractions, Environment, Codec
-Level 3 : Nalix.Runtime                 → Abstractions, Framework, Codec
-Level 3 : Nalix.Network                 → Abstractions, Framework
-Level 3 : Nalix.SDK                     → Codec
-Level 4 : Nalix.Hosting                 → Abstractions, Framework, Codec, Runtime, Network
-Level 5 : Nalix.SDK.Native              → SDK (Native AOT, C ABI, internal only)
+Level 0 : Nalix.Analyzers               -> (Roslyn only, netstandard2.0, packed into Abstractions)
+Level 0 : Nalix.Analyzers.CodeFixes     -> Analyzers (packed into Abstractions)
+Level 0 : Nalix.Analyzers.Generators    -> (Roslyn only, netstandard2.0, packed into Abstractions)
+Level 0 : Nalix.Abstractions            -> (zero deps, packs analyzers)
+Level 1 : Nalix.Environment             -> Abstractions
+Level 2 : Nalix.Codec                   -> Abstractions, Environment, Analyzers.Generators (generator)
+Level 2 : Nalix.Framework               -> Abstractions, Environment, Codec
+Level 3 : Nalix.Runtime                 -> Abstractions, Framework, Codec
+Level 3 : Nalix.Network                 -> Abstractions, Framework
+Level 3 : Nalix.SDK                     -> Codec
+Level 4 : Nalix.Hosting                 -> Abstractions, Framework, Codec, Runtime, Network
 ```
 
 **NEVER introduce circular references or skip dependency levels.**
@@ -68,10 +67,6 @@ Each skill contains: **Triggers** (when to use it), **Rules** (invariants from s
 | [nalix-analyzers](skills/nalix-analyzers.md) | `Nalix.Analyzers` | `NAL0xxx` ranges; adding diagnostic rules; zero-alloc constraint |
 | [nalix-analyzers-codefixes](skills/nalix-analyzers-codefixes.md) | `Nalix.Analyzers.CodeFixes` | MEF discovery; trivia preservation; adding code fixes |
 | [documentation](skills/documentation.md) | `Documentation` | MkDocs rules R1–R20; signature validation; reusable prompt template |
-
-## Coding Behavior
-
-Guidelines derived from [Andrej Karpathy's observations](https://x.com/karpathy/status/2015883857489522876) on LLM coding pitfalls. Bias toward caution over speed; use judgment for trivial tasks.
 
 ### Think Before Coding
 

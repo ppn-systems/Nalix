@@ -13,7 +13,7 @@
 ### Session Lifecycle
 - Session snapshot is created **immediately at `CLIENT_FINISH`** (handshake completion) — not on disconnect, not lazily on first resume
 - `SessionHandlers.ConsumeAsync()` is atomic retrieve-and-remove (SEC-33) — retrieves the session and removes it in one operation to prevent TOCTOU with parallel resume requests using the same token
-- Session tokens use HMAC-Keccak256 with a sliding window: t-1, t, t+1 where t = current 30-second window → a token is valid for approximately 30–90 seconds
+- Session tokens are Snowflake IDs (`ulong`). Proof of possession uses HMAC-Keccak256 with a sliding window: t-1, t, t+1 where t = current 30-second window.
 - Sessions are pooled objects — call `session.Return()` after use; do not hold references beyond the handler
 
 ### ConnectionHub
@@ -22,9 +22,7 @@
 - `ConnectionHub` is the single source of truth for active connections — do not maintain a separate tracking list elsewhere
 
 ### ConnectionGuard (Rate Limiting)
-- `ConnectionLimitEntry` uses two separate concurrency mechanisms:
-  - `SpinLock` protecting the immutable-snapshot `ConnectionLimitInfo` (for concurrent/daily counters)
-  - `ConcurrentQueue<long>` for sliding-window timestamps (lock-free appends, trimmed under lock)
+- `ConnectionLimitEntry` uses a `SpinLock` to protect both the `ConnectionLimitInfo` and a standard `Queue<long>` for sliding-window timestamps. It is NOT thread-safe on its own and all operations must be performed under the lock.
 - Ban tiers are progressive: `BanCount` increments on each ban, `LastBanTimeTicks` enables decay — ban duration grows with each repeated violation
 - X-Forwarded-For is only trusted if the source IP is in the configured trusted proxy list — **not auto-trusted**
 - DDoS log suppression: only one warning is logged per IP per throttle window; `SuppressedDDoSCount` tracks suppressed entries
@@ -71,7 +69,7 @@
 
 - **UDP drops are silent**: The anti-replay window silently discards old sequence IDs. Elevated drop rates will not appear in error logs — monitor via the metrics/report endpoint of `ConnectionGuard`.
 
-- **`SpinLock` + `ConcurrentQueue` on the same entry**: `ConnectionLimitEntry` uses both. Always acquire the `SpinLock` when reading or writing `ConnectionLimitInfo`. Never lock for timestamp queue appends — they are designed to be lock-free.
+- **`SpinLock` protection**: `ConnectionLimitEntry` uses a standard `Queue<long>` (not a thread-safe `ConcurrentQueue`). Always acquire the `SpinLock` before reading/modifying any tracking info or queue timestamps to prevent race conditions.
 
 - **X-Forwarded-For without trusted proxy config = IP spoofing**: Enabling proxy header parsing without configuring trusted IPs allows any client to set their apparent IP to any value via the header.
 

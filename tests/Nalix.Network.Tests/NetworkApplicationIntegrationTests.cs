@@ -8,6 +8,7 @@ using Nalix.Network.Protocols;
 using Nalix.Runtime.Dispatching;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
+using Nalix.SDK.Transport.Extensions;
 
 namespace Nalix.Network.Tests;
 
@@ -125,6 +126,91 @@ public sealed class NetworkApplicationIntegrationTests
         }
     }
 
+    [Fact]
+    public async Task NetworkApplication_UdpRequestResponse_Succeeds()
+    {
+        // 0. Resolve certificate path (using the sample key provided in shared)
+        string certPath = Path.GetFullPath(@"..\..\..\shared\certificate.private");
+        if (!File.Exists(certPath))
+        {
+            certPath = Path.GetFullPath(@"shared\certificate.private");
+        }
+
+        if (!File.Exists(certPath))
+        {
+            certPath = Path.GetFullPath("test_certificate.private");
+            File.WriteAllText(certPath, new string('a', 64));
+        }
+
+        int port = GetFreePort();
+
+        // 1. Setup Server
+        using var logger = new Nalix.Logging.NLogixBuilder()
+            .SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace)
+            .AddTarget(new Nalix.Logging.Sinks.BatchConsoleLogTarget())
+            .Build();
+
+        NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
+        builder.UseLogger(logger);
+        builder.UseSecureConnections(certPath);
+        builder.UseSystemControl();
+
+        // Listen on TCP and UDP
+        builder.ListenTcp<IntegrationTestProtocol>().OnPort((ushort)port);
+        builder.ListenUdp<IntegrationTestProtocol>().OnPort((ushort)port);
+
+        builder.MapHandlers<IntegrationTestController2>();
+
+        using NetworkApplication app = builder.Build();
+
+        // Start Server
+        await app.ActivateAsync();
+
+        try
+        {
+            // 2. Setup Client
+            var tcpOptions = new TransportOptions
+            {
+                Address = "127.0.0.1",
+                Port = (ushort)port,
+                CompressionEnabled = false,
+                ServerPublicKey = Nalix.Runtime.Handlers.HandshakeHandlers.ServerPublicKey.ToString()
+            };
+            SessionState sharedState = new();
+            using TcpSession tcpSession = new(tcpOptions, sharedState);
+
+            await tcpSession.ConnectAsync();
+            await tcpSession.HandshakeAsync();
+
+            Assert.True(sharedState.EncryptionEnabled);
+
+            var udpOptions = new TransportOptions
+            {
+                Address = "127.0.0.1",
+                Port = (ushort)port,
+                CompressionEnabled = false
+            };
+            using UdpSession udpSession = new(udpOptions, sharedState);
+            await udpSession.ConnectAsync();
+
+            // 3. Send Request over UDP and await response
+            using HostingScan.HostingScanAttributedPacket req = new() { Value = 42 };
+
+            using HostingScan.HostingScanAttributedPacket resp = await udpSession.RequestAsync<HostingScan.HostingScanAttributedPacket>(
+                req,
+                options: RequestOptions.Default.WithTimeout(5000));
+
+            Assert.Equal(43, resp.Value);
+
+            await udpSession.DisconnectAsync();
+            await tcpSession.DisconnectAsync();
+        }
+        finally
+        {
+            await app.DeactivateAsync();
+        }
+    }
+
     private static int GetFreePort()
     {
         System.Net.Sockets.TcpListener l = new(IPAddress.Loopback, 0);
@@ -190,6 +276,17 @@ public sealed class IntegrationTestController
     public void Handle(IPacketContext<HostingScan.HostingScanAttributedPacket> context)
     {
         Interlocked.Increment(ref ReceivedCount);
+    }
+}
+
+[PacketHandler("IntegrationTest2")]
+[Nalix.Abstractions.Injection.Injectable]
+public sealed class IntegrationTestController2
+{
+    [PacketOpcode(9999)]
+    public HostingScan.HostingScanAttributedPacket Handle(IPacketContext<HostingScan.HostingScanAttributedPacket> context)
+    {
+        return new HostingScan.HostingScanAttributedPacket { Value = (ushort)(context.Packet.Value + 1) };
     }
 }
 

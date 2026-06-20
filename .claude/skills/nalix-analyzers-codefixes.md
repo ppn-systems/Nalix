@@ -1,7 +1,7 @@
 # Nalix.Analyzers.CodeFixes
 
 ## Triggers
-- Adding a code fix for a new `NAL0xxx` diagnostic
+- Adding a code fix for a new `NALIXxxx` diagnostic
 - An existing code fix is not appearing in the IDE
 - Modifying how the IDE auto-corrects a Nalix pattern violation
 
@@ -28,7 +28,7 @@ Code fixes must not modify multiple documents in a single fix action. If the fix
 ### Add a code fix for a new diagnostic
 1. Create `MyDiagnosticCodeFixProvider.cs` in `Nalix.Analyzers.CodeFixes/`
 2. Inherit `CodeFixProvider`
-3. Override `FixableDiagnosticIds` → return `ImmutableArray.Create("NAL0xxx")`
+3. Override `FixableDiagnosticIds` → return `ImmutableArray.Create("NALIXxxx")`
 4. Implement `RegisterCodeFixesAsync` — call `context.RegisterCodeFix(...)` with a `CodeAction`
 5. In the `CodeAction` delegate: use `SyntaxFactory` to transform the node, preserving trivia
 6. Add `[ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(MyDiagnosticCodeFixProvider))]`

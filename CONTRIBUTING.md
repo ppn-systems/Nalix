@@ -90,11 +90,11 @@ This project and everyone participating in it is governed by the [Nalix Code of 
 
 | Type | Description |
 | :--- | :--- |
-| 🚀 Features | New functionality or capabilities |
-| 🐛 Bug Fixes | Corrections to existing behavior |
-| 📝 Documentation | Improvements to docs, comments, or examples |
-| 🧪 Tests | New or improved test coverage |
-| 🎨 Code Quality | Refactoring, formatting, or cleanup |
+| Features | New functionality or capabilities |
+| Bug Fixes | Corrections to existing behavior |
+| Documentation | Improvements to docs, comments, or examples |
+| Tests | New or improved test coverage |
+| Code Quality | Refactoring, formatting, or cleanup |
 
 ---
 

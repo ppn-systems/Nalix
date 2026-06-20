@@ -10,13 +10,14 @@
 ## Rules
 
 ### Diagnostic IDs
-IDs are sequential: `NALIX001`–`NALIX058`, **not organized by hundreds**. Categories are mixed throughout the range. Full authoritative list is in `DiagnosticDescriptors.cs`. Broad groupings:
+IDs are sequential: `NALIX001`–`NALIX078`, **not organized by hundreds**. Categories are mixed throughout the range. Full authoritative list is in `DiagnosticDescriptors.cs`. Broad groupings:
 - `NALIX001–NALIX008`: Packet/controller/dispatch + middleware/handler patterns
 - `NALIX009–NALIX022`: Packet operations (deserializer, base types, header, opcode)
 - `NALIX023–NALIX028`: Configuration and SDK/request options
 - `NALIX029–NALIX031`: Encrypted requests, middleware ordering
 - `NALIX032–NALIX039`: Middleware behavior, buffer leaks, performance
 - `NALIX040–NALIX058`: Network, hosting, opcode ranges, allocations, return types
+- `NALIX071–NALIX078`: Crypto, formatting, logging, pooling, and AOT constraints
 
 When adding a new rule, append the next available ID — do not try to "slot" into a category range.
 
@@ -45,9 +46,9 @@ When adding a new rule, append the next available ID — do not try to "slot" in
 
 ### Suppress a diagnostic (when justified)
 ```csharp
-#pragma warning disable NAL0123 // reason why suppression is justified
+#pragma warning disable NALIX014 // reason why suppression is justified
 ... code ...
-#pragma warning restore NAL0123
+#pragma warning restore NALIX014
 ```
 Do not suppress at the project level — suppressions should be local and documented.
 
