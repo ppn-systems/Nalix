@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Internal.Compilation;
@@ -50,7 +49,7 @@ public sealed partial class PacketDispatchOptions<TPacket> : IPacketHandlerBuild
     {
         _handlerTable = new System.Collections.Concurrent.ConcurrentDictionary<ushort, PacketHandler<TPacket>>();
         _pipeline = new MiddlewarePipeline<TPacket>();
-        _objectPool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+        _objectPool = ObjectPoolManager.Shared;
     }
 
     #endregion Fields

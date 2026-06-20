@@ -210,3 +210,4 @@ public sealed class NetworkApplicationBuilderAotTests
     #endregion
 }
 #endif
+

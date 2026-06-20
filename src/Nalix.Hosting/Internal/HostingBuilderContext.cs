@@ -71,10 +71,24 @@ internal sealed class HostingBuilderContext
 
     /// <summary>
     /// Indicates whether the user has explicitly configured a custom
+    /// <see cref="IConnectionGuard"/> via <c>UseConnectionGuard</c>.
+    /// When <c>true</c>, the host will not create a default guard.
+    /// </summary>
+    public bool HasCustomConnectionGuard { get; set; }
+
+    /// <summary>
+    /// Indicates whether the user has explicitly configured a custom
     /// <see cref="Nalix.Framework.Memory.Buffers.BufferPoolManager"/> via <c>UseBufferPoolManager</c>.
     /// When <c>true</c>, the host will not create a default manager.
     /// </summary>
     public bool HasCustomBufferPoolManager { get; set; }
+
+    /// <summary>
+    /// Indicates whether the user has explicitly configured a custom
+    /// <see cref="Nalix.Framework.Memory.Objects.ObjectPoolManager"/> via <c>UseObjectPoolManager</c>.
+    /// When <c>true</c>, the host will not create a default manager.
+    /// </summary>
+    public bool HasCustomObjectPoolManager { get; set; }
 
     /// <summary>
     /// A custom factory for creating the packet dispatcher.

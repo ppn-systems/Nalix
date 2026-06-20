@@ -66,8 +66,8 @@ public sealed partial class Connection :
         // Ensure the static constructor is called before any instance is created
         // to initialize static fields and read configuration.
 
+        s_pool = ObjectPoolManager.Shared;
         s_options = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
-        s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
         s_timingWheel = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
         s_datagramOptions = ConfigurationManager.Instance.Get<DatagramGuardOptions>();
         s_callbackOptions = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
@@ -305,7 +305,7 @@ public sealed partial class Connection :
         ConnectionBacking? backing = Volatile.Read(ref _backing);
         if (backing != null)
         {
-            Interlocked.Increment(ref backing.PendingProcessCallbacks);
+            _ = Interlocked.Increment(ref backing.PendingProcessCallbacks);
         }
 
         args.Initialize(lease, this);

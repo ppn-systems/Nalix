@@ -58,7 +58,7 @@ public sealed class WebSocketConnection :
 
     static WebSocketConnection()
     {
-        s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+        s_pool = ObjectPoolManager.Shared;
         s_timingWheel = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
 
         s_limitOptions = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();

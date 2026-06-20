@@ -42,7 +42,7 @@ public sealed class NetworkHardeningTests
     [Fact]
     public void DatagramGuard_WhenIPv4TrackingCapReached_RejectsNewSourcesButAllowsExistingSource()
     {
-        using DatagramGuard guard = new(maxPacketsPerSecond: 10, maxTrackedIPv4Windows: 2, maxTrackedIPv6Windows: 2);
+        using DatagramGuard guard = new(new Nalix.Network.Options.DatagramGuardOptions { IPv4Windows = 2, IPv6Windows = 2 }, new Nalix.Network.Options.ConnectionGuardOptions { MaxPacketPerSecond = 10 });
         IPEndPoint first = new(IPAddress.Parse("10.0.0.1"), 12345);
         IPEndPoint second = new(IPAddress.Parse("10.0.0.2"), 12345);
         IPEndPoint third = new(IPAddress.Parse("10.0.0.3"), 12345);
@@ -56,7 +56,7 @@ public sealed class NetworkHardeningTests
     [Fact]
     public void DatagramGuard_EnforcesPerSourcePacketsPerSecond()
     {
-        using DatagramGuard guard = new(maxPacketsPerSecond: 2, maxTrackedIPv4Windows: 4, maxTrackedIPv6Windows: 4);
+        using DatagramGuard guard = new(new Nalix.Network.Options.DatagramGuardOptions { IPv4Windows = 4, IPv6Windows = 4 }, new Nalix.Network.Options.ConnectionGuardOptions { MaxPacketPerSecond = 2 });
         IPEndPoint endpoint = new(IPAddress.Parse("10.0.1.1"), 12345);
 
         guard.TryAccept(endpoint).Should().BeTrue();
@@ -103,6 +103,7 @@ public sealed class NetworkHardeningTests
         }
     }
 }
+
 
 
 

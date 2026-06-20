@@ -9,7 +9,6 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 
 namespace Nalix.Runtime.Dispatching;
@@ -23,7 +22,7 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
 {
     #region Static
 
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    private static readonly ObjectPoolManager s_pool = ObjectPoolManager.Shared;
 
     #endregion Static
 
@@ -104,8 +103,8 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
 
     static PacketContext()
     {
-        _ = s_pool.SetMaxCapacity<PacketContext<TPacket>>(128);
-        _ = s_pool.Prealloc<PacketContext<TPacket>>(128);
+        _ = s_pool.SetMaxCapacity<PacketContext<TPacket>>(256);
+        _ = s_pool.Prealloc<PacketContext<TPacket>>(256);
     }
 
     /// <summary>

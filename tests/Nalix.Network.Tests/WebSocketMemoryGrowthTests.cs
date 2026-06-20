@@ -262,3 +262,4 @@ public class WebSocketMemoryGrowthTests : IDisposable
         transport.SendSequence.Next().Should().Be(2);
     }
 }
+

@@ -41,7 +41,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
 
     #region Fields
 
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    private static readonly ObjectPoolManager s_pool = ObjectPoolManager.Shared;
 
     private readonly Shard[] _shards;
     private readonly double _swFreq;

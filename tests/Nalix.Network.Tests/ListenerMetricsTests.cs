@@ -20,7 +20,7 @@ public sealed class ListenerMetricsTests
 {
     private sealed class StubTcpListener : TcpListenerBase
     {
-        public StubTcpListener(IProtocol protocol, IConnectionHub hub) : base(12345, protocol, hub) { }
+        public StubTcpListener(IProtocol protocol, IConnectionHub hub, IConnectionGuard guard) : base(12345, protocol, hub, guard) { }
     }
 
     private sealed class StubUdpListener : UdpListenerBase
@@ -32,7 +32,7 @@ public sealed class ListenerMetricsTests
 
     private sealed class StubWebSocketListener : WebSocketListenerBase
     {
-        public StubWebSocketListener(IProtocol protocol, IConnectionHub hub) : base(12347, "/ws", protocol, hub) { }
+        public StubWebSocketListener(IProtocol protocol, IConnectionHub hub, IConnectionGuard guard) : base(12347, "/ws", protocol, hub, guard) { }
     }
 
     [Fact]
@@ -40,7 +40,8 @@ public sealed class ListenerMetricsTests
     {
         var protocol = Substitute.For<IProtocol>();
         var hub = Substitute.For<IConnectionHub>();
-        using var listener = new StubTcpListener(protocol, hub);
+        var guard = Substitute.For<IConnectionGuard>();
+        using var listener = new StubTcpListener(protocol, hub, guard);
 
         listener.Metrics.TotalAccepted.Should().Be(0);
         listener.Metrics.TotalRejected.Should().Be(0);
@@ -72,7 +73,8 @@ public sealed class ListenerMetricsTests
     {
         var protocol = Substitute.For<IProtocol>();
         var hub = Substitute.For<IConnectionHub>();
-        using var listener = new StubTcpListener(protocol, hub);
+        var guard = Substitute.For<IConnectionGuard>();
+        using var listener = new StubTcpListener(protocol, hub, guard);
 
         listener.Metrics.RECORD_PROXY_ERROR();
         listener.Metrics.RECORD_QUEUE_FULL_REJECTION();
@@ -94,7 +96,8 @@ public sealed class ListenerMetricsTests
     {
         var protocol = Substitute.For<IProtocol>();
         var hub = Substitute.For<IConnectionHub>();
-        using var listener = new StubTcpListener(protocol, hub);
+        var guard = Substitute.For<IConnectionGuard>();
+        using var listener = new StubTcpListener(protocol, hub, guard);
 
         listener.Metrics.RECORD_PROXY_ERROR();
         listener.Metrics.RECORD_QUEUE_FULL_REJECTION();
@@ -215,7 +218,8 @@ public sealed class ListenerMetricsTests
     {
         var protocol = Substitute.For<IProtocol>();
         var hub = Substitute.For<IConnectionHub>();
-        using var listener = new StubWebSocketListener(protocol, hub);
+        var guard = Substitute.For<IConnectionGuard>();
+        using var listener = new StubWebSocketListener(protocol, hub, guard);
 
         listener.Metrics.TotalAccepted.Should().Be(0);
         listener.Metrics.TotalRejected.Should().Be(0);
@@ -245,7 +249,8 @@ public sealed class ListenerMetricsTests
     {
         var protocol = Substitute.For<IProtocol>();
         var hub = Substitute.For<IConnectionHub>();
-        using var listener = new StubWebSocketListener(protocol, hub);
+        var guard = Substitute.For<IConnectionGuard>();
+        using var listener = new StubWebSocketListener(protocol, hub, guard);
 
         listener.Metrics.RECORD_QUEUE_FULL_REJECTION();
         listener.Metrics.RECORD_LIMITER_REJECTION();
@@ -265,7 +270,8 @@ public sealed class ListenerMetricsTests
     {
         var protocol = Substitute.For<IProtocol>();
         var hub = Substitute.For<IConnectionHub>();
-        using var listener = new StubWebSocketListener(protocol, hub);
+        var guard = Substitute.For<IConnectionGuard>();
+        using var listener = new StubWebSocketListener(protocol, hub, guard);
 
         listener.Metrics.RECORD_QUEUE_FULL_REJECTION();
         listener.Metrics.RECORD_LIMITER_REJECTION();
@@ -289,3 +295,5 @@ public sealed class ListenerMetricsTests
     }
 }
 #endif
+
+

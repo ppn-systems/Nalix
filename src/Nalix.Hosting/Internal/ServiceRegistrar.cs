@@ -4,14 +4,17 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Sessions;
+using Nalix.Abstractions.Security;
 using Nalix.Codec.DataFrames;
-using Nalix.Environment.Memory;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
+using Nalix.Network.RateLimiting;
 using Nalix.Runtime.Routing;
 using Nalix.Runtime.Sessions;
 
@@ -88,7 +91,7 @@ internal static class ServiceRegistrar
         Justification = "On successful registration InstanceManager owns the SessionService lifetime; registration failure disposes the local instance.")]
     public static void RegistererConnectionHub(HostingBuilderContext state)
     {
-        if (state.HasCustomConnectionHub)
+        if (state.HasCustomConnectionHub || InstanceManager.Instance.GetExistingInstance<IConnectionHub>() != null)
         {
             return;
         }
@@ -110,9 +113,33 @@ internal static class ServiceRegistrar
         "Reliability",
         "CA2000:Dispose objects before losing scope",
         Justification = "On successful registration InstanceManager owns the SessionService lifetime; registration failure disposes the local instance.")]
-    public static void RegistererBufferPoolManager(HostingBuilderContext state)
+    public static void RegisterConnectionGuard(HostingBuilderContext state)
     {
-        if (state.HasCustomBufferPoolManager)
+        if (state.HasCustomConnectionGuard || InstanceManager.Instance.GetExistingInstance<IConnectionGuard>() != null)
+        {
+            return;
+        }
+
+        ConnectionGuard guard = new();
+        try
+        {
+            InstanceManager.Instance.Register<IConnectionGuard>(guard);
+            InstanceManager.Instance.Register<IProofOfWorkPolicy>(guard);
+        }
+        catch
+        {
+            guard.Dispose();
+            throw;
+        }
+    }
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "On successful registration InstanceManager owns the SessionService lifetime; registration failure disposes the local instance.")]
+    public static void RegisterBufferPoolManager(HostingBuilderContext state)
+    {
+        if (state.HasCustomBufferPoolManager || InstanceManager.Instance.GetExistingInstance<IBufferPoolManager>() != null)
         {
             return;
         }
@@ -120,12 +147,49 @@ internal static class ServiceRegistrar
         BufferPoolManager manager = new();
         try
         {
+            InstanceManager.Instance.Register<IBufferPoolManager>(manager);
             InstanceManager.Instance.Register<BufferPoolManager>(manager);
-            BufferLease.ByteArrayPool.Configure(manager);
         }
         catch
         {
             manager.Dispose();
+            throw;
+        }
+    }
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "On successful registration InstanceManager owns the SessionService lifetime; registration failure disposes the local instance.")]
+    public static void RegisterObjectPoolManager(HostingBuilderContext state)
+    {
+        if (state.HasCustomObjectPoolManager || InstanceManager.Instance.GetExistingInstance<IObjectPoolManager>() != null)
+        {
+            return;
+        }
+
+        ObjectPoolManager manager;
+        try
+        {
+            manager = ObjectPoolManager.Shared;
+        }
+        catch (InvalidOperationException)
+        {
+            manager = new ObjectPoolManager();
+        }
+
+        try
+        {
+            InstanceManager.Instance.Register<ObjectPoolManager>(manager);
+            InstanceManager.Instance.Register<IObjectPoolManager>(manager);
+        }
+        catch
+        {
+            if (manager != null)
+            {
+                // Note: Only dispose if it's a newly created one? 
+                // We'll just rely on the test's cleanup, or catch and ignore.
+            }
             throw;
         }
     }

@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 
 namespace Nalix.Runtime.Dispatching;
@@ -13,7 +12,7 @@ namespace Nalix.Runtime.Dispatching;
 /// </summary>
 public static class PacketContextBridge
 {
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    private static readonly ObjectPoolManager s_pool = ObjectPoolManager.Shared;
 
     /// <summary>
     /// Creates a strongly-typed packet context by renting from the object pool

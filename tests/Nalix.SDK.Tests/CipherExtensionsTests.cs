@@ -72,3 +72,4 @@ public sealed class CipherExtensionsTests : IDisposable
     public void Dispose() => InstanceManager.Instance.Clear(dispose: false);
 }
 #endif
+

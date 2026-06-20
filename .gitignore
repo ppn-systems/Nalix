@@ -67,3 +67,6 @@ build_errors*.txt
 /tools/AllocAnalyzer
 /tools/runtime-observation-smoke
 /example/Backend/publish/win-x64
+
+# Samples - Backend
+samples/Backend/

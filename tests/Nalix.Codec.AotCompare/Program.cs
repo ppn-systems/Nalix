@@ -452,3 +452,4 @@ public sealed partial class EnumListPacket : PacketBase<EnumListPacket>, IPacket
         => PacketBase<EnumListPacket>.Deserialize(buffer);
 }
 
+

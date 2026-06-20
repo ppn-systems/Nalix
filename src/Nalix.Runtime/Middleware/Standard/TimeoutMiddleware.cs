@@ -10,7 +10,6 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Runtime.Internal.RateLimiting;
 
@@ -24,7 +23,7 @@ namespace Nalix.Runtime.Middleware.Standard;
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
 {
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    private static readonly ObjectPoolManager s_pool = ObjectPoolManager.Shared;
 
     static TimeoutMiddleware()
     {

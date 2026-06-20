@@ -84,7 +84,7 @@ public sealed class PassthroughConnection :
 
     static PassthroughConnection()
     {
-        s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+        s_pool = ObjectPoolManager.Shared;
         s_timingWheel = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
 
         s_timingWheelOptions = ConfigurationManager.Instance.Get<TimingWheelOptions>();

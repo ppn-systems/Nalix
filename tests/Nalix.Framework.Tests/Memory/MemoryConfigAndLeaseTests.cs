@@ -18,43 +18,14 @@ namespace Nalix.Framework.Tests.Memory;
 [Trait("Category", "Memory")]
 public sealed partial class MemoryTests
 {
-    [Theory]
-    [InlineData("1024,0.40;256,0.10;512,0.20", new[] { 256, 512, 1024 }, new[] { 0.10, 0.20, 0.40 })]
-    [InlineData("2048,1.0", new[] { 2048 }, new[] { 1.0 })]
-    public void ParseBufferAllocations_ValidInput_ReturnsSortedAllocations(
-        string value,
-        int[] expectedSizes,
-        double[] expectedRatios)
-    {
-        (int size, double ratio)[] allocations = BufferOptions.ParseBufferAllocations(value);
-
-        Assert.Equal(expectedSizes, allocations.Select(static x => x.size).ToArray());
-        Assert.Equal(expectedRatios, allocations.Select(static x => x.ratio).ToArray());
-    }
-
-    [Theory]
-    [InlineData("")]
-    [InlineData(" ")]
-    [InlineData("abc")]
-    [InlineData("256,-1")]
-    [InlineData("256,0.5;512,0.7")]
-    public void ParseBufferAllocations_InvalidInput_ThrowsArgumentException(string value)
-        => Assert.Throws<ArgumentException>(() => BufferOptions.ParseBufferAllocations(value));
-
     [Fact]
     public void Validate_ValidBufferOptions_CompletesSuccessfully()
     {
         BufferOptions config = new()
         {
-            TotalBuffers = 64,
-            BufferAllocations = "256,0.50;512,0.50",
-            ExpandThresholdPercent = 0.20,
-            ShrinkThresholdPercent = 0.60,
-            AdaptiveGrowthFactor = 2.0,
-            MinimumIncrease = 4,
-            MaxBufferIncreaseLimit = 16,
-            MaxMemoryPercentage = 0.25,
-            MaxMemoryBytes = 0
+            EnableBufferLeakDetection = true,
+            EnableBufferLeakStackTrace = true,
+            SuspiciousThresholdSeconds = 100
         };
 
         Exception? exception = Record.Exception(config.Validate);
@@ -63,27 +34,13 @@ public sealed partial class MemoryTests
     }
 
     [Theory]
-    [InlineData(0.20, 0.60, "256,1.0", 32, 5.0, 4, 8)]
-    [InlineData(0.70, 0.60, "256,1.0", 32, 2.0, 4, 16)]
-    [InlineData(0.20, 0.60, "256,0.60;256,0.20", 32, 2.0, 4, 16)]
-    public void Validate_InvalidBufferOptions_ThrowsValidationException(
-        double expandThreshold,
-        double shrinkThreshold,
-        string allocations,
-        int totalBuffers,
-        double growthFactor,
-        int minimumIncrease,
-        int maxIncreaseLimit)
+    [InlineData(-1)]
+    [InlineData(3601)]
+    public void Validate_InvalidBufferOptions_ThrowsValidationException(int suspiciousThreshold)
     {
         BufferOptions config = new()
         {
-            ExpandThresholdPercent = expandThreshold,
-            ShrinkThresholdPercent = shrinkThreshold,
-            BufferAllocations = allocations,
-            TotalBuffers = totalBuffers,
-            AdaptiveGrowthFactor = growthFactor,
-            MinimumIncrease = minimumIncrease,
-            MaxBufferIncreaseLimit = maxIncreaseLimit
+            SuspiciousThresholdSeconds = suspiciousThreshold
         };
 
         _ = Assert.Throws<ValidationException>(config.Validate);
@@ -202,6 +159,7 @@ public sealed partial class MemoryTests
 
 
 }
+
 
 
 

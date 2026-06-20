@@ -1,4 +1,3 @@
-// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -13,10 +12,12 @@ internal sealed class UdpServerListener : UdpListenerBase
     private readonly Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool>? _authen;
 
     /// <inheritdoc />
-    public UdpServerListener(IProtocol protocol, IConnectionHub hub) : base(protocol, hub) { }
+    public UdpServerListener(IProtocol protocol, IConnectionHub hub)
+        : base(protocol, hub) { }
 
     /// <inheritdoc />
-    public UdpServerListener(ushort port, IProtocol protocol, IConnectionHub hub) : base(port, protocol, hub) { }
+    public UdpServerListener(ushort port, IProtocol protocol, IConnectionHub hub)
+        : base(port, protocol, hub) { }
 
     /// <inheritdoc />
     public UdpServerListener(ushort port, IProtocol protocol, IConnectionHub hub, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)

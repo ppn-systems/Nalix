@@ -79,10 +79,7 @@ internal sealed class TimingWheel : IActivatable
     #region Fields
 
     private readonly TimingWheelOptions _options;
-
-#pragma warning disable CA2213 // Disposable fields should be disposed
-    private readonly ObjectPoolManager _poolManager;
-#pragma warning restore CA2213 // Disposable fields should be disposed
+    private static readonly ObjectPoolManager s_pool = ObjectPoolManager.Shared;
 
     private readonly int _tickMs;
     private readonly int _wheelSize;
@@ -250,7 +247,6 @@ internal sealed class TimingWheel : IActivatable
     public TimingWheel()
     {
         _options = ConfigurationManager.Instance.Get<TimingWheelOptions>();
-        _poolManager = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
         _options.Validate();
 
@@ -477,7 +473,7 @@ internal sealed class TimingWheel : IActivatable
 
             try
             {
-                task = _poolManager.Get<TimeoutTask>();
+                task = s_pool.Get<TimeoutTask>();
                 task.Conn = connection;
 
                 // Set version to match current connection version.
@@ -505,7 +501,7 @@ internal sealed class TimingWheel : IActivatable
             {
                 if (task is not null && !queued)
                 {
-                    _poolManager.Return(task);
+                    s_pool.Return(task);
                 }
 
                 if (subscribed)
@@ -570,7 +566,7 @@ internal sealed class TimingWheel : IActivatable
                         if (removed)
                         {
                             connection.TimeoutTask = null;
-                            _poolManager.Return(task);
+                            s_pool.Return(task);
                         }
                     }
                 }
@@ -658,7 +654,7 @@ internal sealed class TimingWheel : IActivatable
 
                         if (connection is null)
                         {
-                            _poolManager.Return(task);
+                            s_pool.Return(task);
                             task = next;
 
                             continue;
@@ -670,7 +666,7 @@ internal sealed class TimingWheel : IActivatable
                             _ = Interlocked.Increment(ref _totalStaleSkips);
                             connection.TimeoutTask = null;
 
-                            _poolManager.Return(task);
+                            s_pool.Return(task);
                             task = next;
 
                             continue;
@@ -694,7 +690,7 @@ internal sealed class TimingWheel : IActivatable
                             connection.IsRegisteredInWheel = false;
                             connection.TimeoutVersion++;
                             connection.TimeoutTask = null;
-                            _poolManager.Return(task);
+                            s_pool.Return(task);
                             task = next;
                             continue;
                         }
@@ -735,7 +731,7 @@ internal sealed class TimingWheel : IActivatable
                             connection.TimeoutVersion++;
                             connection.TimeoutTask = null;
 
-                            _poolManager.Return(task);
+                            s_pool.Return(task);
                             task = next;
                             continue;
                         }
@@ -806,7 +802,7 @@ internal sealed class TimingWheel : IActivatable
                 // cleared, so they should be ignored here.
                 if (task.Conn is not null)
                 {
-                    _poolManager.Return(task);
+                    s_pool.Return(task);
                 }
 
                 task = next;

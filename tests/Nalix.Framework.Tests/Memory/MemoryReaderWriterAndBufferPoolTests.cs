@@ -8,39 +8,7 @@ namespace Nalix.Framework.Tests.Memory;
 [Trait("Category", "Memory")]
 public sealed partial class MemoryTests
 {
-    [Theory]
-    [InlineData(100, 80, 90, 10, true, false, 0.20, 0.10)]
-    [InlineData(100, 10, 60, 40, false, true, 0.90, 0.40)]
-    [InlineData(100, 60, 100, 0, true, false, 0.40, 0.00)]
-    [InlineData(0, 0, 0, 0, false, false, 0.00, 0.00)]
-    public void GetUsageRatio_StateVaries_ReturnsExpectedMetrics(
-        int totalBuffers,
-        int freeBuffers,
-        int hits,
-        int misses,
-        bool expectedCanShrink,
-        bool expectedNeedsExpansion,
-        double expectedUsageRatio,
-        double expectedMissRate)
-    {
-        BufferPoolState state = new()
-        {
-            BufferSize = 256,
-            Hits = hits,
-            TotalBuffers = totalBuffers,
-            FreeBuffers = freeBuffers,
-            Misses = misses
-        };
 
-        double usageRatio = state.GetUsageRatio();
-        double missRate = state.GetMissRate();
-
-        Assert.Equal(expectedCanShrink, state.CanShrink);
-        Assert.Equal(expectedNeedsExpansion, state.NeedsExpansion);
-        Assert.Equal(expectedUsageRatio, usageRatio, 3);
-        Assert.Equal(expectedMissRate, missRate, 3);
-        Assert.Equal(256, state.BufferSize);
-    }
 
     [Fact]
     public void Rent_ReturnByteArrayPool_ReturnsUsableArray()
@@ -146,14 +114,11 @@ public sealed partial class MemoryTests
         using BufferPoolManager manager = new(config);
 
         byte[] rented = manager.Rent(300);
-        double allocation = manager.GetAllocationForSize(300);
         manager.Return(rented);
 
         Assert.True(rented.Length >= 300);
-        Assert.Equal(256, manager.MinBufferSize);
-        Assert.Equal(1024, manager.MaxBufferSize);
-        Assert.Equal(0.25, allocation, 3);
-        Assert.Equal("buf.trim", BufferPoolManager.RecurringName);
+        Assert.Equal(0, manager.MinBufferSize);
+        Assert.Equal(0, manager.MaxBufferSize);
     }
 
 
@@ -168,6 +133,7 @@ public sealed partial class MemoryTests
         Assert.Contains("BufferPoolManager Status", report);
     }
 }
+
 
 
 

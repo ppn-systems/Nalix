@@ -1,3 +1,5 @@
+using NSubstitute;
+using Nalix.Abstractions.Concurrency;
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
@@ -65,8 +67,7 @@ public class WebSocketConnectionTimeoutTests : IDisposable
 
     private sealed class TestWebSocketListener : WebSocketListenerBase
     {
-        public TestWebSocketListener(ushort port, string path, IProtocol protocol, IConnectionHub hub)
-            : base(port, path, protocol, hub) { }
+        public TestWebSocketListener(ushort port, string path, IProtocol protocol, IConnectionHub hub, IConnectionGuard guard) : base(port, path, protocol, hub, guard) { }
     }
 
     private static ushort GetFreePort()
@@ -79,10 +80,11 @@ public class WebSocketConnectionTimeoutTests : IDisposable
     private static TestWebSocketListener StartTestServerRobustly(IProtocol protocol, IConnectionHub hub, out ushort port)
     {
         string lastReport = "";
+        var guard = Nalix.Framework.Injection.InstanceManager.Instance.GetExistingInstance<IConnectionGuard>() ?? Nalix.Framework.Injection.InstanceManager.Instance.GetOrCreateInstance<Nalix.Network.RateLimiting.ConnectionGuard>();
         for (int i = 0; i < 10; i++)
         {
             port = GetFreePort();
-            var server = new TestWebSocketListener(port, "/ws/", protocol, hub);
+            var server = new TestWebSocketListener(port, "/ws/", protocol, hub, guard);
             server.Activate();
             System.Threading.Thread.Sleep(500); // Give it a moment to fail if port is busy
             lastReport = server.GenerateReport();
@@ -263,6 +265,8 @@ public class WebSocketConnectionTimeoutTests : IDisposable
                 {
                     // Force the idle time to be huge so it times out regardless of shared TimingWheelOptions state
                     serverConn.LastPingTime = 0;
+                    // Also force the timeout to be tiny so it gets re-scheduled into the very next bucket!
+                    serverConn.UpdateIdleTimeout(1);
                 }
 
                 // Wait for the TimingWheel loop to tick and trigger the timeout (up to 30 seconds)
@@ -274,6 +278,8 @@ public class WebSocketConnectionTimeoutTests : IDisposable
             finally
             {
                 server.Deactivate();
+                timingOptions.TickDuration = oldTick;
+                timingOptions.IdleTimeoutMs = oldTimeout;
             }
         }
         finally
@@ -302,3 +308,6 @@ public class WebSocketConnectionTimeoutTests : IDisposable
     }
 }
 #endif
+
+
+

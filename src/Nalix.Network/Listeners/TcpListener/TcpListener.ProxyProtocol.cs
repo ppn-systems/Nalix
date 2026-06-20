@@ -18,6 +18,7 @@ using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Internal.Protocol;
 using Nalix.Network.Internal.Transport;
+using Nalix.Network.RateLimiting;
 
 namespace Nalix.Network.Listeners.Tcp;
 
@@ -240,12 +241,20 @@ public abstract partial class TcpListenerBase
             this.DetachProxyContext(state);
         }
 
-        // Zero-alloc reject path: TryAccept(SocketEndpoint) avoids IPEndPoint construction.
+        // Zero-alloc reject path if using the default ConnectionGuard.
+        // TryAccept(SocketEndpoint) avoids IPEndPoint construction.
         // If the parser returned Empty (LOCAL command), fall back to socket remote endpoint.
         bool accepted;
         if (parsedEndpoint != SocketEndpoint.Empty)
         {
-            accepted = _limiter.TryAccept(parsedEndpoint);
+            if (_limiter is ConnectionGuard cg)
+            {
+                accepted = cg.TryAccept(parsedEndpoint);
+            }
+            else
+            {
+                accepted = _limiter.TryAccept(new IPEndPoint(parsedEndpoint.ToIPAddress(), parsedEndpoint.Port));
+            }
         }
         else
         {

@@ -353,3 +353,4 @@ public sealed class SequenceCounterTests
 
     #endregion
 }
+

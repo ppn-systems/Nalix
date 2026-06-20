@@ -2122,25 +2122,14 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
 
     private static bool ContainsEagerStringFormatting(IOperation operation)
     {
-        switch (operation)
+        return operation switch
         {
-            case IInterpolatedStringOperation:
-                return true;
-
-            case IBinaryOperation binary:
-                // String concatenation uses BinaryOperatorKind.Add with string result type
-                return binary.OperatorKind == BinaryOperatorKind.Add
-                    && IsStringType(binary.Type);
-
-            case IInvocationOperation invocation:
-                return IsStringFormattingMethod(invocation.TargetMethod);
-
-            case IConversionOperation conversion:
-                return ContainsEagerStringFormatting(conversion.Operand);
-
-            default:
-                return false;
-        }
+            IInterpolatedStringOperation => true,
+            IBinaryOperation binary => binary.OperatorKind == BinaryOperatorKind.Add && IsStringType(binary.Type),
+            IInvocationOperation invocation => IsStringFormattingMethod(invocation.TargetMethod),
+            IConversionOperation conversion => ContainsEagerStringFormatting(conversion.Operand),
+            _ => false
+        };
     }
 
     private static bool IsStringFormattingMethod(IMethodSymbol method)

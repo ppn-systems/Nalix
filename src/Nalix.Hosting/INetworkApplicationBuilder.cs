@@ -63,6 +63,13 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder UseConnectionHub(IConnectionHub connectionHub);
 
     /// <summary>
+    /// Sets the <see cref="IConnectionGuard"/> instance used by the hosted Nalix runtime.
+    /// </summary>
+    /// <param name="connectionGuard">The connection guard to register into the Nalix runtime.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder UseConnectionGuard(IConnectionGuard connectionGuard);
+
+    /// <summary>
     /// Explicitly registers a <see cref="IBufferPoolManager"/> instance to be used by the application.
     /// </summary>
     /// <param name="manager">The manager instance to use.</param>

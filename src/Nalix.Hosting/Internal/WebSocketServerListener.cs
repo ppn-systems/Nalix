@@ -10,8 +10,8 @@ namespace Nalix.Hosting.Internal;
 internal sealed class WebSocketServerListener : WebSocketListenerBase
 {
     /// <inheritdoc />
-    public WebSocketServerListener(IProtocol protocol, IConnectionHub hub) : base(protocol, hub) { }
+    public WebSocketServerListener(IProtocol protocol, IConnectionHub hub, IConnectionGuard guard) : base(protocol, hub, guard) { }
 
     /// <inheritdoc />
-    public WebSocketServerListener(ushort port, string path, IProtocol protocol, IConnectionHub hub) : base(port, path, protocol, hub) { }
+    public WebSocketServerListener(ushort port, string path, IProtocol protocol, IConnectionHub hub, IConnectionGuard guard) : base(port, path, protocol, hub, guard) { }
 }

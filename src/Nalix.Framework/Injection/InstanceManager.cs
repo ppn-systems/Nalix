@@ -6,15 +6,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
-using System.Globalization;
-using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Security.Principal;
-using System.Text;
 using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
-using Nalix.Environment.Hashing;
 using Nalix.Framework.Injection.DI;
 
 namespace Nalix.Framework.Injection;
@@ -40,19 +35,6 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     #endregion Constants
 
     #region Fields
-
-    private static readonly Lazy<Assembly> s_entryAssemblyLazy = new(() => Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly());
-
-    /// <summary>
-    /// Keep one OS mutex for lifetime to ensure correctness and performance.
-    /// </summary>
-    private static readonly Lock s_processMutexInitSync = new();
-
-    /// <inheritdoc/>
-    public static readonly string ApplicationMutexName = CreateApplicationMutexName();
-
-    private static Mutex? s_processMutex;
-    private static bool s_processMutexOwner;
 
     /// <summary>
     /// Track disposables uniquely to avoid duplicate dispose calls.
@@ -93,77 +75,6 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
 
     #endregion Fields
 
-    #region Process Single-Instance (Fixed & Cheap)
-
-    private static string CreateApplicationMutexName()
-    {
-        string assemblyName = s_entryAssemblyLazy.Value?.GetName().Name ?? "GenericApp";
-        string userSid = GetCurrentUserSid();
-        string hashInput = string.Concat(assemblyName, "|", AppContext.BaseDirectory, "|", userSid);
-        uint suffix = XxHash32.Compute(Encoding.UTF8.GetBytes(hashInput));
-
-        return string.Create(CultureInfo.InvariantCulture, $"Global\\Nalix.Framework.Lock.{assemblyName}.{suffix:X8}");
-    }
-
-    private static string GetCurrentUserSid()
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            return System.Environment.UserName;
-        }
-
-        try
-        {
-            return WindowsIdentity.GetCurrent().User?.Value ?? "UnknownUser";
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            return "UnknownUser";
-        }
-    }
-
-    /// <summary>
-    /// Checks if this application is the only instance currently running.
-    /// This method initializes a process-wide named mutex once and holds it.
-    /// </summary>
-    public static bool IsTheOnlyInstance
-    {
-        get
-        {
-            if (s_processMutex != null)
-            {
-                return s_processMutexOwner;
-            }
-
-            lock (s_processMutexInitSync)
-            {
-                if (s_processMutex != null)
-                {
-                    return s_processMutexOwner;
-                }
-
-                try
-                {
-                    // Try to create and own; if createdNew == true, we are the only instance.
-                    s_processMutex = new Mutex(
-                        initiallyOwned: true,
-                        name: ApplicationMutexName,
-                        createdNew: out bool createdNew);
-
-                    s_processMutexOwner = createdNew;
-                }
-                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-                {
-                    s_processMutexOwner = false;
-                }
-
-                return s_processMutexOwner;
-            }
-        }
-    }
-
-    #endregion Process Single-Instance (Fixed & Cheap)
-
     #region Properties
 
     /// <summary>
@@ -171,11 +82,6 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     /// </summary>
     [Pure]
     public int CachedInstanceCount => _instanceCache.Count + _signatureInstanceCache.Count;
-
-    /// <summary>
-    /// Gets the assembly that started the application.
-    /// </summary>
-    public static Assembly EntryAssembly => s_entryAssemblyLazy.Value;
 
     #endregion Properties
 
@@ -698,14 +604,6 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
 
         // Clear caches without disposing again.
         this.ClearInternal(dispose: false);
-
-        if (s_processMutexOwner && s_processMutex != null)
-        {
-            try { s_processMutex.ReleaseMutex(); }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { this.Emit(DiagnosticsEvents.Injection.Failure, "FW.InstanceManager:DisposeManaged", "mutex-release-failed", ex); }
-            s_processMutex.Dispose();
-            s_processMutex = null;
-        }
 
         this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:DisposeManaged", "disposed");
     }

@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Environment.Hashing;
+using Nalix.Network.Options;
 
 namespace Nalix.Network.RateLimiting;
 
@@ -108,37 +109,26 @@ public sealed class DatagramGuard : IDisposable
     private const int SecondShift = 32;
 
     /// <summary>
-    /// Initializes a new instance of <see cref="DatagramGuard"/>.
+    /// Initializes a new instance of <see cref="DatagramGuard"/> using the specified configuration options.
     /// </summary>
-    /// <param name="maxPacketsPerSecond">The maximum number of accepted packets per second per IP address. Defaults to 1000.</param>
-    /// <param name="maxTrackedIPv4Windows">The maximum number of IPv4 source windows tracked at once.</param>
-    /// <param name="maxTrackedIPv6Windows">The maximum number of IPv6 source windows tracked at once.</param>
-    /// <param name="cleanupInterval">How often stale source windows are purged.</param>
-    /// <param name="staleWindowThreshold">How long an inactive source window is retained before eviction.</param>
-    /// <param name="initialIPv4Capacity">Initial capacity for the IPv4 source window map.</param>
-    /// <param name="initialIPv6Capacity">Initial capacity for the IPv6 source window map.</param>
-    /// <param name="failOpenWhenFull">Whether to fail open when the map is full.</param>
-    public DatagramGuard(
-        int maxPacketsPerSecond = 1000,
-        int maxTrackedIPv4Windows = 65_536,
-        int maxTrackedIPv6Windows = 16_384,
-        TimeSpan? cleanupInterval = null,
-        TimeSpan? staleWindowThreshold = null,
-        int initialIPv4Capacity = 1024,
-        int initialIPv6Capacity = 64,
-        bool failOpenWhenFull = false)
+    /// <param name="options">The options configuring source window limits and behavior.</param>
+    /// <param name="connOptions">The options configuring packet rate limits.</param>
+    public DatagramGuard(DatagramGuardOptions options, ConnectionGuardOptions connOptions)
     {
-        _maxPacketsPerSecond = Math.Max(1, maxPacketsPerSecond);
-        _maxTrackedIPv4Windows = Math.Max(1, maxTrackedIPv4Windows);
-        _maxTrackedIPv6Windows = Math.Max(1, maxTrackedIPv6Windows);
-        _cleanupInterval = NormalizePositive(cleanupInterval, TimeSpan.FromMinutes(1));
-        _staleWindowThresholdSeconds = (uint)Math.Max(1, (int)NormalizePositive(staleWindowThreshold, TimeSpan.FromSeconds(10)).TotalSeconds);
-        _failOpenWhenFull = failOpenWhenFull;
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(connOptions);
+
+        _maxPacketsPerSecond = Math.Max(1, connOptions.MaxPacketPerSecond);
+        _maxTrackedIPv4Windows = Math.Max(1, options.IPv4Windows);
+        _maxTrackedIPv6Windows = Math.Max(1, options.IPv6Windows);
+        _cleanupInterval = NormalizePositive(options.CleanupInterval, TimeSpan.FromMinutes(1));
+        _staleWindowThresholdSeconds = (uint)Math.Max(1, (int)NormalizePositive(options.IdleTimeout, TimeSpan.FromSeconds(10)).TotalSeconds);
+        _failOpenWhenFull = options.FailOpenWhenFull;
 
         // Capacity hint to avoid early resizes, concurrencyLevel = number of CPU cores.
         int concurrency = System.Environment.ProcessorCount;
-        _ipv4Map = new ConcurrentDictionary<uint, WindowSlot>(concurrency, Math.Max(1, initialIPv4Capacity));
-        _ipv6Map = new ConcurrentDictionary<IpV6Key, WindowSlot>(concurrency, Math.Max(1, initialIPv6Capacity));
+        _ipv4Map = new ConcurrentDictionary<uint, WindowSlot>(concurrency, Math.Max(1, options.IPv4Capacity));
+        _ipv6Map = new ConcurrentDictionary<IpV6Key, WindowSlot>(concurrency, Math.Max(1, options.IPv6Capacity));
 
         _cts = new CancellationTokenSource();
         _cleanupTask = this.CleanupLoopAsync(_cts.Token);

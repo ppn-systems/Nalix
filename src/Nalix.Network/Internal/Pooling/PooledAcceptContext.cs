@@ -12,7 +12,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 
 #if DEBUG
@@ -33,7 +32,7 @@ namespace Nalix.Network.Internal.Pooling;
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal sealed class PooledAcceptContext : IPoolable
 {
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    private static readonly ObjectPoolManager s_pool = ObjectPoolManager.Shared;
 
     [SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
     private static readonly EventHandler<SocketAsyncEventArgs> AsyncAcceptCompleted = static (s, e) =>

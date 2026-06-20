@@ -144,7 +144,7 @@ public sealed class PacketDispatchChannel
                 group: $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Dispatch}",
                 work: async (ctx, ct) =>
                 {
-                    // This is now a truly asynchronous worker managed by TaskManager.
+                    // This is now a truly asynchronous worker managed by InstanceManager.Instance.GetOrCreateInstance<TaskManager>().
                     // By removing the manual OS thread, we reduce context switching and 
                     // allow .NET's thread pool to optimize the execution of the async state machine.
                     // NOTE: If DispatchProcessorAffinities is configured, this worker will be 
@@ -451,7 +451,7 @@ public sealed class PacketDispatchChannel
 
         try
         {
-            // Loop while work is available, with occasional yields to TaskManager.
+            // Loop while work is available, with occasional yields to InstanceManager.Instance.GetOrCreateInstance<TaskManager>().
             while (Volatile.Read(ref _running) == 1 && !ct.IsCancellationRequested)
             {
                 int processed = 0;

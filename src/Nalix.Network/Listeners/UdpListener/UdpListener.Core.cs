@@ -99,7 +99,6 @@ public abstract partial class UdpListenerBase
         ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
         ArgumentNullException.ThrowIfNull(hub, nameof(hub));
 
-
         _options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
         _datagramGuardOptions = ConfigurationManager.Instance.Get<DatagramGuardOptions>();
         _connectionGuardOptions = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
@@ -113,15 +112,7 @@ public abstract partial class UdpListenerBase
         this.Protocol = protocol;
         _lock = new SemaphoreSlim(1, 1);
         _state = (int)ListenerState.STOPPED;
-        _rateLimiter = new(
-            _connectionGuardOptions.MaxPacketPerSecond,
-            _datagramGuardOptions.IPv4Windows,
-            _datagramGuardOptions.IPv6Windows,
-            _datagramGuardOptions.CleanupInterval,
-            _datagramGuardOptions.IdleTimeout,
-            _datagramGuardOptions.IPv4Capacity,
-            _datagramGuardOptions.IPv6Capacity,
-            _datagramGuardOptions.FailOpenWhenFull);
+        _rateLimiter = new(_datagramGuardOptions, _connectionGuardOptions);
 
         // Default to IPv4 any-address; Initialize() may switch to IPv6 based on config.
         _anyEndPoint = new IPEndPoint(IPAddress.Any, 0);

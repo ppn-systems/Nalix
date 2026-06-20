@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Protocols;
@@ -44,14 +45,16 @@ public sealed class DefaultProtocol : Protocol
     /// <summary>
     /// Creates a new <see cref="DefaultProtocol"/> that routes packets into the given dispatch pipeline.
     /// </summary>
+    /// <param name="logger">The logger used for recording framework-level events.</param>
     /// <param name="dispatch">The packet dispatcher responsible for routing and handling packets.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="dispatch"/> is <see langword="null"/>.</exception>
-    public DefaultProtocol(IPacketDispatch dispatch)
+    /// <exception cref="ArgumentNullException"><paramref name="dispatch"/> or <paramref name="logger"/> is <see langword="null"/>.</exception>
+    public DefaultProtocol(ILogger logger, IPacketDispatch dispatch)
     {
+        ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(dispatch);
 
         _dispatch = dispatch;
-        _frameProcessor = new DefaultFrameProcessor(this);
+        _frameProcessor = new DefaultFrameProcessor(logger, this);
 
         this.IsAccepting = true;
         this.KeepConnectionOpen = true;

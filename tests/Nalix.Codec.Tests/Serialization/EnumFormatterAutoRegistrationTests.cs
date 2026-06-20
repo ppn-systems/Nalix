@@ -237,3 +237,4 @@ public sealed class EnumFormatterAutoRegistrationTests
         formatter.Should().NotBeNull();
     }
 }
+

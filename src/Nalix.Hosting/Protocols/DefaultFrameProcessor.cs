@@ -11,7 +11,7 @@ using Nalix.Abstractions.Security;
 using Nalix.Codec.Transforms;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Options;
-using Nalix.Framework.Injection;
+using Nalix.Hosting.Internal;
 using Nalix.Hosting.Internal.Exceptions;
 using Nalix.Network.Connections;
 
@@ -33,7 +33,7 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
     private static readonly AttributeKey s_throttleAttributeKey = AttributeKey.FromName("sys.log.protocol.process_error");
     private static readonly long s_throttleWindowTicks = (long)(TimeSpan.FromSeconds(20).TotalSeconds * Stopwatch.Frequency);
 
-    private readonly ILogger? _logger;
+    private readonly ILogger _logger;
     private readonly IProtocol _protocol;
     private readonly SequenceOptions _sequenceOptions;
 
@@ -44,18 +44,22 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultFrameProcessor"/> class.
     /// </summary>
+    /// <param name="logger">
+    /// The logger used for recording frame processing events.
+    /// </param>
     /// <param name="protocol">
     /// The protocol that will receive successfully processed messages.
     /// </param>
     /// <exception cref="ArgumentNullException">
-    /// Thrown when <paramref name="protocol"/> is <see langword="null"/>.
+    /// Thrown when <paramref name="protocol"/> or <paramref name="logger"/> is <see langword="null"/>.
     /// </exception>
-    public DefaultFrameProcessor(IProtocol protocol)
+    public DefaultFrameProcessor(ILogger logger, IProtocol protocol)
     {
+        ArgumentNullException.ThrowIfNull(logger);
         ArgumentNullException.ThrowIfNull(protocol);
 
+        _logger = logger;
         _protocol = protocol;
-        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
         _sequenceOptions = ConfigurationManager.Instance.Get<SequenceOptions>();
     }
 
@@ -121,10 +125,7 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
         {
             if (args.Connection.UDP is not { } udp)
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
-                {
-                    _logger.LogDebug("[NW.DefaultFrameProcessor:ProcessFrame] Discarding unreliable frame because UDP transport is not initialized.");
-                }
+                _logger.DiscardUnreliableFrame();
                 return;
             }
 
@@ -138,10 +139,7 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
             {
                 args.Connection.IncrementErrorCount();
 
-                if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
-                {
-                    _logger.LogTrace("[NW.DefaultFrameProcessor:ProcessFrame] Dropped inbound packet due to decryption or decompression failure.");
-                }
+                _logger.DroppedInboundPacket();
                 return;
             }
 
@@ -165,17 +163,11 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
 
             if (ex is InternalErrorException or SerializationFailureException)
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
-                {
-                    _logger.LogTrace(ex, "[NW.TcpListenerBase:ProcessFrame]");
-                }
+                _logger.ProcessExceptionTrace(ex);
             }
             else if (ShouldEmitThrottledLog(args.Connection))
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
-                {
-                    _logger.LogError(ex, "[NW.TcpListenerBase:ProcessFrame] Unhandled exception during message processing.");
-                }
+                _logger.ProcessExceptionError(ex);
             }
         }
         finally

@@ -128,7 +128,7 @@ public class IntegrationTestProtocol : Protocol
     public IntegrationTestProtocol(IPacketDispatch dispatch)
     {
         _dispatch = dispatch;
-        _frameProcessor = new DefaultFrameProcessor(this);
+        _frameProcessor = new DefaultFrameProcessor(Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance, this);
         this.KeepConnectionOpen = true;
         this.SetConnectionAcceptance(true);
     }
@@ -202,6 +202,7 @@ internal sealed class FakePacketRegistry
     public void Enqueue(IPacket packet) => _queue.Enqueue(packet);
     public bool TryDequeue(out IPacket? packet) => _queue.TryDequeue(out packet);
 }
+
 
 
 

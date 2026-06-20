@@ -126,10 +126,11 @@ public sealed partial class ConnectionHub : IConnectionHub
         _shardCount = Math.Max(1, _options.ShardCount);
         _registry = new ConnectionRegistry(_shardCount, 31);
 
-        _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
         _throughputTask = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
                                                   .ScheduleRecurring(TaskNaming.Recurring
                                                   .CleanupJobId(RecurringName, this.GetHashCode()), TimeSpan.FromSeconds(1), this.CalculateThroughputAsync);
+
+        _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
     }
 
     #endregion Constructor
