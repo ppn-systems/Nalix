@@ -158,8 +158,6 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             InstanceManager.Instance.Register<BufferPoolManager>(concrete);
         }
 
-        BufferLease.ByteArrayPool.Configure(manager);
-
         return this;
     }
 
@@ -171,15 +169,14 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     public INetworkApplicationBuilder UseObjectPoolManager(IObjectPoolManager manager)
     {
         ArgumentNullException.ThrowIfNull(manager);
+
+        _state.HasCustomObjectPoolManager = true;
         InstanceManager.Instance.Register<IObjectPoolManager>(manager);
 
         if (manager is ObjectPoolManager concrete)
         {
             InstanceManager.Instance.Register<ObjectPoolManager>(concrete);
         }
-
-        BufferLease.Configure(manager);
-        PacketRegistry.Configure(manager);
 
         return this;
     }
@@ -419,7 +416,21 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             ServiceRegistrar.RegisterLogger(_state);
             ServiceRegistrar.RegistererConnectionHub(_state);
             ServiceRegistrar.RegisterConnectionGuard(_state);
-            ServiceRegistrar.RegistererBufferPoolManager(_state);
+            ServiceRegistrar.RegisterBufferPoolManager(_state);
+            ServiceRegistrar.RegisterObjectPoolManager(_state);
+
+            IBufferPoolManager? bufferManager = InstanceManager.Instance.GetExistingInstance<IBufferPoolManager>();
+            if (bufferManager is not null)
+            {
+                BufferLease.ByteArrayPool.Configure(bufferManager);
+            }
+
+            IObjectPoolManager? objectManager = InstanceManager.Instance.GetExistingInstance<IObjectPoolManager>();
+            if (objectManager is not null)
+            {
+                BufferLease.Configure(objectManager);
+                PacketRegistry.Configure(objectManager);
+            }
         }
     }
 

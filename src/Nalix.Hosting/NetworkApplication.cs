@@ -353,5 +353,4 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
     }
 
     #endregion APIs
-
 }

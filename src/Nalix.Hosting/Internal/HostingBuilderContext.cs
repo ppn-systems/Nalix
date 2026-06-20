@@ -84,6 +84,13 @@ internal sealed class HostingBuilderContext
     public bool HasCustomBufferPoolManager { get; set; }
 
     /// <summary>
+    /// Indicates whether the user has explicitly configured a custom
+    /// <see cref="Nalix.Framework.Memory.Objects.ObjectPoolManager"/> via <c>UseObjectPoolManager</c>.
+    /// When <c>true</c>, the host will not create a default manager.
+    /// </summary>
+    public bool HasCustomObjectPoolManager { get; set; }
+
+    /// <summary>
     /// A custom factory for creating the packet dispatcher.
     /// </summary>
     public Func<Action<PacketDispatchOptions<IPacket>>, IPacketDispatch>? CustomDispatchFactory { get; set; }

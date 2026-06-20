@@ -4,14 +4,15 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.DataFrames;
-using Nalix.Environment.Memory;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
 using Nalix.Network.RateLimiting;
 using Nalix.Runtime.Routing;
@@ -136,7 +137,7 @@ internal static class ServiceRegistrar
         "Reliability",
         "CA2000:Dispose objects before losing scope",
         Justification = "On successful registration InstanceManager owns the SessionService lifetime; registration failure disposes the local instance.")]
-    public static void RegistererBufferPoolManager(HostingBuilderContext state)
+    public static void RegisterBufferPoolManager(HostingBuilderContext state)
     {
         if (state.HasCustomBufferPoolManager)
         {
@@ -146,8 +147,32 @@ internal static class ServiceRegistrar
         BufferPoolManager manager = new();
         try
         {
+            InstanceManager.Instance.Register<IBufferPoolManager>(manager);
             InstanceManager.Instance.Register<BufferPoolManager>(manager);
-            BufferLease.ByteArrayPool.Configure(manager);
+        }
+        catch
+        {
+            manager.Dispose();
+            throw;
+        }
+    }
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "On successful registration InstanceManager owns the SessionService lifetime; registration failure disposes the local instance.")]
+    public static void RegisterObjectPoolManager(HostingBuilderContext state)
+    {
+        if (state.HasCustomObjectPoolManager)
+        {
+            return;
+        }
+
+        ObjectPoolManager manager = new();
+        try
+        {
+            InstanceManager.Instance.Register<IObjectPoolManager>(manager);
+            InstanceManager.Instance.Register<ObjectPoolManager>(manager);
         }
         catch
         {
