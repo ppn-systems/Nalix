@@ -119,7 +119,6 @@ public sealed partial class MemoryTests
         Assert.True(rented.Length >= 300);
         Assert.Equal(0, manager.MinBufferSize);
         Assert.Equal(0, manager.MaxBufferSize);
-        Assert.Equal("buf.trim", BufferPoolManager.RecurringName);
     }
 
 

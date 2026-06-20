@@ -128,7 +128,7 @@ public class IntegrationTestProtocol : Protocol
     public IntegrationTestProtocol(IPacketDispatch dispatch)
     {
         _dispatch = dispatch;
-        _frameProcessor = new DefaultFrameProcessor(this);
+        _frameProcessor = new DefaultFrameProcessor(Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance, this);
         this.KeepConnectionOpen = true;
         this.SetConnectionAcceptance(true);
     }

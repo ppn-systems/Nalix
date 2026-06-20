@@ -4,7 +4,25 @@ using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Memory.Pools;
 using Xunit;
 
+using System.Runtime.CompilerServices;
+
 namespace Nalix.Framework.Tests.Memory;
+
+internal static class TestInitializer
+{
+    [ModuleInitializer]
+    public static void Initialize()
+    {
+        try
+        {
+            var config = new Nalix.Framework.Options.ObjectPoolOptions { EnableMetrics = false, EnableDiagnostics = false };
+            ObjectPoolManager.Configure(new ObjectPoolManager(config));
+        }
+        catch (System.InvalidOperationException)
+        {
+        }
+    }
+}
 
 public sealed partial class MemoryTests
 {

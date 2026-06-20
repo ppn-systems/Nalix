@@ -338,7 +338,7 @@ public sealed class RuntimeObservationWebSocketIntegrationTests : IDisposable
         {
             _dispatch = dispatch ?? throw new ArgumentNullException(nameof(dispatch));
             _counters = counters ?? throw new ArgumentNullException(nameof(counters));
-            _frameProcessor = new DefaultFrameProcessor(this);
+            _frameProcessor = new DefaultFrameProcessor(Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance, this);
             this.IsAccepting = true;
             this.KeepConnectionOpen = true;
         }

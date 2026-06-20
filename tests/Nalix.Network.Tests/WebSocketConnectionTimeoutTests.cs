@@ -265,6 +265,8 @@ public class WebSocketConnectionTimeoutTests : IDisposable
                 {
                     // Force the idle time to be huge so it times out regardless of shared TimingWheelOptions state
                     serverConn.LastPingTime = 0;
+                    // Also force the timeout to be tiny so it gets re-scheduled into the very next bucket!
+                    serverConn.UpdateIdleTimeout(1);
                 }
 
                 // Wait for the TimingWheel loop to tick and trigger the timeout (up to 30 seconds)
@@ -276,6 +278,8 @@ public class WebSocketConnectionTimeoutTests : IDisposable
             finally
             {
                 server.Deactivate();
+                timingOptions.TickDuration = oldTick;
+                timingOptions.IdleTimeoutMs = oldTimeout;
             }
         }
         finally
