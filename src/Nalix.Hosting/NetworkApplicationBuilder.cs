@@ -413,7 +413,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             ApplyOptions(_state);
 
             ServiceRegistrar.RegisterLogger(_state);
-            ServiceRegistrar.RegistererConnectionHub(_state);
+            ServiceRegistrar.RegisterConnectionHub(_state);
             ServiceRegistrar.RegisterConnectionGuard(_state);
             ServiceRegistrar.RegisterBufferPoolManager(_state);
             ServiceRegistrar.RegisterObjectPoolManager(_state);

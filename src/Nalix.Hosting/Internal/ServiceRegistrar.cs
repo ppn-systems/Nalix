@@ -89,7 +89,7 @@ internal static class ServiceRegistrar
         "Reliability",
         "CA2000:Dispose objects before losing scope",
         Justification = "On successful registration InstanceManager owns the SessionService lifetime; registration failure disposes the local instance.")]
-    public static void RegistererConnectionHub(HostingBuilderContext state)
+    public static void RegisterConnectionHub(HostingBuilderContext state)
     {
         if (state.HasCustomConnectionHub || InstanceManager.Instance.GetExistingInstance<IConnectionHub>() != null)
         {
