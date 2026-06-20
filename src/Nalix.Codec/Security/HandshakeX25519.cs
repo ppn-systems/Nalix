@@ -145,6 +145,16 @@ public static class HandshakeX25519
     }
 
     /// <summary>
+    /// Derives the next generation of the session key for key ratcheting.
+    /// Uses the HKDF-Expand function with the current session key and a static label.
+    /// </summary>
+    public static Bytes32 DeriveRekeySecret(Bytes32 currentSecret)
+    {
+        ReadOnlySpan<byte> info = "nalix-session/rekey"u8;
+        return Hkdf.Expand(currentSecret, info);
+    }
+
+    /// <summary>
     /// Composes the initial transcript buffer from public keys and nonces to compute the transcript hash.
     /// </summary>
     /// <remarks>

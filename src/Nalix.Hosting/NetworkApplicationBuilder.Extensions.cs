@@ -75,7 +75,6 @@ public static class NetworkApplicationBuilderExtensions
 
         _ = builder.MapHandlers(typeof(HandshakeHandlers));
         _ = builder.MapHandlers(typeof(ProofOfWorkHandlers));
-        _ = builder.MapHandlers(typeof(SessionRekeyHandlers));
 
         if (certificatePath is not null)
         {

@@ -94,6 +94,16 @@ public enum ControlType : byte
     POW_REQUEST = 0x17,
 
     /// <summary>
+    /// Request to generate a new session key via Key Ratcheting (HKDF).
+    /// </summary>
+    SESSION_REKEY = 0x18,
+
+    /// <summary>
+    /// Acknowledges the session key update.
+    /// </summary>
+    SESSION_REKEY_ACK = 0x19,
+
+    /// <summary>
     /// Reserved for future extension.
     /// </summary>
     RESERVED1 = 0xFE,

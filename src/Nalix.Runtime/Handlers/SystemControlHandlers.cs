@@ -48,8 +48,8 @@ public static partial class SystemControlHandlers
             case ControlType.PING:
                 // Handled by SystemTimeSyncHandlers
                 break;
-            case ControlType.CIPHER_UPDATE:
-                await HandleCipherUpdate(context, packet).ConfigureAwait(false);
+            case ControlType.SESSION_REKEY:
+                await HandleSessionRekey(context, packet).ConfigureAwait(false);
                 break;
             case ControlType.TIMESYNCREQUEST:
                 // Handled by SystemTimeSyncHandlers
@@ -71,7 +71,7 @@ public static partial class SystemControlHandlers
                 break;
             // Server generally does not need to send back automatic replies for these
             case ControlType.PONG:              // PONG received if Server pings Client
-            case ControlType.CIPHER_UPDATE_ACK: // Client ACK (if Server inititated)
+            case ControlType.SESSION_REKEY_ACK: // Client ACK (if Server inititated)
             case ControlType.SHUTDOWN:          // Ignored by default unless admin system handles it
 
             // These types are not implemented on the server side:
@@ -129,7 +129,7 @@ public static partial class SystemControlHandlers
         await context.Sender.SendAsync(challenge).ConfigureAwait(false);
     }
 
-    private static async ValueTask HandleCipherUpdate(IPacketContext<Control> context, Control packet)
+    private static async ValueTask HandleSessionRekey(IPacketContext<Control> context, Control packet)
     {
         if (!context.IsReliable)
         {
@@ -137,28 +137,30 @@ public static partial class SystemControlHandlers
             return;
         }
 
-        // SEC-40: Validate the enum value to prevent protocol DoS via invalid algorithm state.
-        byte rawValue = (byte)packet.Reason;
-        if (!Enum.IsDefined(typeof(CipherSuiteType), (CipherSuiteType)rawValue))
-        {
-            return;
-        }
-
         IConnection connection = context.Connection;
-        CipherSuiteType requestedSuite = (CipherSuiteType)rawValue;
 
-        // SEC-74: Prevent pre-auth crypto policy tampering.
-        // Cipher updates are only permitted for established, authenticated sessions.
-        if (connection.Secret.IsZero)
+        if (!connection.GetRuntimeState().HandshakeEstablished)
         {
+            connection.Disconnect("Cannot perform Rekey before Handshake is established.");
             return;
         }
 
-        connection.Algorithm = requestedSuite;
+        // Apply the new secret using HKDF Ratcheting
+        connection.Secret = HandshakeX25519.DeriveRekeySecret(connection.Secret);
+
+        // Reset the sequence counters to prevent overflow
+        connection.TCP.SendSequence.Reset();
+        connection.TCP.ReceiveSequence.Reset();
+
+        if (connection.IsUdpCreated)
+        {
+            connection.UDP!.SendSequence.Reset();
+            connection.UDP!.ReceiveSequence.Reset();
+        }
 
         using PacketScope<Control> lease = PacketFactory<Control>.Acquire();
         Control ack = lease.Value;
-        ack.Initialize(ControlType.CIPHER_UPDATE_ACK, packet.SequenceId, packet.Flags, packet.Reason);
+        ack.Initialize(ControlType.SESSION_REKEY_ACK, packet.SequenceId, packet.Flags, ProtocolReason.NONE);
 
         await context.Sender.SendAsync(ack).ConfigureAwait(false);
     }
