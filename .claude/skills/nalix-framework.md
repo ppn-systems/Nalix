@@ -34,7 +34,7 @@
 
 ### Snowflake IDs
 - Layout: `Type(8) | Timestamp(32) | Sequence(14) | MachineID(10)` — 64 bits total
-- Timestamp uses 30-second windows; sequence is atomic and resets on each new window
+- Timestamp uses Unix seconds; sequence is atomic and resets on each new second
 - MachineID is 10 bits = max 1023 distinct nodes — **same MachineID on two nodes = guaranteed ID collision**
 
 ### TaskManager

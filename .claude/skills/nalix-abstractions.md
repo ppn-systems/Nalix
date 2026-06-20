@@ -23,7 +23,8 @@ This project has **zero internal Nalix dependencies**. Adding a reference to any
 - `[SerializeOrder(n)]` must be present on **every** serializable field — starting from 0, no gaps, no duplicate values
 - The source generator (`Nalix.Analyzers.Generators`) emits fields in `[SerializeOrder]` order into the wire format — gaps produce empty wire slots
 - `[SerializeIgnore]` excludes a field entirely from the wire format
-- `[SerializeHeader]` marks the packet class for `PacketRegistryGenerator` — triggers opcode → type mapping generation
+- `[SerializeHeader(n)]` marks a field/property as part of the header section (ordered before payload)
+- `[Packet]` marks a class as a Nalix packet for registration
 - `[GenerateFormatter]` on a class triggers `SerializeFormatterGenerator` to emit `IFormatter<T>`
 
 ### Attributes Are Metadata Only

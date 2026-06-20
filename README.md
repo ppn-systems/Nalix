@@ -42,14 +42,14 @@
 
 | Category | Highlights |
 | :--- | :--- |
-| 🖥️ **Cross-Platform** | Runs on Windows, Linux, and macOS with .NET 10+. |
-| ⚡ **High Performance** | Zero-allocation serialization, shard-aware dispatch, and buffer pooling for thousands of concurrent connections. |
-| 🔐 **Security-First** | AEAD encryption (ChaCha20-Poly1305), Static-Ephemeral X25519 (Noise Protocol) with server identity pinning, and zero-RTT session resumption. |
-| 🔌 **Pluggable Protocols** | Swap network, serialization, or security protocols without modifying core logic. |
-| 🛤️ **Middleware Pipeline** | Built-in authentication, rate limiting, traffic shaping, and audit logging — or write your own. |
-| 📡 **Real-Time Updates** | Instant messaging, state synchronization, and live event broadcasting. |
-| 🛠️ **Extensible** | Attribute-based packet routing, auto-discovered controllers, and fluent builder APIs. |
-| 💻 **Modern C#** | Leverages C# 14 features — `Span<T>`, `ref struct`, pattern matching, and more. |
+| **Cross-Platform** | Runs on Windows, Linux, and macOS with .NET 10+. |
+| **High Performance** | Zero-allocation serialization, shard-aware dispatch, and buffer pooling for thousands of concurrent connections. |
+| **Security-First** | AEAD encryption (ChaCha20-Poly1305), Static-Ephemeral X25519 (Noise Protocol) with server identity pinning, and zero-RTT session resumption. |
+| **Pluggable Protocols** | Swap network, serialization, or security protocols without modifying core logic. |
+| **Middleware Pipeline** | Built-in authentication, rate limiting, traffic shaping, and audit logging — or write your own. |
+| **Real-Time Updates** | Instant messaging, state synchronization, and live event broadcasting. |
+| **Extensible** | Attribute-based packet routing, auto-discovered controllers, and fluent builder APIs. |
+| **Modern C#** | Leverages C# 14 features — `Span<T>`, `ref struct`, pattern matching, and more. |
 
 ---
 

@@ -14,9 +14,11 @@
 | Generator | Trigger condition |
 | :--- | :--- |
 | `SerializeFormatterGenerator` | Class with `[GenerateFormatter]` |
-| `PacketRegistryGenerator` | Class inheriting `PacketBase<T>` with `[SerializeHeader]` |
-| `PacketSchemaGenerator` | Same as `SerializeFormatterGenerator` |
+| `PacketRegistryGenerator` | Class inheriting `PacketBase<T>` with `[Packet]` |
+| `PacketSchemaGenerator` | Class inheriting `PacketBase<T>` |
 | `ConfigurationGenerator` | Class used in a call to `ConfigurationManager.Bind<T>()` |
+| `InstanceGenerator` | Class with `[Injectable]` or inheriting `SingletonBase<T>` |
+| `PacketHandlerGenerator` | Class with `[PacketHandler]` |
 
 ### KnownNames Convention
 When adding a new attribute that any generator must detect, **add the name to `KnownNames.cs` first** before writing the generator logic that references it. Generators match types by string name only — no assembly reference to runtime Nalix code is allowed.

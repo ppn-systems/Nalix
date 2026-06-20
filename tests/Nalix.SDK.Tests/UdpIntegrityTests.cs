@@ -85,6 +85,52 @@ public sealed class UdpIntegrityTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task UdpRequestResponse_Succeeds()
+    {
+        int port = TestUtils.GetFreePort();
+        var builder = NetworkApplication.CreateBuilder();
+        builder.ListenTcp<IntegrationTestProtocol>().OnPort((ushort)port);
+        builder.ListenUdp<IntegrationTestProtocol>().OnPort((ushort)port);
+        builder.UseSecureConnections();
+        builder.UseSystemControl();
+        builder.UseTimeSync();
+
+        using NetworkApplication app = builder.Build();
+        await app.ActivateAsync();
+
+        try
+        {
+            using TcpSession tcpSession = new(new TransportOptions
+            {
+                Address = "127.0.0.1",
+                Port = (ushort)port,
+                ServerPublicKey = _serverPublicKey.ToString()
+            });
+
+            await tcpSession.ConnectAsync();
+            await tcpSession.HandshakeAsync();
+
+            Assert.True(tcpSession.State.EncryptionEnabled);
+
+            using UdpSession udpSession = new(new TransportOptions
+            {
+                Address = "127.0.0.1",
+                Port = (ushort)port
+            }, tcpSession.State);
+
+            await udpSession.ConnectAsync();
+
+            // Perform UDP Ping (request/response)
+            double rtt = await udpSession.PingAsync(timeoutMs: 3000);
+            Assert.True(rtt >= 0);
+        }
+        finally
+        {
+            await app.DeactivateAsync();
+        }
+    }
+
     public void Dispose() => InstanceManager.Instance.Clear(dispose: false);
 }
 

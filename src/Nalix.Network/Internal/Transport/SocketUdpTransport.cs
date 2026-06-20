@@ -83,12 +83,6 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     #region APIs
 
     /// <summary>
-    /// Gets an existing UDP transport instance or creates one, injecting the provided socket if available.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void CreateUDP(Connection connection, IPEndPoint remoteEndPoint, Socket socket) => EnsureUDP(connection, remoteEndPoint, socket);
-
-    /// <summary>
     /// Ensures that the connection has a valid UDP transport bound to the specified socket and remote endpoint.
     /// Reuses the existing transport if it is already bound to the same socket and endpoint.
     /// If the socket or endpoint changes, the previous transport is returned to the pool before a new one is rented.
@@ -99,6 +93,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
         ArgumentNullException.ThrowIfNull(remoteEndPoint);
 
         SocketUdpTransport? current = connection.UdpTransport;
+
         if (current is not null)
         {
             if (ReferenceEquals(current._socket, socket) && current._endPoint is IPEndPoint ep && ep.Equals(remoteEndPoint))
