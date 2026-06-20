@@ -16,7 +16,6 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Security;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Sequencing;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
 using Nalix.Network.Options;
@@ -39,6 +38,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     #region Static Factory
 
     private static readonly NetworkSocketOptions s_options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
+    private static readonly ObjectPoolManager s_pool = ObjectPoolManager.Shared;
 
     private readonly ISequenceCounter _sendSequence = new SequenceCounter();
     private readonly ISequenceCounter _receiveSequence = new SequenceCounter();
@@ -111,7 +111,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
 
             try
             {
-                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Return(current);
+                s_pool.Return(current);
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
@@ -119,8 +119,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             }
         }
 
-        SocketUdpTransport transport = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                               .Get<SocketUdpTransport>();
+        SocketUdpTransport transport = s_pool.Get<SocketUdpTransport>();
 
         transport.SetSocket(socket);
 

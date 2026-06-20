@@ -12,7 +12,6 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Time;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Options;
@@ -84,7 +83,7 @@ internal static class AsyncCallback
 {
     #region Options
 
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    private static readonly ObjectPoolManager s_pool = ObjectPoolManager.Shared;
     private static readonly NetworkCallbackOptions s_netOpts = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
 
     #endregion Options

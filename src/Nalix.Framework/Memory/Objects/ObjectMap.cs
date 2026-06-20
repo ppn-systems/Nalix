@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions;
-using Nalix.Framework.Injection;
 
 namespace Nalix.Framework.Memory.Objects;
 
@@ -52,7 +51,7 @@ public sealed class ObjectMap<TKey, TValue> : IObjectMap<TKey, TValue>
     /// <summary>
     /// Gets the shared object pool for <see cref="ObjectMap{TKey, TValue}"/>.
     /// </summary>
-    private static readonly ObjectPoolManager s_objectMapPool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    private static readonly ObjectPoolManager s_objectMapPool = ObjectPoolManager.Shared;
 
     /// <summary>
     /// The underlying thread-safe dictionary.

@@ -7,7 +7,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
@@ -18,7 +17,7 @@ namespace Nalix.Network.Internal.Connections;
 
 internal sealed class ConnectionBacking : IPoolable
 {
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    private static readonly ObjectPoolManager s_pool = ObjectPoolManager.Shared;
 
     public readonly Lock Lock = new();
 

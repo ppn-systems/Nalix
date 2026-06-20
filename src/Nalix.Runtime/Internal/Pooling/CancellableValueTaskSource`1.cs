@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Sources;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 
 namespace Nalix.Runtime.Internal.Pooling;
@@ -49,7 +48,7 @@ internal sealed class CancellableValueTaskSource<T> : IValueTaskSource<T>, IPool
 {
     #region Fields
 
-    public static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    public static readonly ObjectPoolManager s_pool = ObjectPoolManager.Shared;
 
     private short _token;
     private int _resultSet;

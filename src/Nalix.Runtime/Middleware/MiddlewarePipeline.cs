@@ -12,7 +12,6 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Middleware;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Internal.Compilation;
@@ -42,7 +41,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
     private PipelineSnapshot _snapshot = PipelineSnapshot.Empty;
 
     private static readonly ConcurrentDictionary<Type, MiddlewareMetadata> s_metadataCache = new();
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    private static readonly ObjectPoolManager s_pool = ObjectPoolManager.Shared;
 
     // Instance-level local pool for pipeline contexts to bypass global pool management.
     // 32 slots is sufficient for high concurrency within a single packet pipeline.

@@ -110,7 +110,7 @@ public abstract partial class TcpListenerBase : IListener
         _proxyConfig = ConfigurationManager.Instance.Get<ProxyProtocolOptions>();
 
         _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
-        _pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+        _pool = ObjectPoolManager.Shared;
         _limiter = guard;
 
         _config.Validate();

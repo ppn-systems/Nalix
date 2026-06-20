@@ -12,7 +12,6 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Sources;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 
 namespace Nalix.Network.Internal.Pooling;
@@ -62,7 +61,7 @@ namespace Nalix.Network.Internal.Pooling;
 [DebuggerDisplay("Args={Args}, ActiveOps={_activeOps}, AwaiterPending={_consumerAwaitPending}")]
 internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValueTaskSource<int>
 {
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    private static readonly ObjectPoolManager s_pool = ObjectPoolManager.Shared;
 
     /// <summary>
     /// Static completion handler shared across all instances.

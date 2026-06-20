@@ -7,7 +7,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 
 namespace Nalix.Network.Internal.Pooling;
@@ -26,7 +25,7 @@ namespace Nalix.Network.Internal.Pooling;
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal sealed class PooledConnectEventContext : IPoolable, IThreadPoolWorkItem
 {
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    private static readonly ObjectPoolManager s_pool = ObjectPoolManager.Shared;
 
     /// <summary>
     /// The event sender captured for this callback invocation.

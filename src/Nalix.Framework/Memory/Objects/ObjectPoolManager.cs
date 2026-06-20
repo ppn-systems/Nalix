@@ -28,6 +28,44 @@ namespace Nalix.Framework.Memory.Objects;
 [Injectable(typeof(IObjectPoolManager))]
 public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
 {
+    #region Static
+
+    private static ObjectPoolManager? s_shared;
+
+    /// <summary>
+    /// Gets the globally shared object pool manager.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the shared object pool manager has not been configured.
+    /// </exception>
+    public static ObjectPoolManager Shared => Volatile.Read(ref s_shared) ?? ThrowSharedNotConfigured();
+
+    /// <summary>
+    /// Configures the globally shared object pool manager.
+    /// </summary>
+    /// <param name="manager">The object pool manager to share globally.</param>
+    public static void Configure(ObjectPoolManager manager)
+    {
+        ArgumentNullException.ThrowIfNull(manager);
+
+        ObjectPoolManager? existing = Interlocked.CompareExchange(ref s_shared, manager, null);
+
+        if (existing is not null && !ReferenceEquals(existing, manager))
+        {
+            throw new InvalidOperationException(
+                "The shared object pool manager has already been configured with a different instance.");
+        }
+    }
+
+    [DoesNotReturn]
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static ObjectPoolManager ThrowSharedNotConfigured() => throw new InvalidOperationException("ObjectPoolManager.Shared was used before the host configured it.");
+
+    internal static void ResetSharedForTests() => Volatile.Write(ref s_shared, null);
+
+    #endregion Static
+
     #region Fields
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]

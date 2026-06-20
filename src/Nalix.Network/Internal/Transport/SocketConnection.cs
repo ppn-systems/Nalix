@@ -20,7 +20,6 @@ using Nalix.Environment.Fragments;
 using Nalix.Environment.Memory;
 using Nalix.Environment.Options;
 using Nalix.Environment.Time;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
@@ -191,7 +190,7 @@ internal sealed partial class SocketConnection : IDisposable, IPoolable
     private int _socketDetached;
 
     private static readonly FragmentOptions s_fragmentOptions = ConfigurationManager.Instance.Get<FragmentOptions>();
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    private static readonly ObjectPoolManager s_pool = ObjectPoolManager.Shared;
 
     private static readonly int s_maxReceiveBufferSize = GET_RECEIVE_BUFFER_SIZE();
 

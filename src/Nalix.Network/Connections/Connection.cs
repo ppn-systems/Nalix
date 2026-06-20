@@ -67,7 +67,7 @@ public sealed partial class Connection :
         // to initialize static fields and read configuration.
 
         s_options = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
-        s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+        s_pool = ObjectPoolManager.Shared;
         s_timingWheel = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
         s_datagramOptions = ConfigurationManager.Instance.Get<DatagramGuardOptions>();
         s_callbackOptions = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();

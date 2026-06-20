@@ -55,7 +55,7 @@ public sealed class UdpPassthroughListener : UdpListenerBase
 {
     #region Fields
 
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    private static readonly ObjectPoolManager s_pool = ObjectPoolManager.Shared;
 
     private readonly ConcurrentDictionary<EndPoint, PassthroughConnection> _connections = new();
 

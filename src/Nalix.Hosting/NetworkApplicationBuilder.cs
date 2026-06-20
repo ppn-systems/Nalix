@@ -426,10 +426,12 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             }
 
             IObjectPoolManager? objectManager = InstanceManager.Instance.GetExistingInstance<IObjectPoolManager>();
-            if (objectManager is not null)
+
+            if (objectManager is ObjectPoolManager concreteManager)
             {
-                BufferLease.Configure(objectManager);
-                PacketRegistry.Configure(objectManager);
+                BufferLease.Configure(concreteManager);
+                PacketRegistry.Configure(concreteManager);
+                ObjectPoolManager.Configure(concreteManager);
             }
         }
     }

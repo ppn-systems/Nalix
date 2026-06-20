@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Environment.Configuration;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Connections;
@@ -22,7 +21,7 @@ internal static class NetworkPoolInitializer
 {
     static NetworkPoolInitializer()
     {
-        ObjectPoolManager pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+        ObjectPoolManager pool = ObjectPoolManager.Shared;
 
         ConnectionGuardOptions s_options = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
         NetworkSocketOptions socketOptions = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
@@ -61,7 +60,7 @@ internal static class NetworkPoolInitializer
 
     public static void InitializeTcp()
     {
-        ObjectPoolManager pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+        ObjectPoolManager pool = ObjectPoolManager.Shared;
 
         _ = pool.Prealloc<SocketConnection>(128);
 
@@ -73,7 +72,7 @@ internal static class NetworkPoolInitializer
 
     public static void InitializeWebSocket()
     {
-        ObjectPoolManager pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+        ObjectPoolManager pool = ObjectPoolManager.Shared;
 
         _ = pool.Prealloc<WebSocketTransport>(128);
     }
