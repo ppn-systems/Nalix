@@ -352,7 +352,6 @@ public abstract partial class UdpListenerBase : IListener
         _ = sb.AppendLine("Worker:");
         _ = sb.AppendLine("------------------------------------------------------------");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Group           : {TaskNaming.Tags.Net}/{TaskNaming.Tags.Udp}/{_port}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"GroupConcurrency: {_options.MaxGroupConcurrency}");
         _ = sb.AppendLine();
 
         // Traffic counters.
@@ -406,7 +405,6 @@ public abstract partial class UdpListenerBase : IListener
 
         writer.WriteStartObject("Worker");
         writer.WriteString("Group", $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Udp}/{_port}");
-        writer.WriteNumber("GroupConcurrencyLimit", _options.MaxGroupConcurrency);
         writer.WriteEndObject();
 
         writer.WriteStartObject("Traffic");

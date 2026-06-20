@@ -70,9 +70,9 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader, IValidat
     /// <summary>
     /// Gets or sets the maximum number of parallel connections.
     /// </summary>
-    [IniComment("Maximum simultaneous parallel listeners/acceptors (1–1024, default 2)")]
+    [IniComment("Maximum simultaneous parallel listeners/acceptors (1–1024, default 1)")]
     [ValueRange(1, 1024)]
-    public int MaxParallel { get; set; } = 2;
+    public int MaxParallel { get; set; } = 1;
 
     /// <summary>
     /// Gets or sets the maximum number of parallel connections.
@@ -99,13 +99,6 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader, IValidat
     /// </summary>
     [IniComment("Allow reuse of a local address in TIME_WAIT state (recommended: true)")]
     public bool ReuseAddress { get; set; } = true;
-
-    /// <summary>
-    /// Gets or sets the maximum number of concurrent groups for socket operations.
-    /// </summary>
-    [IniComment("Maximum concurrent socket operation groups (1–1024)")]
-    [ValueRange(1, 1024)]
-    public int MaxGroupConcurrency { get; set; } = 8;
 
     /// <summary>
     /// Gets or sets a value indicating whether the DualMode feature is enabled (for IPv6 sockets).

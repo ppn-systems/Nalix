@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
@@ -237,7 +236,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             typeof(TProtocol),
             dispatch => builder.Factory is not null
                 ? builder.Factory(dispatch)
-                : CreateProtocol<TProtocol>(dispatch),
+                : this.CreateProtocol<TProtocol>(dispatch),
             Port: null,
             BindingBuilder: builder));
 
@@ -255,7 +254,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             typeof(TProtocol),
             dispatch => builder.Factory is not null
                 ? builder.Factory(dispatch)
-                : CreateProtocol<TProtocol>(dispatch),
+                : this.CreateProtocol<TProtocol>(dispatch),
             Port: null,
             Authentication: null,
             BindingBuilder: builder));
@@ -274,7 +273,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             typeof(TProtocol),
             dispatch => builder.Factory is not null
                 ? builder.Factory(dispatch)
-                : CreateProtocol<TProtocol>(dispatch),
+                : this.CreateProtocol<TProtocol>(dispatch),
             Port: null,
             Path: null,
             BindingBuilder: builder));
@@ -414,7 +413,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             ApplyOptions(_state);
 
             ServiceRegistrar.RegisterLogger(_state);
-            ServiceRegistrar.RegistererConnectionHub(_state);
+            ServiceRegistrar.RegisterConnectionHub(_state);
             ServiceRegistrar.RegisterConnectionGuard(_state);
             ServiceRegistrar.RegisterBufferPoolManager(_state);
             ServiceRegistrar.RegisterObjectPoolManager(_state);
@@ -442,13 +441,13 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
     /// <summary>
     /// Creates a protocol instance using the most appropriate constructor.
-    /// If the protocol type has a constructor accepting <see cref="IPacketDispatch"/>,
+    /// If the protocol type has a constructor accepting <see cref="IPacketDispatch"/> (and optionally <see cref="ILogger"/>),
     /// the provided dispatch instance is injected. Otherwise, the parameterless constructor is used.
     /// </summary>
     /// <typeparam name="TProtocol">The protocol type to instantiate.</typeparam>
     /// <param name="dispatch">The packet dispatch instance to inject if the protocol supports it.</param>
     /// <returns>A new protocol instance.</returns>
-    private static IProtocol CreateProtocol<
+    private IProtocol CreateProtocol<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>(
         IPacketDispatch dispatch)
         where TProtocol : class, IProtocol
@@ -457,19 +456,28 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
         Type protocolType = typeof(TProtocol);
 
-        ConstructorInfo? dispatchConstructor = protocolType
-            .GetConstructors(BindingFlags.Instance | BindingFlags.Public)
-            .FirstOrDefault(static constructor =>
-            {
-                ParameterInfo[] parameters = constructor.GetParameters();
-                return parameters.Length == 1 && typeof(IPacketDispatch).IsAssignableFrom(parameters[0].ParameterType);
-            });
+        // 1. Check for constructor taking (ILogger, IPacketDispatch) - used by DefaultProtocol
+        ConstructorInfo? loggerAndDispatchCtor = protocolType.GetConstructor([typeof(ILogger), typeof(IPacketDispatch)]);
+        if (loggerAndDispatchCtor is not null)
+        {
+            return (IProtocol)InstanceManager.Instance.CreateInstance(protocolType, _state.Logger, dispatch);
+        }
 
-        if (dispatchConstructor is not null)
+        // 1.1. Check for constructor taking (IPacketDispatch, ILogger) - in case some protocol defines the parameters in this order
+        ConstructorInfo? dispatchAndLoggerCtor = protocolType.GetConstructor([typeof(IPacketDispatch), typeof(ILogger)]);
+        if (dispatchAndLoggerCtor is not null)
+        {
+            return (IProtocol)InstanceManager.Instance.CreateInstance(protocolType, _state.Logger, dispatch);
+        }
+
+        // 2. Check for constructor taking (IPacketDispatch)
+        ConstructorInfo? dispatchCtor = protocolType.GetConstructor([typeof(IPacketDispatch)]);
+        if (dispatchCtor is not null)
         {
             return (IProtocol)InstanceManager.Instance.CreateInstance(protocolType, dispatch);
         }
 
+        // 3. Fallback to parameterless (or let the source-generator activator handle/throw)
         return (IProtocol)InstanceManager.Instance.CreateInstance(protocolType);
     }
 

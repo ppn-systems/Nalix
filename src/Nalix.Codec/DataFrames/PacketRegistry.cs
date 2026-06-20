@@ -79,20 +79,20 @@ public static class PacketRegistry
             return;
         }
 
-        _ = manager.SetMaxCapacity<Control>(256);
-        _ = manager.SetMaxCapacity<TimeSync>(256);
-        _ = manager.SetMaxCapacity<Directive>(256);
+        _ = manager.SetMaxCapacity<Control>(128);
+        _ = manager.SetMaxCapacity<TimeSync>(128);
+        _ = manager.SetMaxCapacity<Directive>(128);
 
-        _ = manager.SetMaxCapacity<ProofOfWorkProof>(256);
-        _ = manager.SetMaxCapacity<ProofOfWorkChallenge>(256);
+        _ = manager.SetMaxCapacity<ProofOfWorkProof>(128);
+        _ = manager.SetMaxCapacity<ProofOfWorkChallenge>(128);
 
-        _ = manager.SetMaxCapacity<SessionTofu>(256);
-        _ = manager.SetMaxCapacity<SessionInit>(256);
-        _ = manager.SetMaxCapacity<SessionProof>(256);
-        _ = manager.SetMaxCapacity<SessionRekey>(256);
-        _ = manager.SetMaxCapacity<SessionResume>(256);
-        _ = manager.SetMaxCapacity<SessionChallenge>(256);
-        _ = manager.SetMaxCapacity<SessionEstablished>(256);
+        _ = manager.SetMaxCapacity<SessionTofu>(128);
+        _ = manager.SetMaxCapacity<SessionInit>(128);
+        _ = manager.SetMaxCapacity<SessionProof>(128);
+        _ = manager.SetMaxCapacity<SessionRekey>(128);
+        _ = manager.SetMaxCapacity<SessionResume>(128);
+        _ = manager.SetMaxCapacity<SessionChallenge>(128);
+        _ = manager.SetMaxCapacity<SessionEstablished>(128);
     }
 
     /// <summary>
