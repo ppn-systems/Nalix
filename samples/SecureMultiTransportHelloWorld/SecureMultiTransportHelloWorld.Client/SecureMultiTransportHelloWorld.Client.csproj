@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<RootNamespace>SecureMultiTransportHelloWorld.Client</RootNamespace>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Nalix.SDK" Version="14.1.1" />
+		<PackageReference Include="Nalix.Abstractions" Version="14.1.1" />
+		<PackageReference Include="Nalix.Codec" Version="14.1.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\SecureMultiTransportHelloWorld.Contracts\SecureMultiTransportHelloWorld.Contracts.csproj" />
+	</ItemGroup>
+
+</Project>
