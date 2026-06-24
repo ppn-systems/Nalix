@@ -563,7 +563,8 @@ public sealed class DispatchChannelTests
     {
         public bool IsDisposed => false;
         public bool IsUdpCreated => false;
-        public ulong ID => 0;
+        public ulong ConnectionId => 0;
+        public string? UserId { get; set; }
         public long UpTime => 0;
         public long LastPingTime => 0;
         public bool ExcludeFromIdleTimeout { get; set; }

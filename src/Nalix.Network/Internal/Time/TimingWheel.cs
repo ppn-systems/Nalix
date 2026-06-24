@@ -446,7 +446,7 @@ internal sealed class TimingWheel : IActivatable
             return;
         }
 
-        Lock syncLock = _connectionLocks[connection.ID.GetHashCode() & 255];
+        Lock syncLock = _connectionLocks[connection.ConnectionId.GetHashCode() & 255];
         lock (syncLock)
         {
             if (connection.IsRegisteredInWheel)
@@ -532,7 +532,7 @@ internal sealed class TimingWheel : IActivatable
             return;
         }
 
-        Lock syncLock = _connectionLocks[connection.ID.GetHashCode() & 255];
+        Lock syncLock = _connectionLocks[connection.ConnectionId.GetHashCode() & 255];
         lock (syncLock)
         {
             if (Volatile.Read(ref _disposed) != 0)

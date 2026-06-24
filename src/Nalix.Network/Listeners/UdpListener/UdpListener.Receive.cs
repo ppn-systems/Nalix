@@ -387,7 +387,7 @@ public abstract partial class UdpListenerBase
             !this.IsPinnedEndpointMatch(connection.NetworkEndpoint, remoteIpEndPoint))
         {
             this.Metrics.RECORD_DROP_UNAUTH();
-            this.LOG_ENDPOINT_MISMATCH_DROP(connection.NetworkEndpoint, remoteEndPoint, connection.ID);
+            this.LOG_ENDPOINT_MISMATCH_DROP(connection.NetworkEndpoint, remoteEndPoint, connection.ConnectionId);
             lease.Dispose();
             return;
         }
@@ -396,7 +396,7 @@ public abstract partial class UdpListenerBase
         if (!connection.UdpReplayWindow.TryCheck(header.SequenceId))
         {
             this.Metrics.RECORD_DROP_UNAUTH();
-            this.LOG_REPLAY_WINDOW_DROP(header.SequenceId, connection.ID);
+            this.LOG_REPLAY_WINDOW_DROP(header.SequenceId, connection.ConnectionId);
             lease.Dispose();
             return;
         }
@@ -405,7 +405,7 @@ public abstract partial class UdpListenerBase
         if (!this.IsAuthenticated(connection, remoteEndPoint, payload))
         {
             this.Metrics.RECORD_DROP_UNAUTH();
-            this.LOG_UNAUTH_DROP(remoteEndPoint, connection.ID);
+            this.LOG_UNAUTH_DROP(remoteEndPoint, connection.ConnectionId);
             lease.Dispose();
             return;
         }
@@ -437,7 +437,7 @@ public abstract partial class UdpListenerBase
                 args.Dispose();
             }
 
-            this.LOG_ACCEPTED(connection.ID, remoteEndPoint, incomingLease.Length);
+            this.LOG_ACCEPTED(connection.ConnectionId, remoteEndPoint, incomingLease.Length);
         }
         finally
         {

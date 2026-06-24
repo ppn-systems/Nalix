@@ -260,7 +260,7 @@ public static partial class HandshakeHandlers
             {
                 SessionEstablished reply = lease.Value;
 
-                reply.Initialize(expectedFinish, connection.ID);
+                reply.Initialize(expectedFinish, connection.ConnectionId);
                 reply.SequenceId = sequenceId;
 
                 return context.Sender.SendAsync(reply).DisposeOnCompletionAsync(lease);

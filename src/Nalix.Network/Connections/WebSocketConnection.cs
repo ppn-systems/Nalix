@@ -89,7 +89,7 @@ public sealed class WebSocketConnection :
         this.Secret = Bytes32.Zero;
         this.PacketClassifier = packetClassifier;
         this.IdleTimeoutMs = s_timingWheelOptions.IdleTimeoutMs;
-        this.ID = Snowflake.NewId(SnowflakeType.Session).ToUInt64();
+        this.ConnectionId = Snowflake.NewId(SnowflakeType.Session).ToUInt64();
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(remoteEndPoint ?? new IPEndPoint(IPAddress.Loopback, 0));
 
         // Transport owns WebSocket — ownership transfer
@@ -98,7 +98,7 @@ public sealed class WebSocketConnection :
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.WebSocketConnection:UnknownMethod", $"created remote-endpoint={this.NetworkEndpoint} connection-id={this.ID:X16}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.WebSocketConnection:UnknownMethod", $"created remote-endpoint={this.NetworkEndpoint} connection-id={this.ConnectionId:X16}"));
         }
     }
 
@@ -116,7 +116,10 @@ public sealed class WebSocketConnection :
     public bool ExcludeFromIdleTimeout { get; set; }
 
     /// <inheritdoc/>
-    public ulong ID { get; }
+    public ulong ConnectionId { get; }
+
+    /// <inheritdoc/>
+    public string? UserId { get; set; }
 
     /// <inheritdoc/>
     public IOpCodeExtractor PacketClassifier { get; }
@@ -434,7 +437,7 @@ public sealed class WebSocketConnection :
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
-            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.WebSocketConnection:Disconnect", $"disconnect request connection-id={this.ID:X16} remote-endpoint={this.NetworkEndpoint} reason={reason}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.WebSocketConnection:Disconnect", $"disconnect request connection-id={this.ConnectionId:X16} remote-endpoint={this.NetworkEndpoint} reason={reason}"));
         }
         this.Dispose();
     }

@@ -103,7 +103,7 @@ public sealed partial class Connection :
         this.PacketClassifier = packetClassifier;
         // Snapshot the remote endpoint up front so the connection can be logged
         // and tracked even before protocol-level events begin.
-        this.ID = Snowflake.NewId(SnowflakeType.Session).ToUInt64();
+        this.ConnectionId = Snowflake.NewId(SnowflakeType.Session).ToUInt64();
 
         // Use realEndPoint (from PROXY header) instead of socket.RemoteEndPoint (LB IP).
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(realEndPoint);
@@ -117,7 +117,7 @@ public sealed partial class Connection :
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Connection:UnknownMethod", $"created remote=remote-endpoint={this.NetworkEndpoint} id=connection-id={this.ID:X16}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Connection:UnknownMethod", $"created remote=remote-endpoint={this.NetworkEndpoint} id=connection-id={this.ConnectionId:X16}"));
         }
     }
 
@@ -135,7 +135,10 @@ public sealed partial class Connection :
     public bool ExcludeFromIdleTimeout { get; set; }
 
     /// <inheritdoc />
-    public ulong ID { get; }
+    public ulong ConnectionId { get; }
+
+    /// <inheritdoc />
+    public string? UserId { get; set; }
 
     /// <inheritdoc/>
     public IConnection.ITransport TCP => Volatile.Read(ref _backing)?.TcpTransport ?? throw new ObjectDisposedException(nameof(Connection));
@@ -424,7 +427,7 @@ public sealed partial class Connection :
     {
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
         {
-            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Connection:Disconnect", $"disconnect request id={this.ID} remote={this.NetworkEndpoint} reason={reason}"));
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Connection:Disconnect", $"disconnect request id={this.ConnectionId} remote={this.NetworkEndpoint} reason={reason}"));
         }
 
         this.Dispose();

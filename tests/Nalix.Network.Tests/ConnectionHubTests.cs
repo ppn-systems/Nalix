@@ -42,7 +42,7 @@ public sealed class ConnectionHubTests
         hub.RegisterConnection(connection);
 
         hub.Count.Should().Be(1);
-        hub.GetConnection(connection.ID).Should().BeSameAs(connection);
+        hub.GetConnection(connection.ConnectionId).Should().BeSameAs(connection);
     }
 
     [Fact]
@@ -60,8 +60,8 @@ public sealed class ConnectionHubTests
 
         hub.Count.Should().Be(0);
         observed.Should().NotBeNull();
-        observed!.ID.Should().Be(connection.ID);
-        hub.GetConnection(connection.ID).Should().BeNull();
+        observed!.ConnectionId.Should().Be(connection.ConnectionId);
+        hub.GetConnection(connection.ConnectionId).Should().BeNull();
     }
 
     [Fact]
