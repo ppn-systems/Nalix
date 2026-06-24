@@ -1299,4 +1299,3 @@ internal sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDis
 
     #endregion Nested Types
 }
-
