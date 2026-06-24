@@ -25,7 +25,7 @@ Nalix ships several cryptography primitives in `Nalix.Codec.Security`, but they 
 | AEAD and envelope encryption | `ChaCha20Poly1305`, `Salsa20Poly1305`, `EnvelopeCipher` | [AEAD and Envelope](./aead-and-envelope.md) |
 | Handshake protocol | `HandshakeHandlers`, `X25519` | [Handshake Protocol](./handshake.md) |
 | Proof-of-Work | `ProofOfWork`, `ProofOfWorkSolver`, `IProofOfWorkPolicy` | [Proof-of-Work](./proof-of-work.md) |
-| Session Rekey | `SessionRekey`, `SessionRekeyHandlers`, `RekeyExtensions` | [Session Rekey](./session-rekey.md) |
+| Session Rekey | `SystemControlHandlers`, `RekeyExtensions` | [Session Rekey](./session-rekey.md) |
 | Security enums | `CipherSuiteType`, `DropPolicy`, `PermissionLevel` | [Permission Levels](./permission-level.md) |
 
 ## Quick guidance

@@ -93,5 +93,5 @@ public sealed class ChatController
 
 ## Documentation
 
-Learn about the [Middleware Pipeline](https://ppn-system.me/concepts/middleware) and [Shard-Aware Dispatch](https://ppn-system.me/concepts/architecture).
+Learn about the [Middleware Pipeline](https://ppn.io.vn/concepts/middleware) and [Shard-Aware Dispatch](https://ppn.io.vn/concepts/architecture).
 

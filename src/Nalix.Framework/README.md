@@ -81,6 +81,6 @@ Console.WriteLine($"Machine ID Component: {sessionId.MachineId}");
 
 ## Documentation
 
-For deep dives into dependency injection, task scheduling, and memory pooling, see the [official documentation](https://ppn-system.me/concepts/packet-system).
+For deep dives into dependency injection, task scheduling, and memory pooling, see the [official documentation](https://ppn.io.vn/concepts/packet-system).
 
 

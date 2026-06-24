@@ -61,4 +61,4 @@ byte[] encoded = writer.ToArray();
 
 ## Documentation
 
-For information on memory management and configuration, see the [Environment Documentation](https://ppn-system.me/api/Environment/index).
+For information on memory management and configuration, see the [Environment Documentation](https://ppn.io.vn/api/Environment/index).
