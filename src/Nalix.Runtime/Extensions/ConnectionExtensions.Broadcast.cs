@@ -129,6 +129,66 @@ public static partial class ConnectionExtensions
         }
     }
 
+    /// <summary>
+    /// Multicasts a packet to a specific connection group, excluding a specific connection.
+    /// The packet payload is automatically compressed (if enabled and large enough) and encrypted per connection.
+    /// </summary>
+    /// <param name="hub">The connection broadcaster.</param>
+    /// <param name="groupProvider">The connection group provider to use for resolving group members.</param>
+    /// <param name="groupName">The name of the group to receive the message.</param>
+    /// <param name="excludedConnection">The connection to exclude from the broadcast.</param>
+    /// <param name="packet">The packet to multicast.</param>
+    /// <param name="transport">The network transport protocol to use.</param>
+    /// <param name="enableEncrypt">Whether to encrypt the packet (defaults to true).</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous multicast operation.</returns>
+    public static async Task MulticastExceptAsync(
+        this IConnectionBroadcaster hub,
+        IConnectionGroupRegistry groupProvider,
+        string groupName,
+        IConnection excludedConnection,
+        IPacket packet, NetworkTransport transport = NetworkTransport.TCP,
+        bool enableEncrypt = true, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(hub);
+        ArgumentNullException.ThrowIfNull(groupProvider);
+        ArgumentException.ThrowIfNullOrEmpty(groupName);
+        ArgumentNullException.ThrowIfNull(excludedConnection);
+        ArgumentNullException.ThrowIfNull(packet);
+
+        BufferLease rawLease = PacketPipeline.Serialize(packet);
+        try
+        {
+            bool enableCompress = s_options.Enabled;
+            int minSizeToCompress = s_options.MinSizeToCompress;
+
+            // PRE-COMPRESSION (O(1) C)
+            int payloadSize = rawLease.Length - PacketConstants.HeaderSize;
+            if (enableCompress && payloadSize >= minSizeToCompress)
+            {
+                IBufferLease temp = FrameCompression.CompressFrame(rawLease);
+                rawLease.Dispose();
+                rawLease = (BufferLease)temp;
+                enableCompress = false;
+            }
+
+            BroadcastState state = new(
+                rawLease,
+                transport,
+                enableEncrypt,
+                enableCompress,
+                minSizeToCompress);
+
+            PacketSenderAction sender = new();
+
+            await hub.MulticastExceptAsync(groupProvider, groupName, excludedConnection, state, sender, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            rawLease.Dispose();
+        }
+    }
+
     #region Options
 
     private static readonly CompressionOptions s_options = ConfigurationManager.Instance.Get<CompressionOptions>();

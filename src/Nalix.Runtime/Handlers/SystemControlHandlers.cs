@@ -123,7 +123,7 @@ public static partial class SystemControlHandlers
         }
 
         long ts = System.Environment.TickCount64; // Using ticks as simple timestamp
-        (Bytes32 nonce, Bytes32 mac) = ProofOfWork.CreateChallenge(diff, context.Connection.ID, ts);
+        (Bytes32 nonce, Bytes32 mac) = ProofOfWork.CreateChallenge(diff, context.Connection.ConnectionId, ts);
 
         PacketScope<ProofOfWorkChallenge> lease = PacketFactory<ProofOfWorkChallenge>.Acquire();
         try

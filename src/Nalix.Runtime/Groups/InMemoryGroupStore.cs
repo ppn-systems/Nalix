@@ -45,10 +45,10 @@ public sealed class InMemoryGroupStore : IConnectionGroupRegistry
             groupName,
             static _ => new ConcurrentDictionary<ulong, IConnection>());
 
-        groupConnections[connection.ID] = connection;
+        groupConnections[connection.ConnectionId] = connection;
 
         ConcurrentDictionary<string, byte> groupsForConnection = _connectionGroups.GetOrAdd(
-            connection.ID,
+            connection.ConnectionId,
             static _ => new ConcurrentDictionary<string, byte>(StringComparer.Ordinal));
 
         groupsForConnection[groupName] = 1;
@@ -69,7 +69,7 @@ public sealed class InMemoryGroupStore : IConnectionGroupRegistry
 
         if (_groups.TryGetValue(groupName, out ConcurrentDictionary<ulong, IConnection>? groupConnections))
         {
-            _ = groupConnections.TryRemove(connection.ID, out _);
+            _ = groupConnections.TryRemove(connection.ConnectionId, out _);
 
             // Clean up empty groups if desired
             if (groupConnections.IsEmpty)
@@ -78,13 +78,13 @@ public sealed class InMemoryGroupStore : IConnectionGroupRegistry
             }
         }
 
-        if (_connectionGroups.TryGetValue(connection.ID, out ConcurrentDictionary<string, byte>? groupsForConnection))
+        if (_connectionGroups.TryGetValue(connection.ConnectionId, out ConcurrentDictionary<string, byte>? groupsForConnection))
         {
             _ = groupsForConnection.TryRemove(groupName, out _);
 
             if (groupsForConnection.IsEmpty)
             {
-                _ = _connectionGroups.TryRemove(new KeyValuePair<ulong, ConcurrentDictionary<string, byte>>(connection.ID, groupsForConnection));
+                _ = _connectionGroups.TryRemove(new KeyValuePair<ulong, ConcurrentDictionary<string, byte>>(connection.ConnectionId, groupsForConnection));
             }
         }
 
@@ -101,13 +101,13 @@ public sealed class InMemoryGroupStore : IConnectionGroupRegistry
             return Task.FromCanceled(cancellationToken);
         }
 
-        if (_connectionGroups.TryRemove(connection.ID, out ConcurrentDictionary<string, byte>? groupsForConnection))
+        if (_connectionGroups.TryRemove(connection.ConnectionId, out ConcurrentDictionary<string, byte>? groupsForConnection))
         {
             foreach (string groupName in groupsForConnection.Keys)
             {
                 if (_groups.TryGetValue(groupName, out ConcurrentDictionary<ulong, IConnection>? groupConnections))
                 {
-                    _ = groupConnections.TryRemove(connection.ID, out _);
+                    _ = groupConnections.TryRemove(connection.ConnectionId, out _);
 
                     if (groupConnections.IsEmpty)
                     {

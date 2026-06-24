@@ -158,7 +158,7 @@ public sealed partial class ConnectionHub : IConnectionHub
 
         if (result == RegisterResult.Duplicate)
         {
-            throw new InternalErrorException($"Connection '{connection.ID}' is already registered.");
+            throw new InternalErrorException($"Connection '{connection.ConnectionId}' is already registered.");
         }
     }
 
@@ -420,7 +420,7 @@ public sealed partial class ConnectionHub : IConnectionHub
         bool measureLatency = _options.IsEnableLatency && DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information);
         TimingScope scope = measureLatency ? TimingScope.Start() : default;
 
-        ulong connectionKey = connection.ID;
+        ulong connectionKey = connection.ConnectionId;
 
         connection.ConnectionClosed += this.OnClientDisconnected;
         connection.Attributes[ConnectionAttributes.OwnerHub] = this;
@@ -434,7 +434,7 @@ public sealed partial class ConnectionHub : IConnectionHub
                 {
                     DiagnosticsEvents.Write(
                         DiagnosticsEvents.Internal.Debug,
-                        new DiagnosticLog("NW.ConnectionHub:RegisterConnection", $"register-dup id={connection.ID:X16}"));
+                        new DiagnosticLog("NW.ConnectionHub:RegisterConnection", $"register-dup id={connection.ConnectionId:X16}"));
                 }
 
                 return RegisterResult.Duplicate;
@@ -446,7 +446,7 @@ public sealed partial class ConnectionHub : IConnectionHub
             {
                 DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Trace,
-                    new DiagnosticLog("NW.ConnectionHub:RegisterConnection", $"register id={connection.ID:X16} total={_registry.Count}"));
+                    new DiagnosticLog("NW.ConnectionHub:RegisterConnection", $"register id={connection.ConnectionId:X16} total={_registry.Count}"));
             }
 
             if (measureLatency)
@@ -454,7 +454,7 @@ public sealed partial class ConnectionHub : IConnectionHub
                 string latency = scope.GetElapsedMilliseconds().ToString("0.000", CultureInfo.InvariantCulture);
                 DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Information,
-                    new DiagnosticLog("PERF.NW.ConnectionHub:RegisterConnection", $"id={connection.ID:X16}, latency={latency} ms"));
+                    new DiagnosticLog("PERF.NW.ConnectionHub:RegisterConnection", $"id={connection.ConnectionId:X16}, latency={latency} ms"));
             }
 
             return RegisterResult.Success;
@@ -473,7 +473,7 @@ public sealed partial class ConnectionHub : IConnectionHub
     [SuppressMessage("Performance", "CA1873:Avoid potentially expensive logging", Justification = "<Pending>")]
     private bool TryUnregisterCore(IConnection connection)
     {
-        ulong connectionKey = connection.ID;
+        ulong connectionKey = connection.ConnectionId;
 
 #pragma warning disable CA2000 // Dispose objects before losing scope
         if (!_registry.TryRemove(connectionKey, out IConnection? existing) || existing is null)
@@ -483,7 +483,7 @@ public sealed partial class ConnectionHub : IConnectionHub
             {
                 DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Debug,
-                    new DiagnosticLog("NW.ConnectionHub:UnregisterConnection", $"unregister-miss id={connection.ID:X16}"));
+                    new DiagnosticLog("NW.ConnectionHub:UnregisterConnection", $"unregister-miss id={connection.ConnectionId:X16}"));
             }
 
             return false;
@@ -505,7 +505,7 @@ public sealed partial class ConnectionHub : IConnectionHub
             {
                 DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Error,
-                    new DiagnosticLog("NW.ConnectionHub:UnregisterConnection", $"event-error id={removedConnection.ID:X16}", ex));
+                    new DiagnosticLog("NW.ConnectionHub:UnregisterConnection", $"event-error id={removedConnection.ConnectionId:X16}", ex));
             }
         }
 
@@ -526,7 +526,7 @@ public sealed partial class ConnectionHub : IConnectionHub
             {
                 DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Error,
-                    new DiagnosticLog("NW.ConnectionHub:UnregisterConnection", $"dispose-error id={removedConnection.ID:X16}", ex));
+                    new DiagnosticLog("NW.ConnectionHub:UnregisterConnection", $"dispose-error id={removedConnection.ConnectionId:X16}", ex));
             }
         }
 
@@ -534,7 +534,7 @@ public sealed partial class ConnectionHub : IConnectionHub
         {
             DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Trace,
-                new DiagnosticLog("NW.ConnectionHub:UnregisterConnection", $"unregister id={removedConnection.ID:X16} total={_registry.Count}"));
+                new DiagnosticLog("NW.ConnectionHub:UnregisterConnection", $"unregister id={removedConnection.ConnectionId:X16} total={_registry.Count}"));
         }
 
         if (measureLatency)
@@ -542,7 +542,7 @@ public sealed partial class ConnectionHub : IConnectionHub
             string latency = scope.GetElapsedMilliseconds().ToString("0.000", CultureInfo.InvariantCulture);
             DiagnosticsEvents.Write(
                 DiagnosticsEvents.Internal.Information,
-                new DiagnosticLog("PERF.NW.ConnectionHub:UnregisterConnection", $"id={removedConnection.ID:X16}, latency={latency} ms"));
+                new DiagnosticLog("PERF.NW.ConnectionHub:UnregisterConnection", $"id={removedConnection.ConnectionId:X16}, latency={latency} ms"));
         }
 
         return true;
@@ -579,7 +579,7 @@ public sealed partial class ConnectionHub : IConnectionHub
                 {
                     DiagnosticsEvents.Write(
                         DiagnosticsEvents.Internal.Error,
-                        new DiagnosticLog("NW.ConnectionHub:DisposeAllConnections", $"dispose-error id={connection.ID:X16}", ex));
+                        new DiagnosticLog("NW.ConnectionHub:DisposeAllConnections", $"dispose-error id={connection.ConnectionId:X16}", ex));
                 }
             }
         });

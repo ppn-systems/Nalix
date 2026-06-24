@@ -67,6 +67,79 @@ public sealed partial class ConnectionHub : IConnectionBroadcaster
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    public async Task MulticastExceptAsync<TState, TSender>(IConnectionGroupRegistry groupProvider, string groupName, IConnection excludedConnection, TState state, TSender sender, CancellationToken cancellationToken = default)
+        where TSender : struct, IConnectionSender<TState>
+    {
+        ArgumentNullException.ThrowIfNull(groupProvider);
+        ArgumentException.ThrowIfNullOrEmpty(groupName);
+        ArgumentNullException.ThrowIfNull(excludedConnection);
+
+        IReadOnlyCollection<IConnection> members = groupProvider.GetGroupMembers(groupName);
+        int connectionCount = members.Count;
+        if (connectionCount == 0)
+        {
+            return;
+        }
+
+        Task[]? tasks = null;
+        IConnection[]? owners = null;
+        int taskCount = 0;
+
+        ulong excludedId = excludedConnection.ConnectionId;
+
+        try
+        {
+            if (members is IReadOnlyList<IConnection> list)
+            {
+                for (int i = 0; i < list.Count; i++)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
+
+                    IConnection conn = list[i];
+                    if (conn.ConnectionId == excludedId)
+                    {
+                        continue;
+                    }
+
+                    QueueSendGeneric(conn, connectionCount, ref state, ref sender, cancellationToken, ref tasks, ref owners, ref taskCount);
+                }
+            }
+            else
+            {
+                foreach (IConnection connection in members)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
+
+                    if (connection.ConnectionId == excludedId)
+                    {
+                        continue;
+                    }
+
+                    QueueSendGeneric(connection, connectionCount, ref state, ref sender, cancellationToken, ref tasks, ref owners, ref taskCount);
+                }
+            }
+
+            if (taskCount == 0 || tasks is null || owners is null)
+            {
+                return;
+            }
+
+            await AwaitTasksAsync(tasks, owners, taskCount, cancellationToken, nameof(MulticastExceptAsync)).ConfigureAwait(false);
+        }
+        finally
+        {
+            ReturnArrays(ref tasks, ref owners);
+        }
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public async Task MulticastAsync<TState, TSender>(IConnectionGroupRegistry groupProvider, string groupName, TState state, TSender sender, CancellationToken cancellationToken = default)
         where TSender : struct, IConnectionSender<TState>
     {
@@ -117,6 +190,90 @@ public sealed partial class ConnectionHub : IConnectionBroadcaster
             }
 
             await AwaitTasksAsync(tasks, owners, taskCount, cancellationToken, nameof(MulticastAsync)).ConfigureAwait(false);
+        }
+        finally
+        {
+            ReturnArrays(ref tasks, ref owners);
+        }
+    }
+
+    /// <summary>
+    /// Multicasts a pre-serialized message buffer to a specific connection group, excluding a specific connection.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    [Obsolete(
+        "This overload sends a pre-serialized buffer and bypasses the normal compression and encryption pipeline. Use the packet-based multicast overload instead.",
+        error: false,
+        DiagnosticId = "NALIX_NET001")]
+    public async Task MulticastExceptAsync(
+        IConnectionGroupRegistry groupProvider,
+        string groupName,
+        IConnection excludedConnection,
+        ReadOnlyMemory<byte> message,
+        NetworkTransport transport = NetworkTransport.TCP,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(groupProvider);
+        ArgumentException.ThrowIfNullOrEmpty(groupName);
+        ArgumentNullException.ThrowIfNull(excludedConnection);
+
+        IReadOnlyCollection<IConnection> members = groupProvider.GetGroupMembers(groupName);
+        int connectionCount = members.Count;
+        if (connectionCount == 0 || message.IsEmpty || _disposed)
+        {
+            return;
+        }
+
+        Task[]? tasks = null;
+        IConnection[]? owners = null;
+        int taskCount = 0;
+
+        ulong excludedId = excludedConnection.ConnectionId;
+
+        try
+        {
+            if (members is IReadOnlyList<IConnection> list)
+            {
+                for (int i = 0; i < list.Count; i++)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
+
+                    IConnection conn = list[i];
+                    if (conn.ConnectionId == excludedId)
+                    {
+                        continue;
+                    }
+
+                    QueueSend(conn, connectionCount, message, transport, cancellationToken, ref tasks, ref owners, ref taskCount);
+                }
+            }
+            else
+            {
+                foreach (IConnection connection in members)
+                {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
+
+                    if (connection.ConnectionId == excludedId)
+                    {
+                        continue;
+                    }
+
+                    QueueSend(connection, connectionCount, message, transport, cancellationToken, ref tasks, ref owners, ref taskCount);
+                }
+            }
+
+            if (taskCount == 0 || tasks is null || owners is null)
+            {
+                return;
+            }
+
+            await AwaitTasksAsync(tasks, owners, taskCount, cancellationToken, nameof(MulticastExceptAsync)).ConfigureAwait(false);
         }
         finally
         {
@@ -343,7 +500,7 @@ public sealed partial class ConnectionHub : IConnectionBroadcaster
             {
                 DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Error,
-                    new DiagnosticLog("NW.ConnectionHub:MulticastAsync", $"send-failure id={connection.ID:X16}", ex));
+                    new DiagnosticLog("NW.ConnectionHub:MulticastAsync", $"send-failure id={connection.ConnectionId:X16}", ex));
             }
         }
     }
@@ -386,7 +543,7 @@ public sealed partial class ConnectionHub : IConnectionBroadcaster
             {
                 DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Error,
-                    new DiagnosticLog("NW.ConnectionHub", $"send-failure id={connection.ID:X16}", ex));
+                    new DiagnosticLog("NW.ConnectionHub", $"send-failure id={connection.ConnectionId:X16}", ex));
             }
         }
     }
@@ -413,7 +570,7 @@ public sealed partial class ConnectionHub : IConnectionBroadcaster
             {
                 DiagnosticsEvents.Write(
                     DiagnosticsEvents.Internal.Error,
-                    new DiagnosticLog($"NW.ConnectionHub:{operationName}", $"send-failure id={owner.ID:X16}", exception));
+                    new DiagnosticLog($"NW.ConnectionHub:{operationName}", $"send-failure id={owner.ConnectionId:X16}", exception));
             }
         }
     }
@@ -469,7 +626,7 @@ public sealed partial class ConnectionHub : IConnectionBroadcaster
                     {
                         DiagnosticsEvents.Write(
                             DiagnosticsEvents.Internal.Error,
-                            new DiagnosticLog("NW.ConnectionHub:BroadcastAsync", $"send-failure op={operationName} id={connection.ID:X16}", ex));
+                            new DiagnosticLog("NW.ConnectionHub:BroadcastAsync", $"send-failure op={operationName} id={connection.ConnectionId:X16}", ex));
                     }
                 }
             }
@@ -534,7 +691,7 @@ public sealed partial class ConnectionHub : IConnectionBroadcaster
                     {
                         DiagnosticsEvents.Write(
                             DiagnosticsEvents.Internal.Error,
-                            new DiagnosticLog("NW.ConnectionHub:BroadcastAsync", $"send-failure id={connection.ID}", ex));
+                            new DiagnosticLog("NW.ConnectionHub:BroadcastAsync", $"send-failure id={connection.ConnectionId}", ex));
                     }
                 }
 
