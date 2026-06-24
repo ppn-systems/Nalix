@@ -11,6 +11,7 @@
 ## Rules
 
 ### Builder API Surface
+
 Key methods on `INetworkApplicationBuilder`:
 
 | Method | Purpose |
@@ -34,6 +35,7 @@ Key methods on `INetworkApplicationBuilder`:
 | `Build()` | Produce a `NetworkApplication` |
 
 ### Startup Sequence (Fixed Order)
+
 1. `Configure<TOptions>()` — config loading/binding
 2. `Use*()` calls — service wiring, opting into security, sessions, time sync, system control
 3. Handler registration via `MapHandlers<T>()` — opcode-keyed, order does not matter
@@ -42,6 +44,7 @@ Key methods on `INetworkApplicationBuilder`:
 6. `await host.ActivateAsync()` or `await host.RunAsync()`
 
 ### Built-in System Handlers (Opt-in)
+
 The system handlers are registered by calling the corresponding builder `Use*` extension method:
 - `UseSecureConnections()` registers `HandshakeHandlers` & `ProofOfWorkHandlers`
 - `UseSessions()` registers `SessionHandlers`
@@ -49,12 +52,14 @@ The system handlers are registered by calling the corresponding builder `Use*` e
 - `UseTimeSync()` registers `SystemTimeSyncHandlers`
 
 ### Lifecycle
+
 - `ActivateAsync()` starts packet dispatch — does not directly manage socket open/close
 - `DeactivateAsync()` stops dispatch — listener lifecycle is separate
 - `RunAsync()` = `ActivateAsync()` + await cancellation + `DeactivateAsync()`
 - Start/stop is guarded by a `SemaphoreSlim` — not reentrant; calling `ActivateAsync()` twice without `DeactivateAsync()` will deadlock
 
 ### Resources
+
 - `Resource.Designer.cs` is auto-generated from `Resource.resx` on every build
 - **Never edit `Resource.Designer.cs` directly** — changes are silently overwritten on next build
 

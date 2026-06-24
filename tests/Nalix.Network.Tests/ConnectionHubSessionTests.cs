@@ -55,7 +55,7 @@ public sealed class ConnectionHubSessionTests
         _ = session.Snapshot.Algorithm.Should().Be(connection.Algorithm);
         _ = session.Snapshot.Level.Should().Be(connection.Level);
         _ = session.Snapshot.Attributes.Should().ContainKey(AttributeKey.FromName("test")).WhoseValue.Should().Be("value");
-        _ = session.ConnectionId.Should().Be(connection.ID);
+        _ = session.ConnectionId.Should().Be(connection.ConnectionId);
     }
 
     [Fact]

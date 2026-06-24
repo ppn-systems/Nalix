@@ -20,6 +20,7 @@ using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames;
 using Nalix.Environment.Extensions;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Runtime.Internal.Compilation;
@@ -669,8 +670,16 @@ public sealed class PacketDispatchChannel
                 return ValueTask.CompletedTask;
             }
 
-            // Slow-path: async completion (AwaitDispatchAsync handles Return/Dispose)
-            return AwaitPacketHandlerCompletionAsync(connection, lease, packet, pending, ct);
+            // Slow-path: async completion
+            // The handler returned an incomplete task (e.g. awaited I/O).
+            // To prevent blocking the DispatchWorkerLoop, we offload the continuation to the ThreadPool.
+            // Using a pooled IThreadPoolWorkItem ensures 0-byte allocation.
+            DispatchContinuation workItem = ObjectPoolManager.Shared.Get<DispatchContinuation>();
+            workItem.Initialize(connection, lease, packet, pending.AsTask(), ct);
+
+            _ = ThreadPool.UnsafeQueueUserWorkItem(workItem, preferLocal: false);
+
+            return ValueTask.CompletedTask;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -707,48 +716,7 @@ public sealed class PacketDispatchChannel
         return ValueTask.CompletedTask;
     }
 
-    private static async ValueTask AwaitPacketHandlerCompletionAsync(
-        IConnection connection,
-        IBufferLease lease, IPacket packet, ValueTask pending, CancellationToken ct)
-    {
-        try
-        {
-            await pending.ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            // Async cancellation
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            try
-            {
-                if (!connection.IsDisposed)
-                {
-                    connection.IncrementErrorCount();
-                    connection.ThrottledDiagnosticError(
-                        DiagnosticsEvents.Internal.Error,
-                        s_keyExecute,
-                        "RT.PacketDispatchChannel:ExecutePacketAsync",
-                        $"handler-error ep={connection.NetworkEndpoint}");
-                }
-            }
-            catch (ObjectDisposedException)
-            {
-                // Ignore ObjectDisposedException since the connection is going away
-            }
-        }
-        finally
-        {
-            // Guaranteed release for async path
-            if (packet is IDisposable disposable)
-            {
-                disposable.Dispose();
-            }
 
-            lease.Dispose();
-        }
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void RequestWake()

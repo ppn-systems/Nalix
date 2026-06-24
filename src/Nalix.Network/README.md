@@ -90,4 +90,4 @@ Console.WriteLine($"Force closed {closedConnections} connections.");
 
 ## Documentation
 
-For deep technical details on listeners, session persistence, and admission guard limits, see the [Transport & Networking Guide](https://ppn-system.me/api/network/index).
+For deep technical details on listeners, session persistence, and admission guard limits, see the [Transport & Networking Guide](https://ppn.io.vn/api/network/index).

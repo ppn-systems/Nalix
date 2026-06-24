@@ -35,7 +35,8 @@ public class PolicyRateLimiterBenchmarks
     {
         public bool IsDisposed => false;
         public bool IsUdpCreated => false;
-        public ISnowflake ID => null!;
+        public ulong ID => 0;
+        public string? UserId { get; set; }
         public long UpTime => 0;
         public long BytesSent => 0;
         public long BytesReceived => 0;

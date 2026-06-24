@@ -41,7 +41,6 @@ public sealed partial class SessionTofu : PacketBase<SessionTofu>, IFixedSizeSer
     /// <param name="publicKey">The public key to send.</param>
     public void Initialize(Bytes32 publicKey)
     {
-
         this.PublicKey = publicKey;
         this.Priority = PacketPriority.HIGH;
         this.Flags = PacketFlags.SYSTEM;

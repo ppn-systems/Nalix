@@ -31,7 +31,13 @@ public partial interface IConnection : IDisposable, IConnectionErrorTracked
     /// <summary>
     /// Gets the unique identifier for the connection.
     /// </summary>
-    ulong ID { get; }
+    ulong ConnectionId { get; }
+
+    /// <summary>
+    /// Gets or sets the unique identifier of the authenticated user associated with this connection.
+    /// Used for routing and user-specific group mapping.
+    /// </summary>
+    string? UserId { get; set; }
 
     /// <summary>
     /// Gets the total duration (in milliseconds) since the connection was established.

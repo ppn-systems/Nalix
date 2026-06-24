@@ -7,6 +7,7 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
+using Nalix.Codec.Extensions;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Environment.Time;
@@ -28,7 +29,7 @@ public static class SystemTimeSyncHandlers
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode(ProtocolOpCode.SYSTEM_TIMESYNC)]
-    public static async ValueTask HandleAsync(IPacketContext<TimeSync> context)
+    public static ValueTask HandleAsync(IPacketContext<TimeSync> context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -36,11 +37,11 @@ public static class SystemTimeSyncHandlers
         switch (packet.Type)
         {
             case ControlType.PING:
-                await HandlePing(context, packet).ConfigureAwait(false);
-                break;
+                return HandlePing(context, packet);
             case ControlType.TIMESYNCREQUEST:
-                await HandleTimeSyncRequest(context, packet).ConfigureAwait(false);
-                break;
+                return HandleTimeSyncRequest(context, packet);
+            case ControlType.SESSION_REKEY:
+            case ControlType.SESSION_REKEY_ACK:
             case ControlType.POW_REQUEST:
             case ControlType.NONE:
             case ControlType.DISCONNECT:
@@ -61,34 +62,50 @@ public static class SystemTimeSyncHandlers
             default:
                 break;
         }
+
+        return default;
     }
 
-    private static async ValueTask HandlePing(IPacketContext<TimeSync> context, TimeSync ping)
+    private static ValueTask HandlePing(IPacketContext<TimeSync> context, TimeSync ping)
     {
-        using PacketScope<TimeSync> lease = PacketFactory<TimeSync>.Acquire();
+        PacketScope<TimeSync> lease = PacketFactory<TimeSync>.Acquire();
+        try
+        {
+            TimeSync pong = lease.Value;
+            pong.Initialize(
+                ControlType.PONG,
+                ping.SequenceId,
+                ping.Flags);
 
-        TimeSync pong = lease.Value;
-        pong.Initialize(
-            ControlType.PONG,
-            ping.SequenceId,
-            ping.Flags);
+            pong.Timestamp = ping.Timestamp;
+            pong.MonoTicks = ping.MonoTicks;
 
-        pong.Timestamp = ping.Timestamp;
-        pong.MonoTicks = ping.MonoTicks;
-
-        await context.Sender.SendAsync(pong).ConfigureAwait(false);
+            return context.Sender.SendAsync(pong).DisposeOnCompletionAsync(lease);
+        }
+        catch
+        {
+            lease.Dispose();
+            throw;
+        }
     }
 
-    private static async ValueTask HandleTimeSyncRequest(IPacketContext<TimeSync> context, TimeSync req)
+    private static ValueTask HandleTimeSyncRequest(IPacketContext<TimeSync> context, TimeSync req)
     {
-        using PacketScope<TimeSync> lease = PacketFactory<TimeSync>.Acquire();
+        PacketScope<TimeSync> lease = PacketFactory<TimeSync>.Acquire();
+        try
+        {
+            TimeSync res = lease.Value;
+            res.Initialize(ControlType.TIMESYNCRESPONSE, req.SequenceId, req.Flags);
 
-        TimeSync res = lease.Value;
-        res.Initialize(ControlType.TIMESYNCRESPONSE, req.SequenceId, req.Flags);
+            res.Timestamp = Clock.UnixMillisecondsNow(); // t3
+            res.MonoTicks = req.MonoTicks;               // echo t1'
 
-        res.Timestamp = Clock.UnixMillisecondsNow(); // t3
-        res.MonoTicks = req.MonoTicks;               // echo t1'
-
-        await context.Sender.SendAsync(res).ConfigureAwait(false);
+            return context.Sender.SendAsync(res).DisposeOnCompletionAsync(lease);
+        }
+        catch
+        {
+            lease.Dispose();
+            throw;
+        }
     }
 }

@@ -49,7 +49,7 @@ public static class ProofOfWorkHandlers
         Bytes32 mac = p.Mac;
         Bytes32 nonce = p.Nonce;
 
-        if (!ProofOfWork.VerifySolution(nonce.AsSpan(), p.Difficulty, p.TimestampTicks, context.Connection.ID, mac.AsSpan(), p.Solution))
+        if (!ProofOfWork.VerifySolution(nonce.AsSpan(), p.Difficulty, p.TimestampTicks, context.Connection.ConnectionId, mac.AsSpan(), p.Solution))
         {
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {

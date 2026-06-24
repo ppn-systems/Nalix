@@ -127,7 +127,7 @@ When adaptive PoW is enabled (`ConnectionQuotaOptions.EnableAdaptiveMode`), the 
 
 ### Session Rekey
 
-Long-lived sessions can rotate their symmetric key mid-session via the `SessionRekey` protocol. This resets 16-bit sequence counters (preventing overflow after 65,535 frames) and limits the cryptographic exposure window. The client sends a new 32-byte key; the server applies it immediately and responds with `CIPHER_UPDATE_ACK`.
+Long-lived sessions can rotate their symmetric key mid-session via the Session Rekey protocol. This resets 16-bit sequence counters (preventing overflow after 65,535 frames) and limits the cryptographic exposure window. Both client and server derive the new key using HKDF-Expand with a static label `nalix-session/rekey` from the current secret, without transmitting any keys over the wire. This is initiated via a control packet of type `SESSION_REKEY` and acknowledged with `SESSION_REKEY_ACK`.
 
 ## Session Resume
 

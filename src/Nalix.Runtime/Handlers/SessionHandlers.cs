@@ -154,7 +154,7 @@ public static partial class SessionHandlers
 
         await s_sessionService.SaveSessionAsync(connection).ConfigureAwait(false);
 
-        ulong newToken = connection.ID;
+        ulong newToken = connection.ConnectionId;
 
         Span<byte> responseMessageBytes = stackalloc byte[16];
         BinaryPrimitives.WriteUInt64LittleEndian(responseMessageBytes, newToken);

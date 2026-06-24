@@ -56,6 +56,9 @@ public sealed partial class NalixUsageAnalyzer
             INamedTypeSymbol? exceptionClassifierType,
             INamedTypeSymbol? packetScopeType,
             INamedTypeSymbol? caughtExceptionType,
+            INamedTypeSymbol? rpcServiceAttribute,
+            INamedTypeSymbol? rpcCallType,
+            INamedTypeSymbol? rpcStreamType,
             int packetHeaderRegionOffset)
         {
             this.PacketOpcodeAttribute = packetOpcodeAttribute;
@@ -100,6 +103,9 @@ public sealed partial class NalixUsageAnalyzer
             this.ExceptionClassifierType = exceptionClassifierType;
             this.PacketScopeType = packetScopeType;
             this.CaughtExceptionType = caughtExceptionType;
+            this.RpcServiceAttribute = rpcServiceAttribute;
+            this.RpcCallType = rpcCallType;
+            this.RpcStreamType = rpcStreamType;
             this.PacketHeaderRegionOffset = packetHeaderRegionOffset;
         }
 
@@ -145,6 +151,9 @@ public sealed partial class NalixUsageAnalyzer
         public INamedTypeSymbol? ExceptionClassifierType { get; }
         public INamedTypeSymbol? PacketScopeType { get; }
         public INamedTypeSymbol? CaughtExceptionType { get; }
+        public INamedTypeSymbol? RpcServiceAttribute { get; }
+        public INamedTypeSymbol? RpcCallType { get; }
+        public INamedTypeSymbol? RpcStreamType { get; }
         public int PacketHeaderRegionOffset { get; }
 
         public static SymbolSet? Create(Compilation compilation)
@@ -196,6 +205,9 @@ public sealed partial class NalixUsageAnalyzer
             INamedTypeSymbol? exceptionClassifierType = compilation.GetTypeByMetadataName("Nalix.Abstractions.Exceptions.ExceptionClassifier");
             INamedTypeSymbol? packetScopeType = compilation.GetTypeByMetadataName("Nalix.Codec.Pooling.PacketScope`1");
             INamedTypeSymbol? caughtExceptionType = compilation.GetTypeByMetadataName("System.Exception");
+            INamedTypeSymbol? rpcServiceAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.Networking.Rpc.RpcServiceAttribute");
+            INamedTypeSymbol? rpcCallType = compilation.GetTypeByMetadataName("Nalix.SDK.Transport.Rpc.RpcCall`1");
+            INamedTypeSymbol? rpcStreamType = compilation.GetTypeByMetadataName("Nalix.SDK.Transport.Rpc.RpcStream`1");
             int packetHeaderRegionOffset = 12;
             if (packetHeaderOffsetType is not null)
             {
@@ -257,6 +269,9 @@ public sealed partial class NalixUsageAnalyzer
                     exceptionClassifierType,
                     packetScopeType,
                     caughtExceptionType,
+                    rpcServiceAttribute,
+                    rpcCallType,
+                    rpcStreamType,
                     packetHeaderRegionOffset);
         }
     }
