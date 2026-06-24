@@ -44,7 +44,7 @@ public sealed class ConsumerHandler
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug("[Tunneling.ConsumerHandler] consumer={ConnectionId} channel={ChannelId} error=no-provider-registered", consumerConnection.ID, channelId);
+                _logger.LogDebug("[Tunneling.ConsumerHandler] consumer={ConnectionId} channel={ChannelId} error=no-provider-registered", consumerConnection.ConnectionId, channelId);
             }
 
             await SendAsync(context, false, 1).ConfigureAwait(false); // 1 = ChannelNotFound
@@ -68,7 +68,7 @@ public sealed class ConsumerHandler
         {
             _logger.LogTrace(
                 "[Tunneling.ConsumerHandler] requested-data-connection provider={ProviderId} consumer={ConsumerId} channel={ChannelId}",
-                providerControlConnection.ID, consumerConnection.ID, channelId);
+                providerControlConnection.ConnectionId, consumerConnection.ConnectionId, channelId);
         }
 
         // 4. Wait for the Provider to establish the new data connection
@@ -82,7 +82,7 @@ public sealed class ConsumerHandler
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug(ex, "[Tunneling.ConsumerHandler] data-connection-timeout provider={ProviderId} channel={ChannelId}", providerControlConnection.ID, channelId);
+                _logger.LogDebug(ex, "[Tunneling.ConsumerHandler] data-connection-timeout provider={ProviderId} channel={ChannelId}", providerControlConnection.ConnectionId, channelId);
             }
 
             await SendAsync(context, false, 2).ConfigureAwait(false); // 2 = ProviderTimeout
@@ -96,14 +96,14 @@ public sealed class ConsumerHandler
         TunnelSession session = new(consumerConnection, _options, _sessionRegistry, _logger);
         try
         {
-            _sessionRegistry.Register(consumerConnection.ID, session);
+            _sessionRegistry.Register(consumerConnection.ConnectionId, session);
             session.StartTunnel(providerDataConnection);
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug(ex, "[Tunneling.ConsumerHandler] tunnel-session-start-error consumer={ConsumerId}", consumerConnection.ID);
+                _logger.LogDebug(ex, "[Tunneling.ConsumerHandler] tunnel-session-start-error consumer={ConsumerId}", consumerConnection.ConnectionId);
             }
 
             await session.DisposeAsync().ConfigureAwait(false);

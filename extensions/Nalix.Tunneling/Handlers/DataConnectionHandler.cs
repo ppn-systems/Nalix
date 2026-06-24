@@ -39,14 +39,14 @@ public sealed class DataConnectionHandler
         {
             if (_logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug("[Tunneling.DataConnectionHandler] authenticated-and-resolved connection={ConnectionId}", dataConnection.ID);
+                _logger.LogDebug("[Tunneling.DataConnectionHandler] authenticated-and-resolved connection={ConnectionId}", dataConnection.ConnectionId);
             }
         }
         else
         {
             if (_logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug("[Tunneling.DataConnectionHandler] authentication-failed connection={ConnectionId} reason=invalid-token", dataConnection.ID);
+                _logger.LogDebug("[Tunneling.DataConnectionHandler] authentication-failed connection={ConnectionId} reason=invalid-token", dataConnection.ConnectionId);
             }
 
             dataConnection.Disconnect("Invalid tunnel token");

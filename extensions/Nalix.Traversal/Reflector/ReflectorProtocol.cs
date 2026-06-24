@@ -106,7 +106,7 @@ public sealed class ReflectorProtocol : IProtocol, IFrameProcessor, IOpCodeExtra
             }
 
             // Forward the EXACT SAME PACKET to the target.
-            targetConnection?.UDP.Send(buffer);
+            targetConnection?.UDP?.Send(buffer);
         }
         finally
         {
