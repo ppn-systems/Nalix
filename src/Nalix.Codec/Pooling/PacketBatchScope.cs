@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
@@ -13,7 +14,7 @@ namespace Nalix.Codec.Pooling;
 /// A zero-allocation wrapper that ensures a batch of rented packets and their underlying array are returned to their pools upon disposal.
 /// </summary>
 /// <typeparam name="TPacket">The packet type.</typeparam>
-public readonly struct PacketBatchScope<TPacket> : IDisposable where TPacket : PacketBase<TPacket>, IPacketStaticOpcode, new()
+public readonly struct PacketBatchScope<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TPacket> : IDisposable where TPacket : PacketBase<TPacket>, IPacketStaticOpcode, new()
 {
     private readonly TPacket[] _buffer;
     private readonly int _count;
@@ -47,8 +48,9 @@ public readonly struct PacketBatchScope<TPacket> : IDisposable where TPacket : P
         {
             if ((uint)index >= (uint)_count)
             {
-                throw new IndexOutOfRangeException();
+                ThrowArgumentOutOfRange_IndexMustBeLess(index);
             }
+
             return _buffer[index];
         }
     }
@@ -57,13 +59,13 @@ public readonly struct PacketBatchScope<TPacket> : IDisposable where TPacket : P
     /// Gets a <see cref="Span{T}"/> over the rented packets.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Span<TPacket> AsSpan() => new Span<TPacket>(_buffer, 0, _count);
+    public Span<TPacket> AsSpan() => new(_buffer, 0, _count);
 
     /// <summary>
     /// Gets a <see cref="ReadOnlySpan{T}"/> over the rented packets.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlySpan<TPacket> AsReadOnlySpan() => new ReadOnlySpan<TPacket>(_buffer, 0, _count);
+    public ReadOnlySpan<TPacket> AsReadOnlySpan() => new(_buffer, 0, _count);
 
     /// <summary>
     /// Returns the packets to their pool and the array to the ArrayPool.
@@ -72,14 +74,20 @@ public readonly struct PacketBatchScope<TPacket> : IDisposable where TPacket : P
     public void Dispose()
     {
         if (_buffer == null)
+        {
             return;
+        }
 
         for (int i = 0; i < _count; i++)
         {
             _buffer[i]?.Dispose();
             _buffer[i] = null!; // Clear reference to prevent memory leaks in ArrayPool
         }
-        
+
         ArrayPool<TPacket>.Shared.Return(_buffer, clearArray: false);
     }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void ThrowArgumentOutOfRange_IndexMustBeLess(int index) => throw new ArgumentOutOfRangeException(nameof(index), index, "Index must be non-negative and less than the collection count.");
 }

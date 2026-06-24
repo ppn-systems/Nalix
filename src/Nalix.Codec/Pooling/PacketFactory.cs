@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions;
@@ -35,7 +36,11 @@ public static class PacketFactory<[DynamicallyAccessedMembers(DynamicallyAccesse
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static PacketBatchScope<TPacket> AcquireBatch(int count)
     {
-        if (count <= 0) throw new ArgumentOutOfRangeException(nameof(count), "Batch count must be greater than zero.");
+        if (count <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(count), "Batch count must be greater than zero.");
+        }
+
         return new PacketBatchScope<TPacket>(count);
     }
 
