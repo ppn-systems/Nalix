@@ -12,6 +12,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
+using Nalix.Codec.Extensions;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Codec.Security;
@@ -35,7 +36,7 @@ public static partial class SystemControlHandlers
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode(ProtocolOpCode.SYSTEM_CONTROL)]
-    public static async ValueTask HandleAsync(IPacketContext<Control> context)
+    public static ValueTask HandleAsync(IPacketContext<Control> context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -49,8 +50,9 @@ public static partial class SystemControlHandlers
                 // Handled by SystemTimeSyncHandlers
                 break;
             case ControlType.SESSION_REKEY:
-                await HandleSessionRekey(context, packet).ConfigureAwait(false);
-                break;
+                return HandleSessionRekey(context, packet);
+            case ControlType.CIPHER_UPDATE:
+                return HandleCipherUpdate(context, packet);
             case ControlType.TIMESYNCREQUEST:
                 // Handled by SystemTimeSyncHandlers
                 break;
@@ -64,10 +66,10 @@ public static partial class SystemControlHandlers
                 HandleNotice(context.Connection, packet);
                 break;
             case ControlType.POW_REQUEST:
-                await HandlePowRequestAsync(context).ConfigureAwait(false);
-                break;
+                return HandlePowRequest(context);
             case ControlType.PUBLIC_KEY_REQUEST:
-                await HandlePublicKeyRequest(context, packet).ConfigureAwait(false);
+                return HandlePublicKeyRequest(context, packet);
+            case ControlType.CIPHER_UPDATE_ACK:
                 break;
             // Server generally does not need to send back automatic replies for these
             case ControlType.PONG:              // PONG received if Server pings Client
@@ -88,6 +90,8 @@ public static partial class SystemControlHandlers
             default:
                 break;
         }
+
+        return default;
     }
 
     #region Fields
@@ -103,12 +107,12 @@ public static partial class SystemControlHandlers
     /// Handles the incoming POW_REQUEST control packet.
     /// Note: This method is called directly by SystemControlHandlers, so it does not need a [PacketOpcode] attribute.
     /// </summary>
-    private static async ValueTask HandlePowRequestAsync(IPacketContext<Control> context)
+    private static ValueTask HandlePowRequest(IPacketContext<Control> context)
     {
         if (!context.IsReliable)
         {
             // This is a replayed packet, ignore silently.
-            return;
+            return default;
         }
 
         byte diff = 12; // Fallback
@@ -121,20 +125,52 @@ public static partial class SystemControlHandlers
         long ts = System.Environment.TickCount64; // Using ticks as simple timestamp
         (Bytes32 nonce, Bytes32 mac) = ProofOfWork.CreateChallenge(diff, context.Connection.ID, ts);
 
-        using PacketScope<ProofOfWorkChallenge> lease = PacketFactory<ProofOfWorkChallenge>.Acquire();
-        ProofOfWorkChallenge challenge = lease.Value;
-        challenge.Initialize(nonce, diff, ts, mac);
-        challenge.SequenceId = context.Packet.SequenceId;
+        PacketScope<ProofOfWorkChallenge> lease = PacketFactory<ProofOfWorkChallenge>.Acquire();
+        try
+        {
+            ProofOfWorkChallenge challenge = lease.Value;
+            challenge.Initialize(nonce, diff, ts, mac);
+            challenge.SequenceId = context.Packet.SequenceId;
 
-        await context.Sender.SendAsync(challenge).ConfigureAwait(false);
+            return context.Sender.SendAsync(challenge).DisposeOnCompletionAsync(lease);
+        }
+        catch
+        {
+            lease.Dispose();
+            throw;
+        }
     }
 
-    private static async ValueTask HandleSessionRekey(IPacketContext<Control> context, Control packet)
+    private static ValueTask HandleCipherUpdate(IPacketContext<Control> context, Control packet)
+    {
+        if (!context.IsReliable)
+        {
+            return default;
+        }
+
+        context.Connection.Algorithm = (CipherSuiteType)packet.Reason;
+
+        PacketScope<Control> lease = PacketFactory<Control>.Acquire();
+        try
+        {
+            Control ack = lease.Value;
+            ack.Initialize(ControlType.CIPHER_UPDATE_ACK, packet.SequenceId, packet.Flags, ProtocolReason.NONE);
+
+            return context.Sender.SendAsync(ack).DisposeOnCompletionAsync(lease);
+        }
+        catch
+        {
+            lease.Dispose();
+            throw;
+        }
+    }
+
+    private static ValueTask HandleSessionRekey(IPacketContext<Control> context, Control packet)
     {
         if (!context.IsReliable)
         {
             // This is a replayed packet, ignore silently.
-            return;
+            return default;
         }
 
         IConnection connection = context.Connection;
@@ -142,7 +178,7 @@ public static partial class SystemControlHandlers
         if (!connection.GetRuntimeState().HandshakeEstablished)
         {
             connection.Disconnect("Cannot perform Rekey before Handshake is established.");
-            return;
+            return default;
         }
 
         // Apply the new secret using HKDF Ratcheting
@@ -158,11 +194,19 @@ public static partial class SystemControlHandlers
             connection.UDP!.ReceiveSequence.Reset();
         }
 
-        using PacketScope<Control> lease = PacketFactory<Control>.Acquire();
-        Control ack = lease.Value;
-        ack.Initialize(ControlType.SESSION_REKEY_ACK, packet.SequenceId, packet.Flags, ProtocolReason.NONE);
+        PacketScope<Control> lease = PacketFactory<Control>.Acquire();
+        try
+        {
+            Control ack = lease.Value;
+            ack.Initialize(ControlType.SESSION_REKEY_ACK, packet.SequenceId, packet.Flags, ProtocolReason.NONE);
 
-        await context.Sender.SendAsync(ack).ConfigureAwait(false);
+            return context.Sender.SendAsync(ack).DisposeOnCompletionAsync(lease);
+        }
+        catch
+        {
+            lease.Dispose();
+            throw;
+        }
     }
 
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
@@ -244,29 +288,37 @@ public static partial class SystemControlHandlers
         }
     }
 
-    private static async ValueTask HandlePublicKeyRequest(IPacketContext<Control> context, Control packet)
+    private static ValueTask HandlePublicKeyRequest(IPacketContext<Control> context, Control packet)
     {
         if (!context.IsReliable)
         {
             // This is a replayed packet, ignore silently.
-            return;
+            return default;
         }
 
         // Key exchange must happen BEFORE handshake.
         if (context.Connection.GetRuntimeState().HandshakeEstablished)
         {
             context.Connection.Disconnect("Key exchange requested after handshake was established (State Violation).");
-            return;
+            return default;
         }
 
-        using PacketScope<SessionTofu> lease = PacketFactory<SessionTofu>.Acquire();
-        SessionTofu reply = lease.Value;
-        reply.Initialize(HandshakeHandlers.ServerPublicKey);
+        PacketScope<SessionTofu> lease = PacketFactory<SessionTofu>.Acquire();
+        try
+        {
+            SessionTofu reply = lease.Value;
+            reply.Initialize(HandshakeHandlers.ServerPublicKey);
 
-        // Preserve reliability flag from the request
-        reply.SequenceId = packet.SequenceId;
+            // Preserve reliability flag from the request
+            reply.SequenceId = packet.SequenceId;
 
-        await context.Sender.SendAsync(reply).ConfigureAwait(false);
+            return context.Sender.SendAsync(reply).DisposeOnCompletionAsync(lease);
+        }
+        catch
+        {
+            lease.Dispose();
+            throw;
+        }
     }
 
     #endregion Private Methods

@@ -2182,12 +2182,53 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
 
         foreach (VariableDeclaratorSyntax variable in declaration.Variables)
         {
+            if (IsPassedToDisposeOnCompletionAsync(context, variable))
+            {
+                continue;
+            }
+
             context.ReportDiagnostic(Diagnostic.Create(
                 DiagnosticDescriptors.PacketScopeNotDisposed,
                 variable.GetLocation(),
                 variable.Identifier.Text,
                 declaredType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
         }
+    }
+
+    private static bool IsPassedToDisposeOnCompletionAsync(SyntaxNodeAnalysisContext context, VariableDeclaratorSyntax variable)
+    {
+        ISymbol? localSymbol = context.SemanticModel.GetDeclaredSymbol(variable, context.CancellationToken);
+        if (localSymbol is null)
+        {
+            return false;
+        }
+
+        Microsoft.CodeAnalysis.CSharp.Syntax.BlockSyntax? enclosingBlock = variable.FirstAncestorOrSelf<Microsoft.CodeAnalysis.CSharp.Syntax.BlockSyntax>();
+        if (enclosingBlock is null)
+        {
+            return false;
+        }
+
+        foreach (Microsoft.CodeAnalysis.CSharp.Syntax.InvocationExpressionSyntax invocation in enclosingBlock.DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.InvocationExpressionSyntax>())
+        {
+            if (invocation.Expression is Microsoft.CodeAnalysis.CSharp.Syntax.MemberAccessExpressionSyntax memberAccess
+                && memberAccess.Name.Identifier.Text == "DisposeOnCompletionAsync")
+            {
+                foreach (Microsoft.CodeAnalysis.CSharp.Syntax.ArgumentSyntax arg in invocation.ArgumentList.Arguments)
+                {
+                    if (arg.Expression is Microsoft.CodeAnalysis.CSharp.Syntax.IdentifierNameSyntax identifier)
+                    {
+                        SymbolInfo symbolInfo = context.SemanticModel.GetSymbolInfo(identifier, context.CancellationToken);
+                        if (SymbolEqualityComparer.Default.Equals(symbolInfo.Symbol, localSymbol))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     // ─── NALIX076: Packet context escape detection ────────────────────────────
