@@ -131,8 +131,11 @@ public class WebSocketSession : TransportSession
 
             _loopCts = new CancellationTokenSource();
 
-            _ = Task.Factory.StartNew(() => _reader.ReceiveLoopAsync(_loopCts.Token),
-                _loopCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
+            // Use fire-and-forget async instead of LongRunning thread —
+            // LongRunning + TaskScheduler.Default deadlocks in single-threaded
+            // runtimes (Blazor WASM). The async loop yields correctly via
+            // ConfigureAwait(false) on both desktop and WASM.
+            _ = _reader.ReceiveLoopAsync(_loopCts.Token);
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
