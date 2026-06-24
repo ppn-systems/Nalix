@@ -27,5 +27,17 @@ public static class PacketFactory<[DynamicallyAccessedMembers(DynamicallyAccesse
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static PacketScope<TPacket> Acquire() => new(PacketBase<TPacket>.Create());
 
+    /// <summary>
+    /// Rents a batch of packets and returns a zero-allocation lease holding all instances. 
+    /// The packets will be returned to the pool when the batch lease is disposed.
+    /// </summary>
+    /// <param name="count">The number of packets to rent.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static PacketBatchScope<TPacket> AcquireBatch(int count)
+    {
+        if (count <= 0) throw new ArgumentOutOfRangeException(nameof(count), "Batch count must be greater than zero.");
+        return new PacketBatchScope<TPacket>(count);
+    }
+
     #endregion APIs
 }
