@@ -67,12 +67,14 @@ public sealed partial class ConnectionHub : IConnectionBroadcaster
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    public async Task MulticastAsync<TState, TSender>(IReadOnlyCollection<IConnection> connections, TState state, TSender sender, CancellationToken cancellationToken = default)
+    public async Task MulticastAsync<TState, TSender>(IConnectionGroupRegistry groupProvider, string groupName, TState state, TSender sender, CancellationToken cancellationToken = default)
         where TSender : struct, IConnectionSender<TState>
     {
-        ArgumentNullException.ThrowIfNull(connections);
+        ArgumentNullException.ThrowIfNull(groupProvider);
+        ArgumentException.ThrowIfNullOrEmpty(groupName);
 
-        int connectionCount = connections.Count;
+        IReadOnlyCollection<IConnection> members = groupProvider.GetGroupMembers(groupName);
+        int connectionCount = members.Count;
         if (connectionCount == 0)
         {
             return;
@@ -84,7 +86,7 @@ public sealed partial class ConnectionHub : IConnectionBroadcaster
 
         try
         {
-            if (connections is IReadOnlyList<IConnection> list)
+            if (members is IReadOnlyList<IConnection> list)
             {
                 for (int i = 0; i < list.Count; i++)
                 {
@@ -98,7 +100,7 @@ public sealed partial class ConnectionHub : IConnectionBroadcaster
             }
             else
             {
-                foreach (IConnection connection in connections)
+                foreach (IConnection connection in members)
                 {
                     if (cancellationToken.IsCancellationRequested)
                     {
@@ -123,7 +125,7 @@ public sealed partial class ConnectionHub : IConnectionBroadcaster
     }
 
     /// <summary>
-    /// Multicasts a pre-serialized message buffer to a specific collection of connections.
+    /// Multicasts a pre-serialized message buffer to a specific connection group.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     [Obsolete(
@@ -131,14 +133,17 @@ public sealed partial class ConnectionHub : IConnectionBroadcaster
         error: false,
         DiagnosticId = "NALIX_NET001")]
     public async Task MulticastAsync(
-        IReadOnlyCollection<IConnection> connections,
+        IConnectionGroupRegistry groupProvider,
+        string groupName,
         ReadOnlyMemory<byte> message,
         NetworkTransport transport = NetworkTransport.TCP,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(connections);
+        ArgumentNullException.ThrowIfNull(groupProvider);
+        ArgumentException.ThrowIfNullOrEmpty(groupName);
 
-        int connectionCount = connections.Count;
+        IReadOnlyCollection<IConnection> members = groupProvider.GetGroupMembers(groupName);
+        int connectionCount = members.Count;
         if (connectionCount == 0 || message.IsEmpty || _disposed)
         {
             return;
@@ -150,7 +155,7 @@ public sealed partial class ConnectionHub : IConnectionBroadcaster
 
         try
         {
-            if (connections is IReadOnlyList<IConnection> list)
+            if (members is IReadOnlyList<IConnection> list)
             {
                 for (int i = 0; i < list.Count; i++)
                 {
@@ -164,7 +169,7 @@ public sealed partial class ConnectionHub : IConnectionBroadcaster
             }
             else
             {
-                foreach (IConnection connection in connections)
+                foreach (IConnection connection in members)
                 {
                     if (cancellationToken.IsCancellationRequested)
                     {

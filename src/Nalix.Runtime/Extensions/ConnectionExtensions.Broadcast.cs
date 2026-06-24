@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -74,11 +73,12 @@ public static partial class ConnectionExtensions
     }
 
     /// <summary>
-    /// Multicasts a packet to a specific collection of connections.
+    /// Multicasts a packet to a specific connection group.
     /// The packet is serialized once, and the compression/encryption pipeline is applied per-connection.
     /// </summary>
     /// <param name="hub">The connection hub.</param>
-    /// <param name="connections">The read-only collection of connections to receive the message.</param>
+    /// <param name="groupProvider">The connection group provider to use for resolving group members.</param>
+    /// <param name="groupName">The name of the group to receive the message.</param>
     /// <param name="packet">The packet to multicast.</param>
     /// <param name="transport">The network transport protocol to use.</param>
     /// <param name="enableEncrypt">Whether to encrypt the packet (defaults to true).</param>
@@ -86,18 +86,15 @@ public static partial class ConnectionExtensions
     /// <returns>A task representing the asynchronous multicast operation.</returns>
     public static async Task MulticastAsync(
         this IConnectionBroadcaster hub,
-        IReadOnlyCollection<IConnection> connections,
+        IConnectionGroupRegistry groupProvider,
+        string groupName,
         IPacket packet, NetworkTransport transport = NetworkTransport.TCP,
         bool enableEncrypt = true, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(hub);
-        ArgumentNullException.ThrowIfNull(connections);
+        ArgumentNullException.ThrowIfNull(groupProvider);
+        ArgumentException.ThrowIfNullOrEmpty(groupName);
         ArgumentNullException.ThrowIfNull(packet);
-
-        if (connections.Count == 0)
-        {
-            return;
-        }
 
         BufferLease rawLease = PacketPipeline.Serialize(packet);
         try
@@ -124,7 +121,7 @@ public static partial class ConnectionExtensions
 
             PacketSenderAction sender = new();
 
-            await hub.MulticastAsync(connections, state, sender, cancellationToken).ConfigureAwait(false);
+            await hub.MulticastAsync(groupProvider, groupName, state, sender, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
