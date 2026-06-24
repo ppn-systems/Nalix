@@ -35,6 +35,7 @@ internal class KnownNames
     public const string PacketEncryptionAttributeMetadataName = "Nalix.Abstractions.Networking.Packets.PacketEncryptionAttribute";
     public const string PacketRateLimitAttributeMetadataName = "Nalix.Abstractions.Networking.Packets.PacketRateLimitAttribute";
     public const string PacketTransportAttributeMetadataName = "Nalix.Abstractions.Networking.Packets.PacketTransportAttribute";
+    public const string RpcServiceAttributeMetadataName = "Nalix.Abstractions.Networking.Rpc.RpcServiceAttribute";
 
     // Types
     public const string IniCommentShort = "IniComment";
