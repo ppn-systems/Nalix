@@ -35,14 +35,14 @@ public sealed class ProviderHandler
         {
             if (_logger?.IsEnabled(LogLevel.Debug) == true)
             {
-                _logger.LogDebug("[Tunneling.ProviderHandler] provider={ConnectionId} registered channel={ChannelId}", context.Connection.ID, channelId);
+                _logger.LogDebug("[Tunneling.ProviderHandler] provider={ConnectionId} registered channel={ChannelId}", context.Connection.ConnectionId, channelId);
             }
         }
         else
         {
             if (_logger?.IsEnabled(LogLevel.Debug) == true)
             {
-                _logger.LogDebug("[Tunneling.ProviderHandler] provider={ConnectionId} failed-to-register channel={ChannelId} reason=channel-in-use", context.Connection.ID, channelId);
+                _logger.LogDebug("[Tunneling.ProviderHandler] provider={ConnectionId} failed-to-register channel={ChannelId} reason=channel-in-use", context.Connection.ConnectionId, channelId);
             }
         }
 

@@ -30,7 +30,7 @@ public sealed class TunnelSession : IAsyncDisposable
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _cts = new();
         _consumerConnection = consumerConnection;
-        _connectionId = consumerConnection.ID;
+        _connectionId = consumerConnection.ConnectionId;
         _registry = registry;
         _logger = logger;
     }

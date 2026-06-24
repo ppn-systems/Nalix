@@ -42,7 +42,7 @@ public sealed class TunnelSessionRegistry
         {
             ArgumentNullException.ThrowIfNull(args);
 
-            ulong connectionId = args.Connection.ID;
+            ulong connectionId = args.Connection.ConnectionId;
 
             if (!_sessions.TryRemove(connectionId, out TunnelSession? session))
             {
