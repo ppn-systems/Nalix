@@ -1,6 +1,7 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
@@ -16,6 +17,7 @@ namespace Nalix.SDK.Transport;
 /// <summary>
 /// Provides a TCP transport session built on <see cref="TcpFrameReader"/> and <see cref="TcpFrameSender"/>.
 /// </summary>
+[UnsupportedOSPlatform("browser")]
 public class TcpSession : TransportSession
 {
     #region Fields
