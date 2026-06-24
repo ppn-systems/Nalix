@@ -3,6 +3,7 @@
 
 using System;
 using System.Net.WebSockets;
+using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
@@ -217,6 +218,7 @@ public class WebSocketSession : TransportSession
     /// <summary>
     /// Sends raw binary data synchronously.
     /// </summary>
+    [UnsupportedOSPlatform("browser")]
     public void Send(ReadOnlySpan<byte> data, bool encrypt = true) => _sender.Send(data, encrypt);
 
     /// <inheritdoc/>

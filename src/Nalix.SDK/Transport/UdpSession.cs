@@ -4,6 +4,7 @@
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
@@ -33,6 +34,7 @@ namespace Nalix.SDK.Transport;
 /// UDP does NOT perform framing or fragmentation.
 /// </para>
 /// </remarks>
+[UnsupportedOSPlatform("browser")]
 public class UdpSession : TransportSession
 {
     #region Fields
