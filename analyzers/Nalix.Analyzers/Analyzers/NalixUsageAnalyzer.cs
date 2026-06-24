@@ -81,7 +81,11 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.UnboundedReflectionInAotCode,
             DiagnosticDescriptors.EagerStringFormattingInDiagnosticLog,
             DiagnosticDescriptors.PacketScopeNotDisposed,
-            DiagnosticDescriptors.PacketContextEscapesHandlerScope
+            DiagnosticDescriptors.PacketContextEscapesHandlerScope,
+            DiagnosticDescriptors.RpcServiceInvalidReturnType,
+            DiagnosticDescriptors.RpcServiceInvalidParameters,
+            DiagnosticDescriptors.RpcServiceContainsInvalidMembers,
+            DiagnosticDescriptors.RpcServiceMissingAttribute
         ];
 
     public override void Initialize(AnalysisContext context)
@@ -176,6 +180,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         AnalyzeConfigurationType(context, typeSymbol, symbols);
         AnalyzeMetadataProviderType(context, typeSymbol, symbols);
         AnalyzeMiddlewareType(context, typeSymbol, symbols);
+        AnalyzeRpcServiceType(context, typeSymbol, symbols);
 
         if (HasAttribute(typeSymbol, symbols.ControllerAttribute))
         {

@@ -11,17 +11,20 @@
 ## Rules
 
 ### Session Lifecycle
+
 - Session snapshot is created **immediately at `CLIENT_FINISH`** (handshake completion) — not on disconnect, not lazily on first resume
 - `SessionHandlers.ConsumeAsync()` is atomic retrieve-and-remove (SEC-33) — retrieves the session and removes it in one operation to prevent TOCTOU with parallel resume requests using the same token
 - Session tokens are Snowflake IDs (`ulong`). Proof of possession uses HMAC-Keccak256 with a sliding window: t-1, t, t+1 where t = current 30-second window.
 - Sessions are pooled objects — call `session.Return()` after use; do not hold references beyond the handler
 
 ### ConnectionHub
+
 - Sharded for concurrency — never bypass sharding with direct shard access when broadcasting; always use `BroadcastAsync()`
 - Shard count is fixed at construction — size it for peak expected connections
 - `ConnectionHub` is the single source of truth for active connections — do not maintain a separate tracking list elsewhere
 
 ### ConnectionGuard (Rate Limiting)
+
 - `ConnectionLimitEntry` uses a `SpinLock` to protect both the `ConnectionLimitInfo` and a standard `Queue<long>` for sliding-window timestamps. It is NOT thread-safe on its own and all operations must be performed under the lock.
 - Ban tiers are progressive: `BanCount` increments on each ban, `LastBanTimeTicks` enables decay — ban duration grows with each repeated violation
 - X-Forwarded-For is only trusted if the source IP is in the configured trusted proxy list — **not auto-trusted**

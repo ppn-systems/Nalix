@@ -544,4 +544,39 @@ internal static class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "IPacketContext<T> and its Packet are pooled and returned after the handler completes. Capturing them in a field, long-lived delegate, or offloaded task causes use-after-return bugs. Extract needed data into locals before offloading work.");
 
+    public static readonly DiagnosticDescriptor RpcServiceInvalidReturnType = new(
+        id: "NALIX100",
+        title: "RpcService method has invalid return type",
+        messageFormat: "RPC method '{0}' must return an awaitable type (ValueTask, RpcCall<T>, or RpcStream<T>)",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "Nalix RpcService methods must return one of the supported Typed-RPC struct types to ensure zero-allocation execution.");
+
+    public static readonly DiagnosticDescriptor RpcServiceInvalidParameters = new(
+        id: "NALIX101",
+        title: "RpcService method has invalid parameters",
+        messageFormat: "Method '{0}' has invalid parameters. The first parameter must be an IPacket. Subsequent parameters can only be RequestOptions, Func<TResponse, bool>, bool?, or CancellationToken.",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "Nalix RpcService methods have strict parameter requirements to match the underlying transport session methods.");
+
+    public static readonly DiagnosticDescriptor RpcServiceContainsInvalidMembers = new(
+        id: "NALIX102",
+        title: "RpcService interface contains non-method members",
+        messageFormat: "Interface '{0}' is marked with [RpcService] but contains member '{1}' which is not a method",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "Nalix RpcService interfaces must only contain methods.");
+
+    public static readonly DiagnosticDescriptor RpcServiceMissingAttribute = new(
+        id: "NALIX103",
+        title: "RpcService interface is missing attribute",
+        messageFormat: "Type '{0}' is missing the [RpcService] attribute",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "Nalix RpcService interfaces must be decorated with [RpcService] to be discovered by the Source Generator.");
 }
