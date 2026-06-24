@@ -88,5 +88,5 @@ await host.RunAsync();
 
 ## Documentation
 
-For full end-to-end setup guides, check the [Quickstart](https://ppn-system.me/quickstart).
+For full end-to-end setup guides, check the [Quickstart](https://ppn.io.vn/quickstart).
 

@@ -81,4 +81,4 @@ Console.WriteLine($"Decoded Message: {decoded.Message} (Read {bytesRead} bytes)"
 
 ## Documentation
 
-For technical details on the transform pipeline and packet schema, see the [Codec API Reference](https://ppn-system.me/api/Codec/index).
+For technical details on the transform pipeline and packet schema, see the [Codec API Reference](https://ppn.io.vn/api/Codec/index).

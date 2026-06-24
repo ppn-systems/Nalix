@@ -4,9 +4,8 @@ Session rekey allows mid-session symmetric key rotation to prevent sequence coun
 
 ## Source Mapping
 
-- `src/Nalix.Codec/ProtocolFrames/Session/SessionRekey.cs` — Rekey packet
-- `src/Nalix.Runtime/Handlers/SessionRekeyHandlers.cs` — Server-side handler
 - `src/Nalix.SDK/Transport/Extensions/RekeyExtensions.cs` — Client SDK extension
+- `src/Nalix.Runtime/Handlers/SystemControlHandlers.cs` — Server-side control handler
 
 ## How It Works
 
@@ -17,11 +16,11 @@ sequenceDiagram
     participant C as Client (SDK)
     participant S as Server (Runtime)
 
-    C->>C: Generate new 32-byte key (CSPRNG)
-    C->>S: SessionRekey (PublicKey = newKey)
-    S->>S: connection.Secret = newKey
+    C->>C: Derive new key: newKey = HandshakeX25519.DeriveRekeySecret(currentSecret)
+    C->>S: Control (Type = SESSION_REKEY, SequenceId = seq)
+    S->>S: Validate handshake, connection.Secret = HandshakeX25519.DeriveRekeySecret(connection.Secret)
     S->>S: Reset TCP/UDP send+receive sequence counters
-    S->>C: Control (CIPHER_UPDATE_ACK, SequenceId correlation)
+    S->>C: Control (Type = SESSION_REKEY_ACK, SequenceId = seq)
     C->>C: session.State.Secret = newKey
     C->>C: Reset local sequence counters
 ```
@@ -45,36 +44,34 @@ await session.RekeyAsync();
 
 The extension method:
 
-1. Generates a new 32-byte key via CSPRNG
-2. Sends a `SessionRekey` packet with the new public key
-3. Awaits the `CIPHER_UPDATE_ACK` from the server (correlated by `SequenceId`)
-4. Switches the local session secret and resets sequence counters
+1. Derives the new session key from the current secret using HKDF.
+2. Sends a `Control` packet with `Type = SESSION_REKEY`.
+3. Awaits the `SESSION_REKEY_ACK` from the server (correlated by `SequenceId`).
+4. Switches the local session secret and resets sequence counters.
 
 ### Server-Side Behavior
 
-The `SessionRekeyHandlers` handler:
+The `SystemControlHandlers.HandleSessionRekey` handler:
 
-1. Validates the packet structure
-2. Confirms the handshake has been established (`ConnectionAttributes.HandshakeEstablished`)
-3. Sets `connection.Secret` to the new key
-4. Resets TCP and (if applicable) UDP send/receive sequence counters
-5. Responds with `Control(CIPHER_UPDATE_ACK)` using the same `SequenceId` for correlation
+1. Confirms the handshake has been established (`ConnectionAttributes.HandshakeEstablished`).
+2. Computes the next key generation: `connection.Secret = HandshakeX25519.DeriveRekeySecret(connection.Secret)`.
+3. Resets TCP and (if applicable) UDP send/receive sequence counters.
+4. Responds with `Control(SESSION_REKEY_ACK)` using the same `SequenceId` for correlation.
 
 ### Protocol Packet
 
 | Packet | OpCode | Direction | Fields |
 | --- | --- | --- | --- |
-| `SessionRekey` | `SESSION_REKEY` | Client → Server | `PublicKey` (Bytes32) |
-| `Control` | `SYSTEM_CONTROL` | Server → Client | `Type = CIPHER_UPDATE_ACK`, `SequenceId` matches request |
+| `Control` | `SYSTEM_CONTROL` | Client → Server | `Type = SESSION_REKEY`, `SequenceId` |
+| `Control` | `SYSTEM_CONTROL` | Server → Client | `Type = SESSION_REKEY_ACK`, `SequenceId` matches request |
 
 ## Security Notes
 
-- The rekey packet is encrypted (`[PacketEncryption(true)]`) — it travels under the current session cipher
-- The handler requires `PermissionLevel.NONE` (reserved opcode) — it is processed before normal permission checks
-- Only reliable (TCP) transport is accepted — the handler silently ignores rekey attempts from unreliable (UDP) paths
-- If the handshake has not been established, the connection is disconnected immediately
-- The new key is applied immediately on the server side; the client switches after receiving the ACK
-- Sequence counter reset prevents stale or replayed frames from the previous key period from being accepted
+- The control packet travels encrypted (`[PacketEncryption(true)]` on connection) — it travels under the current session cipher.
+- Both parties derive the new key using HKDF-Expand with a static label `nalix-session/rekey`. No keys are sent directly over the wire, providing perfect forward secrecy for session rekeying.
+- Only reliable (TCP) transport is accepted for Rekey signals.
+- If the handshake has not been established, the connection is disconnected immediately.
+- Sequence counter reset prevents stale or replayed frames from the previous key period from being accepted.
 
 ## Related APIs
 
