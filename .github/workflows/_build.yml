@@ -48,7 +48,7 @@ jobs:
           echo "COVERAGE_REPORT_DIR=artifacts/coverage/${{ runner.os }}" >> "$GITHUB_ENV"
 
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v5
