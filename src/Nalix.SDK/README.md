@@ -51,4 +51,4 @@ Console.WriteLine(response.Data);
 
 ## Documentation
 
-See [Nalix.SDK](https://ppn-system.me/packages/nalix-sdk/) for the source-mapped package reference.
+See [Nalix.SDK](https://ppn.io.vn/packages/nalix-sdk/) for the source-mapped package reference.
