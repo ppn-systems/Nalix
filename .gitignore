@@ -71,3 +71,7 @@ build_errors*.txt
 # Samples - Backend
 samples/Backend/
 research/
+/package.json
+/package-lock.json
+/.mcp.json
+/node_modules

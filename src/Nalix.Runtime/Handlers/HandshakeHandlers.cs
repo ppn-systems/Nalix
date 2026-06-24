@@ -16,6 +16,7 @@ using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
+using Nalix.Codec.Extensions;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Codec.Security;
@@ -44,14 +45,14 @@ public static partial class HandshakeHandlers
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode(ProtocolOpCode.SESSION_INIT)]
-    public static async ValueTask HandleSessionInitAsync(IPacketContext<SessionInit> context)
+    public static ValueTask HandleSessionInitAsync(IPacketContext<SessionInit> context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         if (!context.IsReliable)
         {
             // This is a replayed packet, ignore silently.
-            return;
+            return default;
         }
 
         SessionInit packet = context.Packet;
@@ -59,8 +60,7 @@ public static partial class HandshakeHandlers
 
         if (connection.GetRuntimeState().HandshakeEstablished)
         {
-            await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
-            return;
+            return RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION);
         }
 
         if (s_powPolicy != null && s_powPolicy.IsUnderAttack)
@@ -72,21 +72,24 @@ public static partial class HandshakeHandlers
                 // Assuming an average client can compute ~500 hashes per millisecond.
                 int adaptiveTimeoutMs = ((1 << s_powPolicy.CurrentDifficulty) / 500) + 5000;
 
-                using PacketScope<Control> error = PacketFactory<Control>.Acquire();
-                error.Value.Initialize(ControlType.ERROR, reasonCode: ProtocolReason.POW_REQUIRED, flags: PacketFlags.SYSTEM);
-                await context.Sender.SendAsync(error.Value).ConfigureAwait(false);
-
-                connection.UpdateIdleTimeout(adaptiveTimeoutMs);
-
-                // Do NOT disconnect, just return to wait for POW_PROOF.
-                return;
+                PacketScope<Control> error = PacketFactory<Control>.Acquire();
+                try
+                {
+                    error.Value.Initialize(ControlType.ERROR, reasonCode: ProtocolReason.POW_REQUIRED, flags: PacketFlags.SYSTEM);
+                    connection.UpdateIdleTimeout(adaptiveTimeoutMs);
+                    return context.Sender.SendAsync(error.Value).DisposeOnCompletionAsync(error);
+                }
+                catch
+                {
+                    error.Dispose();
+                    throw;
+                }
             }
         }
 
         if (!TryAcquireHandshakeSlot(connection))
         {
-            await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
-            return;
+            return RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION);
         }
 
         X25519.X25519KeyPair serverKey = X25519.GenerateKeyPair();
@@ -97,14 +100,12 @@ public static partial class HandshakeHandlers
         }
         catch (InvalidOperationException)
         {
-            await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
-            return;
+            return RejectHandshakeAsync(connection, context.Sender, ProtocolReason.DECRYPTION_FAILED);
         }
 
         if (sharedSecretEE.IsZero)
         {
-            await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
-            return;
+            return RejectHandshakeAsync(connection, context.Sender, ProtocolReason.DECRYPTION_FAILED);
         }
 
         Bytes32 sharedSecretSE;
@@ -114,14 +115,12 @@ public static partial class HandshakeHandlers
         }
         catch (InvalidOperationException)
         {
-            await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
-            return;
+            return RejectHandshakeAsync(connection, context.Sender, ProtocolReason.DECRYPTION_FAILED);
         }
 
         if (sharedSecretSE.IsZero)
         {
-            await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
-            return;
+            return RejectHandshakeAsync(connection, context.Sender, ProtocolReason.DECRYPTION_FAILED);
         }
 
         Bytes32 masterSecret = HandshakeX25519.ComputeMasterSecret(sharedSecretEE, sharedSecretSE);
@@ -144,17 +143,24 @@ public static partial class HandshakeHandlers
 
         if (!TryPublishHandshakeState(connection, state))
         {
-            await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
-            return;
+            return RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION);
         }
 
-        using PacketScope<SessionChallenge> lease = PacketFactory<SessionChallenge>.Acquire();
-        SessionChallenge reply = lease.Value;
+        PacketScope<SessionChallenge> lease = PacketFactory<SessionChallenge>.Acquire();
+        try
+        {
+            SessionChallenge reply = lease.Value;
 
-        reply.Initialize(serverKey.PublicKey, serverNonce, HandshakeX25519.ComputeServerProof(masterSecret, transcriptHash));
-        reply.SequenceId = packet.SequenceId;
+            reply.Initialize(serverKey.PublicKey, serverNonce, HandshakeX25519.ComputeServerProof(masterSecret, transcriptHash));
+            reply.SequenceId = packet.SequenceId;
 
-        await context.Sender.SendAsync(reply).ConfigureAwait(false);
+            return context.Sender.SendAsync(reply).DisposeOnCompletionAsync(lease);
+        }
+        catch
+        {
+            lease.Dispose();
+            throw;
+        }
     }
 
     /// <inheritdoc/>
@@ -162,14 +168,14 @@ public static partial class HandshakeHandlers
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode((ushort)ProtocolOpCode.SESSION_PROOF)]
-    public static async ValueTask HandleSessionProofAsync(IPacketContext<SessionProof> context)
+    public static ValueTask HandleSessionProofAsync(IPacketContext<SessionProof> context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         if (!context.IsReliable)
         {
             // This is a replayed packet, ignore silently.
-            return;
+            return default;
         }
 
         SessionProof packet = context.Packet;
@@ -177,33 +183,36 @@ public static partial class HandshakeHandlers
 
         if (connection.GetRuntimeState().HandshakeEstablished)
         {
-            await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
-            return;
+            return RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION);
         }
 
         if (s_powPolicy != null && s_powPolicy.IsUnderAttack)
         {
             if (connection.Level < PermissionLevel.POW_VERIFIED)
             {
-                using PacketScope<Control> error = PacketFactory<Control>.Acquire();
-
-                error.Value.Initialize(ControlType.ERROR, reasonCode: ProtocolReason.POW_REQUIRED, flags: PacketFlags.SYSTEM);
-                await context.Sender.SendAsync(error.Value).ConfigureAwait(false);
-                return;
+                PacketScope<Control> error = PacketFactory<Control>.Acquire();
+                try
+                {
+                    error.Value.Initialize(ControlType.ERROR, reasonCode: ProtocolReason.POW_REQUIRED, flags: PacketFlags.SYSTEM);
+                    return context.Sender.SendAsync(error.Value).DisposeOnCompletionAsync(error);
+                }
+                catch
+                {
+                    error.Dispose();
+                    throw;
+                }
             }
         }
 
         if (!TryGetState(connection, out HandshakeContext? state) || state is null)
         {
-            await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
-            return;
+            return RejectHandshakeAsync(connection, context.Sender, ProtocolReason.STATE_VIOLATION);
         }
 
         Bytes32 expectedProof = HandshakeX25519.ComputeClientProof(state.SharedSecret, state.TranscriptHash);
         if (packet.Proof != expectedProof)
         {
-            await RejectHandshakeAsync(connection, context.Sender, ProtocolReason.SIGNATURE_INVALID).ConfigureAwait(false);
-            return;
+            return RejectHandshakeAsync(connection, context.Sender, ProtocolReason.SIGNATURE_INVALID);
         }
 
         connection.Secret = state.SessionKey;
@@ -229,16 +238,39 @@ public static partial class HandshakeHandlers
 
         if (s_sessionService != null)
         {
-            await s_sessionService.SaveSessionAsync(connection).ConfigureAwait(false);
+            return AwaitSaveSessionAndSendAsync(context, expectedFinish, connection, packet.SequenceId);
         }
 
-        using PacketScope<SessionEstablished> lease = PacketFactory<SessionEstablished>.Acquire();
-        SessionEstablished reply = lease.Value;
+        return SendSessionEstablishedAsync(context, expectedFinish, connection, packet.SequenceId);
 
-        reply.Initialize(expectedFinish, connection.ID);
-        reply.SequenceId = packet.SequenceId;
+        static async ValueTask AwaitSaveSessionAndSendAsync(IPacketContext<SessionProof> context, Bytes32 expectedFinish, IConnection connection, ushort sequenceId)
+        {
+            if (s_sessionService != null)
+            {
+                await s_sessionService.SaveSessionAsync(connection).ConfigureAwait(false);
+            }
 
-        await context.Sender.SendAsync(reply).ConfigureAwait(false);
+            await SendSessionEstablishedAsync(context, expectedFinish, connection, sequenceId).ConfigureAwait(false);
+        }
+
+        static ValueTask SendSessionEstablishedAsync(IPacketContext<SessionProof> context, Bytes32 expectedFinish, IConnection connection, ushort sequenceId)
+        {
+            PacketScope<SessionEstablished> lease = PacketFactory<SessionEstablished>.Acquire();
+            try
+            {
+                SessionEstablished reply = lease.Value;
+
+                reply.Initialize(expectedFinish, connection.ID);
+                reply.SequenceId = sequenceId;
+
+                return context.Sender.SendAsync(reply).DisposeOnCompletionAsync(lease);
+            }
+            catch
+            {
+                lease.Dispose();
+                throw;
+            }
+        }
     }
 
     /// <summary>
@@ -359,7 +391,7 @@ public static partial class HandshakeHandlers
         }
     }
 
-    private static async ValueTask RejectHandshakeAsync(IConnection connection, IPacketSender sender, ProtocolReason reason)
+    private static ValueTask RejectHandshakeAsync(IConnection connection, IPacketSender sender, ProtocolReason reason)
     {
         RuntimeConnectionState runtimeState = connection.GetRuntimeState();
 
@@ -370,16 +402,33 @@ public static partial class HandshakeHandlers
 
         runtimeState.HandshakeState = null;
 
-        try
-        {
-            using Control error = new();
-            error.Initialize(ControlType.ERROR, reasonCode: reason, flags: PacketFlags.SYSTEM);
+        Control error = new();
+        error.Initialize(ControlType.ERROR, reasonCode: reason, flags: PacketFlags.SYSTEM);
 
-            await sender.SendAsync(error).ConfigureAwait(false);
-        }
-        finally
+        ValueTask pending = sender.SendAsync(error);
+        if (pending.IsCompletedSuccessfully)
         {
+#pragma warning disable CA1849
+            pending.GetAwaiter().GetResult();
+#pragma warning restore CA1849
+            error.Dispose();
             connection.Disconnect(reason.ToString());
+            return default;
+        }
+
+        return AwaitRejectAsync(pending, connection, error, reason.ToString());
+
+        static async ValueTask AwaitRejectAsync(ValueTask task, IConnection conn, Control err, string reasonStr)
+        {
+            try
+            {
+                await task.ConfigureAwait(false);
+            }
+            finally
+            {
+                err.Dispose();
+                conn.Disconnect(reasonStr);
+            }
         }
     }
 
