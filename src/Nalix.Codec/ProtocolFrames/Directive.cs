@@ -109,7 +109,6 @@ public sealed partial class Directive : PacketBase<Directive>, IPacketReasoned, 
         base.ResetForPool();
 
         this.Priority = PacketPriority.HIGH;
-
         this.Flags = PacketFlags.SYSTEM;
     }
 
