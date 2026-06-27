@@ -39,42 +39,6 @@ public sealed partial class TransportOptions : ConfigurationLoader
     [ValueRange(0, int.MaxValue)]
     public int ConnectTimeoutMillis { get; set; } = 30000;
 
-    /// <summary>
-    /// [Reserved for future use] When true, automatic reconnect is enabled following an unexpected disconnect. Currently not consumed.
-    /// </summary>
-    [IniComment("[Reserved] Automatically reconnect after an unexpected disconnect (currently not consumed)")]
-    public bool ReconnectEnabled { get; set; } = true;
-
-    /// <summary>
-    /// [Reserved for future use] Maximum number of reconnect attempts. 0 indicates unlimited attempts. Currently not consumed.
-    /// </summary>
-    [IniComment("[Reserved] Max reconnect attempts (0 = unlimited, currently not consumed)")]
-    [ValueRange(0, int.MaxValue)]
-    public int ReconnectMaxAttempts { get; set; }
-
-    /// <summary>
-    /// [Reserved for future use] Base delay (in milliseconds) used for exponential backoff between reconnect attempts. Currently not consumed.
-    /// </summary>
-    [IniComment("[Reserved] Base delay in milliseconds for exponential backoff between reconnect attempts (currently not consumed)")]
-    [ValueRange(0, 30000)]
-    public int ReconnectBaseDelayMillis { get; set; } = 500;
-
-    /// <summary>
-    /// [Reserved for future use] Maximum delay (in milliseconds) allowed between reconnect attempts. Currently not consumed.
-    /// </summary>
-    [IniComment("[Reserved] Maximum delay in milliseconds between reconnect attempts (currently not consumed)")]
-    [ValueRange(0, 30000)]
-    public int ReconnectMaxDelayMillis { get; set; } = 30000;
-
-    // Keep-alive / heartbeat (ms). 0 = disabled.
-
-    /// <summary>
-    /// [Reserved for future use] Interval in milliseconds to send keep-alive (heartbeat) packets. 0 disables heartbeats. Currently not consumed.
-    /// </summary>
-    [IniComment("[Reserved] Heartbeat interval in milliseconds (0 = disabled, currently not consumed)")]
-    [ValueRange(0, int.MaxValue)]
-    public int KeepAliveIntervalMillis { get; set; } = 20_000;
-
     // Socket tuning
 
     /// <summary>

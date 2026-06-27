@@ -202,10 +202,10 @@ public sealed class ConnectionHubTests
             throw new InvalidOperationException("Simulated session-store failure.");
         }
 
-        public ValueTask<SessionEntry?> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default)
+        public ValueTask<SessionScope> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return ValueTask.FromResult<SessionEntry?>(null);
+            return ValueTask.FromResult(new SessionScope(null));
         }
 
         public void Dispose()

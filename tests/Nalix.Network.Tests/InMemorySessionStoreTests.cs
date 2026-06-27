@@ -33,7 +33,8 @@ public sealed class InMemorySessionStoreTests : IDisposable
         SessionEntry entry = new(snapshot, (ulong)1UL);
 
         await _store.StoreAsync(entry);
-        SessionEntry? retrieved = await _store.ConsumeAsync(token);
+        using SessionScope scope = await _store.ConsumeAsync(token);
+        SessionEntry? retrieved = scope.Value;
 
         Assert.NotNull(retrieved);
         Assert.Same(entry, retrieved);
@@ -54,7 +55,8 @@ public sealed class InMemorySessionStoreTests : IDisposable
         await _store.StoreAsync(entry);
         
         // This should trigger lazy expiration
-        SessionEntry? consumed = await _store.ConsumeAsync(token);
+        using SessionScope scope = await _store.ConsumeAsync(token);
+        SessionEntry? consumed = scope.Value;
 
         Assert.Null(consumed);
     }
@@ -86,7 +88,8 @@ public sealed class InMemorySessionStoreTests : IDisposable
         Assert.Contains("Total Stored    : 1", reportAfterStore);
 
         // Consume entry
-        SessionEntry? consumed = await store.ConsumeAsync(token);
+        using SessionScope scope = await store.ConsumeAsync(token);
+        SessionEntry? consumed = scope.Value;
         Assert.NotNull(consumed);
 
         string reportAfterConsume = store.GenerateReport();
@@ -103,7 +106,8 @@ public sealed class InMemorySessionStoreTests : IDisposable
         SessionEntry expiredEntry = new(expiredSnapshot, 1UL);
         await store.StoreAsync(expiredEntry);
 
-        SessionEntry? expiredConsumed = await store.ConsumeAsync(expiredToken);
+        using SessionScope expiredScope = await store.ConsumeAsync(expiredToken);
+        SessionEntry? expiredConsumed = expiredScope.Value;
         Assert.Null(expiredConsumed);
 
         string reportAfterExpired = store.GenerateReport();

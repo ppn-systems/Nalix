@@ -210,7 +210,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
             waiter.TrySetResult();
         }
 
-        public ValueTask<SessionEntry?> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default)
+        public ValueTask<SessionScope> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default)
             => _inner.ConsumeAsync(sessionToken, cancellationToken);
 
         public Task WaitForStoreAsync(ulong sessionToken, TimeSpan timeout)
