@@ -579,4 +579,12 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true,
         description: "Nalix RpcService interfaces must be decorated with [RpcService] to be discovered by the Source Generator.");
+    public static readonly DiagnosticDescriptor InjectFieldCannotBeReadOnly = new(
+        id: "NALIX104",
+        title: "[Inject] field cannot be readonly",
+        messageFormat: "Field '{0}' is marked with [Inject] and cannot be readonly, because the dependency injection container must be able to assign it",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "Fields annotated with [Inject] cannot be readonly since they are assigned via reflection or source generation after object instantiation.");
 }
