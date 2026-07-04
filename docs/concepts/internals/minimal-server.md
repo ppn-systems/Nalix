@@ -1,23 +1,19 @@
-# Minimal Server (No Hosting)
+# Minimal Server Guide
 
 !!! danger "Low-Level Implementation"
-    This guide demonstrates how to manually wire the Nalix runtime **without** the `NetworkApplication` hosting builder. This is considered an advanced topic and is only recommended for specialized transport libraries or low-level performance tuning.
-    For 99% of applications, use the [Hosting Builder](../../quickstart.md) or [Server Boilerplate](../getting-started/server-boilerplate.md).
+    This guide demonstrates how to manually wire the Nalix runtime **without** the `NetworkApplication` hosting builder. This is considered an advanced topic and is only recommended for specialized transport libraries or low-level performance tuning. 
 
-!!! info "Learning Signals"
-    - :fontawesome-solid-layer-group: **Level**: Advanced
-    - :fontawesome-solid-clock: **Time**: 10–15 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../../quickstart.md)
+    For 99% of applications, use the [Hosting Builder](../../quickstart.md) or [Server Boilerplate](../../guides/getting-started/server-boilerplate.md).
 
 The steps are:
 
 1. Register shared services
 2. Build a packet dispatcher
 3. Forward messages from `Protocol` into dispatch
-4. Start a `TcpListenerBase`
+4. Start a custom `TcpListenerBase`
 5. Send one request and receive one response
 
-The sample stays intentionally small so you can copy the structure first and optimize later. Each step below maps directly to the runtime shape in `src/Nalix.Network/Protocols/Protocol.PublicMethods.cs` and `src/Nalix.Hosting/NetworkApplicationBuilder.cs`.
+The sample stays intentionally small so you can copy the structure first and optimize later.
 
 ## Server
 
@@ -25,7 +21,6 @@ The sample stays intentionally small so you can copy the structure first and opt
 
 ```csharp
 InstanceManager.Instance.Register<ILogger>(logger);
-// PacketRegistry is used statically; no InstanceManager registration needed.
 ```
 
 ### 2. Create handlers
@@ -73,7 +68,8 @@ public sealed class SampleProtocol : Protocol
 ```csharp
 public sealed class SampleTcpListener : TcpListenerBase
 {
-    public SampleTcpListener(ushort port, IProtocol protocol, IConnectionHub hub) : base(port, protocol, hub) { }
+    public SampleTcpListener(ushort port, IProtocol protocol, IConnectionHub hub)
+        : base(port, protocol, hub) { }
 }
 
 IConnectionHub hub = new ConnectionHub();
@@ -81,7 +77,16 @@ SampleTcpListener listener = new(57206, new SampleProtocol(dispatch), hub);
 listener.Activate();
 ```
 
-The client uses the `Nalix.SDK` to connect and perform type-safe request/response operations:
+`TcpListenerBase.Activate(...)` is synchronous. Use `NetworkApplication.RunAsync()` only when you want the hosting layer to own startup and shutdown for you.
+
+!!! warning "Manual hub ownership"
+Current `TcpListenerBase` constructors require an `IConnectionHub`. The hosting
+    builder creates and wires this dependency for you. In manual mode, create the
+    hub explicitly and dispose it when your server shuts down.
+
+## Client
+
+The client uses `Nalix.SDK` to connect and perform type-safe request/response operations:
 
 ```csharp
 using Contracts;
@@ -123,12 +128,12 @@ The same end-to-end structure works with a custom packet type if you replace `Co
 
 - add middleware
 - add packet attributes such as timeout, permission, or rate limit
-- switch some handlers to `IPacketContext<TPacket>` when you need explicit manual sending or when you are working with custom packets
-- remember that the **Listener** handles raw frame transformation while the **Protocol** handles pure messages via `ProcessMessage(...)`
+- switch some handlers to `PacketContext<TPacket>` when you need explicit manual sending or when you are working with custom packets
+- remember that the **Listener** handles raw frame transformation (Pipeline) while the **Protocol** handles pure messages via `ProcessMessage(...)`
 
 ## Recommended Next Pages
 
-- [TCP Request/Response](../networking/tcp-patterns.md) — Detailed TCP pattern guide
-- [Custom Middleware](../extensibility/custom-middleware.md) — Build middleware from scratch
-- [Packet Dispatch](../../api/runtime/routing/packet-dispatch.md) — Dispatch API reference
-- [Quickstart](../../quickstart.md) — The hosted-builder approach
+- [TCP Patterns Guide](../../guides/networking/tcp-patterns.md)
+- [Custom Middleware Guide](../../guides/extensibility/custom-middleware.md)
+- [Packet Dispatch API](../../api/runtime/routing/packet-dispatch.md)
+- [Quickstart Guide](../../quickstart.md)

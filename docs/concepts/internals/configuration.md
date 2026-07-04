@@ -1,10 +1,5 @@
 # Configuration System
 
-!!! info "Learning Signals"
-    - :fontawesome-solid-layer-group: **Level**: Intermediate
-    - :fontawesome-solid-clock: **Time**: 10–15 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Introduction](../../introduction.md)
-
 This page explains how configuration becomes a running Nalix server. It covers the startup wiring sequence, option validation, service registration, and the relationship between configuration, dispatch, and transport.
 
 ## Source Mapping

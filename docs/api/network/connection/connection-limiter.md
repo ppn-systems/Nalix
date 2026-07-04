@@ -120,5 +120,5 @@ Note: `MaxConnectionsPerTrustedProxy` is configured via `TrustedProxyOptions` (d
 - [Connection Hub](./connection-hub.md)
 - [Connection Quota Options](../../options/network/connection-quota-options.md)
 - [Connection Guard Options](../../options/network/connection-guard-options.md)
-- [Security Architecture](../../../concepts/security/security-architecture.md)
+- [Security Architecture](../../../concepts/internals/security-architecture.md)
 

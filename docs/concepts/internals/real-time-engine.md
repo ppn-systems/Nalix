@@ -119,7 +119,7 @@ Metadata is resolved once during handler registration, then reused through dispa
 
 ## Recommended Next Pages
 
-- [Architecture](../fundamentals/architecture.md) — Layered component overview
+- [Architecture](./architecture.md) — Layered component overview
 - [Middleware](./middleware-pipeline.md) — Buffer vs. packet middleware
 - [Packet Dispatch](../../api/runtime/routing/packet-dispatch.md) — Dispatch API reference
 - [TCP Request/Response](../../guides/networking/tcp-patterns.md) — TCP pattern guide

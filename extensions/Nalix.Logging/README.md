@@ -86,4 +86,4 @@ customLogger.LogDebug("Custom asynchronous logging pipeline configured successfu
 
 ## Documentation
 
-See [Nalix Logging API Reference](https://ppn-system.me/api/logging) for custom target sink implementation guides and formatter options.
+See [Nalix Logging API Reference](https://ppn.io.vn/api/logging) for custom target sink implementation guides and formatter options.

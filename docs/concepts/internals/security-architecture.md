@@ -1,10 +1,5 @@
 # Security Architecture
 
-!!! info "Learning Signals"
-    - :fontawesome-solid-layer-group: **Level**: Intermediate
-    - :fontawesome-solid-clock: **Time**: 15 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Architecture](../fundamentals/architecture.md)
-
 This page explains where security decisions happen in Nalix and how the different layers work together to protect your application.
 
 ## Source Mapping

@@ -21,4 +21,4 @@ To limit concurrent or per-endpoint traffic in the current Nalix runtime:
 
 - [Token Bucket Limiter](../../api/runtime/middleware/token-bucket-limiter.md)
 - [Policy Rate Limiter](../../api/runtime/middleware/policy-rate-limiter.md)
-- [Custom Middleware Guide](../extensibility/custom-middleware.md)
+- [Custom Middleware Guide](../../guides/extensibility/custom-middleware.md)

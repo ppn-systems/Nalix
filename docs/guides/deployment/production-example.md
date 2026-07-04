@@ -1,10 +1,5 @@
 # Production Server Example
 
-!!! info "Learning Signals"
-    - :fontawesome-solid-layer-group: **Level**: Advanced
-    - :fontawesome-solid-clock: **Time**: 20–30 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../../quickstart.md), [Architecture](../../concepts/fundamentals/architecture.md)
-
 This guide describes how to build a production-ready Nalix application using best practices for logging, middleware, error handling, and structured contracts.
 
 ## 1. Project Setup
@@ -171,6 +166,6 @@ Console.WriteLine($"Server said: {response.Message}");
 
 ## Next Steps
 
-- [Middleware Concept](../../concepts/runtime/middleware-pipeline.md)
+- [Middleware Concept](../../concepts/internals/middleware-pipeline.md)
 - [UDP Security Guide](../networking/udp-security.md)
 - [Performance Optimizations](../../concepts/internals/performance-optimizations.md)

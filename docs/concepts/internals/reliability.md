@@ -13,7 +13,7 @@ Nalix is built to be a resilient foundation for real-time systems. Our reliabili
 - `src/Nalix.Abstractions/Networking/IConnectionErrorTracked.cs`
 - `tests/Nalix.Framework.Tests/Memory/BufferPoolTests.cs`
 
-## 🛡️ Pillar 1: Deterministic Execution
+## Pillar 1: Deterministic Execution
 
 Nalix eliminates the "hidden races" common in multi-threaded networking by enforcing strict execution invariants.
 
@@ -25,7 +25,7 @@ Nalix eliminates the "hidden races" common in multi-threaded networking by enfor
 
 ---
 
-## 🛑 Pillar 2: Fault Isolation
+## Pillar 2: Fault Isolation
 
 The Nalix runtime treats user code as "potentially unstable" and provides a safety net to prevent cascading failures.
 
@@ -37,7 +37,7 @@ The Nalix runtime treats user code as "potentially unstable" and provides a safe
 
 ---
 
-## ♻️ Pillar 3: Resource Discipline
+## Pillar 3: Resource Discipline
 
 Memory leaks and pool exhaustion are the silent killers of long-running servers. Nalix enforces strict resource management.
 

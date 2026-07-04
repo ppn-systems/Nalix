@@ -93,14 +93,6 @@ public sealed class TenantGuardMiddleware<TPacket> : IPacketMiddleware<TPacket>
 
 ## Mental model
 
-```mermaid
-flowchart LR
-    A["Handler method + Attributes"] --> B["PacketHandlerGenerator (compile-time)"]
-    B --> C["PacketMetadata (immutable struct)"]
-    C --> D["PacketContext.Attributes"]
-    D --> E["Middleware / handler logic"]
-```
-
 ## Related pages
 
 - [Packet Metadata API](../../api/abstractions/packet-metadata.md)

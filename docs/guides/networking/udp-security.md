@@ -3,11 +3,6 @@
 !!! warning "Advanced Topic"
     This page deals with low-level protocol multiplexing and custom listener implementations.
 
-!!! info "Learning Signals"
-    - :fontawesome-solid-layer-group: **Level**: Advanced
-    - :fontawesome-solid-clock: **Time**: 10 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Client Session Initialization](./connecting-clients.md)
-
 This guide explains the actual UDP session shape used by `UdpListenerBase` today, in a client-friendly way.
 
 Use it when you already know you need UDP and want to understand the trust and replay rules before implementing a client.
@@ -30,33 +25,6 @@ In source, the listener validates:
 - your overridden `IsAuthenticated(...)` or hosting predicate returns `true`
 
 ## High-level flow
-
-```mermaid
-flowchart TD
-    subgraph Net ["1. Network Phase"]
-        direction LR
-        Recv["Datagram Received"] --> Rate["Rate-limit IP"]
-    end
-
-    subgraph Validate ["2. Validation Phase"]
-        direction LR
-        Token["Read 8-byte Token"] --> Header["Check Header & Flags"]
-    end
-
-    subgraph Sess ["3. Session Phase"]
-        direction LR
-        Conn["Find Connection"] --> Pin["Verify Pinned IP"] --> Replay["Check Replay Window"]
-    end
-
-    subgraph Auth ["4. Routing Phase"]
-        direction LR
-        Hook["IsAuthenticated() Hook"] --> Inject["Bind Transport & Inject"]
-    end
-
-    Net --> Validate
-    Validate --> Sess
-    Sess --> Auth
-```
 
 ## Server shape
 

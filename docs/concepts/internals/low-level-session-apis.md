@@ -3,12 +3,7 @@
 !!! warning "Advanced Topic"
     This page describes raw buffer event loops, manual memory retention, and bypassing framework protections. Assume extreme caution.
 
-!!! info "Learning Signals"
-    - :fontawesome-solid-layer-group: **Level**: Advanced
-    - :fontawesome-solid-clock: **Time**: 15 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Client Session Initialization](../networking/connecting-clients.md)
-
-The primary [Connecting Clients](../networking/connecting-clients.md) guide focuses on high-level workflows like strongly-typed packet subscriptions and automatic connection wrappers. However, for maximum pipeline control, custom proxy applications, or extreme hot-path optimization, developers can interact with the lowest-level APIs inside a `TransportSession`.
+The primary [Client Session Guide](../../guides/networking/connecting-clients.md) focuses on high-level workflows like strongly-typed packet subscriptions and reconnect helpers. This page covers the lower-level transport surface exposed by `TransportSession`, `TcpSession`, and `UdpSession`.
 
 ## 1. Raw Message Hooks (Zero-Allocation Paths)
 
@@ -16,7 +11,7 @@ Instead of using `session.On<MyPacket>(...)`, which dynamically deserializes cla
 
 ### Purely Synchronous Parsing (`OnMessageReceived`)
 
-You are provided with an `IBufferLease` for each decoded frame. In the current SDK implementation, `TcpSession` raises `OnMessageReceived` from `HandleReceiveMessage(...)` after `FrameReader` finishes a frame, while `UdpSession` raises it after decrypt/decompress work in its receive loop. The SDK still owns the lease lifecycle and disposes it automatically after the callback path completes unless you explicitly call `Retain()`.
+You are provided with an `IBufferLease` for each decoded frame. In the current SDK implementation, `TcpSession` invokes `OnMessageReceived` from `HandleReceiveMessage(...)` after `FrameReader` finishes a frame, while `UdpSession` invokes it from its receive loop after inbound transforms complete. In both cases the SDK keeps ownership of the lease and automatically disposes it after the callback path finishes unless you explicitly call `Retain()`.
 
 ```csharp
 // WARNING: Do NOT execute heavy CPU loops or blocking await tasks here.
@@ -113,6 +108,6 @@ await session.SendAsync(SessionInit.Create(), encrypt: false);
 
 ## Related Information Paths
 
-- [High-Level Client Initialization](../networking/connecting-clients.md)
-- [Zero Allocation Hot Paths](zero-allocation-hot-path.md)
+- [High-Level Client Initialization](../../guides/networking/connecting-clients.md)
+- [Zero Allocation Path](../../concepts/internals/zero-allocation.md)
 - [Transport Session Overviews](../../api/sdk/transport-session.md)

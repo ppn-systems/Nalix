@@ -2,11 +2,6 @@
 
 `BufferLease` is the cornerstone of memory management in Nalix. It provides a reference-counted, pooled abstraction over raw byte arrays, enabling zero-allocation networking pipelines.
 
-!!! info "Learning Signals"
-    - :fontawesome-solid-layer-group: **Level**: Advanced
-    - :fontawesome-solid-clock: **Time**: 15 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Zero-Allocation Hot Path](./zero-allocation-hot-path.md)
-
 ---
 
 ## 1. The Core Concept
@@ -125,6 +120,6 @@ if (lease.ReleaseOwnership(out byte[]? buffer, out int start, out int length))
 
 ## Related Information
 
-- [Zero-Allocation Hot Path](./zero-allocation-hot-path.md)
+- [Zero-Allocation Hot Path](./zero-allocation-hot-path-guide.md)
 - [Buffer Management API Reference](../../api/environment/memory/buffer-management.md)
 - [Transport Session APIs](./low-level-session-apis.md)

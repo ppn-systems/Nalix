@@ -138,4 +138,4 @@ receive datagram
 - [UDP Session](../../api/sdk/udp-session.md)
 - [Protocol](../../api/network/protocol.md)
 - [UDP Auth Flow](./udp-security.md)
-- [Security Architecture](../../concepts/security/security-architecture.md)
+- [Security Architecture](../../concepts/internals/security-architecture.md)

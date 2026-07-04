@@ -1,59 +1,35 @@
 # Server Blueprint
 
-!!! info "Learning Signals"
-    - :fontawesome-solid-layer-group: **Level**: Intermediate
-    - :fontawesome-solid-clock: **Time**: 15–20 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../../quickstart.md)
-
 This page provides the recommended architectural blueprint for a production-grade Nalix server. It moves beyond the single-file quickstart to a shape that scales as features, security policies, and diagnostic needs grow.
 
 ---
 
-## 🏗️ Startup Architecture
+## Startup Architecture
 
 A robust server follows a deterministic sequence:
-
-```mermaid
-flowchart LR
-    subgraph Setup ["Phase 1: Setup"]
-        direction TB
-        Config["Load Configuration"]
-        Reg["Register Services"]
-    end
-
-    subgraph Pipeline ["Phase 2: Runtime Pipeline"]
-        direction TB
-        Disp["Activate Dispatch"]
-        Trans["Start Transport"]
-    end
-
-    Config --> Reg
-    Reg --> Disp
-    Disp --> Trans
-```
 
 !!! success "Why this blueprint?"
     Treating the server startup as a sequence of discrete layers ensures that when the socket starts accepting traffic, every security policy and reporting hook is already "warm" and ready.
 
 ---
 
-## 📁 Recommended Directory Structure
+## Recommended Directory Structure
 
 Consistency is key for maintainability. We recommend the following layout for a Nalix server project:
 
 ```text
-📂 Server/
-├── 📂 Bootstrap/           # Service & Dispatch wiring
-├── 📂 Protocols/           # Transport protocol definitions
-├── 📂 Handlers/            # Application logic (Controllers)
-├── 📂 Middleware/          # Security & Policy filters
-├── 📂 Metadata/            # Custom convention providers
-└── 📂 Hosting/             # Entry point & Lifecycle management
+Server/
+├── Bootstrap/           # Service & Dispatch wiring
+├── Protocols/           # Transport protocol definitions
+├── Handlers/            # Application logic (Controllers)
+├── Middleware/          # Security & Policy filters
+├── Metadata/            # Custom convention providers
+└── Hosting/             # Entry point & Lifecycle management
 ```
 
 ---
 
-## 🚀 The Blueprint Steps
+## The Blueprint Steps
 
 ### 1. Configuration & Validation
 
@@ -135,7 +111,7 @@ That shape matches `src/Nalix.Hosting/DefaultProtocol.cs`, which is the built-in
 
 ---
 
-## ⚡ Lifecycle Management
+## Lifecycle Management
 
 Managing the **Activation** and **Shutdown** order is critical for preventing connection "dangling."
 
@@ -151,7 +127,7 @@ This order comes directly from `src/Nalix.Hosting/NetworkApplication.cs`, where 
 
 ---
 
-## 📊 Diagnostics Surface
+## Diagnostics Surface
 
 A production-ready blueprint always includes a way to query the internal health. All core components implement `IReportable`.
 

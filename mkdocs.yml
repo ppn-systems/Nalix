@@ -1,6 +1,6 @@
 site_name: Nalix
 site_description: Enterprise-grade real-time TCP networking framework for .NET
-site_url: https://ppn-systems.github.io/nalix-docs/
+site_url: https://ppn.io.vn/
 copyright: Copyright © 2025-2026 PPN Corporation
 repo_url: https://github.com/ppn-systems/nalix
 repo_name: nalix
@@ -16,7 +16,7 @@ extra:
       link: mailto:ppn.system@gmail.com
   announcement: |
     🚀 Nalix is under active development. Star us on GitHub!
-  canonical_url: https://ppn-systems.github.io/nalix-docs/
+  canonical_url: https://ppn.io.vn/
   meta:
     - name: keywords
       content: real-time server, .NET, networking, TCP, UDP
@@ -119,29 +119,56 @@ nav:
   - Overview: index.md
   - Start Here:
       - Quick Start: quickstart.md
-      - Introduction: introduction.md
       - Installation: installation.md
+      - Your First Server: guides/getting-started/your-first-server.md
+  - Guides:
+      - Overview: guides/index.md
+      - Build a Chat Room: guides/build-a-chat-room.md
+      - Securing Your Server: guides/securing-your-server.md
+      - Application Logic:
+          - Implementing Packet Handlers: guides/application/packet-handlers.md
+          - Middleware Usage Guide: guides/application/middleware-usage.md
+      - Networking:
+          - Client Session Guide: guides/networking/connecting-clients.md
+          - UDP Server Guide: guides/networking/udp-server.md
+          - TCP Patterns Guide: guides/networking/tcp-patterns.md
+          - UDP Security Guide: guides/networking/udp-security.md
+          - Idle Connection Timeout: guides/networking/idle-timeout-configuration.md
+      - Extensibility:
+          - Custom Middleware Guide: guides/extensibility/custom-middleware.md
+          - Custom Packet Router: guides/extensibility/custom-packet-router.md
+          - Custom Metadata Providers: guides/extensibility/metadata-providers.md
+          - Custom Serialization Provider: guides/extensibility/serialization-providers.md
+      - Getting Started References:
+          - Project Setup: guides/getting-started/project-setup.md
+          - Server Boilerplate: guides/getting-started/server-boilerplate.md
+          - Server Blueprint: guides/getting-started/server-blueprint.md
+      - Deployment & Operations:
+          - Production Server Example: guides/deployment/production-example.md
+          - Production Checklist: guides/deployment/production-checklist.md
+          - Troubleshooting Guide: guides/deployment/troubleshooting.md
   - Concepts:
       - Overview: concepts/index.md
-      - Fundamentals:
-          - Architecture: concepts/fundamentals/architecture.md
-          - Packet System: concepts/fundamentals/packet-system.md
-          - Packet Lifecycle: concepts/fundamentals/packet-lifecycle.md
-          - Errors and Diagnostics: concepts/fundamentals/errors-and-diagnostics.md
-      - Serialization:
-          - Binary Specification: concepts/serialization/binary-spec.md
-      - Runtime Engine:
-          - Real-time Engine: concepts/runtime/real-time-engine.md
-          - Middleware Pipeline: concepts/runtime/middleware-pipeline.md
-          - Configuration System: concepts/runtime/configuration.md
-          - Selecting Building Blocks: concepts/runtime/building-blocks.md
-          - Hosting Model: concepts/application/hosting-model.md
-      - Security:
-          - Security Architecture: concepts/security/security-architecture.md
-          - Encryption Model: concepts/security/encryption-model.md
-          - Handshake Protocol: concepts/security/handshake-protocol.md
-          - Session Resumption: concepts/security/session-resumption.md
-      - Advanced Internals:
+      - How Packets Work: concepts/how-packets-work.md
+      - Handlers and Middleware: concepts/handlers-and-middleware.md
+      - Configuration: concepts/configuration.md
+      - Security Basics: concepts/security-basics.md
+      - Hosting Model: concepts/application/hosting-model.md
+      - Glossary: concepts/glossary.md
+      - Internals:
+          - Overview: concepts/internals/index.md
+          - Architecture: concepts/internals/architecture.md
+          - Packet Lifecycle: concepts/internals/packet-lifecycle.md
+          - Errors and Diagnostics: concepts/internals/errors-and-diagnostics.md
+          - Binary Specification: concepts/internals/binary-spec.md
+          - Real-time Engine: concepts/internals/real-time-engine.md
+          - Middleware Pipeline: concepts/internals/middleware-pipeline.md
+          - Selecting Building Blocks: concepts/internals/building-blocks.md
+          - Configuration System: concepts/internals/configuration.md
+          - Security Architecture: concepts/internals/security-architecture.md
+          - Encryption Model: concepts/internals/encryption-model.md
+          - Handshake Protocol: concepts/internals/handshake-protocol.md
+          - Session Resumption: concepts/internals/session-resumption.md
           - Reliability Model: concepts/internals/reliability.md
           - Sharding & Concurrency: concepts/internals/sharding.md
           - Zero-Allocation Path: concepts/internals/zero-allocation.md
@@ -149,41 +176,13 @@ nav:
           - Failure Handling: concepts/internals/failure-handling.md
           - Design Tradeoffs: concepts/internals/design-tradeoffs.md
           - Performance Optimizations: concepts/internals/performance-optimizations.md
-      - Glossary: concepts/glossary.md
-  - Guides:
-      - Overview: guides/index.md
-      - Getting Started:
-          - Project Setup: guides/getting-started/project-setup.md
-          - Server Boilerplate: guides/getting-started/server-boilerplate.md
-          - Server Blueprint: guides/getting-started/server-blueprint.md
-      - Networking:
-          - Client Session Guide: guides/networking/connecting-clients.md
-          - UDP Server Guide: guides/networking/udp-server.md
-          - TCP Patterns Guide: guides/networking/tcp-patterns.md
-          - UDP Security Guide: guides/networking/udp-security.md
-          - Session APIs Guide: guides/networking/session-apis.md
-          - Minimal Server: guides/networking/minimal-server.md
-          - Idle Connection Timeout: guides/networking/idle-timeout-configuration.md
-      - Application Logic:
-          - Implementing Packet Handlers: guides/application/packet-handlers.md
-          - Middleware Usage Guide: guides/application/middleware-usage.md
-      - Extensibility:
-          - Custom Middleware Guide: guides/extensibility/custom-middleware.md
-          - Custom Packet Router: guides/extensibility/custom-packet-router.md
-          - Custom Metadata Providers: guides/extensibility/metadata-providers.md
-          - Custom Serialization Provider: guides/extensibility/serialization-providers.md
-      - Deployment & Operations:
-          - Production Server Example: guides/deployment/production-example.md
-          - Production Checklist: guides/deployment/production-checklist.md
-          - Troubleshooting Guide: guides/deployment/troubleshooting.md
-      - Low-Level:
-          - End to end: guides/low-level/end-to-end.md
-          - Session APIs: guides/low-level/low-level-session-apis.md
-          - Zero-allocation: guides/low-level/zero-allocation-hot-path.md
-          - BufferLease Utilization: guides/low-level/buffer-lease-utilization.md
-          - Buffer Pooling Configuration: guides/low-level/buffer-pooling-configuration.md
-      - Advanced:
-          - Dynamic Concurrency Adjustment: guides/advanced/dynamic-concurrency-adjustment.md
+          - Dynamic Concurrency Adjustment: concepts/internals/dynamic-concurrency-adjustment.md
+          - Advanced Guides:
+              - Manual Wiring (No Hosting): concepts/internals/minimal-server.md
+              - Low-Level Session APIs: concepts/internals/low-level-session-apis.md
+              - Zero-Allocation Hot Path: concepts/internals/zero-allocation-hot-path-guide.md
+              - BufferLease Utilization: concepts/internals/buffer-lease-utilization.md
+              - Buffer Pooling Configuration: concepts/internals/buffer-pooling-configuration.md
   - Packages:
       - Overview: packages/index.md
       - Nalix.Abstractions: packages/nalix-abstractions.md

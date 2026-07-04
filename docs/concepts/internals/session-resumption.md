@@ -71,5 +71,5 @@ By default, the Nalix Hosting model handles session resumption automatically. Ho
 ## Related Topics
 
 - [Handshake Protocol](./handshake-protocol.md)
-- [Network Model](../fundamentals/architecture.md)
+- [Network Model](./architecture.md)
 - [Session Store APIs](../../api/network/session-store.md)

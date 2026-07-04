@@ -1,10 +1,5 @@
 # System Architecture
 
-!!! info "Learning Signals"
-    - :fontawesome-solid-layer-group: **Level**: Beginner
-    - :fontawesome-solid-clock: **Time**: 10 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../../quickstart.md)
-
 The Nalix architecture is designed for high-throughput, low-latency networking with a focus on zero-allocation data paths and shard-aware execution. This page explains how the framework's packages relate to each other, how data flows through the system, and where each component sits in the overall design.
 
 ## System Context
@@ -164,6 +159,6 @@ The network runtime is designed to run with pressure controls enabled by default
 
 ## See it in action
 
-- :fontawesome-solid-bolt: [Quickstart](../../quickstart.md) — Build a complete server and client in minutes.
-- :fontawesome-solid-map: [Server Blueprint](../../guides/getting-started/server-blueprint.md) — Learn the recommended project structure for production.
-- :fontawesome-solid-rocket: [Production End-to-End](../../guides/deployment/production-example.md) — See how architecture layers map to a real deployment.
+- [Quickstart](../../quickstart.md) — Build a complete server and client in minutes.
+- [Server Blueprint](../../guides/getting-started/server-blueprint.md) — Learn the recommended project structure for production.
+- [Production End-to-End](../../guides/deployment/production-example.md) — See how architecture layers map to a real deployment.

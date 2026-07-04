@@ -135,7 +135,7 @@ This ensures that even when the underlying OS reports a connection failure, the 
 
 ## Recommended Next Steps
 
-- [Packet System](./packet-system.md) — Serialization and wire format
+- [Packet System](../how-packets-work.md) — Serialization and wire format
 - [Packet Lifecycle](./packet-lifecycle.md) — Request path from socket to handler
-- [Middleware](../runtime/middleware-pipeline.md) — Buffer vs. packet middleware
-- [Security Model](../security/security-architecture.md) — Authentication and encryption
+- [Middleware](../internals/middleware-pipeline.md) — Buffer vs. packet middleware
+- [Security Model](./security-architecture.md) — Authentication and encryption

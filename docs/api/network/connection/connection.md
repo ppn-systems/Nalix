@@ -114,4 +114,4 @@ The connection exposes a `UdpReplayWindow` (an instance of `SlidingWindow` sized
 - [Socket Connection](../socket-connection.md)
 - [Snowflake Identifiers](../../framework/snowflake.md)
 - [Session Store](../session-store.md)
-- [Security Architecture](../../../concepts/security/security-architecture.md)
+- [Security Architecture](../../../concepts/internals/security-architecture.md)
