@@ -29,12 +29,9 @@ These guides walk through real, runnable samples — start with the one closest 
 
 ## Getting started references
 
-- [Project Setup](./getting-started/project-setup.md) — structuring a new Nalix solution
-- [Server Blueprint](./getting-started/server-blueprint.md) — a standard startup sequence
-- [Server Boilerplate](./getting-started/server-boilerplate.md) — a starting-point server template
+- [Server Blueprint](./getting-started/server-blueprint.md) — a standard startup sequence and starting-point template
 
 ## Deployment & operations
 
-- [Production Server Example](./deployment/production-example.md) — a more complete example server
-- [Production Checklist](./deployment/production-checklist.md) — a release gate before you ship
+- [Production Checklist](./deployment/production-checklist.md) — a release gate before you ship, with a worked example
 - [Troubleshooting Guide](./deployment/troubleshooting.md) — common issues and where to look first

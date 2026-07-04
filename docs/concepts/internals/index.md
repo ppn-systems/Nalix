@@ -11,5 +11,5 @@ Everything here is correct and kept up to date, but it goes deeper than most peo
 - **Security in depth**: [Security Architecture](security-architecture.md), [Encryption Model](encryption-model.md), [Handshake Protocol](handshake-protocol.md), [Session Resumption](session-resumption.md)
 - **Performance and scale**: [Sharding and Concurrency](sharding.md), [Zero-Allocation Path](zero-allocation.md), [Performance Optimizations](performance-optimizations.md), [Dynamic Concurrency Adjustment](dynamic-concurrency-adjustment.md)
 - **Memory management**: [BufferLease Utilization](buffer-lease-utilization.md), [Buffer Pooling Configuration](buffer-pooling-configuration.md)
-- **Reliability and guarantees**: [Reliability Model](reliability.md), [System Guarantees](guarantees-and-invariants.md), [Failure Handling](failure-handling.md), [Design Tradeoffs](design-tradeoffs.md)
-- **Advanced guides**: [Manual Wiring (No Hosting)](minimal-server.md), [Low-Level Session APIs](low-level-session-apis.md), [Zero-Allocation Hot Path](zero-allocation-hot-path-guide.md)
+- **Reliability and guarantees**: [Guarantees and Failure Handling](guarantees-and-failure-handling.md), [Design Tradeoffs](design-tradeoffs.md)
+- **Advanced guides**: [Manual Wiring (No Hosting)](minimal-server.md), [Low-Level Session APIs](low-level-session-apis.md)

@@ -5,8 +5,9 @@ These pages explain the ideas behind Nalix in plain language — what a packet i
 - [How Packets Work](./how-packets-work.md) — defining and sharing packet types
 - [Handlers and Middleware](./handlers-and-middleware.md) — where your logic runs and how policy gets applied
 - [Configuration](./configuration.md) — loading and validating options
-- [Security Basics](./security-basics.md) — what's encrypted by default and what you configure
 - [Glossary](./glossary.md) — terms used throughout the docs
+
+Encryption is covered as part of [Securing Your Server](../guides/securing-your-server.md) — Nalix encrypts a connection through a handshake, not through configuration you write by hand.
 
 ## Going deeper
 

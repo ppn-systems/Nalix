@@ -62,6 +62,23 @@ dotnet add package Nalix.Codec
 | Shared contracts | `Nalix.Abstractions`, `Nalix.Codec` |
 | Full stack | Server set + Client set, sharing one contracts assembly |
 
+## Multi-Project Solutions
+
+If you split contracts, server, and client into separate projects (see the [Quick Start](./quickstart.md) for the layout), pin the Nalix package version once in a root `Directory.Build.props` instead of repeating it per project — this prevents version drift between your server and client:
+
+```xml
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <NalixVersion>$(VersionFromYourReleasePlan)</NalixVersion>
+  </PropertyGroup>
+</Project>
+```
+
+When upgrading, bump `NalixVersion`, clear `obj`/`bin` if source-generated contracts changed, then `dotnet build` to confirm every project is aligned.
+
 ## Configuration File
 
 Most server setups and many SDK examples load options from the `server.ini` file via `ConfigurationManager`. This file will be automatically generated in your project's output directory:

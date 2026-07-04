@@ -3,7 +3,7 @@
 !!! danger "Low-Level Implementation"
     This guide demonstrates how to manually wire the Nalix runtime **without** the `NetworkApplication` hosting builder. This is considered an advanced topic and is only recommended for specialized transport libraries or low-level performance tuning. 
 
-    For 99% of applications, use the [Hosting Builder](../../quickstart.md) or [Server Boilerplate](../../guides/getting-started/server-boilerplate.md).
+    For 99% of applications, use the [Hosting Builder](../../quickstart.md) or [Server Blueprint](../../guides/getting-started/server-blueprint.md).
 
 The steps are:
 

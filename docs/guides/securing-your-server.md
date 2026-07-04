@@ -1,6 +1,6 @@
 # Securing Your Server
 
-This shows how to turn on encryption and run TCP, UDP, and WebSocket listeners side by side.
+Nalix encrypts a connection through a handshake, not through configuration you write by hand — turn it on with one call and the framework negotiates a shared key per connection. This shows how to turn on encryption and run TCP, UDP, and WebSocket listeners side by side.
 
 Full source: `samples/SecureMultiTransportHelloWorld`
 
@@ -87,6 +87,23 @@ WebSocket opens its own connection and does not share the TCP session's token or
 
 Full source: `samples/SecureMultiTransportHelloWorld/SecureMultiTransportHelloWorld.Client/Program.cs`
 
+## Restricting who can call a handler
+
+Declare permission, timeout, and rate-limit rules directly on a handler method:
+
+```csharp
+[PacketOpcode(0x2001)]
+[PacketPermission(PermissionLevel.USER)]
+[PacketTimeout(5000)]
+[PacketRateLimit(requestsPerSecond: 10)]
+public ValueTask<AccountResponse> GetProfile(IPacketContext<ProfileRequest> context)
+{
+    // Only runs if permission, timeout, and rate limit checks pass
+}
+```
+
+These are enforced by built-in middleware before your handler body runs — see [Handlers and Middleware](../concepts/handlers-and-middleware.md).
+
 ## Run it
 
 ```bash
@@ -127,5 +144,6 @@ WebSocket test skipped: WebSocket Connection failed: Unable to connect to the re
 
 ## Next steps
 
-- [Security Basics](../concepts/security-basics.md) — what's encrypted by default and what you can configure
+- [Handlers and Middleware](../concepts/handlers-and-middleware.md) — how permission/rate-limit attributes get enforced
 - [Production Checklist](./deployment/production-checklist.md) — before you ship
+- For the handshake protocol, encryption model, and session resume details: [Security Architecture](../concepts/internals/security-architecture.md) (Internals)

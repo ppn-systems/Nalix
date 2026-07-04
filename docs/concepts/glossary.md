@@ -108,6 +108,5 @@ The idle-timeout scheduler used by the network layer. Manages connection timeout
 
 ## Recommended Next Pages
 
-- [Selecting Building Blocks](./internals/building-blocks.md) — Decision guide for component selection
 - [Architecture](./internals/architecture.md) — Layered component overview
 - [Middleware](./internals/middleware-pipeline.md) — Middleware Pipeline and handler policy

@@ -120,6 +120,6 @@ if (lease.ReleaseOwnership(out byte[]? buffer, out int start, out int length))
 
 ## Related Information
 
-- [Zero-Allocation Hot Path](./zero-allocation-hot-path-guide.md)
+- [Zero-Allocation Hot Path](./zero-allocation.md)
 - [Buffer Management API Reference](../../api/environment/memory/buffer-management.md)
 - [Transport Session APIs](./low-level-session-apis.md)

@@ -1,21 +1,10 @@
 # Server Blueprint
 
-This page provides the recommended architectural blueprint for a production-grade Nalix server. It moves beyond the single-file quickstart to a shape that scales as features, security policies, and diagnostic needs grow.
-
----
-
-## Startup Architecture
-
-A robust server follows a deterministic sequence:
-
-!!! success "Why this blueprint?"
-    Treating the server startup as a sequence of discrete layers ensures that when the socket starts accepting traffic, every security policy and reporting hook is already "warm" and ready.
+This page shows a recommended shape for a production-grade Nalix server — the layout, startup order, and options you'll want once a server grows past the quickstart's single file.
 
 ---
 
 ## Recommended Directory Structure
-
-Consistency is key for maintainability. We recommend the following layout for a Nalix server project:
 
 ```text
 Server/
@@ -29,11 +18,35 @@ Server/
 
 ---
 
-## The Blueprint Steps
+## The Simplest Entry Point
+
+For most applications, the hosting builder is all you need. It wires configuration, dispatch, and listeners for you:
+
+```csharp
+// samples/HelloWorld/HelloWorld.Server/Program.cs
+using Nalix.Hosting;
+using Nalix.Hosting.Protocols;
+
+await using NetworkApplication app = NetworkApplication.CreateBuilder()
+    .UseLogger(logger)
+    .MapHandlers(typeof(HelloHandlers))
+    .ListenTcp<DefaultProtocol>().OnPort(57206).Bind()
+    .Build();
+
+await app.RunAsync(cts.Token);
+```
+
+Full source: `samples/HelloWorld/HelloWorld.Server/Program.cs`
+
+`DefaultProtocol` (from `Nalix.Hosting.Protocols`) is a ready-made protocol that forwards every inbound packet straight to the dispatcher — you only need a custom protocol class if you have transport-level logic beyond that.
+
+---
+
+## Startup Steps
 
 ### 1. Configuration & Validation
 
-Load and validate focused network options before starting the runtime. Fail-fast is better than a runtime error in a worker loop.
+Load and validate focused option types before starting the runtime. Fail-fast is better than a runtime error in a worker loop.
 
 ```csharp
 var socket = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
@@ -49,54 +62,46 @@ var connectionGuard = ConfigurationManager.Instance.Get<ConnectionGuardOptions>(
 connectionGuard.Validate();
 ```
 
-If you use the hosting builder, `src/Nalix.Hosting/NetworkApplicationBuilder.cs` already does this step for every `Configure<TOptions>(...)` registration by invoking public `Validate()` when the option type exposes it.
+If you use the hosting builder, `src/Nalix.Hosting/NetworkApplicationBuilder.cs` already does this for every `Configure<TOptions>(...)` registration by invoking `Validate()` when the option type exposes it.
 
 ### 2. Registry Initialization
 
-The `PacketRegistry` must be built once at startup. This freezes the catalog of discovered packets (via source generators) and prepares it for high-performance deserialization.
+The packet registry is built once at startup. This freezes the catalog of discovered packets (via source generators) and prepares it for high-performance deserialization. The hosting builder does this automatically during `app.Build()`; for manual composition you'd call it yourself:
 
 ```csharp
-using Nalix.Codec.DataFrames;
-
-// Initialize the global registry
-PacketRegistry.Configure(poolManager); // Optional: enable pooling
-PacketRegistry.Build(); // Freeze the catalog
+Nalix.Codec.DataFrames.PacketRegistry.Build();
 ```
-
-The hosting builder performs this step automatically during `app.Build()`.
 
 ### 3. Dispatch & Middleware Setup
 
-Define your application pipeline in a centralized location.
+Add middleware and handlers in a centralized location, using `ConfigureDispatchOptions` on the builder:
 
 ```csharp
-PacketDispatchChannel dispatch = new(options =>
+builder.ConfigureDispatchOptions(options =>
 {
-    options.WithErrorHandling((ex, opcode) => { /* custom error hook */ })
-           .WithMiddleware(new AuthMiddleware())
-           .WithMiddleware(new AuditMiddleware())
-           .WithHandler(() => new AccountHandlers())
-           .WithHandler(() => new MatchHandlers());
+    options
+        .WithMiddleware(new RateLimitMiddleware())
+        .WithErrorHandling((ex, opcode) =>
+        {
+            Console.WriteLine($"Error in opcode 0x{opcode:X4}: {ex.Message}");
+        });
 });
 ```
 
-!!! info "Diagnostics"
-    Runtime diagnostics flow through `DiagnosticListener` (`"Runtime"`).
-    No per-instance logger is needed.
-
-!!! tip "Centralized Wiring"
-    Keep all `WithMiddleware` and `WithHandler` calls in a single bootstrap class. Spreading these across the codebase makes startup order nearly impossible to debug.
+!!! tip "Centralized wiring"
+    Keep all `WithMiddleware` and handler registration in one bootstrap location. Spreading it across the codebase makes startup order hard to debug.
 
 ### 4. Protocol Implementation
 
-Keep your protocol thin. It should strictly act as the bridge between raw frames and clean messages.
+Keep a custom protocol thin — it should strictly bridge raw frames to the dispatcher. `DefaultProtocol` already does exactly this:
 
 ```csharp
-public sealed class ServerProtocol : Protocol
+// src/Nalix.Hosting/Protocols/DefaultProtocol.cs (shape)
+public sealed class DefaultProtocol : Protocol
 {
-    private readonly PacketDispatchChannel _dispatch;
+    private readonly IPacketDispatch _dispatch;
 
-    public ServerProtocol(PacketDispatchChannel dispatch)
+    public DefaultProtocol(ILogger logger, IPacketDispatch dispatch)
     {
         _dispatch = dispatch;
         this.IsAccepting = true;
@@ -107,13 +112,13 @@ public sealed class ServerProtocol : Protocol
 }
 ```
 
-That shape matches `src/Nalix.Hosting/DefaultProtocol.cs`, which is the built-in implementation used when you do not need custom protocol hooks.
+Full source: `src/Nalix.Hosting/Protocols/DefaultProtocol.cs`
 
 ---
 
 ## Lifecycle Management
 
-Managing the **Activation** and **Shutdown** order is critical for preventing connection "dangling."
+Managing activation and shutdown order matters — it prevents connections from being left dangling.
 
 | Phase | Action | Detail |
 | --- | --- | --- |
@@ -123,27 +128,48 @@ Managing the **Activation** and **Shutdown** order is critical for preventing co
 | **Shutdown** | `protocol.Dispose()` | Dispose protocols after listeners stop. |
 | **Shutdown** | `dispatch.Deactivate()` | Stop the dispatch pipeline after listeners. |
 
-This order comes directly from `src/Nalix.Hosting/NetworkApplication.cs`, where `ActivateAsync()` prepares callbacks, activates dispatch, then starts listeners; `DeactivateAsync()` reverses that order and finally waits for `ITaskManager.WaitGroupAsync("net/*")` and `"time/*"`.
+This order comes directly from `src/Nalix.Hosting/NetworkApplication.cs`, where `ActivateAsync()` activates dispatch then starts listeners; `DeactivateAsync()` reverses that order and waits for the `"net/*"` and `"time/*"` task groups to finish.
+
+The hosting builder's `RunAsync()` does all of this for you — `app.RunAsync(cts.Token)` calls `ActivateAsync()`, waits for cancellation, then calls `DeactivateAsync()`.
 
 ---
 
 ## Diagnostics Surface
 
-A production-ready blueprint always includes a way to query the internal health. All core components implement `IReportable`.
+All core components implement `IReportable`, giving you a way to inspect internal health without an admin API:
 
-- `GenerateReport()`: Returns a human-readable string for logging or CLI.
-- `WriteReportData(Utf8JsonWriter)`: Zero-allocation JSON output for monitoring APIs or dashboards.
+- `GenerateReport()` — a human-readable string for logging or CLI.
+- `WriteReportData(Utf8JsonWriter)` — JSON output for monitoring APIs or dashboards.
 
-Available on:
-
-- `IListener`: Listener-side transport state and counters.
-- `IProtocol`: Protocol-side counters and post-process diagnostics.
-- `IPacketDispatch`: Dispatch runtime state and channel pressure.
-
-!!! info "Pro-Tip"
-    Even if you don't have an Admin API, ensure your logs occasionally output these reports during periods of high traffic.
+Available on `IListener` (transport state and counters), `IProtocol` (protocol-side counters), and `IPacketDispatch` (dispatch state and channel pressure). Even without a dedicated admin endpoint, logging these reports periodically during high traffic is worth doing.
 
 ---
+
+## Manual Composition (No Hosting Builder)
+
+!!! warning "Advanced only"
+    Use this path only if you need to bypass the hosting layer entirely — for example, to build a specialized transport library. Manual composition must wire the dispatch pipeline, protocol, and listener yourself, in the same order the hosting builder uses internally.
+
+```csharp
+PacketDispatchChannel dispatch = new(options =>
+{
+    options.WithHandler(() => new HelloHandlers());
+});
+
+dispatch.Activate();
+// ... construct and activate your listener with `dispatch` wired in ...
+```
+
+See [Manual Wiring (No Hosting)](../../concepts/internals/minimal-server.md) for the full low-level walkthrough.
+
+---
+
+## Best Practices Checklist
+
+- Define shared packet contracts in their own project, referenced by both server and client.
+- Log through `ILogger`, not `Console.WriteLine`, once you leave the quickstart stage.
+- Validate every options type at startup (see [Configuration & Validation](#1-configuration-validation)).
+- Keep custom protocols thin — forward to the dispatcher, don't embed application logic in them.
 
 ## Recommended Next Pages
 

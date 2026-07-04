@@ -41,7 +41,6 @@ Nalix is a real-time TCP and UDP networking framework for .NET 10. You define pa
 - [How Packets Work](./concepts/how-packets-work.md)
 - [Handlers and Middleware](./concepts/handlers-and-middleware.md)
 - [Configuration](./concepts/configuration.md)
-- [Security Basics](./concepts/security-basics.md)
 - [Glossary](./concepts/glossary.md)
 
 If you want to know how Nalix works internally — wire formats, sharding, memory pooling — see [Internals](./concepts/internals/index.md). You don't need it to build with Nalix.

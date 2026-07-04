@@ -161,4 +161,4 @@ The network runtime is designed to run with pressure controls enabled by default
 
 - [Quickstart](../../quickstart.md) — Build a complete server and client in minutes.
 - [Server Blueprint](../../guides/getting-started/server-blueprint.md) — Learn the recommended project structure for production.
-- [Production End-to-End](../../guides/deployment/production-example.md) — See how architecture layers map to a real deployment.
+- [Production Checklist](../../guides/deployment/production-checklist.md) — See how architecture layers map to a real deployment.
