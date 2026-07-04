@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -18,6 +19,28 @@ namespace Nalix.Analyzers.Generators;
 [Generator]
 public sealed class PacketRegistryGenerator : IIncrementalGenerator
 {
+    public readonly struct PacketRegistryModel : IEquatable<PacketRegistryModel>
+    {
+        public string FullyQualifiedName { get; }
+        public string ErrorMessageName { get; }
+        public string GeneratedNamespace { get; }
+
+        public PacketRegistryModel(string fullyQualifiedName, string errorMessageName, string generatedNamespace)
+        {
+            this.FullyQualifiedName = fullyQualifiedName;
+            this.ErrorMessageName = errorMessageName;
+            this.GeneratedNamespace = generatedNamespace;
+        }
+
+        public bool Equals(PacketRegistryModel other) =>
+            this.FullyQualifiedName == other.FullyQualifiedName &&
+            this.ErrorMessageName == other.ErrorMessageName &&
+            this.GeneratedNamespace == other.GeneratedNamespace;
+
+        public override bool Equals(object obj) => obj is PacketRegistryModel other && this.Equals(other);
+        public override int GetHashCode() => (this.FullyQualifiedName, this.ErrorMessageName, this.GeneratedNamespace).GetHashCode();
+    }
+
     #region Constants and Diagnostics
 
     #endregion Constants and Diagnostics
@@ -30,13 +53,14 @@ public sealed class PacketRegistryGenerator : IIncrementalGenerator
     /// <param name="context">The Roslyn incremental generator initialization context.</param>
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        IncrementalValuesProvider<INamedTypeSymbol?> packets = context.SyntaxProvider
-            .CreateSyntaxProvider(
-                predicate: static (node, _) => node is TypeDeclarationSyntax { AttributeLists.Count: > 0, BaseList: not null },
+        IncrementalValuesProvider<PacketRegistryModel> packets = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                KnownNames.PacketAttributeMetadataName,
+                predicate: static (node, _) => node is TypeDeclarationSyntax { BaseList: not null },
                 transform: static (ctx, _) => GET_PACKET_TYPE(ctx))
-            .Where(static symbol => symbol is not null);
+            .Where(static symbol => symbol.FullyQualifiedName != null);
 
-        IncrementalValueProvider<System.Collections.Immutable.ImmutableArray<INamedTypeSymbol?>> collected = packets.Collect();
+        IncrementalValueProvider<ImmutableArray<PacketRegistryModel>> collected = packets.Collect();
 
         context.RegisterSourceOutput(collected, static (spc, source) => Execute(source, spc));
     }
@@ -45,53 +69,46 @@ public sealed class PacketRegistryGenerator : IIncrementalGenerator
 
     #region Private Helpers
 
-    private static void Execute(ImmutableArray<INamedTypeSymbol?> targets, SourceProductionContext context)
+    private static void Execute(ImmutableArray<PacketRegistryModel> targets, SourceProductionContext context)
     {
         HashSet<string> seen = new();
 
-        List<INamedTypeSymbol> distinctPackets = [.. targets
-            .Where(static p => p is not null)
-            .Select(static p => p!)
-            .Where(p => seen.Add(p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))
-            .OrderBy(static p => p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))];
+        List<PacketRegistryModel> distinctPackets = [.. targets
+            .Where(p => p.FullyQualifiedName != null && seen.Add(p.FullyQualifiedName))
+            .OrderBy(static p => p.FullyQualifiedName)];
 
         if (distinctPackets.Count == 0)
         {
             return;
         }
 
-        string generatedNamespace = SourceGenNamespaces.Get(distinctPackets[0]);
+        string generatedNamespace = distinctPackets[0].GeneratedNamespace;
 
         EMIT_BOOTSTRAP(context, distinctPackets, generatedNamespace);
     }
 
-    private static INamedTypeSymbol? GET_PACKET_TYPE(GeneratorSyntaxContext context)
+    private static PacketRegistryModel GET_PACKET_TYPE(GeneratorAttributeSyntaxContext context)
     {
-        if (context.Node is not TypeDeclarationSyntax typeDecl)
+        if (context.TargetSymbol is not INamedTypeSymbol symbol)
         {
-            return null;
-        }
-
-        if (context.SemanticModel.GetDeclaredSymbol(typeDecl) is not INamedTypeSymbol symbol)
-        {
-            return null;
+            return default;
         }
 
         if (symbol.IsAbstract || symbol.TypeKind == TypeKind.Interface || symbol.IsGenericType)
         {
-            return null;
+            return default;
         }
 
-        if (!HAS_PACKET_ATTRIBUTE(symbol))
+        if (!INHERITS_PACKET_BASE_OF_SELF(symbol))
         {
-            return null;
+            return default;
         }
 
-        return INHERITS_PACKET_BASE_OF_SELF(symbol) ? symbol : null;
+        return new PacketRegistryModel(
+            symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            symbol.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat),
+            SourceGenNamespaces.Get(symbol));
     }
-
-    private static bool HAS_PACKET_ATTRIBUTE(INamedTypeSymbol symbol) =>
-        symbol.GetAttributes().Any(static attr => attr.AttributeClass?.ToDisplayString() == KnownNames.PacketAttributeMetadataName);
 
     private static bool INHERITS_PACKET_BASE_OF_SELF(INamedTypeSymbol symbol)
     {
@@ -112,7 +129,7 @@ public sealed class PacketRegistryGenerator : IIncrementalGenerator
         return false;
     }
 
-    private static void EMIT_BOOTSTRAP(SourceProductionContext context, IReadOnlyList<INamedTypeSymbol> targets, string generatedNamespace)
+    private static void EMIT_BOOTSTRAP(SourceProductionContext context, IReadOnlyList<PacketRegistryModel> targets, string generatedNamespace)
     {
         StringBuilder sb = new();
         _ = sb.AppendLine("// <auto-generated/>");
@@ -151,14 +168,11 @@ public sealed class PacketRegistryGenerator : IIncrementalGenerator
         _ = sb.AppendLine("        }");
         _ = sb.AppendLine();
 
-        foreach (INamedTypeSymbol packet in targets)
+        foreach (PacketRegistryModel packet in targets)
         {
-            string typeName = packet.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            string fullName = packet.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
-
-            _ = sb.AppendLine($"        global::{KnownNames.PacketBaseNamespace}.{KnownNames.PacketRegistryName}.RegisterGenerated<{typeName}>(");
-            _ = sb.AppendLine($"            \"{ESCAPE(fullName)}\",");
-            _ = sb.AppendLine($"            static raw => {typeName}.Deserialize(raw));");
+            _ = sb.AppendLine($"        global::{KnownNames.PacketBaseNamespace}.{KnownNames.PacketRegistryName}.RegisterGenerated<{packet.FullyQualifiedName}>(");
+            _ = sb.AppendLine($"            \"{ESCAPE(packet.ErrorMessageName)}\",");
+            _ = sb.AppendLine($"            static raw => {packet.FullyQualifiedName}.Deserialize(raw));");
             _ = sb.AppendLine();
         }
 

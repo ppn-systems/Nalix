@@ -18,37 +18,298 @@ namespace Nalix.Analyzers.Generators;
 [Generator]
 public sealed class PacketHandlerGenerator : IIncrementalGenerator
 {
+    public readonly struct HandlerMethodModel : IEquatable<HandlerMethodModel>
+    {
+        public string MethodName { get; }
+        public bool IsStatic { get; }
+        public ushort OpcodeVal { get; }
+        public string ReturnTypeStr { get; }
+        public string ExpectedPacketTypeStr { get; }
+        public bool IsGenericContext { get; }
+        public string? PacketTypeStr { get; }
+        public string MetadataExpr { get; }
+        public bool ReturnsTaskOrValueTask { get; }
+        public bool ReturnsVoid { get; }
+
+        public HandlerMethodModel(
+            string methodName, bool isStatic, ushort opcodeVal, string returnTypeStr,
+            string expectedPacketTypeStr, bool isGenericContext, string? packetTypeStr,
+            string metadataExpr, bool returnsTaskOrValueTask, bool returnsVoid)
+        {
+            this.MethodName = methodName;
+            this.IsStatic = isStatic;
+            this.OpcodeVal = opcodeVal;
+            this.ReturnTypeStr = returnTypeStr;
+            this.ExpectedPacketTypeStr = expectedPacketTypeStr;
+            this.IsGenericContext = isGenericContext;
+            this.PacketTypeStr = packetTypeStr;
+            this.MetadataExpr = metadataExpr;
+            this.ReturnsTaskOrValueTask = returnsTaskOrValueTask;
+            this.ReturnsVoid = returnsVoid;
+        }
+
+        public bool Equals(HandlerMethodModel other) =>
+            this.MethodName == other.MethodName &&
+            this.IsStatic == other.IsStatic &&
+            this.OpcodeVal == other.OpcodeVal &&
+            this.ReturnTypeStr == other.ReturnTypeStr &&
+            this.ExpectedPacketTypeStr == other.ExpectedPacketTypeStr &&
+            this.IsGenericContext == other.IsGenericContext &&
+            this.PacketTypeStr == other.PacketTypeStr &&
+            this.MetadataExpr == other.MetadataExpr &&
+            this.ReturnsTaskOrValueTask == other.ReturnsTaskOrValueTask &&
+            this.ReturnsVoid == other.ReturnsVoid;
+
+        public override bool Equals(object obj) => obj is HandlerMethodModel other && this.Equals(other);
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = (hash * 23) + (this.MethodName?.GetHashCode() ?? 0);
+                hash = (hash * 23) + this.IsStatic.GetHashCode();
+                hash = (hash * 23) + this.OpcodeVal.GetHashCode();
+                hash = (hash * 23) + (this.ReturnTypeStr?.GetHashCode() ?? 0);
+                hash = (hash * 23) + (this.ExpectedPacketTypeStr?.GetHashCode() ?? 0);
+                hash = (hash * 23) + this.IsGenericContext.GetHashCode();
+                hash = (hash * 23) + (this.PacketTypeStr?.GetHashCode() ?? 0);
+                hash = (hash * 23) + (this.MetadataExpr?.GetHashCode() ?? 0);
+                hash = (hash * 23) + this.ReturnsTaskOrValueTask.GetHashCode();
+                hash = (hash * 23) + this.ReturnsVoid.GetHashCode();
+                return hash;
+            }
+        }
+    }
+
+    public readonly struct ControllerModel : IEquatable<ControllerModel>
+    {
+        public string FullyQualifiedName { get; }
+        public string Name { get; }
+        public bool IsStatic { get; }
+        public string NamespaceName { get; }
+        public string GeneratedNamespace { get; }
+        public bool HasInjectedFields { get; }
+        public ImmutableArray<string> InjectedMembersAssignments { get; }
+        public ImmutableArray<HandlerMethodModel> Methods { get; }
+
+        public ControllerModel(
+            string fullyQualifiedName, string name, bool isStatic, string namespaceName,
+            string generatedNamespace, bool hasInjectedFields,
+            ImmutableArray<string> injectedMembersAssignments,
+            ImmutableArray<HandlerMethodModel> methods)
+        {
+            this.FullyQualifiedName = fullyQualifiedName;
+            this.Name = name;
+            this.IsStatic = isStatic;
+            this.NamespaceName = namespaceName;
+            this.GeneratedNamespace = generatedNamespace;
+            this.HasInjectedFields = hasInjectedFields;
+            this.InjectedMembersAssignments = injectedMembersAssignments;
+            this.Methods = methods;
+        }
+
+        public bool Equals(ControllerModel other)
+        {
+            if (this.FullyQualifiedName != other.FullyQualifiedName ||
+                this.Name != other.Name ||
+                this.IsStatic != other.IsStatic ||
+                this.NamespaceName != other.NamespaceName ||
+                this.GeneratedNamespace != other.GeneratedNamespace ||
+                this.HasInjectedFields != other.HasInjectedFields ||
+                this.InjectedMembersAssignments.Length != other.InjectedMembersAssignments.Length ||
+                this.Methods.Length != other.Methods.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < this.InjectedMembersAssignments.Length; i++)
+            {
+                if (this.InjectedMembersAssignments[i] != other.InjectedMembersAssignments[i])
+                {
+                    return false;
+                }
+            }
+
+            for (int i = 0; i < this.Methods.Length; i++)
+            {
+                if (!this.Methods[i].Equals(other.Methods[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public override bool Equals(object obj) => obj is ControllerModel other && this.Equals(other);
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = (hash * 23) + (this.FullyQualifiedName?.GetHashCode() ?? 0);
+                hash = (hash * 23) + (this.Name?.GetHashCode() ?? 0);
+                hash = (hash * 23) + this.IsStatic.GetHashCode();
+                foreach (string a in this.InjectedMembersAssignments)
+                {
+                    hash = (hash * 23) + (a?.GetHashCode() ?? 0);
+                }
+
+                foreach (HandlerMethodModel m in this.Methods)
+                {
+                    hash = (hash * 23) + m.GetHashCode();
+                }
+
+                return hash;
+            }
+        }
+    }
+
     /// <inheritdoc/>
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        IncrementalValuesProvider<INamedTypeSymbol?> controllers = context.SyntaxProvider
-            .CreateSyntaxProvider(
-                predicate: static (node, _) => node is TypeDeclarationSyntax { AttributeLists.Count: > 0 },
-                transform: static (ctx, _) => GET_CONTROLLER_TYPE(ctx))
-            .Where(static symbol => symbol is not null);
+        IncrementalValuesProvider<ControllerModel> controllers = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                KnownNames.PacketHandlerAttributeMetadataName,
+                predicate: static (node, _) => node is TypeDeclarationSyntax,
+                transform: static (ctx, _) => GET_CONTROLLER_MODEL(ctx))
+            .Where(static m => m.FullyQualifiedName != null);
 
-        IncrementalValueProvider<ImmutableArray<INamedTypeSymbol?>> collected = controllers.Collect();
+        IncrementalValueProvider<ImmutableArray<ControllerModel>> collected = controllers.Collect();
 
         context.RegisterSourceOutput(collected, static (spc, source) => Execute(source, spc));
     }
 
-    private static void Execute(ImmutableArray<INamedTypeSymbol?> targets, SourceProductionContext context)
+    private static ControllerModel GET_CONTROLLER_MODEL(GeneratorAttributeSyntaxContext context)
+    {
+        if (context.TargetSymbol is not INamedTypeSymbol controller)
+        {
+            return default;
+        }
+
+        if (controller.IsAbstract || controller.TypeKind == TypeKind.Interface || controller.IsGenericType)
+        {
+            return default;
+        }
+
+        string classFullName = controller.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        string name = controller.Name;
+        bool isStatic = controller.IsStatic;
+        string namespaceName = controller.ContainingNamespace.ToDisplayString();
+        string generatedNamespace = SourceGenNamespaces.Get(controller);
+
+        List<ISymbol> injectedMembers = [.. controller.GetMembers().Where(m => (m is IFieldSymbol || m is IPropertySymbol) && m.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == KnownNames.InjectAttributeMetadataName))];
+        bool hasInjectedFields = injectedMembers.Count > 0;
+
+        ImmutableArray<string>.Builder injectedAssignments = ImmutableArray.CreateBuilder<string>();
+        foreach (ISymbol member in injectedMembers)
+        {
+            string typeName = member switch
+            {
+                IFieldSymbol f => f.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                IPropertySymbol p => p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                _ => ""
+            };
+            string prefix = member.IsStatic ? "" : "Instance.";
+            injectedAssignments.Add($"            {prefix}{member.Name} = global::Nalix.Framework.Injection.InstanceManager.Instance.GetExistingInstance<{typeName}>()!;");
+        }
+
+        ImmutableArray<HandlerMethodModel>.Builder methods = ImmutableArray.CreateBuilder<HandlerMethodModel>();
+        foreach (IMethodSymbol method in controller.GetMembers().OfType<IMethodSymbol>())
+        {
+            if (method.DeclaredAccessibility != Accessibility.Public && method.DeclaredAccessibility != Accessibility.Internal)
+            {
+                continue;
+            }
+
+            AttributeData? opcodeAttr = method.GetAttributes().FirstOrDefault(a =>
+                a.AttributeClass?.ToDisplayString() == KnownNames.PacketOpcodeAttributeMetadataName);
+
+            if (opcodeAttr == null || opcodeAttr.ConstructorArguments.Length == 0)
+            {
+                continue;
+            }
+
+            object? val = opcodeAttr.ConstructorArguments[0].Value;
+            if (val == null)
+            {
+                continue;
+            }
+
+            ushort opcodeVal = Convert.ToUInt16(val);
+
+            if (method.Parameters.Length != 1)
+            {
+                continue;
+            }
+
+            IParameterSymbol param = method.Parameters[0];
+            INamedTypeSymbol? packetType = null;
+            bool isGenericContext = false;
+
+            if (param.Type is INamedTypeSymbol namedParam && namedParam.IsGenericType && namedParam.TypeArguments.Length == 1)
+            {
+                packetType = namedParam.TypeArguments[0] as INamedTypeSymbol;
+                isGenericContext = true;
+            }
+
+            string? pTypeStr = packetType?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            string expectedPacketTypeStr = packetType != null
+                ? $"typeof({pTypeStr})"
+                : "null";
+
+            string returnTypeStr = method.ReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            bool returnsVoid = returnTypeStr == "void";
+            bool returnsTaskOrValueTask = false;
+
+            if (method.ReturnType.Name is "ValueTask" or "Task" && method.ReturnType is INamedTypeSymbol namedRet && !namedRet.IsGenericType)
+            {
+                returnsTaskOrValueTask = true;
+            }
+            else if (method.ReturnType.Name is "ValueTask" or "Task")
+            {
+                // Returns Task<T> or ValueTask<T>, we must await and return result, handled dynamically later but NeedsAwait is true
+                // We'll just rely on the fact it isn't void.
+            }
+
+            string metadataExpr = EmitMetadataExpression(method, opcodeVal);
+
+            methods.Add(new HandlerMethodModel(
+                methodName: method.Name,
+                isStatic: method.IsStatic,
+                opcodeVal: opcodeVal,
+                returnTypeStr: returnTypeStr,
+                expectedPacketTypeStr: expectedPacketTypeStr,
+                isGenericContext: isGenericContext,
+                packetTypeStr: pTypeStr,
+                metadataExpr: metadataExpr,
+                returnsTaskOrValueTask: returnsTaskOrValueTask,
+                returnsVoid: returnsVoid
+            ));
+        }
+
+        return new ControllerModel(
+            classFullName, name, isStatic, namespaceName, generatedNamespace,
+            hasInjectedFields, injectedAssignments.ToImmutable(), methods.ToImmutable());
+    }
+
+    private static void Execute(ImmutableArray<ControllerModel> targets, SourceProductionContext context)
     {
         HashSet<string> seen = new();
 
-        List<INamedTypeSymbol> distinctControllers = [.. targets
-            .Where(static p => p is not null)
-            .Select(static p => p!)
-            .Where(p => seen.Add(p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))
-            .OrderBy(static p => p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))];
+        List<ControllerModel> distinctControllers = [.. targets
+            .Where(static p => p.FullyQualifiedName != null)
+            .Where(p => seen.Add(p.FullyQualifiedName))
+            .OrderBy(static p => p.FullyQualifiedName)];
 
         if (distinctControllers.Count == 0)
         {
             return;
         }
 
-        string assemblyName = distinctControllers[0].ContainingAssembly.Name ?? "Nalix";
-        string generatedNamespace = SourceGenNamespaces.Get(targets.First(static t => t is not null)!);
+        string generatedNamespace = distinctControllers[0].GeneratedNamespace;
 
         StringBuilder sb = new();
         _ = sb.AppendLine("// <auto-generated/>");
@@ -69,20 +330,20 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
         _ = sb.AppendLine("{");
         _ = sb.AppendLine();
 
-        Dictionary<INamedTypeSymbol, string> compilerNames = new(SymbolEqualityComparer.Default);
-        foreach (IGrouping<string, INamedTypeSymbol>? group in distinctControllers.GroupBy(c => c.Name))
+        Dictionary<string, string> compilerNames = new();
+        foreach (IGrouping<string, ControllerModel>? group in distinctControllers.GroupBy(c => c.Name))
         {
             bool isCollision = group.Count() > 1;
-            foreach (INamedTypeSymbol controller in group)
+            foreach (ControllerModel controller in group)
             {
-                string suffix = isCollision ? $"_{GetDeterministicHash(controller.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))}" : "";
-                compilerNames[controller] = $"__Compiler_{controller.Name}{suffix}";
+                string suffix = isCollision ? $"_{GetDeterministicHash(controller.FullyQualifiedName)}" : "";
+                compilerNames[controller.FullyQualifiedName] = $"__Compiler_{controller.Name}{suffix}";
             }
         }
 
-        foreach (INamedTypeSymbol controller in distinctControllers)
+        foreach (ControllerModel controller in distinctControllers)
         {
-            EMIT_COMPILER(sb, controller, compilerNames[controller]);
+            EMIT_COMPILER(sb, controller, compilerNames[controller.FullyQualifiedName]);
             EMIT_PARTIAL_CLASS(context, controller);
         }
 
@@ -96,12 +357,10 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
         _ = sb.AppendLine("        internal static void Initialize()");
         _ = sb.AppendLine("        {");
 
-        foreach (INamedTypeSymbol controller in distinctControllers)
+        foreach (ControllerModel controller in distinctControllers)
         {
-            string classFullName = controller.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            string compilerName = compilerNames[controller];
-
-            _ = sb.AppendLine($"            global::Nalix.Runtime.Dispatching.PacketHandlerRegistry.Register(typeof({classFullName}), new global::{generatedNamespace}.Handlers.{compilerName}());");
+            string compilerName = compilerNames[controller.FullyQualifiedName];
+            _ = sb.AppendLine($"            global::Nalix.Runtime.Dispatching.PacketHandlerRegistry.Register(typeof({controller.FullyQualifiedName}), new global::{generatedNamespace}.Handlers.{compilerName}());");
         }
 
         _ = sb.AppendLine("        }");
@@ -111,99 +370,45 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
         context.AddSource($"PacketHandlerGenerated.cs", sb.ToString());
     }
 
-    private static void EMIT_COMPILER(StringBuilder sb, INamedTypeSymbol controller, string compilerName)
+    private static void EMIT_COMPILER(StringBuilder sb, ControllerModel controller, string compilerName)
     {
-        string classFullName = controller.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-
         _ = sb.AppendLine($"    internal sealed class {compilerName} : global::Nalix.Runtime.Dispatching.IPacketHandlerCompiler");
         _ = sb.AppendLine("    {");
         _ = sb.AppendLine("        public void InitializeDependencies()");
         _ = sb.AppendLine("        {");
-        List<ISymbol> injectedMembers = [.. controller.GetMembers().Where(m => (m is IFieldSymbol || m is IPropertySymbol) && m.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == KnownNames.InjectAttributeMetadataName))];
-        if (injectedMembers.Count > 0)
+        if (controller.HasInjectedFields)
         {
-            _ = sb.AppendLine($"            {classFullName}.__InitializeDependencies();");
+            _ = sb.AppendLine($"            {controller.FullyQualifiedName}.__InitializeDependencies();");
         }
         _ = sb.AppendLine("        }");
         _ = sb.AppendLine();
         _ = sb.AppendLine("        public void Build<TPacket>(global::Nalix.Runtime.Dispatching.IPacketHandlerBuilder<TPacket> builder, global::System.Func<object> factory) where TPacket : global::Nalix.Abstractions.Networking.Packets.IPacket");
         _ = sb.AppendLine("        {");
 
-        // Find methods with PacketOpcodeAttribute
-        foreach (IMethodSymbol method in controller.GetMembers().OfType<IMethodSymbol>())
+        foreach (HandlerMethodModel method in controller.Methods)
         {
-            if (method.DeclaredAccessibility != Accessibility.Public && method.DeclaredAccessibility != Accessibility.Internal)
-            {
-                continue;
-            }
-
-            AttributeData? opcodeAttr = method.GetAttributes().FirstOrDefault(a =>
-                a.AttributeClass?.ToDisplayString() == KnownNames.PacketOpcodeAttributeMetadataName);
-
-            if (opcodeAttr == null || opcodeAttr.ConstructorArguments.Length == 0)
-            {
-                continue;
-            }
-
-            // Get Opcode Value
-            object? val = opcodeAttr.ConstructorArguments[0].Value;
-            if (val == null)
-            {
-                continue;
-            }
-
-            ushort opcodeVal = Convert.ToUInt16(val);
-
-            // Get Packet Type from parameter
-            if (method.Parameters.Length != 1)
-            {
-                continue;
-            }
-
-            IParameterSymbol param = method.Parameters[0];
-            INamedTypeSymbol? packetType = null;
-            bool isGenericContext = false;
-
-            if (param.Type is INamedTypeSymbol namedParam && namedParam.IsGenericType && namedParam.TypeArguments.Length == 1)
-            {
-                packetType = namedParam.TypeArguments[0] as INamedTypeSymbol;
-                isGenericContext = true;
-            }
-
-            string expectedPacketTypeStr = packetType != null
-                ? $"typeof({packetType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)})"
-                : "null";
-
-            string returnTypeStr = method.ReturnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-
-            // Generate Metadata
-            string metadataExpr = EmitMetadataExpression(method, opcodeVal);
-
             _ = sb.AppendLine($"        builder.RegisterHandler(");
-            _ = sb.AppendLine($"            opCode: {opcodeVal},");
-            _ = sb.AppendLine($"            metadata: {metadataExpr},");
-            _ = sb.AppendLine($"            methodName: \"{method.Name}\",");
-            // Check if controller has injected fields
-            bool hasInjectedFields = controller.GetMembers().Any(m => (m is IFieldSymbol || m is IPropertySymbol) && m.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == KnownNames.InjectAttributeMetadataName));
+            _ = sb.AppendLine($"            opCode: {method.OpcodeVal},");
+            _ = sb.AppendLine($"            metadata: {method.MetadataExpr},");
+            _ = sb.AppendLine($"            methodName: \"{method.MethodName}\",");
 
-            string instanceArg = method.IsStatic ? "null" : (hasInjectedFields ? $"{classFullName}.Instance" : "factory()");
+            string instanceArg = method.IsStatic ? "null" : (controller.HasInjectedFields ? $"{controller.FullyQualifiedName}.Instance" : "factory()");
             _ = sb.AppendLine($"            instance: {instanceArg},");
-            _ = sb.AppendLine($"            returnType: typeof({returnTypeStr}),");
-            _ = sb.AppendLine($"            expectedPacketType: {expectedPacketTypeStr},");
+            _ = sb.AppendLine($"            returnType: typeof({method.ReturnTypeStr}),");
+            _ = sb.AppendLine($"            expectedPacketType: {method.ExpectedPacketTypeStr},");
 
-            // Invoker delegate
             _ = sb.AppendLine($"            invoker: static async (instance, context) =>");
             _ = sb.AppendLine($"            {{");
 
-            string instanceCast = method.IsStatic ? "" : $"(({classFullName})instance!).";
-            string typeCall = method.IsStatic ? $"{classFullName}." : instanceCast;
+            string instanceCast = method.IsStatic ? "" : $"(({controller.FullyQualifiedName})instance!).";
+            string typeCall = method.IsStatic ? $"{controller.FullyQualifiedName}." : instanceCast;
             string contextCast;
             bool needsBridgeCleanup = false;
-            if (isGenericContext && packetType != null)
+
+            if (method.IsGenericContext && method.PacketTypeStr != null)
             {
-                string pType = packetType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                _ = sb.AppendLine($"                var concretePacket = ({pType})(object)context.Packet;");
-                _ = sb.AppendLine($"                var concreteContext = global::Nalix.Runtime.Dispatching.PacketContextBridge.Create<{pType}, TPacket>(");
+                _ = sb.AppendLine($"                var concretePacket = ({method.PacketTypeStr})(object)context.Packet;");
+                _ = sb.AppendLine($"                var concreteContext = global::Nalix.Runtime.Dispatching.PacketContextBridge.Create<{method.PacketTypeStr}, TPacket>(");
                 _ = sb.AppendLine($"                    (global::Nalix.Runtime.Dispatching.PacketContext<TPacket>)context, concretePacket);");
                 _ = sb.AppendLine($"                try");
                 _ = sb.AppendLine($"                {{");
@@ -215,25 +420,25 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
                 contextCast = "(global::Nalix.Abstractions.Networking.Packets.IPacketContext)context";
             }
 
-            if (returnTypeStr == "void")
+            if (method.ReturnsVoid)
             {
-                _ = sb.AppendLine($"                    {typeCall}{method.Name}({contextCast});");
+                _ = sb.AppendLine($"                    {typeCall}{method.MethodName}({contextCast});");
                 _ = sb.AppendLine($"                    return null;");
             }
-            else if (method.ReturnType.Name is "ValueTask" or "Task" && method.ReturnType is INamedTypeSymbol namedRet && !namedRet.IsGenericType)
+            else if (method.ReturnsTaskOrValueTask)
             {
-                _ = sb.AppendLine($"                    await {typeCall}{method.Name}({contextCast});");
+                _ = sb.AppendLine($"                    await {typeCall}{method.MethodName}({contextCast});");
                 _ = sb.AppendLine($"                    return null;");
             }
             else
             {
-                if (method.ReturnType.Name is "ValueTask" or "Task")
+                if (method.ReturnTypeStr.StartsWith("System.Threading.Tasks.Task") || method.ReturnTypeStr.StartsWith("System.Threading.Tasks.ValueTask") || method.ReturnTypeStr.StartsWith("Task<") || method.ReturnTypeStr.StartsWith("ValueTask<"))
                 {
-                    _ = sb.AppendLine($"                    return await {typeCall}{method.Name}({contextCast});");
+                    _ = sb.AppendLine($"                    return await {typeCall}{method.MethodName}({contextCast});");
                 }
                 else
                 {
-                    _ = sb.AppendLine($"                    return {typeCall}{method.Name}({contextCast});");
+                    _ = sb.AppendLine($"                    return {typeCall}{method.MethodName}({contextCast});");
                 }
             }
 
@@ -254,47 +459,39 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
         _ = sb.AppendLine();
     }
 
-    private static void EMIT_PARTIAL_CLASS(SourceProductionContext context, INamedTypeSymbol controller)
+    private static void EMIT_PARTIAL_CLASS(SourceProductionContext context, ControllerModel controller)
     {
-        List<ISymbol> injectedMembers = [.. controller.GetMembers().Where(m => (m is IFieldSymbol || m is IPropertySymbol) && m.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == KnownNames.InjectAttributeMetadataName))];
-        if (injectedMembers.Count == 0)
+        if (!controller.HasInjectedFields)
         {
             return;
         }
 
-        string classFullName = controller.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        string safeName = GetSafeName(classFullName);
-        string namespaceName = controller.ContainingNamespace.ToDisplayString();
+        string safeName = GetSafeName(controller.FullyQualifiedName);
 
         StringBuilder sb = new();
         _ = sb.AppendLine("// <auto-generated/>");
         _ = sb.AppendLine("#nullable enable");
         _ = sb.AppendLine();
-        _ = sb.AppendLine($"namespace {namespaceName}");
+        _ = sb.AppendLine($"namespace {controller.NamespaceName}");
         _ = sb.AppendLine("{");
         _ = sb.AppendLine($"    partial class {controller.Name}");
         _ = sb.AppendLine("    {");
         _ = sb.AppendLine("        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]");
         _ = sb.AppendLine("        internal static void __InitializeDependencies()");
         _ = sb.AppendLine("        {");
-        foreach (ISymbol member in injectedMembers)
+
+        foreach (string assignment in controller.InjectedMembersAssignments)
         {
-            string typeName = member switch
-            {
-                IFieldSymbol f => f.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                IPropertySymbol p => p.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                _ => ""
-            };
-            string prefix = member.IsStatic ? "" : "Instance.";
-            _ = sb.AppendLine($"            {prefix}{member.Name} = global::Nalix.Framework.Injection.InstanceManager.Instance.GetExistingInstance<{typeName}>()!;");
+            _ = sb.AppendLine(assignment);
         }
+
         _ = sb.AppendLine("        }");
 
         if (!controller.IsStatic)
         {
             _ = sb.AppendLine();
-            _ = sb.AppendLine($"        private static {classFullName}? __s_instance;");
-            _ = sb.AppendLine($"        internal static {classFullName} Instance => __s_instance ??= new {classFullName}();");
+            _ = sb.AppendLine($"        private static {controller.FullyQualifiedName}? __s_instance;");
+            _ = sb.AppendLine($"        internal static {controller.FullyQualifiedName} Instance => __s_instance ??= new {controller.FullyQualifiedName}();");
         }
 
         _ = sb.AppendLine("    }");
@@ -323,15 +520,9 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
                 continue;
             }
 
-            if (name == KnownNames.PacketOpcodeAttributeMetadataName)
-            {
-                continue;
-            }
-            else if (name.StartsWith("System.Runtime.CompilerServices"))
-            {
-                continue;
-            }
-            else if (name.StartsWith("System.Diagnostics"))
+            if (name == KnownNames.PacketOpcodeAttributeMetadataName ||
+                name.StartsWith("System.Runtime.CompilerServices") ||
+                name.StartsWith("System.Diagnostics"))
             {
                 continue;
             }
@@ -462,30 +653,5 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
             hash = (hash ^ c) * 16777619;
         }
         return hash.ToString("X8");
-    }
-
-    private static INamedTypeSymbol? GET_CONTROLLER_TYPE(GeneratorSyntaxContext context)
-    {
-        if (context.Node is not TypeDeclarationSyntax typeDecl)
-        {
-            return null;
-        }
-
-        if (context.SemanticModel.GetDeclaredSymbol(typeDecl) is not INamedTypeSymbol symbol)
-        {
-            return null;
-        }
-
-        if (symbol.IsAbstract || symbol.TypeKind == TypeKind.Interface || symbol.IsGenericType)
-        {
-            return null;
-        }
-
-        if (!symbol.GetAttributes().Any(static attr => attr.AttributeClass?.ToDisplayString() == KnownNames.PacketHandlerAttributeMetadataName))
-        {
-            return null;
-        }
-
-        return symbol;
     }
 }
