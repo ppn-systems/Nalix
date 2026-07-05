@@ -432,7 +432,7 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
             }
             else
             {
-                if (method.ReturnTypeStr.StartsWith("System.Threading.Tasks.Task") || method.ReturnTypeStr.StartsWith("System.Threading.Tasks.ValueTask") || method.ReturnTypeStr.StartsWith("Task<") || method.ReturnTypeStr.StartsWith("ValueTask<"))
+                if (method.ReturnTypeStr.Contains("System.Threading.Tasks.Task") || method.ReturnTypeStr.Contains("System.Threading.Tasks.ValueTask"))
                 {
                     _ = sb.AppendLine($"                    return await {typeCall}{method.MethodName}({contextCast});");
                 }

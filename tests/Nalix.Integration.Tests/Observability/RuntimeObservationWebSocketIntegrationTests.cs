@@ -157,8 +157,20 @@ public sealed class RuntimeObservationWebSocketIntegrationTests : IDisposable
                 .WithTimeout(TimeoutMs)
                 .WithEncrypt();
 
-            ObservabilityAccess accessResponse = await client.RequestAsync<ObservabilityAccess>(
-                accessRequest, accessOpts);
+            ObservabilityAccess accessResponse;
+            try
+            {
+                accessResponse = await client.RequestAsync<ObservabilityAccess>(
+                    accessRequest, accessOpts);
+            }
+            catch (Exception ex)
+            {
+                diagnostics.AppendLine();
+                diagnostics.AppendLine($"-- DEBUG EXCEPTION on ObservabilityAccess: {ex.GetType().Name}: {ex.Message} --");
+                AppendBoundaryReport(diagnostics, counters);
+                Assert.Fail(diagnostics.ToString());
+                return;
+            }
 
             Interlocked.Increment(ref counters.ClientObsAccessReceived);
 

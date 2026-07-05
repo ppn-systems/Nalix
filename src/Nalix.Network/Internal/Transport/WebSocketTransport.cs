@@ -136,12 +136,52 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IPoolable, ID
         await _sendLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await _webSocket.SendAsync(message, WebSocketMessageType.Binary, true, cancellationToken).ConfigureAwait(false);
+            await this.SEND_CORE_ASYNC(message, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
             _ = _sendLock.Release();
         }
+    }
+
+    /// <inheritdoc/>
+    ValueTask<IAsyncDisposable> IConnection.ITransport.AcquireSendLockAsync(CancellationToken cancellationToken)
+        => this.ACQUIRE_SEND_LOCK_ASYNC(cancellationToken);
+
+    private async ValueTask<IAsyncDisposable> ACQUIRE_SEND_LOCK_ASYNC(CancellationToken cancellationToken)
+    {
+        await _sendLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        return new SendLockScope(_sendLock);
+    }
+
+    /// <summary>
+    /// Releases a <see cref="WebSocketTransport"/> send lock previously acquired via
+    /// <see cref="ACQUIRE_SEND_LOCK_ASYNC"/>.
+    /// </summary>
+    private readonly struct SendLockScope(SemaphoreSlim sendLock) : IAsyncDisposable
+    {
+        public ValueTask DisposeAsync()
+        {
+            _ = sendLock.Release();
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    /// <inheritdoc/>
+    [StackTraceHidden]
+    ValueTask IConnection.ITransport.SendAsyncCore(ReadOnlyMemory<byte> message, CancellationToken cancellationToken)
+    {
+        if (_owner.IsDisposed || _webSocket.State != WebSocketState.Open)
+        {
+            Throw.WebSocketClosed();
+        }
+
+        return this.SEND_CORE_ASYNC(message, cancellationToken);
+    }
+
+    private async ValueTask SEND_CORE_ASYNC(ReadOnlyMemory<byte> message, CancellationToken cancellationToken)
+    {
+        await _webSocket.SendAsync(message, WebSocketMessageType.Binary, true, cancellationToken).ConfigureAwait(false);
 
         _owner.AddBytesSent(message.Length);
         _owner.TriggerPostProcessEvent();

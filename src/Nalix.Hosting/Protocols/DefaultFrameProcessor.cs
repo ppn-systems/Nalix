@@ -145,6 +145,10 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
 
             if (!counter.IsValid(seq, window: window))
             {
+                if (_logger.IsEnabled(LogLevel.Trace))
+                {
+                    _logger.RejectedSequence(current.IsReliable ? "TCP" : "UDP", seq, counter.Current());
+                }
                 return;
             }
 

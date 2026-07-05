@@ -56,7 +56,14 @@ internal sealed class UdpFrameSender : IDisposable
 
         try
         {
-            uint? seqToUse = (encryptOverride ?? _state.EncryptionEnabled) ? _sequence.Next() : null;
+            bool encrypt = encryptOverride ?? _state.EncryptionEnabled;
+            if (encrypt && _sequence.IsApproachingOverflow())
+            {
+                throw new CipherException(
+                    "Send sequence counter is approaching overflow. Key rotation is required before it wraps.");
+            }
+
+            uint? seqToUse = encrypt ? _sequence.Next() : null;
 
             // Transform outbound: Compress -> Encrypt + Sequence
             FramePipeline.ProcessOutbound(

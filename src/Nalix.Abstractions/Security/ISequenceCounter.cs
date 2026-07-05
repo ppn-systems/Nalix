@@ -49,4 +49,16 @@ public interface ISequenceCounter
     /// <param name="lastKnownSeq">Last sequence number used before disconnect.</param>
     /// <param name="safetyGap">Extra gap to prevent collision after resume (default 1000).</param>
     void ResumeFrom(uint lastKnownSeq, uint safetyGap = 1000);
+
+    /// <summary>
+    /// Checks whether the counter is close enough to <see cref="uint.MaxValue"/> that the next
+    /// batch of sends risks hitting the overflow guard in <see cref="Next"/>.
+    /// </summary>
+    /// <param name="margin">
+    /// Number of remaining sequence values considered "near" overflow. Default is 1,000,000.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> if fewer than <paramref name="margin"/> values remain before overflow.
+    /// </returns>
+    bool IsApproachingOverflow(uint margin = 1_000_000);
 }

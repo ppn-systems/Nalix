@@ -695,18 +695,27 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             static async ValueTask AWAIT_HANDLER_AND_OUTBOUND_ASYNC(
                 PooledPipelineContext runner, ValueTask handler, CancellationToken handlerCt, CancellationTokenSource? linkedCts)
             {
+                OperationCanceledException? cancelled = null;
                 try
                 {
                     try
                     {
                         await handler.ConfigureAwait(false);
                     }
-                    catch (OperationCanceledException) when (handlerCt.IsCancellationRequested)
+                    catch (OperationCanceledException ex) when (handlerCt.IsCancellationRequested)
                     {
+                        // Still run OutboundAlways below, but propagate the cancellation once it
+                        // completes so callers (e.g. TimeoutMiddleware) can observe and react to it.
+                        cancelled = ex;
                     }
 
                     runner.SET_STAGE(PipelineStage.OutboundAlways);
                     await runner.RunAsync().ConfigureAwait(false);
+
+                    if (cancelled is not null)
+                    {
+                        throw cancelled;
+                    }
                 }
                 finally
                 {

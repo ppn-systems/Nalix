@@ -62,6 +62,37 @@ public sealed class Pbkdf2Tests
 
         Assert.False(Pbkdf2.Encoded.Verify(credential, changedVersion));
     }
+
+    /// <summary>
+    /// A bit-flip anywhere in the stored hash must invalidate verification — guards against
+    /// a byte-dropping or truncating comparison bug in the fixed-time equality check used
+    /// inside <see cref="Pbkdf2.Verify"/>.
+    /// </summary>
+    [Fact]
+    public void VerifyWithTamperedHashReturnsFalse()
+    {
+        const string credential = "tamper-check-credential";
+        Pbkdf2.Hash(credential, out byte[] salt, out byte[] hash);
+
+        hash[^1] ^= 0xFF;
+
+        Assert.False(Pbkdf2.Verify(credential, salt, hash));
+    }
+
+    /// <summary>
+    /// A different salt for the same credential must produce a different derived hash —
+    /// this is the property PBKDF2 relies on to defeat rainbow-table attacks.
+    /// </summary>
+    [Fact]
+    public void HashWithDifferentSaltsProducesDifferentHashesForSameCredential()
+    {
+        const string credential = "same-credential-different-salt";
+
+        Pbkdf2.Hash(credential, out _, out byte[] hash1);
+        Pbkdf2.Hash(credential, out _, out byte[] hash2);
+
+        Assert.NotEqual(hash1, hash2);
+    }
 }
 
 

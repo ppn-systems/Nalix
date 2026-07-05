@@ -84,6 +84,65 @@ public sealed class Salsa20Tests
         _ = Assert.Throws<ArgumentException>(() => Salsa20.Encrypt(key, nonce, 0UL, plaintext, ciphertext));
     }
 
+    private static byte[] HexToBytes(string hex)
+    {
+        byte[] data = new byte[hex.Length / 2];
+        for (int i = 0; i < data.Length; i++)
+        {
+            data[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
+        }
+
+        return data;
+    }
+
+    /// <summary>
+    /// eSTREAM Salsa20/20 "full-verified" test vectors, Set 1, vector# 0, 128-bit key.
+    /// Source: https://raw.githubusercontent.com/das-labor/legacy/master/microcontroller-2/crypto-lib/testvectors/salsa20-full-verified.test-vectors
+    /// </summary>
+    [Fact]
+    public void EncryptMatchesEstreamSet1Vector0For128BitKey()
+    {
+        byte[] key = HexToBytes("80000000000000000000000000000000");
+        byte[] nonce = HexToBytes("0000000000000000");
+        byte[] zeros = new byte[64];
+        byte[] expectedStream = HexToBytes(
+            "4DFA5E481DA23EA09A31022050859936" +
+            "DA52FCEE218005164F267CB65F5CFD7F" +
+            "2B4F97E0FF16924A52DF269515110A07" +
+            "F9E460BC65EF95DA58F740B7D1DBB0AA");
+        byte[] actual = new byte[64];
+
+        int written = Salsa20.Encrypt(key, nonce, 0UL, zeros, actual);
+
+        Assert.Equal(64, written);
+        Assert.Equal(expectedStream, actual);
+    }
+
+    /// <summary>
+    /// eSTREAM Salsa20/20 "full-verified" test vectors, Set 1, vector# 0, 256-bit key.
+    /// Source: https://raw.githubusercontent.com/alexwebr/salsa20/master/test_vectors.256
+    /// </summary>
+    [Fact]
+    public void EncryptMatchesEstreamSet1Vector0For256BitKey()
+    {
+        byte[] key = HexToBytes(
+            "80000000000000000000000000000000" +
+            "00000000000000000000000000000000");
+        byte[] nonce = HexToBytes("0000000000000000");
+        byte[] zeros = new byte[64];
+        byte[] expectedStream = HexToBytes(
+            "E3BE8FDD8BECA2E3EA8EF9475B29A6E7" +
+            "003951E1097A5C38D23B7A5FAD9F6844" +
+            "B22C97559E2723C7CBBD3FE4FC8D9A07" +
+            "44652A83E72A9C461876AF4D7EF1A117");
+        byte[] actual = new byte[64];
+
+        int written = Salsa20.Encrypt(key, nonce, 0UL, zeros, actual);
+
+        Assert.Equal(64, written);
+        Assert.Equal(expectedStream, actual);
+    }
+
     [Fact]
     public void DecryptWhenDestinationTooSmallThrowsArgumentException()
     {

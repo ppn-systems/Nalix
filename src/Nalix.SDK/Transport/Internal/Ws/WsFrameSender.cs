@@ -59,6 +59,12 @@ internal sealed class WsFrameSender : IDisposable
         IBufferLease current = lease;
         try
         {
+            if (encrypt && _sequence.IsApproachingOverflow())
+            {
+                throw new CipherException(
+                    "Send sequence counter is approaching overflow. Key rotation is required before it wraps.");
+            }
+
             uint? seqToUse = encrypt ? _sequence.Next() : null;
 
             FramePipeline.ProcessOutbound(

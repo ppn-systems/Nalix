@@ -108,6 +108,107 @@ public sealed class NetworkBanRepositoryTests
         }
     }
 
+    /// <summary>
+    /// A corrupted/truncated ban file (bad magic number) must not crash <see cref="NetworkBanRepository.Load"/>
+    /// — it is renamed to a `.corrupt.*` sibling and the repository proceeds with an empty in-memory map,
+    /// force-saving a fresh file in its place.
+    /// </summary>
+    [Fact]
+    public void Load_WithCorruptedFile_RenamesToCorruptSuffix_AndDoesNotThrow()
+    {
+        var storeConfig = ConfigurationManager.Instance.Get<ConnectionBanStoreOptions>();
+        storeConfig.Enabled = true;
+        storeConfig.StoreFileName = "bans_test_corrupt.bin";
+
+        string path = Path.Combine(Directories.DataDirectory, storeConfig.StoreFileName);
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
+
+        try
+        {
+            File.WriteAllBytes(path, [0x00, 0x01, 0x02, 0x03]); // garbage, too short for a valid header
+
+            NetworkBanRepository repo = new();
+            ConcurrentDictionary<SocketEndpoint, ConnectionGuard.ConnectionLimitEntry> map = new();
+
+            Action load = () => repo.Load(map);
+            load.Should().NotThrow("a corrupted ban file must be handled defensively, never crash startup");
+
+            map.Should().BeEmpty("a corrupted file yields no recoverable ban records");
+
+            bool anyCorruptSibling = Directory.GetFiles(Directories.DataDirectory, storeConfig.StoreFileName + ".corrupt.*").Length > 0;
+            anyCorruptSibling.Should().BeTrue("the corrupted file must be renamed aside rather than silently deleted or left to be re-read as valid");
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+            foreach (string corrupt in Directory.GetFiles(Directories.DataDirectory, storeConfig.StoreFileName + ".corrupt.*"))
+            {
+                File.Delete(corrupt);
+            }
+        }
+    }
+
+    /// <summary>
+    /// A ban record whose <c>BannedUntilTicks</c> is in the past and whose <c>BanCount</c> has fully
+    /// decayed to zero must be dropped on load (not resurrected as a live ban).
+    /// </summary>
+    [Fact]
+    public void Load_ExpiredBanWithFullyDecayedCount_IsDropped()
+    {
+        var storeConfig = ConfigurationManager.Instance.Get<ConnectionBanStoreOptions>();
+        storeConfig.Enabled = true;
+        storeConfig.StoreFileName = "bans_test_expired.bin";
+        storeConfig.MaxPersistedBans = 100;
+        storeConfig.BanCountDecayWindow = TimeSpan.FromHours(1);
+
+        string path = Path.Combine(Directories.DataDirectory, storeConfig.StoreFileName);
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
+
+        try
+        {
+            NetworkBanRepository repo = new();
+            ConcurrentDictionary<SocketEndpoint, ConnectionGuard.ConnectionLimitEntry> map = new();
+
+            IPEndPoint ep = new(IPAddress.Parse("10.0.0.50"), 80);
+            SocketEndpoint sep = SocketEndpoint.FromIpAddress(ep.Address);
+
+            // Ban expired 1 day ago, ban count 1, last ban 10 decay-windows ago -> fully decays to 0.
+            ConnectionGuard.ConnectionLimitEntry entry = new()
+            {
+                BannedUntilTicks = DateTime.UtcNow.AddDays(-1).Ticks,
+                BanCount = 1,
+                LastBanTimeTicks = DateTime.UtcNow.AddHours(-10).Ticks,
+                LastSeenAtTicks = DateTime.UtcNow.AddHours(-10).Ticks
+            };
+            map.TryAdd(sep, entry);
+
+            repo.MarkDirty();
+            repo.Save(map);
+            File.Exists(path).Should().BeTrue();
+
+            ConcurrentDictionary<SocketEndpoint, ConnectionGuard.ConnectionLimitEntry> loadedMap = new();
+            repo.Load(loadedMap);
+
+            loadedMap.Should().BeEmpty("an expired ban whose count has fully decayed must not be resurrected on load");
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
     [Fact]
     public void Save_DoesNotWriteFile_WhenNotDirtyAndNotForced()
     {

@@ -1,18 +1,26 @@
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
+using FluentAssertions;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Abstractions.Primitives;
+using Nalix.Abstractions.Security;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Runtime.Dispatching;
+using Nalix.Runtime.Middleware.Standard;
 using Nalix.Runtime.Routing;
 using Nalix.Runtime.Extensions;
 using Nalix.Runtime.Handlers;
+using Nalix.Runtime.Internal.Compilation;
 using Xunit;
 
 namespace Nalix.Runtime.Tests;
@@ -119,6 +127,280 @@ public sealed class RuntimeDispatchAndHandlersTests
 
 
 
+
+#if DEBUG
+    /// <summary>
+    /// Area 4: a packet handler that throws synchronously (before ever returning a ValueTask)
+    /// must propagate the exception directly out of ExecuteResolvedHandlerAsync — the terminal
+    /// fast path (PacketDispatchOptions.Execution.cs ExecuteTerminalHandler) has no try/catch
+    /// around a synchronous-throw invoker.
+    /// </summary>
+    [Fact]
+    public async Task ExecuteResolvedHandlerAsync_SynchronousThrowingHandler_PropagatesException()
+    {
+        PacketDispatchOptions<TestPacket> options = new();
+        PacketHandler<TestPacket> descriptor = CreateDescriptor(
+            (_, _) => throw new InvalidOperationException("sync boom"));
+
+        FakeConnection connection = new();
+        try
+        {
+            Func<Task> act = async () => await options.ExecuteResolvedHandlerAsync(
+                descriptor, new TestPacket(), connection, reliable: true).AsTask();
+
+            await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("sync boom");
+        }
+        finally
+        {
+            connection.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Area 4: a packet handler that throws asynchronously (after an await) must be caught by
+    /// PacketDispatchOptions.HandleDispatchExceptionAsync and converted into a FAIL control
+    /// directive sent over the connection's transport, rather than propagated to the caller.
+    /// The registered WithErrorHandling callback must also fire with the original exception.
+    /// </summary>
+    [Fact]
+    public async Task ExecuteResolvedHandlerAsync_AsynchronousThrowingHandler_IsContainedAndReported()
+    {
+        Exception? observedException = null;
+        ushort observedOpCode = 0;
+
+        PacketDispatchOptions<TestPacket> options = new PacketDispatchOptions<TestPacket>()
+            .WithErrorHandling((ex, opCode) =>
+            {
+                observedException = ex;
+                observedOpCode = opCode;
+            });
+
+        PacketHandler<TestPacket> descriptor = CreateDescriptor(async (_, _) =>
+        {
+            await Task.Yield();
+            throw new InvalidOperationException("async boom");
+        });
+
+        FakeConnection connection = new();
+        try
+        {
+            await options.ExecuteResolvedHandlerAsync(
+                descriptor, new TestPacket(), connection, reliable: true).AsTask();
+
+            observedException.Should().BeOfType<InvalidOperationException>().Which.Message.Should().Be("async boom");
+            observedOpCode.Should().Be(descriptor.OpCode);
+            connection.FakeTcp.SentMessages.Should().NotBeEmpty(
+                "an asynchronously-thrown handler exception must be converted into a sent control directive");
+        }
+        finally
+        {
+            connection.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Area 4: ExecuteTerminalHandler calls ct.ThrowIfCancellationRequested() synchronously
+    /// before invoking the handler — a context whose token is already cancelled must throw
+    /// immediately without ever invoking the handler delegate.
+    /// </summary>
+    [Fact]
+    public async Task ExecuteResolvedHandlerAsync_AlreadyCancelledToken_ThrowsWithoutInvokingHandler()
+    {
+        PacketDispatchOptions<TestPacket> options = new();
+        bool invoked = false;
+        PacketHandler<TestPacket> descriptor = CreateDescriptor((_, _) =>
+        {
+            invoked = true;
+            return new ValueTask<object?>((object?)null);
+        });
+
+        FakeConnection connection = new();
+        using CancellationTokenSource cts = new();
+        cts.Cancel();
+
+        try
+        {
+            Func<Task> act = async () => await options.ExecuteResolvedHandlerAsync(
+                descriptor, new TestPacket(), connection, reliable: true, token: cts.Token).AsTask();
+
+            await act.Should().ThrowAsync<OperationCanceledException>();
+            invoked.Should().BeFalse("a pre-cancelled token must short-circuit before the handler runs");
+        }
+        finally
+        {
+            connection.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// A handler exceeding the configured <see cref="Nalix.Abstractions.Networking.Packets.PacketTimeoutAttribute"/>
+    /// timeout must be interrupted and cause a TIMEOUT directive to be sent.
+    /// </summary>
+    [Fact]
+    public async Task TimeoutMiddleware_HandlerExceedsTimeout_SendsTimeoutDirective()
+    {
+        PacketDispatchOptions<IPacket> options = new PacketDispatchOptions<IPacket>()
+            .WithMiddleware(new TimeoutMiddleware());
+
+        PacketHandler<IPacket> descriptor = CreateDescriptor<IPacket>(
+            async (_, _) =>
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5));
+                return (object?)null;
+            },
+            timeoutMs: 50);
+
+        FakeConnection connection = new();
+        try
+        {
+            await options.ExecuteResolvedHandlerAsync(
+                descriptor, new TestPacket(), connection, reliable: true).AsTask();
+
+            connection.FakeTcp.SentMessages.Should().NotBeEmpty(
+                "a handler exceeding its configured timeout must cause a TIMEOUT directive to be sent");
+        }
+        finally
+        {
+            connection.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Cancellation of the caller-supplied root token (not the internal timeout CTS) must propagate
+    /// as <see cref="OperationCanceledException"/> to the caller, and must not be misreported as a
+    /// TIMEOUT directive.
+    /// </summary>
+    [Fact]
+    public async Task TimeoutMiddleware_OuterTokenCancelled_DoesNotSendTimeoutDirective()
+    {
+        PacketDispatchOptions<IPacket> options = new PacketDispatchOptions<IPacket>()
+            .WithMiddleware(new TimeoutMiddleware());
+
+        using CancellationTokenSource outerCts = new();
+
+        PacketHandler<IPacket> descriptor = CreateDescriptor<IPacket>(
+            async (_, _) =>
+            {
+                outerCts.Cancel();
+                await Task.Delay(TimeSpan.FromSeconds(5), outerCts.Token);
+                return (object?)null;
+            },
+            timeoutMs: 60_000);
+
+        FakeConnection connection = new();
+        try
+        {
+            Func<Task> act = async () => await options.ExecuteResolvedHandlerAsync(
+                descriptor, new TestPacket(), connection, reliable: true, token: outerCts.Token).AsTask();
+
+            await act.Should().ThrowAsync<OperationCanceledException>();
+            connection.FakeTcp.SentMessages.Should().BeEmpty(
+                "cancellation of the outer context token (not the internal timeout CTS) must not be reported as a TIMEOUT directive");
+        }
+        finally
+        {
+            connection.Dispose();
+        }
+    }
+
+    private static PacketHandler<TestPacket> CreateDescriptor(
+        Func<object?, PacketContext<TestPacket>, ValueTask<object?>> invoker, int timeoutMs = 0)
+        => CreateDescriptor<TestPacket>(invoker, timeoutMs);
+
+    private static PacketHandler<TPacket> CreateDescriptor<TPacket>(
+        Func<object?, PacketContext<TPacket>, ValueTask<object?>> invoker, int timeoutMs = 0)
+        where TPacket : IPacket
+    {
+        PacketTimeoutAttribute? timeout = timeoutMs > 0 ? new PacketTimeoutAttribute(timeoutMs) : null;
+        PacketMetadata metadata = new(
+            opCode: new PacketOpcodeAttribute((ushort)1),
+            timeout: timeout,
+            permission: null,
+            encryption: null,
+            rateLimit: null,
+            transport: null);
+
+        return new PacketHandler<TPacket>(
+            opCode: 1,
+            metadata: metadata,
+            controllerInstance: null,
+            methodName: "FakeHandler",
+            returnType: typeof(object),
+            compiledInvoker: invoker,
+            expectedPacketType: null);
+    }
+
+    private sealed class FakeSequenceCounter : ISequenceCounter
+    {
+        private uint _value;
+        public uint Next() => ++_value;
+        public uint Current() => _value;
+        public void Reset(uint newValue = 0) => _value = newValue;
+        public bool IsValid(uint? receivedSeq, uint window = 0) => true;
+        public void UpdateTo(uint receivedSeq) => _value = receivedSeq;
+        public void ResumeFrom(uint lastKnownSeq, uint safetyGap = 1000) => _value = lastKnownSeq;
+    }
+
+    private sealed class FakeTransport : IConnection.ITransport
+    {
+        public System.Collections.Generic.List<byte[]> SentMessages { get; } = [];
+
+        public TransportFraming Framing => TransportFraming.UInt16LengthPrefixed;
+
+        public ISequenceCounter SendSequence { get; } = new FakeSequenceCounter();
+        public ISequenceCounter ReceiveSequence { get; } = new FakeSequenceCounter();
+        public uint NextSendSequence() => SendSequence.Next();
+        public uint NextReceiveSequence() => ReceiveSequence.Next();
+        public uint CurrentSendSequence => SendSequence.Current();
+        public uint CurrentReceiveSequence => ReceiveSequence.Current();
+
+        public void Send(ReadOnlySpan<byte> message) => SentMessages.Add(message.ToArray());
+
+        public ValueTask SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
+        {
+            SentMessages.Add(message.ToArray());
+            return ValueTask.CompletedTask;
+        }
+
+        public void BeginReceive(CancellationToken cancellationToken = default) { }
+        public void UseFraming(TransportFraming framing) { }
+    }
+
+    private sealed class FakeConnection : IConnection
+    {
+        public FakeTransport FakeTcp { get; } = new();
+
+        public bool IsDisposed { get; private set; }
+        public bool IsUdpCreated => false;
+        public ulong ConnectionId => 1;
+        public string? UserId { get; set; }
+        public long UpTime => 0;
+        public long LastPingTime => 0;
+        public bool ExcludeFromIdleTimeout { get; set; }
+        public IOpCodeExtractor PacketClassifier => null!;
+        public INetworkEndpoint NetworkEndpoint => null!;
+        public IObjectMap<AttributeKey, object> Attributes { get; } = ObjectMap<AttributeKey, object>.Rent();
+        public ConcurrentDictionary<ushort, object> RateLimitCache { get; } = new();
+        public Bytes32 Secret { get; set; }
+        public PermissionLevel Level { get; set; }
+        public CipherSuiteType Algorithm { get; set; }
+
+        public IConnection.ITransport TCP => FakeTcp;
+        public IConnection.ITransport? UDP => null;
+
+        public event EventHandler<IConnectionEventArgs>? ConnectionClosed;
+        public event EventHandler<IConnectionEventArgs>? MessageProcessing;
+        public event EventHandler<IConnectionEventArgs>? MessageProcessed;
+
+        public void Disconnect(string? reason = null) { }
+        public void Dispose() => IsDisposed = true;
+        public int ErrorCount => 0;
+        public void IncrementErrorCount() { }
+
+        public int IdleTimeoutMs { get; set; } = 60000;
+        public void UpdateIdleTimeout(int newTimeoutMs) => IdleTimeoutMs = newTimeoutMs;
+    }
+#endif
 
     private sealed class FakeSessionService : ISessionService
     {

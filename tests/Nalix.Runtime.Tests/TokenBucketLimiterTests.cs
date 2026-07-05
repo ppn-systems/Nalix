@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Nalix.Abstractions.Networking;
@@ -157,6 +158,62 @@ public sealed class TokenBucketLimiterTests
         var decision = limiter.Evaluate(new TestEndpoint("any"));
         decision.Allowed.Should().BeFalse();
         decision.Reason.Should().Be(TokenBucketLimiter.RateLimitReason.HardLockout);
+    }
+
+    /// <summary>
+    /// Area 3 (rate limiting concurrency exactness): capacity=50 tokens, 200 threads racing to
+    /// call <see cref="TokenBucketLimiter.Evaluate(INetworkEndpoint, TokenBucketLimiter.RateLimitPolicy?)"/>
+    /// on the SAME endpoint concurrently with refill disabled must allow EXACTLY 50 requests total
+    /// — never more (would indicate a token-accounting race allowing over-admission) and never
+    /// fewer (would indicate lost concurrent decrements). Repeated 200 times with a fixed seed to
+    /// catch rare interleavings; run count only, seeded shuffling of thread start order via Random.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Stress")]
+    public void Evaluate_ConcurrentRaceOnSameEndpoint_AllowsExactlyCapacityCount()
+    {
+        const int seed = 20260704;
+        const int capacity = 50;
+        const int threadCount = 64; // ponytail: dedicated Threads avoid ThreadPool injection throttling under Barrier blocking; 200 Task.Run made this test take ~3min, ThreadPool has no such issue but keep count modest for CI time
+
+        var options = CreateOptions();
+        options.CapacityTokens = capacity;
+        options.InitialTokens = capacity;
+        options.RefillTokensPerSecond = 0.001; // minimal refill (validation floor), negligible during the race window
+
+        using var limiter = new TokenBucketLimiter(options);
+        var endpoint = new TestEndpoint("concurrent-race-ip");
+
+        System.Random rng = new(seed);
+        int allowedCount = 0;
+        using System.Threading.Barrier barrier = new(threadCount);
+
+        Thread[] threads = new Thread[threadCount];
+        for (int i = 0; i < threadCount; i++)
+        {
+            int delayTicks = rng.Next(0, 5);
+            threads[i] = new Thread(() =>
+            {
+                for (int spin = 0; spin < delayTicks; spin++)
+                {
+                    Thread.SpinWait(1);
+                }
+                barrier.SignalAndWait();
+                var decision = limiter.Evaluate(endpoint);
+                if (decision.Allowed)
+                {
+                    Interlocked.Increment(ref allowedCount);
+                }
+            });
+            threads[i].Start();
+        }
+
+        foreach (var thread in threads)
+        {
+            thread.Join();
+        }
+
+        allowedCount.Should().Be(capacity, $"seed={seed}: exactly {capacity} of {threadCount} concurrent requests racing on the same endpoint must be admitted, never more (over-admission) or fewer (lost decrements)");
     }
 
     private static TokenBucketOptions CreateOptions()

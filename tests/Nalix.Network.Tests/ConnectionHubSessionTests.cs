@@ -222,6 +222,37 @@ public sealed class ConnectionHubSessionTests
         _ = stored.Should().BeSameAs(replacement);
     }
 
+    [Fact]
+    public async Task SessionPersistenceObserver_AfterDispose_NoLongerPersistsOnUnregister()
+    {
+        InMemorySessionStore store = new();
+        SessionService service = new(store: store);
+        using ConnectionHub hub = new();
+        SessionPersistenceObserver observer = new(hub, service);
+        using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
+        using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
+
+        connection.GetRuntimeState().HandshakeEstablished = true;
+        for (int i = 0; i < 20; i++)
+        {
+            connection.Attributes[AttributeKey.FromName($"key_{i}")] = i;
+        }
+
+        hub.RegisterConnection(connection);
+
+        // Dispose the observer BEFORE unregistering — it must unsubscribe from the hub event.
+        observer.Dispose();
+
+        hub.UnregisterConnection(connection);
+
+        // Give any (incorrectly still-subscribed) background persistence a moment to run.
+        await Task.Delay(200);
+
+        using SessionScope sessionScope = await service.ConsumeAsync(connection.ConnectionId);
+        _ = sessionScope.Value.Should().BeNull(
+            "a disposed SessionPersistenceObserver must have unsubscribed from ConnectionUnregistered and not persist the session");
+    }
+
     private static void SyncSession(IConnection connection, SessionEntry session)
     {
         SessionSnapshot old = session.Snapshot;

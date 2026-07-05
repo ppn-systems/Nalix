@@ -171,6 +171,15 @@ internal sealed class UdpFrameReader : IDisposable
 
             if (!_sequence.IsValid(seq, window: 64))
             {
+                if (Codec.DiagnosticsEvents.Source.IsEnabled(Codec.DiagnosticsEvents.Sequence.Rejected))
+                {
+                    Codec.DiagnosticsEvents.Write(Codec.DiagnosticsEvents.Sequence.Rejected, new
+                    {
+                        Transport = "UDP",
+                        ReceivedSeq = seq,
+                        CurrentSeq = _sequence.Current()
+                    });
+                }
                 return; // Duplicate datagram, already processed
             }
 
