@@ -140,6 +140,8 @@ internal sealed partial class SocketConnection : IDisposable, IPoolable
     private static long s_fragmentErrorSuppressed;
     private static long s_receiveVarIntFaultedTicks;
     private static long s_receiveVarIntFaultedSuppressed;
+    private static long s_protocolViolationTicks;
+    private static long s_protocolViolationSuppressed;
 
     #endregion Const
 
@@ -397,6 +399,7 @@ internal sealed partial class SocketConnection : IDisposable, IPoolable
                 int consumed = 0;
                 bool parsedAtLeastOne = false;
                 int? pendingFrameSize = null;
+                bool protocolViolation = false;
 
                 while (_bufferDataLength - consumed >= HeaderSize)
                 {
@@ -415,6 +418,19 @@ internal sealed partial class SocketConnection : IDisposable, IPoolable
                         {
                             trafficMetrics.IncrementPacketsDropped();
                         }
+
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
+                        {
+                            if (Security.ThrottledEventGate.TryAcquire(ref s_protocolViolationTicks, ref s_protocolViolationSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
+                            {
+                                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
+                                {
+                                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.SocketConnection:Internal", $"invalid packet size prefix, closing connection size={size} endpoint={_owner.NetworkEndpoint.Address} suppressed-count={suppressed}"));
+                                }
+                            }
+                        }
+
+                        protocolViolation = true;
                         break;
                     }
 
@@ -464,6 +480,19 @@ internal sealed partial class SocketConnection : IDisposable, IPoolable
 
                     consumed += size;
                     parsedAtLeastOne = true;
+                }
+
+                // Invariant: every inner-loop exit either dispatched+advanced consumed,
+                // recorded a legitimate wait (pendingFrameSize / not-enough-header-bytes),
+                // or flagged a protocol violation. It must never silently stall.
+                Debug.Assert(
+                    protocolViolation || pendingFrameSize.HasValue ||
+                    _bufferDataLength - consumed < HeaderSize || parsedAtLeastOne,
+                    "SAEA receive loop inner exit with no progress and no recorded wait/violation state.");
+
+                if (protocolViolation)
+                {
+                    break;
                 }
 
                 /*

@@ -769,41 +769,13 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         }
     }
 
+    // Single canonical handler shape, kept in sync with PacketHandlerGenerator's
+    // `Parameters.Length != 1` guard (PacketHandlerGenerator.cs) — only
+    // `IPacketContext<T>` (exactly one parameter) is a supported handler signature.
     private static bool HasSupportedParameterSignature(IMethodSymbol methodSymbol, SymbolSet symbols)
     {
         ImmutableArray<IParameterSymbol> parameters = methodSymbol.Parameters;
-        if (parameters.Length == 0)
-        {
-            return false;
-        }
-
-        ITypeSymbol firstParameterType = parameters[0].Type;
-        if (IsPacketContext(firstParameterType, symbols))
-        {
-            return parameters.Length switch
-            {
-                1 => true,
-                2 => IsSymbol(parameters[1].Type, symbols.CancellationTokenType),
-                _ => false
-            };
-        }
-
-        if (Implements(firstParameterType, symbols.PacketInterface))
-        {
-            if (parameters.Length < 2 || !Implements(parameters[1].Type, symbols.ConnectionType))
-            {
-                return false;
-            }
-
-            return parameters.Length switch
-            {
-                2 => true,
-                3 => IsSymbol(parameters[2].Type, symbols.CancellationTokenType),
-                _ => false
-            };
-        }
-
-        return false;
+        return parameters.Length == 1 && IsPacketContext(parameters[0].Type, symbols);
     }
 
     private static bool HasSupportedReturnType(ITypeSymbol returnType, SymbolSet symbols)

@@ -240,6 +240,11 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
 
             ushort opcodeVal = Convert.ToUInt16(val);
 
+            // Single canonical handler shape, kept in sync with NalixUsageAnalyzer's
+            // `HasSupportedParameterSignature` (NalixUsageAnalyzer.cs) — only a single
+            // `IPacketContext<T>` parameter is a supported handler signature; anything
+            // else is reported as NALIX003 by the analyzer, so silently skipping here
+            // is safe (no valid handler is ever dropped without a diagnostic).
             if (method.Parameters.Length != 1)
             {
                 continue;

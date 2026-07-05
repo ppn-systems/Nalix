@@ -28,6 +28,7 @@ internal sealed partial class SocketConnection
                 bool incomplete = false;
                 int? pendingFrameSize = null;
                 bool parsedAtLeastOne = false;
+                bool protocolViolation = false;
 
                 while (_bufferDataLength - consumed > 0)
                 {
@@ -46,6 +47,19 @@ internal sealed partial class SocketConnection
                         {
                             trafficMetrics.IncrementPacketsDropped();
                         }
+
+                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
+                        {
+                            if (Security.ThrottledEventGate.TryAcquire(ref s_protocolViolationTicks, ref s_protocolViolationSuppressed, DateTime.UtcNow.Ticks, TimeSpan.TicksPerSecond * 5, out long suppressed))
+                            {
+                                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
+                                {
+                                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.SocketConnection:Internal", $"invalid varint payload length, closing connection payload-length={payloadLen} endpoint={_owner.NetworkEndpoint.Address} suppressed-count={suppressed}"));
+                                }
+                            }
+                        }
+
+                        protocolViolation = true;
                         break;
                     }
 
@@ -65,6 +79,19 @@ internal sealed partial class SocketConnection
                     parsedAtLeastOne = true;
                 }
 
+                // Invariant: every inner-loop exit either dispatched+advanced consumed,
+                // recorded a legitimate wait (pendingFrameSize / incomplete header), or
+                // flagged a protocol violation. It must never silently stall.
+                Debug.Assert(
+                    protocolViolation || pendingFrameSize.HasValue || incomplete ||
+                    _bufferDataLength - consumed <= 0 || parsedAtLeastOne,
+                    "SAEA varint receive loop inner exit with no progress and no recorded wait/violation state.");
+
+                if (protocolViolation)
+                {
+                    break;
+                }
+
                 // Buffer Compaction
                 if (consumed > 0)
                 {
@@ -81,6 +108,11 @@ internal sealed partial class SocketConnection
                 if (pendingFrameSize.HasValue)
                 {
                     int requiredSize = pendingFrameSize.Value;
+
+                    if (requiredSize > s_maxReceiveBufferSize)
+                    {
+                        throw Throw.GetMessageSize();
+                    }
 
                     if (requiredSize > _buffer!.Length)
                     {

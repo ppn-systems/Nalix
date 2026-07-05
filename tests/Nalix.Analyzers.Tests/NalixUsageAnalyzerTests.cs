@@ -413,7 +413,7 @@ using Nalix.Codec.DataFrames;
 public sealed class DemoController
 {
     [PacketOpcode(0x000A)]
-    public void Handle(DemoPacket packet, IConnection connection)
+    public void Handle(Nalix.Runtime.Dispatching.PacketContext<DemoPacket> context)
     {
     }
 }
@@ -472,10 +472,10 @@ using Nalix.Codec.DataFrames;
 public sealed class DemoController
 {
     [PacketOpcode(0x1201)]
-    public void HandleA(DemoPacket packet, IConnection connection) { }
+    public void HandleA(Nalix.Runtime.Dispatching.PacketContext<DemoPacket> context) { }
 
     [PacketOpcode(0x1201)]
-    public void HandleB(DemoPacket packet, IConnection connection) { }
+    public void HandleB(Nalix.Runtime.Dispatching.PacketContext<DemoPacket> context) { }
 }
 
 public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
@@ -900,14 +900,14 @@ public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 public sealed class ControllerA
 {
     [PacketOpcode(0x1234)]
-    public void Handle(DemoPacket packet, IConnection connection) { }
+    public void Handle(Nalix.Runtime.Dispatching.PacketContext<DemoPacket> context) { }
 }
 
 [PacketHandler]
 public sealed class ControllerB
 {
     [PacketOpcode(0x1234)]
-    public void Handle(DemoPacket packet, IConnection connection) { }
+    public void Handle(Nalix.Runtime.Dispatching.PacketContext<DemoPacket> context) { }
 }
 """;
 
@@ -936,7 +936,7 @@ public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 public sealed class ControllerA
 {
     [PacketOpcode(0x1240)]
-    public void Handle(DemoPacket packet, IConnection connection)
+    public void Handle(Nalix.Runtime.Dispatching.PacketContext<DemoPacket> context)
     {
         _ = new Helper();
     }
@@ -967,7 +967,7 @@ public sealed class ControllerA
 {
     /// <summary>Handles packet opcode 0x8888.</summary>
     [PacketOpcode(0x1241)]
-    public void Handle(DemoPacket packet, IConnection connection) { }
+    public void Handle(Nalix.Runtime.Dispatching.PacketContext<DemoPacket> context) { }
 }
 """;
 
@@ -1033,7 +1033,7 @@ public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 public sealed class ControllerA
 {
     [PacketOpcode(0x1242)]
-    public int Handle(DemoPacket packet, IConnection connection) => 1;
+    public int Handle(Nalix.Runtime.Dispatching.PacketContext<DemoPacket> context) => 1;
 }
 """;
 
@@ -1080,14 +1080,14 @@ public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 public sealed class ControllerA
 {
     [PacketOpcode(0x1243)]
-    public void Handle(DemoPacket packet, IConnection connection) { }
+    public void Handle(Nalix.Runtime.Dispatching.PacketContext<DemoPacket> context) { }
 }
 
 [PacketHandler("dup")]
 public sealed class ControllerB
 {
     [PacketOpcode(0x1244)]
-    public void Handle(DemoPacket packet, IConnection connection) { }
+    public void Handle(Nalix.Runtime.Dispatching.PacketContext<DemoPacket> context) { }
 }
 """;
 
@@ -1144,7 +1144,7 @@ public sealed class DemoPacket : PacketBase<DemoPacket>, IPacketStaticOpcode
 public sealed class ControllerA
 {
     [PacketOpcode(0x1246)]
-    public void Handle<T>(DemoPacket packet, IConnection connection) { }
+    public void Handle<T>(Nalix.Runtime.Dispatching.PacketContext<DemoPacket> context) { }
 }
 """;
 
@@ -1251,7 +1251,7 @@ public sealed class OtherPacket : PacketBase<OtherPacket>, IPacketStaticOpcode
 public sealed class DemoController
 {
     [PacketOpcode(0x1251)]
-    public void Handle(OtherPacket packet, IConnection connection) { }
+    public void Handle(Nalix.Runtime.Dispatching.PacketContext<OtherPacket> context) { }
 }
 
 public static class Setup
@@ -1263,7 +1263,7 @@ public static class Setup
 }
 """;
 
-        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX005");
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX004");
     }
 
 

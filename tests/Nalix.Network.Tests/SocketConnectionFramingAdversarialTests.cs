@@ -56,33 +56,26 @@ public sealed class SocketConnectionFramingAdversarialTests
     // ── Length-prefix attacks ───────────────────────────────────────────────
 
     /// <summary>
-    /// BUG: SocketConnection.cs SAEA_RECEIVE_LOOP_ASYNC (~line 411-419) — when
-    /// IS_VALID_PACKET_SIZE(size) rejects the peeked 2-byte length header, the parse loop
-    /// increments the drop counter and `break`s WITHOUT advancing `consumed` past the invalid
-    /// 2 header bytes. Since `consumed` stays 0, Step 4's buffer-compaction ("move unconsumed
-    /// data to front") is a no-op, and the same invalid header bytes remain at the front of the
-    /// buffer and are re-peeked as the "next" frame header forever. Any well-formed frame sent
-    /// afterward is appended behind those 2 poison bytes and can never be parsed — the
-    /// connection is permanently wedged, silently, with no exception and no disconnect. Declared
-    /// length 0 is one trigger (any size &lt; HeaderSize=2 triggers it identically).
+    /// Policy A: an invalid declared frame size desynchronizes the byte stream (no reliable resync
+    /// marker exists in this protocol), so it is treated as a fatal protocol violation — the
+    /// connection is closed and no further frame (even a well-formed one sent right after) is ever
+    /// dispatched. See SocketConnection.cs SAEA_RECEIVE_LOOP_ASYNC invalid-size branch.
     /// </summary>
-    [Fact(Skip = "BUG: SocketConnection.cs SAEA_RECEIVE_LOOP_ASYNC ~line 411-419 — an invalid " +
-        "declared frame size is dropped without advancing `consumed` past the 2 poison header " +
-        "bytes, so they are never compacted out of the buffer and are re-peeked as the header " +
-        "forever, permanently wedging the connection (no exception, no disconnect, next valid " +
-        "frame never dispatched).")]
-    public async Task DeclaredLength_Zero_IsRejected_ConnectionSurvivesForNextFrame()
+    [Fact]
+    public async Task DeclaredLength_Zero_ClosesConnection_NoFurtherFrameDispatched()
     {
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
         using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
         TransportAsyncCallback.ResetStatistics();
 
-        TaskCompletionSource<int> processObserved = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<bool> closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int callCount = 0;
         connection.MessageProcessing += (_, args) =>
         {
-            try { processObserved.TrySetResult(args.Lease?.Length ?? -1); }
-            finally { args.Lease?.Dispose(); }
+            Interlocked.Increment(ref callCount);
+            args.Lease?.Dispose();
         };
+        connection.ConnectionClosed += (_, _) => closed.TrySetResult(true);
 
         connection.TCP.BeginReceive();
 
@@ -93,8 +86,10 @@ public sealed class SocketConnectionFramingAdversarialTests
         await Task.Delay(50); // let the invalid-size drop register before the valid frame arrives
         await scope.ClientSocket.SendAsync(validFrame);
 
-        int receivedLength = await processObserved.Task.WaitAsync(TimeSpan.FromSeconds(15));
-        receivedLength.Should().Be(6, "a declared length of 0 must be dropped, not crash the connection, and the next valid frame must still be processed");
+        await closed.Task.WaitAsync(TimeSpan.FromSeconds(15));
+
+        await Task.Delay(200);
+        Volatile.Read(ref callCount).Should().Be(0, "an invalid declared length desynchronizes the stream; the connection must close and no frame (including one sent right after) must ever be dispatched");
     }
 
     /// <summary>

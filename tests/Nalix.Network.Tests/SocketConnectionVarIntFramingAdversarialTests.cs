@@ -3,6 +3,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Nalix.Abstractions.Networking;
@@ -56,34 +57,27 @@ public sealed class SocketConnectionVarIntFramingAdversarialTests
     }
 
     /// <summary>
-    /// BUG: SocketConnection.Receive.VarInt.cs SAEA_RECEIVE_LOOP_VARINT_ASYNC (~line 43-50) — same
-    /// defect class as SocketConnectionFramingAdversarialTests.DeclaredLength_Zero_IsRejected_ConnectionSurvivesForNextFrame
-    /// (UInt16 path), confirmed here on the VarInt path too: a LEB128 encoding of
-    /// <see cref="uint.MaxValue"/> (5 bytes, FF FF FF FF 0F) decodes to <c>uint 0xFFFFFFFF</c>,
-    /// casts to <c>int -1</c>, and IS correctly rejected by the <c>payloadLen &lt; 0</c> check —
-    /// but the loop increments the drop counter and `break`s WITHOUT advancing `consumed` past
-    /// the 5 poison header bytes. Buffer compaction (`if (consumed > 0)`) is therefore a no-op,
-    /// the poison bytes remain at the front of the buffer and are re-decoded as the header
-    /// forever, and the connection is permanently wedged — any subsequent well-formed frame is
-    /// never dispatched.
+    /// Policy A: a LEB128 encoding of <see cref="uint.MaxValue"/> (5 bytes, FF FF FF FF 0F) decodes
+    /// to <c>uint 0xFFFFFFFF</c>, casts to <c>int -1</c>, and is rejected by the
+    /// <c>payloadLen &lt; 0</c> check. Since no reliable resync marker exists in this protocol, this
+    /// is treated as a fatal protocol violation: the connection is closed and no further frame
+    /// (even a well-formed one sent right after) is ever dispatched.
     /// </summary>
-    [Fact(Skip = "BUG: SocketConnection.Receive.VarInt.cs SAEA_RECEIVE_LOOP_VARINT_ASYNC ~line " +
-        "43-50 — same defect as the UInt16 path's DeclaredLength_Zero bug: a rejected declared " +
-        "length is dropped without advancing `consumed` past the poison header bytes, so they " +
-        "are never compacted out and are re-decoded as the header forever, permanently wedging " +
-        "the connection.")]
-    public async Task DeclaredLength_UIntMaxValueAsLeb128_RejectedAsNegative_ConnectionSurvives()
+    [Fact]
+    public async Task DeclaredLength_UIntMaxValueAsLeb128_RejectedAsNegative_ClosesConnection()
     {
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
         using Connection connection = await CreateVarIntConnectionAsync(scope);
         TransportAsyncCallback.ResetStatistics();
 
-        TaskCompletionSource<int> processObserved = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<bool> closed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int callCount = 0;
         connection.MessageProcessing += (_, args) =>
         {
-            try { processObserved.TrySetResult(args.Lease?.Length ?? -1); }
-            finally { args.Lease?.Dispose(); }
+            Interlocked.Increment(ref callCount);
+            args.Lease?.Dispose();
         };
+        connection.ConnectionClosed += (_, _) => closed.TrySetResult(true);
 
         connection.TCP.BeginReceive();
 
@@ -94,8 +88,10 @@ public sealed class SocketConnectionVarIntFramingAdversarialTests
         await Task.Delay(50);
         await scope.ClientSocket.SendAsync(validFrame);
 
-        int receivedLength = await processObserved.Task.WaitAsync(TimeSpan.FromSeconds(15));
-        receivedLength.Should().Be(6, "a LEB128-encoded uint.MaxValue must decode to a rejected negative length, not crash, and the connection must still process the next valid frame");
+        await closed.Task.WaitAsync(TimeSpan.FromSeconds(15));
+
+        await Task.Delay(200);
+        Volatile.Read(ref callCount).Should().Be(0, "a LEB128-encoded uint.MaxValue desynchronizes the stream; the connection must close and no frame (including one sent right after) must ever be dispatched");
     }
 
     /// <summary>
@@ -125,6 +121,38 @@ public sealed class SocketConnectionVarIntFramingAdversarialTests
 
         Action dispose = () => connection.Dispose();
         dispose.Should().NotThrow("an over-cap declared VarInt payload length must never crash or corrupt connection teardown");
+    }
+
+    /// <summary>
+    /// A declared VarInt payload length within <c>VarIntFramingOptions.MaxPayloadSize</c> (131072)
+    /// but beyond the server's configured max receive buffer size (mirrors the UInt16 path's
+    /// <c>s_maxReceiveBufferSize</c> ceiling in SocketConnection.cs) must be rejected via
+    /// GetMessageSize() rather than growing the receive buffer without bound.
+    /// </summary>
+    [Fact]
+    public async Task DeclaredLength_WithinMaxPayloadSizeButOverReceiveBufferCeiling_RejectedWithoutUnboundedGrowth()
+    {
+        using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
+        using Connection connection = await CreateVarIntConnectionAsync(scope);
+        TransportAsyncCallback.ResetStatistics();
+
+        TaskCompletionSource<bool> closedOrIdle = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        connection.MessageProcessing += (_, args) => args.Lease?.Dispose();
+        connection.ConnectionClosed += (_, _) => closedOrIdle.TrySetResult(true);
+
+        connection.TCP.BeginReceive();
+
+        // Below MaxPayloadSize (131072) but far above the default receive-buffer ceiling
+        // (~32KB chunk size + fragment header + varint header).
+        const int overReceiveBufferCeiling = 100_000;
+        Span<byte> header = stackalloc byte[Leb128.MaxByteCount];
+        int headerLen = Leb128.Write(header, (uint)overReceiveBufferCeiling);
+        await scope.ClientSocket.SendAsync(header[..headerLen].ToArray());
+
+        await Task.WhenAny(closedOrIdle.Task, Task.Delay(TimeSpan.FromSeconds(2)));
+
+        Action dispose = () => connection.Dispose();
+        dispose.Should().NotThrow("a declared VarInt length beyond the receive buffer ceiling must never crash or corrupt connection teardown");
     }
 
     /// <summary>

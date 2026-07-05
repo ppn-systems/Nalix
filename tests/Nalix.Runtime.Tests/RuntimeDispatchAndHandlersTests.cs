@@ -339,6 +339,7 @@ public sealed class RuntimeDispatchAndHandlersTests
         public bool IsValid(uint? receivedSeq, uint window = 0) => true;
         public void UpdateTo(uint receivedSeq) => _value = receivedSeq;
         public void ResumeFrom(uint lastKnownSeq, uint safetyGap = 1000) => _value = lastKnownSeq;
+        public bool IsApproachingOverflow(uint margin = 1_000_000) => false;
     }
 
     private sealed class FakeTransport : IConnection.ITransport

@@ -221,7 +221,7 @@ public sealed class RpcClientGenerator : IIncrementalGenerator
 
         foreach (RpcMethodModel method in model.Methods)
         {
-            GenerateMethod(sb, method);
+            GenerateMethod(context, model.InterfaceName, sb, method);
         }
 
         _ = sb.AppendLine($"    }}");
@@ -245,13 +245,25 @@ public sealed class RpcClientGenerator : IIncrementalGenerator
         context.AddSource($"{className}.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 
-    private static void GenerateMethod(StringBuilder sb, RpcMethodModel method)
+    private static string StripGlobalPrefix(string typeName)
+        => typeName.StartsWith("global::") ? typeName.Substring("global::".Length) : typeName;
+
+    private static void GenerateMethod(SourceProductionContext context, string interfaceName, StringBuilder sb, RpcMethodModel method)
     {
         List<string> parameters = new();
 
-        bool isValueTask = method.ReturnType == "System.Threading.Tasks.ValueTask" || method.ReturnType == "ValueTask";
-        bool isRpcCall = method.ReturnType.StartsWith("Nalix.SDK.Transport.Rpc.RpcCall");
-        bool isRpcStream = method.ReturnType.StartsWith("Nalix.SDK.Transport.Rpc.RpcStream");
+        // Strip a leading `global::` before comparing return-type strings — Roslyn's
+        // ToDisplayString() output is not guaranteed to omit it, and a raw `==`/`StartsWith`
+        // against an unqualified literal would silently fail to match (see the
+        // PacketHandlerGenerator.cs `global::` fragility fixed previously).
+        string returnType = StripGlobalPrefix(method.ReturnType);
+
+        bool isValueTask = returnType is "System.Threading.Tasks.ValueTask" or "ValueTask";
+        bool isGenericValueTask = returnType.StartsWith("System.Threading.Tasks.ValueTask<") || returnType.StartsWith("ValueTask<");
+        bool isRpcCall = returnType.StartsWith("Nalix.SDK.Transport.Rpc.RpcCall");
+        bool isRpcStream = returnType.StartsWith("Nalix.SDK.Transport.Rpc.RpcStream");
+        bool isTask = returnType is "System.Threading.Tasks.Task" or "Task";
+        bool isGenericTask = returnType.StartsWith("System.Threading.Tasks.Task<") || returnType.StartsWith("Task<");
 
         string? packetArg = null;
         string? encryptArg = null;
@@ -290,18 +302,41 @@ public sealed class RpcClientGenerator : IIncrementalGenerator
         _ = sb.AppendLine(methodSignature);
         _ = sb.AppendLine($"        {{");
 
+        string encryptPass = encryptArg ?? "null";
+        string ctPass = ctArg ?? "default";
+        string optPass = optionsArg ?? "null";
+
         if (isValueTask)
         {
-            string encryptPass = encryptArg ?? "null";
-            string ctPass = ctArg ?? "default";
             _ = sb.AppendLine($"            return new ValueTask(_session.SendAsync({packetArg}, encrypt: {encryptPass}, ct: {ctPass}));");
+        }
+        else if (isTask)
+        {
+            _ = sb.AppendLine($"            return _session.SendAsync({packetArg}, encrypt: {encryptPass}, ct: {ctPass});");
+        }
+        else if (isGenericValueTask)
+        {
+            _ = sb.AppendLine($"            return _session.RequestAsync<{method.GenericArgument}>({packetArg}, {optPass}, ct: {ctPass});");
+        }
+        else if (isGenericTask)
+        {
+            _ = sb.AppendLine($"            return _session.RequestAsync<{method.GenericArgument}>({packetArg}, {optPass}, ct: {ctPass}).AsTask();");
         }
         else if (isRpcCall || isRpcStream)
         {
             string genericArgs = string.IsNullOrEmpty(method.GenericArgument) ? "" : $"<{method.GenericArgument}>";
-            string optPass = optionsArg ?? "null";
             string typeName = isRpcCall ? "RpcCall" : "RpcStream";
             _ = sb.AppendLine($"            return new {typeName}{genericArgs}(_session, {packetArg}, {optPass});");
+        }
+        else
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                GeneratorDiagnosticDescriptors.RpcServiceUnsupportedGeneratedReturnType,
+                Location.None,
+                method.Name,
+                interfaceName,
+                method.ReturnType));
+            _ = sb.AppendLine($"            throw new global::System.NotSupportedException(\"Unsupported RPC return type '{method.ReturnType}' for method '{method.Name}'.\");");
         }
 
         _ = sb.AppendLine($"        }}");
