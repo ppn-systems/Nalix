@@ -68,6 +68,21 @@ The `SessionToken` is a "moving target". After a successful resumption:
 
 By default, the Nalix Hosting model handles session resumption automatically. However, you can control the behavior by implementing a custom `ISessionStore` (e.g., using Redis for distributed clusters).
 
+## Replay Window Policy
+
+The resume proof is `HMAC-Keccak256(Secret, SessionToken || (UnixSecondsNow() / 30))` — a 30-second time bucket, checked against `t-1`, `t`, `t+1` to tolerate clock skew. Within that ~90-second window the proof itself is deterministic and reproducible, but replaying it does not grant a second resume: the `SessionToken` is atomically consumed (`ISessionService.ConsumeAsync` → `ConcurrentDictionary.TryRemove`) on the **first** successful attempt, so a second resume with the same token — even with a byte-identical, still-valid proof — is rejected with `SESSION_EXPIRED`. The token, not the time bucket, is the single-use nonce.
+
+See `tests/Nalix.Network.Tests/InMemorySessionStoreTests.cs::ConsumeAsync_ReplayedTokenWithinSameTimeBucket_RejectedOnSecondAttempt` and `tests/Nalix.Framework.Tests/Cryptography/SessionResumeProofTests.cs` for the two halves of this guarantee (nonce consumption vs. proof determinism).
+
+## Sequence Counter Wrap Policy
+
+Each transport direction is protected by a monotonic `SequenceCounter` used as part of the AEAD nonce. `SequenceCounter.Next()` throws `CipherException` if incrementing would wrap past `uint.MaxValue`, refusing to ever reuse a nonce. To avoid hitting that guard as a live failure, every send path (`TcpFrameSender`, `UdpFrameSender`, `WsFrameSender` on the client; `PacketPipeline.ProcessAndSendAsync` on the server) now checks `ISequenceCounter.IsApproachingOverflow(margin: 1_000_000)` **before** reserving the next sequence number:
+
+- Client-side: throws `CipherException`, which the existing non-fatal exception handling reports via `OnError` and disconnects — the client is expected to reconnect and re-handshake, or call `RekeyExtensions.RekeyAsync` proactively before this point to rotate the key and reset counters.
+- Server-side: calls `IConnection.Disconnect(...)` directly for a clean close instead of throwing mid-send.
+
+`ResumeFrom(lastKnownSeq, safetyGap)` (used when restoring a session) saturates at `uint.MaxValue` instead of wrapping, so a resumed counter can never silently drop below its last known value and reissue nonces — the very next `Next()` call fails loudly via the same overflow guard.
+
 ## Related Topics
 
 - [Handshake Protocol](./handshake-protocol.md)
