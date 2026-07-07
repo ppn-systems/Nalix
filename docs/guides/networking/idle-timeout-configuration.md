@@ -2,11 +2,6 @@
 
 Nalix provides a built-in mechanism to automatically detect and disconnect client connections that have been inactive for a specified duration. This is critical for reclaiming resources and protecting against persistent connection exhaustion (Slowloris-style attacks).
 
-!!! info "Learning Signals"
-    - :fontawesome-solid-layer-group: **Level**: Intermediate
-    - :fontawesome-solid-clock: **Time**: 10 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Minimal Server](./minimal-server.md)
-
 ---
 
 ## 1. The Timing Wheel Mechanism
@@ -19,23 +14,6 @@ Instead of using a separate `Timer` for every connection (which is expensive and
 3. Only connections in the current bucket are checked for idleness.
 
 This ensures that even with **100,000+ concurrent connections**, the CPU overhead remains constant and minimal.
-
-```mermaid
-graph TD
-    subgraph Wheel[Timing Wheel]
-        B1[Bucket 1]
-        B2[Bucket 2]
-        B3[Current Bucket]
-        B4[Bucket 4]
-    end
-    
-    Loop[Background Worker] -->|Tick| B3
-    B3 -->|Check| C1[Connection A]
-    B3 -->|Check| C2[Connection B]
-    
-    C1 -->|Idle > Limit| Disc[Disconnect]
-    C2 -->|Still Active| Resch[Reschedule to future bucket]
-```
 
 ---
 

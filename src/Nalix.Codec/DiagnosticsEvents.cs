@@ -73,4 +73,16 @@ public static class DiagnosticsEvents
         /// </summary>
         public const string Malformed = "Packet.Malformed";
     }
+
+    /// <summary>
+    /// Sequence-counter related diagnostic events.
+    /// </summary>
+    public static class Sequence
+    {
+        /// <summary>
+        /// Fired when an inbound sequence number is rejected by <c>ISequenceCounter.IsValid</c>
+        /// (out-of-window or replayed). Observational only; does not affect the accept/reject decision.
+        /// </summary>
+        public const string Rejected = "Sequence.Rejected";
+    }
 }

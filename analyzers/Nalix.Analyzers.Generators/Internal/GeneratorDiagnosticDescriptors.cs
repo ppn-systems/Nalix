@@ -72,4 +72,18 @@ internal static class GeneratorDiagnosticDescriptors
         category: "Nalix.Framework.Injection",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  RpcClientGenerator
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// <summary>NALIX066: [RpcService] method return type is not one of the shapes the RPC client proxy can generate.</summary>
+    public static readonly DiagnosticDescriptor RpcServiceUnsupportedGeneratedReturnType = new(
+        id: "NALIX066",
+        title: "Unsupported [RpcService] method return type",
+        messageFormat: "Method '{0}' on [RpcService] interface '{1}' has return type '{2}', which the RPC client generator cannot emit a body for. " +
+                       "Supported return types: void-equivalent ValueTask/Task, ValueTask<T>/Task<T>, RpcCall<T>, RpcStream<T>.",
+        category: "Nalix.SDK.Transport",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }

@@ -4,11 +4,6 @@
     This guide demonstrates the manual instantiation of `TcpListenerBase` and `Protocol`. While powerful, this path bypasses the automatic feature discovery and dependency injection provided by the [Hosting Builder](../../quickstart.md).
     Use this only when embedding Nalix into existing engines or when building specialized transport layers.
 
-!!! info "Learning Signals"
-    - :fontawesome-solid-layer-group: **Level**: Advanced
-    - :fontawesome-solid-clock: **Time**: 5–10 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../../quickstart.md)
-
 This manual flow demonstrates:
 
 - `TcpListenerBase`
@@ -157,23 +152,6 @@ Console.WriteLine(response.Type); // PONG
 ```
 
 ## End-to-end flow
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant Listener as TcpListenerBase
-    participant Protocol as Protocol
-    participant Dispatch as PacketDispatchChannel
-    participant Handler as SamplePingHandlers
-
-    Client->>Listener: TCP frame
-    Listener->>Protocol: ProcessMessage event
-    Protocol->>Dispatch: HandlePacket(lease, connection)
-    Dispatch->>Dispatch: Deserialize Control
-    Dispatch->>Handler: Handle(request, connection)
-    Handler-->>Dispatch: Control
-    Dispatch-->>Client: serialized response
-```
 
 ## Variant: send manually from handler
 

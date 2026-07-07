@@ -89,6 +89,24 @@ public sealed class ConnectionHubTests
            .And.Contain(connection2);
     }
 
+    [Fact]
+    public async Task UnregisterConnection_CalledTwice_IsIdempotent_AndRaisesEventOnlyOnce()
+    {
+        using ConnectionHub hub = new();
+        using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
+        using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
+
+        int raisedCount = 0;
+        hub.ConnectionUnregistered += _ => raisedCount++;
+
+        hub.RegisterConnection(connection);
+        hub.UnregisterConnection(connection);
+        hub.UnregisterConnection(connection);
+
+        raisedCount.Should().Be(1, "unregistering an already-unregistered connection must be a no-op, not re-raise the event");
+        hub.Count.Should().Be(0);
+    }
+
 #if DEBUG
     [Fact]
     public async Task UnregisterConnection_WhenSessionStoreFails_ReclaimsSessionSnapshot()
@@ -202,10 +220,10 @@ public sealed class ConnectionHubTests
             throw new InvalidOperationException("Simulated session-store failure.");
         }
 
-        public ValueTask<SessionEntry?> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default)
+        public ValueTask<SessionScope> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return ValueTask.FromResult<SessionEntry?>(null);
+            return ValueTask.FromResult(new SessionScope(null));
         }
 
         public void Dispose()

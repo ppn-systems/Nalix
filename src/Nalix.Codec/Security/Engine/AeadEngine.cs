@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Internal;
@@ -111,7 +112,7 @@ public static class AeadEngine
         }
         System.Span<byte> authenticatedData = authenticatedDataLength <= 256
             ? stackalloc byte[authenticatedDataLength]
-            : (rentedAad = BufferLease.ByteArrayPool.Rent(authenticatedDataLength));
+            : (rentedAad = BufferLease.ByteArrayPool.Rent(authenticatedDataLength)).AsSpan(0, authenticatedDataLength);
 
         header.CopyTo(authenticatedData);
         nonce.CopyTo(authenticatedData[header.Length..]);
@@ -215,7 +216,7 @@ public static class AeadEngine
         }
         System.Span<byte> authenticatedData = authenticatedDataLength <= 256
             ? stackalloc byte[authenticatedDataLength]
-            : (rentedAad = BufferLease.ByteArrayPool.Rent(authenticatedDataLength));
+            : (rentedAad = BufferLease.ByteArrayPool.Rent(authenticatedDataLength)).AsSpan(0, authenticatedDataLength);
 
         env.Header.CopyTo(authenticatedData);
         env.Nonce.CopyTo(authenticatedData[env.Header.Length..]);

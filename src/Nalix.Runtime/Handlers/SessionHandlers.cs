@@ -80,8 +80,9 @@ public static partial class SessionHandlers
         // SEC-33: Use ConsumeAsync for atomic retrieve-and-remove to prevent TOCTOU race.
         // Two parallel requests with the same token: only the first gets the entry,
         // the second gets null because TryRemove is atomic.
-        SessionEntry? session = await s_sessionService.ConsumeAsync(packet.SessionToken)
+        using SessionScope scope = await s_sessionService.ConsumeAsync(packet.SessionToken)
                                                      .ConfigureAwait(false);
+        SessionEntry? session = scope.Value;
         if (session == null)
         {
             await HandleFailureAsync(context, ProtocolReason.SESSION_EXPIRED).ConfigureAwait(false);
@@ -93,7 +94,6 @@ public static partial class SessionHandlers
         // This ensures the client knows the secret without sending it over the wire.
         if (session.Snapshot.Secret.IsZero)
         {
-            session.Return();
             await HandleFailureAsync(context, ProtocolReason.TOKEN_REVOKED).ConfigureAwait(false);
             return;
         }
@@ -122,7 +122,6 @@ public static partial class SessionHandlers
 
         if (!validProof)
         {
-            session.Return();
             await HandleFailureAsync(context, ProtocolReason.TOKEN_REVOKED).ConfigureAwait(false);
             return;
         }
@@ -172,7 +171,6 @@ public static partial class SessionHandlers
             flags: packet.Flags);
 
         await context.Sender.SendAsync(ack).ConfigureAwait(false);
-        session.Return();
     }
 
     /// <summary>

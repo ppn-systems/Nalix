@@ -10,165 +10,52 @@
   <a href="https://github.com/ppn-systems/nalix/blob/master/LICENSE"><img src="https://img.shields.io/github/license/ppn-systems/nalix.svg?style=flat-square&color=blue" alt="License"/></a>
 </p>
 
-Nalix is a real-time TCP and UDP networking framework for .NET 10. It provides a unified packet model shared between client and server, zero-allocation hot paths, shard-aware dispatch pipelines, and middleware-driven packet processing with production-grade transport infrastructure.
+Nalix is a real-time TCP and UDP networking framework for .NET 10. You define packet types once, share them between your server and client, and Nalix handles the transport, routing, and security for you.
 
----
-
-[Get Started :material-arrow-right:](./quickstart.md){ .md-button .md-button--primary }
+[Get Started](./quickstart.md){ .md-button .md-button--primary }
 [View Packages](./packages/index.md){ .md-button }
 
----
+## What you get
 
-## What does building with Nalix look like?
+- **One packet definition, shared everywhere.** Define a packet type once in a shared project; both server and client use the same class.
+- **A fluent server builder.** Wire up listeners, handlers, and security with a few chained calls, then call `RunAsync()`.
+- **A client that just works.** Connect, send a request, and await a typed response — no manual framing or correlation.
 
-A typical Nalix application involves five clean steps:
+!!! tip "Try it now"
+    [Quick Start](./quickstart.md) builds a full client/server pair in a few minutes.
 
-1. :fontawesome-solid-message: **Define packets**: Create shared contracts using `[Packet]` attributes.
-2. :fontawesome-solid-route: **Register handlers**: Map packets to logic via fluent routing.
-3. :fontawesome-solid-network-wired: **Configure transport**: Select TCP/UDP and set security policies.
-4. :fontawesome-solid-server: **Run the server**: Start the host using the `NetworkApplicationBuilder`.
-5. :fontawesome-solid-plug: **Connect using SDK**: Leverage the client-side session to communicate.
+## Start here
 
-!!! tip "Quickstart"
-    See [Quickstart](./quickstart.md) for a full, copy-pasteable example.
+- [Quick Start](./quickstart.md) — build and run a request/response server
+- [Installation](./installation.md) — pick the right packages for your project
+- [Your First Server](./guides/getting-started/your-first-server.md) — a closer look at the pieces
 
----
+## Guides
 
-## 🚀 Recommended Path
+- [Build a Chat Room](./guides/build-a-chat-room.md) — broadcast messages to every connected client
+- [Securing Your Server](./guides/securing-your-server.md) — enable encryption and multiple transports
+- [Guides overview](./guides/index.md) — the full list
 
-If you're new to Nalix, follow this path to go from zero to production-ready:
+## Concepts
 
-1. :fontawesome-solid-book-open: [Introduction](./introduction.md) — Understand the design philosophy and mental model.
-2. :fontawesome-solid-sitemap: [Architecture](./concepts/fundamentals/architecture.md) — Explore the layered component system.
-3. :fontawesome-solid-bolt: [Quickstart](./quickstart.md) — Build your first Ping/Pong server in minutes.
-4. :fontawesome-solid-vial: [End-to-End Guide](./guides/deployment/production-example.md) — Move beyond basics with a full feature implementation.
-5. :fontawesome-solid-shield-halved: [Middleware](./guides/application/middleware-usage.md) — Learn how to secure and scale your traffic.
+- [How Packets Work](./concepts/how-packets-work.md)
+- [Handlers and Middleware](./concepts/handlers-and-middleware.md)
+- [Configuration](./concepts/configuration.md)
+- [Glossary](./concepts/glossary.md)
 
-!!! tip "Next"
-    Explore the [API Reference](./api/index.md) as needed.
+If you want to know how Nalix works internally — wire formats, sharding, memory pooling — see [Internals](./concepts/internals/index.md). You don't need it to build with Nalix.
 
----
-
-![Nalix Data Flow](./assets/overview-flow.svg){ .nlx-hero-img }
-
-<div class="nlx-highlight-grid" markdown="1">
-
-<div class="nlx-highlight-card" markdown="1">
-### :fontawesome-solid-bolt: Zero-alloc hot path
-Pooled buffers, pooled contexts, and frozen lookups reduce GC pressure for sustained low-latency traffic.
-</div>
-
-<div class="nlx-highlight-card" markdown="1">
-### :fontawesome-solid-sitemap: Shard-aware dispatch
-Worker distribution prevents head-of-line blocking and scales packet handling across logical cores.
-</div>
-
-<div class="nlx-highlight-card" markdown="1">
-### :fontawesome-solid-shield-halved: Fault Isolation
-Handler exceptions are trapped and logged without affecting other connections or crashing the worker loops.
-</div>
-
-</div>
-
----
-
-## Why Nalix
-
-| Capability | How Nalix delivers it |
-|---|---|
-| **Unified packet model** | Define packet types once in a shared assembly. Both `Nalix.Network` (server) and `Nalix.SDK` (client) consume the same contracts, attributes, and serialization metadata. |
-| **Zero-allocation data paths** | Pooled buffers (`BufferLease`), pooled packet contexts, frozen registry lookups (`FrozenDictionary`), and function-pointer–based deserialization eliminate GC pressure on hot paths. |
-| **Shard-aware dispatch** | `PacketDispatchChannel` distributes work across multiple worker loops to prevent head-of-line blocking. Workers scale to logical CPU core count. |
-| **Middleware pipeline** | Production-grade packet middleware system (`MiddlewarePipeline`) for application policy (permissions, rate limiting, timeouts) and observability. |
-| **Production transport** | Built-in connection guarding, token-bucket rate limiting, policy-based throttling, concurrency gates, and timing-wheel–based idle timeout management. |
-
-## Architecture Overview
-
-Nalix organizes networking into four clean layers.
-
-```mermaid
-graph TD
-    subgraph Client ["Nalix.SDK"]
-        Session["TransportSession / TcpSession"]
-    end
-
-    subgraph Server ["Nalix.Hosting"]
-        Builder["NetworkApplicationBuilder"]
-        Host["NetworkApplication"]
-    end
-
-    subgraph Runtime ["Nalix.Runtime"]
-        Dispatch["PacketDispatchChannel"]
-        Middleware["Middleware Pipeline"]
-    end
-
-    subgraph Base ["Nalix.Environment / Framework"]
-        Registry["PacketRegistry"]
-        Pool["BufferPoolManager"]
-    end
-
-    subgraph Core ["Nalix.Codec"]
-        Serialization["LiteSerializer"]
-        Crypto["FrameCipher / FrameCompression"]
-    end
-
-    Session -- "TCP / UDP" --> Host
-    Host --> Dispatch
-    Dispatch --> Registry
-    Dispatch --> Middleware
-    Middleware --> Handlers["Handler Logic"]
-    
-    Dispatch --> Serialization
-    Session --> Serialization
-```
-
-## Start Here
-
-Choose the path that matches your role.
-
-=== "Server Developer"
-
-    1. [Introduction](./introduction.md) — Design philosophy and mental model
-    2. [Installation](./installation.md) — Package selection and prerequisites
-    3. [Quickstart](./quickstart.md) — Build a Ping/Pong server end-to-end
-    4. [Architecture](./concepts/fundamentals/architecture.md) — Layered component overview
-    5. [Server Blueprint](./guides/getting-started/server-blueprint.md) — Production-oriented project structure
-
-=== "Client Developer"
-
-    1. [Introduction](./introduction.md) — Design philosophy and mental model
-    2. [Installation](./installation.md) — Package selection and prerequisites
-    3. [Quickstart](./quickstart.md) — Connect a client to your first server
-    4. [Nalix.SDK](./packages/nalix-sdk.md) — Client transport sessions and request helpers
-    5. [TCP Session](./api/sdk/tcp-session.md) — Detailed session API
-
-=== "Middleware / Extension Author"
-
-    1. [Selecting Building Blocks](./concepts/runtime/building-blocks.md) — Decision guide
-    2. [Middleware](./concepts/runtime/middleware-pipeline.md) — Middleware Pipeline and lifecycle
-    3. [Custom Middleware Guide](./guides/extensibility/custom-middleware.md) — End-to-end walkthrough
-    4. [Custom Metadata Provider](./guides/extensibility/metadata-providers.md) — Convention-based metadata
-
-=== "Contributor"
-
-    1. [Architecture](./concepts/fundamentals/architecture.md) — System design and component boundaries
-    2. [Packet System](./concepts/fundamentals/packet-system.md) — Serialization and unified packet model
-    3. [Binary Specification](./concepts/serialization/binary-spec.md) — Detailed wire format and layout rules
-    4. [Packet Lifecycle](./concepts/fundamentals/packet-lifecycle.md) — Request path from socket to handler
-    5. [Error Reporting](./concepts/fundamentals/errors-and-diagnostics.md) — Runtime and protocol signaling
-    6. [Glossary](./concepts/glossary.md) — Term definitions
-
-## Core Packages
+## Core packages
 
 | Package | Purpose |
 | :--- | :--- |
-| [**Nalix.Network**](./packages/nalix-network.md) | TCP/UDP listeners, connections, protocol logic, and transport infrastructure |
-| [**Nalix.Runtime**](./packages/nalix-runtime.md) | Packet dispatch, middleware execution, and handler orchestration |
-| [**Nalix.SDK**](./packages/nalix-sdk.md) | Client-side transport sessions, request/response helpers, and handshake flows |
-| [**Nalix.Codec**](./packages/nalix-codec.md) | Serialization, buffer leasing, transforms, and compression |
-| [**Nalix.Environment**](./packages/nalix-environment.md) | Configuration, environment IO, random generation, and monotonic time |
-| [**Nalix.Framework**](./packages/nalix-framework.md) | Shared runtime services, instance registration, scheduling, and identifiers |
 | [**Nalix.Hosting**](./packages/nalix-hosting.md) | Fluent builder and application lifecycle for server bootstrap |
+| [**Nalix.Network**](./packages/nalix-network.md) | TCP/UDP listeners, connections, and transport infrastructure |
+| [**Nalix.Runtime**](./packages/nalix-runtime.md) | Packet dispatch, middleware execution, and handler orchestration |
+| [**Nalix.SDK**](./packages/nalix-sdk.md) | Client-side transport sessions and request/response helpers |
+| [**Nalix.Codec**](./packages/nalix-codec.md) | Serialization, buffer leasing, and compression |
+| [**Nalix.Environment**](./packages/nalix-environment.md) | Configuration, environment IO, and time |
+| [**Nalix.Framework**](./packages/nalix-framework.md) | Shared runtime services and identifiers |
 | [**Nalix.Abstractions**](./packages/nalix-abstractions.md) | Shared contracts, packet attributes, and connection abstractions |
 
 For the full package map, see [Packages Overview](./packages/index.md).

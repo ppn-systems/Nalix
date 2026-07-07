@@ -170,6 +170,15 @@ internal sealed class TcpFrameReader : IDisposable
 
             if (!_sequence.IsValid(seq))
             {
+                if (Codec.DiagnosticsEvents.Source.IsEnabled(Codec.DiagnosticsEvents.Sequence.Rejected))
+                {
+                    Codec.DiagnosticsEvents.Write(Codec.DiagnosticsEvents.Sequence.Rejected, new
+                    {
+                        Transport = "TCP",
+                        ReceivedSeq = seq,
+                        CurrentSeq = _sequence.Current()
+                    });
+                }
                 return;
             }
 

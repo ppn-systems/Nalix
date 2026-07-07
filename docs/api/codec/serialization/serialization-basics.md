@@ -174,5 +174,5 @@ It is the machinery that `PacketBase<TSelf>` and related frame helpers build on.
 
 ## Related APIs
 
-- [Serialization Concept](../../../concepts/fundamentals/packet-system.md)
+- [Serialization Concept](../../../concepts/how-packets-work.md)
 - [Custom Serialization Provider Guide](../../../guides/extensibility/serialization-providers.md)

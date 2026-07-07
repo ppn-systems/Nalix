@@ -1,22 +1,10 @@
 # Middleware Usage Guide
 
-!!! info "Learning Signals"
-    - :fontawesome-solid-layer-group: **Level**: Intermediate
-    - :fontawesome-solid-clock: **Time**: 10–15 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../../quickstart.md)
-
 Use this guide when you need to implement request policy, security enforcement, or observability in your Nalix application.
 
 ## Core Concepts
 
-In Nalix, middleware is organized into the **`MiddlewarePipeline`**. This pipeline operates on deserialized packets (`IPacketContext<TPacket>`), allowing you to make decisions based on both the packet data and the resolved handler metadata.
-
-```mermaid
-flowchart LR
-    A["Inbound frame"] --> B["Deserialization"]
-    B --> C["MiddlewarePipeline"]
-    C --> D["Handler"]
-```
+In Nalix, middleware is organized into the **`MiddlewarePipeline`**. This pipeline operates on deserialized packets (`IPacketContext<TPacket>`), allowing you to make decisions based on both the packet data and the resolved handler metadata. An inbound frame is deserialized into a packet, passed through the `MiddlewarePipeline`, then handed to your handler.
 
 ## When to use Middleware
 
@@ -71,5 +59,5 @@ For public traffic, a good starting setup is:
 
 - [Custom Middleware Guide](../extensibility/custom-middleware.md)
 - [Custom Metadata Providers](../extensibility/metadata-providers.md)
-- [Middleware Concept](../../concepts/runtime/middleware-pipeline.md)
+- [Handlers and Middleware](../../concepts/handlers-and-middleware.md)
 - [Middleware Pipeline API](../../api/runtime/middleware/pipeline.md)

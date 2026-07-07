@@ -73,6 +73,12 @@ internal sealed class TcpFrameSender : IDisposable
         IBufferLease current = lease;
         try
         {
+            if (encrypt && _sequence.IsApproachingOverflow())
+            {
+                throw new CipherException(
+                    "Send sequence counter is approaching overflow. Key rotation is required before it wraps.");
+            }
+
             FramePipeline.ProcessOutbound(
                 ref current,
                 _options.CompressionEnabled,

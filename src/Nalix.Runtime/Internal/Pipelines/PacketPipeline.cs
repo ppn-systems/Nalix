@@ -50,6 +50,26 @@ internal static class PacketPipeline
         try
         {
             IBufferLease current = workingLease;
+
+            // Sequence reservation and the wire write must be atomic per-transport: reserving
+            // NextSendSequence() before the actual write can complete lets two concurrent senders
+            // reserve seq in one order yet hit the wire in the opposite order, causing the
+            // receiver's strict monotonic check to drop the lower-seq packet as a false replay.
+            // ITransport.AcquireSendLockAsync/SendAsyncCore let each transport define what
+            // "atomic with reservation" means (no-op for TCP/UDP, a real lock for WebSocket).
+            await using ConfiguredAsyncDisposable sendScope = (await transport.AcquireSendLockAsync(ct)
+                .ConfigureAwait(false)).ConfigureAwait(false);
+
+            if (needEncrypt && transport.SendSequence.IsApproachingOverflow())
+            {
+                // Pre-emptively disconnect before the counter can wrap and force nonce reuse.
+                // Existing key-rotation (RekeyExtensions.RekeyAsync) resets counters on the client
+                // side; a clean disconnect here is the server-side equivalent when no rekey has
+                // happened in time.
+                connection.Disconnect("Send sequence counter approaching overflow; reconnect required.");
+                return;
+            }
+
             uint? sequenceToUse = needEncrypt ? transport.NextSendSequence() : null;
 
             // FramePipeline mutates `current` and properly cleans up older leases.
@@ -76,7 +96,7 @@ internal static class PacketPipeline
                         System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(signedLease.SpanFull.Slice(dataLen, 4), hash);
                         signedLease.CommitLength(dataLen + 4);
 
-                        await transport.SendAsync(signedLease.Memory, ct).ConfigureAwait(false);
+                        await transport.SendAsyncCore(signedLease.Memory, ct).ConfigureAwait(false);
                     }
                     finally
                     {
@@ -85,12 +105,12 @@ internal static class PacketPipeline
                 }
                 else
                 {
-                    await transport.SendAsync(current.Memory, ct).ConfigureAwait(false);
+                    await transport.SendAsyncCore(current.Memory, ct).ConfigureAwait(false);
                 }
             }
             finally
             {
-                // Only dispose `current` if it was replaced. 
+                // Only dispose `current` if it was replaced.
                 // `workingLease` itself will be disposed in the outer finally or by the caller.
                 if (current != workingLease)
                 {

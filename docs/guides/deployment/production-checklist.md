@@ -190,6 +190,58 @@ listener.Deactivate(ct);
 
 `Activate(...)` and `Deactivate(...)` on listeners are synchronous lifecycle calls. The async host-facing entrypoint is `NetworkApplication.RunAsync(...)`.
 
+## Worked example
+
+Putting the checklist into practice: a handler with explicit contracts, rate limiting, and error handling wired through the hosting builder.
+
+```csharp
+// samples/HelloWorld/HelloWorld.Contracts/HelloRequestPacket.cs
+[Packet]
+[GenerateFormatter]
+[SerializePackable(SerializeLayout.Explicit)]
+public sealed partial class HelloRequestPacket
+    : PacketBase<HelloRequestPacket>, IFixedSizeSerializable, IPacketStaticOpcode
+{
+    public static ushort StaticOpCode => 0x7001;
+
+    [SerializeOrder(0)]
+    public byte Greeting { get; set; }
+}
+```
+
+```csharp
+// samples/HelloWorld/HelloWorld.Server/Program.cs, extended with production concerns
+await using NetworkApplication app = NetworkApplication.CreateBuilder()
+    .UseLogger(logger)
+    .MapHandlers(typeof(HelloHandlers))
+    .ConfigureDispatchOptions(options =>
+    {
+        options
+            .WithMiddleware(new RateLimitMiddleware())
+            .WithErrorHandling((ex, opcode) =>
+                logger.Error($"Unhandled error in opcode 0x{opcode:X4}", ex));
+    })
+    .ListenTcp<DefaultProtocol>().OnPort(57206).Bind()
+    .Build();
+
+await app.RunAsync(cts.Token);
+```
+
+Full source: `samples/HelloWorld/HelloWorld.Contracts/HelloRequestPacket.cs`, `samples/HelloWorld/HelloWorld.Server/Program.cs`
+
+On the client, set an explicit timeout on every request instead of relying on defaults:
+
+```csharp
+// samples/HelloWorld/HelloWorld.Client/Program.cs
+HelloResponsePacket response = await session.RequestAsync<HelloResponsePacket>(
+    request,
+    RequestOptions.Default.WithTimeout(5_000));
+```
+
+Full source: `samples/HelloWorld/HelloWorld.Client/Program.cs`
+
+Resource cleanup for buffer leases is handled automatically when you use `IPacketContext<T>` in your handler — you don't dispose anything yourself.
+
 ## Recommended Next Pages
 
 - [Server Blueprint](../getting-started/server-blueprint.md)

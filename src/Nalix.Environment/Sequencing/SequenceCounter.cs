@@ -190,7 +190,13 @@ public sealed class SequenceCounter : ISequenceCounter
         {
             currentState = Volatile.Read(ref _packedState);
             uint currentSeq = (uint)(currentState >> 32);
-            uint newValue = lastKnownSeq + safetyGap;
+
+            // Saturate instead of wrapping: an unchecked wrap would resume below
+            // lastKnownSeq and reissue already-used sequence numbers (nonce reuse).
+            // At uint.MaxValue the next call to Next() throws CipherException,
+            // forcing key rotation via the existing overflow policy.
+            ulong candidate = (ulong)lastKnownSeq + safetyGap;
+            uint newValue = candidate >= uint.MaxValue ? uint.MaxValue : (uint)candidate;
 
             if (newValue <= currentSeq)
             {
@@ -200,4 +206,9 @@ public sealed class SequenceCounter : ISequenceCounter
             newState = ((ulong)newValue << 32) | 1U;
         } while (Interlocked.CompareExchange(ref _packedState, newState, currentState) != currentState);
     }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool IsApproachingOverflow(uint margin = 1_000_000)
+        => this.Current() >= uint.MaxValue - margin;
 }

@@ -124,13 +124,13 @@ public sealed class InMemorySessionStore : ISessionStore, IWorker, IReportable
     /// retrieve-and-remove. Only one concurrent caller can successfully consume a given token.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ValueTask<SessionEntry?> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default)
+    public ValueTask<SessionScope> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         if (!_store.TryRemove(sessionToken, out SessionEntry? entry))
         {
-            return ValueTask.FromResult<SessionEntry?>(null);
+            return ValueTask.FromResult(new SessionScope(null));
         }
 
         // Check TTL — if expired, return the entry resources and report null.
@@ -138,11 +138,11 @@ public sealed class InMemorySessionStore : ISessionStore, IWorker, IReportable
         {
             _ = Interlocked.Increment(ref _totalExpired);
             entry.Return();
-            return ValueTask.FromResult<SessionEntry?>(null);
+            return ValueTask.FromResult(new SessionScope(null));
         }
 
         _ = Interlocked.Increment(ref _totalConsumed);
-        return ValueTask.FromResult<SessionEntry?>(entry);
+        return ValueTask.FromResult(new SessionScope(entry));
     }
 
     /// <inheritdoc />

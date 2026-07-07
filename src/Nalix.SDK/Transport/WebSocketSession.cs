@@ -19,7 +19,7 @@ namespace Nalix.SDK.Transport;
 /// <summary>
 /// Provides a WebSocket transport session built on <see cref="WsFrameReader"/> and <see cref="WsFrameSender"/>.
 /// </summary>
-public class WebSocketSession : TransportSession
+public sealed class WebSocketSession : TransportSession
 {
     #region Fields
 

@@ -84,7 +84,8 @@ public sealed class ConnectionHubSessionTests
 
         // Simulator of TryResumeSession logic:
         // We use ConsumeAsync but since we want to check multiple times, we'll store it back or use the reference
-        SessionEntry? s = await service.ConsumeAsync(sessionInfo.Snapshot.SessionToken);
+        SessionScope sessionScope1 = await service.ConsumeAsync(sessionInfo.Snapshot.SessionToken);
+        SessionEntry? s = sessionScope1.Value;
         _ = s.Should().NotBeNull();
         await store.StoreAsync(s!);
 
@@ -96,7 +97,8 @@ public sealed class ConnectionHubSessionTests
         hub.UnregisterConnection(connection1);
 
         // Resume should now succeed
-        SessionEntry? ss = await service.ConsumeAsync(sessionInfo.Snapshot.SessionToken);
+        using SessionScope sessionScope2 = await service.ConsumeAsync(sessionInfo.Snapshot.SessionToken);
+        SessionEntry? ss = sessionScope2.Value;
         _ = ss.Should().NotBeNull();
         _ = hub.GetConnection(ss!.ConnectionId).Should().BeNull();
 
@@ -140,7 +142,8 @@ public sealed class ConnectionHubSessionTests
         // 5. Resume session with new connection
         using ConnectedSocketScope scope2 = await ConnectedSocketScope.CreateAsync();
         using Connection connection2 = new(scope2.ServerSocket, s_testOpCodeExtractor);
-        SessionEntry? s = await service.ConsumeAsync(sessionInfo.Snapshot.SessionToken);
+        using SessionScope sessionScope = await service.ConsumeAsync(sessionInfo.Snapshot.SessionToken);
+        SessionEntry? s = sessionScope.Value;
         _ = s.Should().NotBeNull();
 
         ApplySession(connection2, s!);
@@ -173,7 +176,8 @@ public sealed class ConnectionHubSessionTests
         await store.StoreAsync(sessionInfo);
 
         // Verify snapshot from store
-        SessionEntry? updated = await service.ConsumeAsync(sessionInfo.Snapshot.SessionToken);
+        using SessionScope sessionScope = await service.ConsumeAsync(sessionInfo.Snapshot.SessionToken);
+        SessionEntry? updated = sessionScope.Value;
         _ = updated.Should().NotBeNull();
         _ = updated!.Snapshot.Attributes.Should().ContainKey(AttributeKey.FromName("custom")).WhoseValue.Should().Be("data");
     }
@@ -213,8 +217,40 @@ public sealed class ConnectionHubSessionTests
         _ = original.Snapshot.Secret.Should().Be(Abstractions.Primitives.Bytes32.Zero);
         _ = original.Snapshot.Attributes.Should().BeNull();
 
-        SessionEntry? stored = await service.ConsumeAsync(original.Snapshot.SessionToken);
+        using SessionScope sessionScope = await service.ConsumeAsync(original.Snapshot.SessionToken);
+        SessionEntry? stored = sessionScope.Value;
         _ = stored.Should().BeSameAs(replacement);
+    }
+
+    [Fact]
+    public async Task SessionPersistenceObserver_AfterDispose_NoLongerPersistsOnUnregister()
+    {
+        InMemorySessionStore store = new();
+        SessionService service = new(store: store);
+        using ConnectionHub hub = new();
+        SessionPersistenceObserver observer = new(hub, service);
+        using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
+        using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
+
+        connection.GetRuntimeState().HandshakeEstablished = true;
+        for (int i = 0; i < 20; i++)
+        {
+            connection.Attributes[AttributeKey.FromName($"key_{i}")] = i;
+        }
+
+        hub.RegisterConnection(connection);
+
+        // Dispose the observer BEFORE unregistering — it must unsubscribe from the hub event.
+        observer.Dispose();
+
+        hub.UnregisterConnection(connection);
+
+        // Give any (incorrectly still-subscribed) background persistence a moment to run.
+        await Task.Delay(200);
+
+        using SessionScope sessionScope = await service.ConsumeAsync(connection.ConnectionId);
+        _ = sessionScope.Value.Should().BeNull(
+            "a disposed SessionPersistenceObserver must have unsubscribed from ConnectionUnregistered and not persist the session");
     }
 
     private static void SyncSession(IConnection connection, SessionEntry session)

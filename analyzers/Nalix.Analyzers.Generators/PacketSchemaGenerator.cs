@@ -22,14 +22,70 @@ namespace Nalix.Analyzers.Generators;
 [Generator]
 public sealed class PacketSchemaGenerator : IIncrementalGenerator
 {
-    // -------------------------------------------------------------------------
-    // IIncrementalGenerator
-    // -------------------------------------------------------------------------
+    public readonly struct PacketSchemaModel : IEquatable<PacketSchemaModel>
+    {
+        public string HintName { get; }
+        public string SourceCode { get; }
+        public string FullTypeName { get; }
+        public int StaticSize { get; }
+        public string? GeneratedNamespace { get; }
+        public Diagnostic? Diagnostic { get; }
+
+        public PacketSchemaModel(string hintName, string sourceCode, string fullTypeName, int staticSize, string? generatedNamespace, Diagnostic? diagnostic)
+        {
+            this.HintName = hintName;
+            this.SourceCode = sourceCode;
+            this.FullTypeName = fullTypeName;
+            this.StaticSize = staticSize;
+            this.GeneratedNamespace = generatedNamespace;
+            this.Diagnostic = diagnostic;
+        }
+
+        public bool Equals(PacketSchemaModel other)
+        {
+            if (this.HintName != other.HintName ||
+                this.SourceCode != other.SourceCode ||
+                this.FullTypeName != other.FullTypeName ||
+                this.StaticSize != other.StaticSize ||
+                this.GeneratedNamespace != other.GeneratedNamespace)
+            {
+                return false;
+            }
+            if (this.Diagnostic == null && other.Diagnostic == null)
+            {
+                return true;
+            }
+
+            if (this.Diagnostic != null && other.Diagnostic != null)
+            {
+                return this.Diagnostic.Equals(other.Diagnostic);
+            }
+
+            return false;
+        }
+
+        public override bool Equals(object obj) => obj is PacketSchemaModel other && this.Equals(other);
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = (hash * 23) + (this.HintName?.GetHashCode() ?? 0);
+                hash = (hash * 23) + (this.SourceCode?.GetHashCode() ?? 0);
+                hash = (hash * 23) + (this.FullTypeName?.GetHashCode() ?? 0);
+                hash = (hash * 23) + this.StaticSize.GetHashCode();
+                hash = (hash * 23) + (this.GeneratedNamespace?.GetHashCode() ?? 0);
+                hash = (hash * 23) + (this.Diagnostic?.GetHashCode() ?? 0);
+                return hash;
+            }
+        }
+    }
 
     /// <inheritdoc/>
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        IncrementalValuesProvider<ITypeSymbol?> provider = context.SyntaxProvider
+        IncrementalValuesProvider<PacketSchemaModel> provider = context.SyntaxProvider
             .CreateSyntaxProvider(
                 predicate: static (node, _) =>
                     node is ClassDeclarationSyntax cds &&
@@ -37,53 +93,87 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
                         m.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.AbstractKeyword) ||
                         m.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.StaticKeyword)),
                 transform: static (ctx, _) => GetSemanticTarget(ctx))
-            .Where(static t => t is not null);
+            .Where(static m => m.FullTypeName != null);
 
         context.RegisterSourceOutput(provider.Collect(), this.Execute);
     }
 
-    // -------------------------------------------------------------------------
-    // Pipeline: semantic filter
-    // -------------------------------------------------------------------------
-
-    private static ITypeSymbol? GetSemanticTarget(GeneratorSyntaxContext context)
+    private static PacketSchemaModel GetSemanticTarget(GeneratorSyntaxContext context)
     {
         if (context.Node is not ClassDeclarationSyntax classDef)
         {
-            return null;
+            return default;
         }
 
         if (context.SemanticModel.GetDeclaredSymbol(classDef) is not INamedTypeSymbol symbol)
         {
-            return null;
+            return default;
         }
 
         ITypeSymbol? baseType = symbol.BaseType;
+        bool isPacket = false;
         while (baseType != null)
         {
             if (baseType.Name == KnownNames.PacketBaseName && baseType is INamedTypeSymbol { IsGenericType: true })
             {
-                return symbol;
+                isPacket = true;
+                break;
             }
-
             baseType = baseType.BaseType;
         }
 
-        return null;
+        if (!isPacket)
+        {
+            return default;
+        }
+
+        string fullTypeName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        string hintName = fullTypeName
+            .Replace("global::", "")
+            .Replace("<", "_").Replace(">", "_")
+            .Replace(",", "_").Replace(" ", "");
+        string generatedNamespace = SourceGenNamespaces.Get(symbol);
+
+        if (!IS_PARTIAL(symbol))
+        {
+            return new PacketSchemaModel(
+                hintName, "", fullTypeName, 0, generatedNamespace,
+                Diagnostic.Create(GeneratorDiagnosticDescriptors.PacketClassMustBePartial, symbol.Locations.FirstOrDefault() ?? Location.None, symbol.Name));
+        }
+
+        string sourceCode = GENERATE_PACKET_PARTIAL(symbol, out int staticSize);
+        return new PacketSchemaModel(hintName, sourceCode, fullTypeName, staticSize, generatedNamespace, null);
     }
 
-    // -------------------------------------------------------------------------
-    // Pipeline: Execute
-    // -------------------------------------------------------------------------
-
-    private void Execute(SourceProductionContext context, ImmutableArray<ITypeSymbol?> targets)
+    private void Execute(SourceProductionContext context, ImmutableArray<PacketSchemaModel> targets)
     {
         if (targets.IsDefaultOrEmpty)
         {
             return;
         }
 
-        string generatedNamespace = SourceGenNamespaces.Get(targets.First(static t => t is not null)!);
+        HashSet<string> processed = new();
+        List<PacketSchemaModel> distinctTargets = new();
+
+        foreach (PacketSchemaModel m in targets)
+        {
+            if (m.Diagnostic != null)
+            {
+                context.ReportDiagnostic(m.Diagnostic);
+            }
+
+            if (m.FullTypeName != null && processed.Add(m.FullTypeName) && !string.IsNullOrEmpty(m.SourceCode))
+            {
+                distinctTargets.Add(m);
+            }
+        }
+
+        if (distinctTargets.Count == 0)
+        {
+            return;
+        }
+
+        string generatedNamespace = distinctTargets[0].GeneratedNamespace!;
 
         StringBuilder initBuilder = new();
         _ = initBuilder.AppendLine("// <auto-generated/>");
@@ -95,32 +185,10 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
         _ = initBuilder.AppendLine("    internal static void Initialize()");
         _ = initBuilder.AppendLine("    {");
 
-        HashSet<string> processed = new();
-
-        foreach (ITypeSymbol? type in targets)
+        foreach (PacketSchemaModel m in distinctTargets)
         {
-            if (type is null)
-            {
-                continue;
-            }
-
-            string fullTypeName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            if (!processed.Add(fullTypeName))
-            {
-                continue;
-            }
-
-            if (!IS_PARTIAL(type))
-            {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    GeneratorDiagnosticDescriptors.PacketClassMustBePartial,
-                    type.Locations.FirstOrDefault(), type.Name));
-                continue;
-            }
-
-            this.GENERATE_PACKET_PARTIAL(context, type, out int staticSize);
-
-            _ = initBuilder.AppendLine($"        global::{KnownNames.PacketBaseNamespace}.{KnownNames.PacketSchemaName}<{fullTypeName}>.StaticSize = {staticSize};");
+            _ = initBuilder.AppendLine($"        global::{KnownNames.PacketBaseNamespace}.{KnownNames.PacketSchemaName}<{m.FullTypeName}>.StaticSize = {m.StaticSize};");
+            context.AddSource($"{m.HintName}.Packet.g.cs", SourceText.From(m.SourceCode, Encoding.UTF8));
         }
 
         _ = initBuilder.AppendLine("    }");
@@ -129,17 +197,12 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
         context.AddSource("PacketSchemaGenerated.g.cs", SourceText.From(initBuilder.ToString(), Encoding.UTF8));
     }
 
-    // -------------------------------------------------------------------------
-    // Partial class generation
-    // -------------------------------------------------------------------------
-
-    private void GENERATE_PACKET_PARTIAL(SourceProductionContext context, ITypeSymbol type, out int staticSize)
+    private static string GENERATE_PACKET_PARTIAL(ITypeSymbol type, out int staticSize)
     {
         string ns = type.ContainingNamespace.IsGlobalNamespace
                             ? ""
                             : $"namespace {type.ContainingNamespace.ToDisplayString()};";
         string typeName = type.Name;
-
         staticSize = 0;
 
         List<ISymbol> members = SerializationMember.Resolve(type);
@@ -276,31 +339,16 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
             _ = sb.AppendLine("}");
         }
 
-        string hintName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
-            .Replace("global::", "")
-            .Replace("<", "_").Replace(">", "_")
-            .Replace(",", "_").Replace(" ", "");
-
-        context.AddSource($"{hintName}.Packet.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+        return sb.ToString();
     }
 
-    // =========================================================================
-    // GetFixedSize  —  returns > 0 only when the entire wire-size is a constant
-    // =========================================================================
-
-    /// <summary>
-    /// Returns the fixed wire-byte-count for <paramref name="type"/> if it is
-    /// known at compile-time, or 0 if the size is data-dependent (dynamic).
-    /// </summary>
     private static int GET_FIXED_SIZE(ITypeSymbol type)
     {
-        // ---- Enum: delegate to underlying integer type ----
         if (type.TypeKind == TypeKind.Enum)
         {
             return GET_FIXED_SIZE(((INamedTypeSymbol)type).EnumUnderlyingType!);
         }
 
-        // ---- Well-known BCL primitives via SpecialType ----
 #pragma warning disable IDE0010 // Add missing cases
         switch (type.SpecialType)
         {
@@ -322,9 +370,6 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
             case SpecialType.System_DateTime: return 8;
 
             case SpecialType.System_Decimal: return 16;
-
-            default:
-                break;
         }
 #pragma warning restore IDE0010 // Add missing cases
 
@@ -387,10 +432,6 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
         return 0;
     }
 
-    /// <summary>
-    /// Recursively builds the C# expression that evaluates to the wire-byte-count
-    /// of <paramref name="accessor"/> whose Roslyn type is <paramref name="type"/>.
-    /// </summary>
     private static string BUILD_SIZE_EXPRESSION(ITypeSymbol type, string accessor)
     {
         // ---- Fixed-size shortcut ----
@@ -438,10 +479,7 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
                 string def = named.OriginalDefinition.ToDisplayString();
 
                 // List<T> / HashSet<T> / Queue<T> / Stack<T>
-                if (def is "System.Collections.Generic.List<T>"
-                        or "System.Collections.Generic.HashSet<T>"
-                        or "System.Collections.Generic.Queue<T>"
-                        or "System.Collections.Generic.Stack<T>")
+                if (def is "System.Collections.Generic.List<T>" or "System.Collections.Generic.HashSet<T>" or "System.Collections.Generic.Queue<T>" or "System.Collections.Generic.Stack<T>")
                 {
                     return BUILD_SEQUENCE_SIZE_EXPRESSION(args[0], accessor, countProperty: "Count");
                 }
@@ -493,12 +531,14 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
             if (type.IsTupleType)
             {
                 INamedTypeSymbol tuple = (INamedTypeSymbol)type;
+
                 // ValueTuples have both named elements and Item1, Item2 aliases. 
                 // We use the underlying elements to ensure we only count each logical field once.
                 List<string> tupleParts = new();
                 for (int i = 0; i < tuple.TupleElements.Length; i++)
                 {
                     IFieldSymbol e = tuple.TupleElements[i];
+
                     // Use Item1, Item2... as the accessor to avoid confusion between names and aliases
                     tupleParts.Add(BUILD_SIZE_EXPRESSION(e.Type, $"{accessor}.Item{i + 1}"));
                 }
@@ -521,15 +561,12 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
             {
                 return $"({accessor} is null ? 0 : {sum})";
             }
+
             return $"({sum})";
         }
 
         return "0";
     }
-
-    // -------------------------------------------------------------------------
-    // Array size helpers
-    // -------------------------------------------------------------------------
 
     private static string BUILD_ARRAY_SIZE_EXPRESSION(IArrayTypeSymbol arrayType, string accessor)
     {
@@ -553,8 +590,7 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
                 ? $"(item.HasValue ? 1 + {innerFixed} : 1)"
                 : $"(item.HasValue ? 1 + {BUILD_SIZE_EXPRESSION(inner, "item.Value")} : 1)";
 
-            return
-                $"({nullCheck} ? 4 : ((global::System.Func<int>)(() => {{ int _s = 4; foreach (var item in {accessor}) _s += {perItemExpr}; return _s; }}))())";
+            return $"({nullCheck} ? 4 : ((global::System.Func<int>)(() => {{ int _s = 4; foreach (var item in {accessor}) _s += {perItemExpr}; return _s; }}))())";
         }
 
         // Enum[] or unmanaged[]  →  fixed per element
@@ -602,8 +638,7 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
         // string elements
         if (elemType.SpecialType == SpecialType.System_String)
         {
-            return
-                $"({nullCheck} ? 4 : ((global::System.Func<int>)(() => {{ int _s = 4; foreach (var _str in {accessor}) _s += _str is null ? 4 : 4 + global::System.Text.Encoding.UTF8.GetByteCount(_str); return _s; }}))())";
+            return BUILD_STRING_ARRAY_SIZE_EXPRESSION(accessor);
         }
 
         // Nullable<T> elements
@@ -615,18 +650,12 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
                 ? $"(item.HasValue ? 1 + {innerFixed} : 1)"
                 : $"(item.HasValue ? 1 + {BUILD_SIZE_EXPRESSION(inner, "item.Value")} : 1)";
 
-            return
-                $"({nullCheck} ? 4 : ((global::System.Func<int>)(() => {{ int _s = 4; foreach (var item in {accessor}) _s += {perItemExpr}; return _s; }}))())";
+            return $"({nullCheck} ? 4 : ((global::System.Func<int>)(() => {{ int _s = 4; foreach (var item in {accessor}) _s += {perItemExpr}; return _s; }}))())";
         }
 
         // Dynamic elements — recursive
-        return
-            $"({nullCheck} ? 4 : ((global::System.Func<int>)(() => {{ int _s = 4; foreach (var item in {accessor}) _s += {BUILD_SIZE_EXPRESSION(elemType, "item")}; return _s; }}))())";
+        return $"({nullCheck} ? 4 : ((global::System.Func<int>)(() => {{ int _s = 4; foreach (var item in {accessor}) _s += {BUILD_SIZE_EXPRESSION(elemType, "item")}; return _s; }}))())";
     }
-
-    // -------------------------------------------------------------------------
-    // Dictionary size helper
-    // -------------------------------------------------------------------------
 
     private static string BUILD_DICTIONARY_SIZE_EXPRESSION(ITypeSymbol keyType, ITypeSymbol valueType, string accessor)
     {
@@ -634,7 +663,6 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
         int keyFixed = GET_FIXED_SIZE(keyType);
         int valFixed = GET_FIXED_SIZE(valueType);
 
-        // Both fixed — single multiply
         if (keyFixed > 0 && valFixed > 0)
         {
             return $"({nullCheck} ? 4 : 4 + ({accessor}.Count * ({keyFixed} + {valFixed})))";
@@ -644,25 +672,15 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
         string keyExpr = keyFixed > 0 ? keyFixed.ToString() : BUILD_SIZE_EXPRESSION(keyType, "kvp.Key");
         string valExpr = valFixed > 0 ? valFixed.ToString() : BUILD_SIZE_EXPRESSION(valueType, "kvp.Value");
 
-        return
-            $"({nullCheck} ? 4 : ((global::System.Func<int>)(() => {{ int _s = 4; foreach (var kvp in {accessor}) {{ _s += {keyExpr}; _s += {valExpr}; }} return _s; }}))())";
+        return $"({nullCheck} ? 4 : ((global::System.Func<int>)(() => {{ int _s = 4; foreach (var kvp in {accessor}) {{ _s += {keyExpr}; _s += {valExpr}; }} return _s; }}))())";
     }
-
-    // -------------------------------------------------------------------------
-    // ValueTuple size helpers
-    // -------------------------------------------------------------------------
 
     private static bool IS_VALUE_TUPLE(INamedTypeSymbol type)
     {
         string name = type.OriginalDefinition.ToDisplayString();
-        return name is
-            "System.ValueTuple<T1, T2>"
-            or "System.ValueTuple<T1, T2, T3>"
-            or "System.ValueTuple<T1, T2, T3, T4>"
-            or "System.ValueTuple<T1, T2, T3, T4, T5>";
+        return name is "System.ValueTuple<T1, T2>" or "System.ValueTuple<T1, T2, T3>" or "System.ValueTuple<T1, T2, T3, T4>" or "System.ValueTuple<T1, T2, T3, T4, T5>";
     }
 
-    /// <summary>Returns the total fixed size, or 0 if any item is dynamic.</summary>
     private static int GET_VALUE_TUPLE_FIXED_SIZE(INamedTypeSymbol type)
     {
         int total = 0;
@@ -692,10 +710,6 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
         }
         return $"({string.Join(" + ", items)})";
     }
-
-    // =========================================================================
-    // Unmanaged struct helpers
-    // =========================================================================
 
     private static bool IS_UNMANAGED_STRUCT(INamedTypeSymbol type)
     {
@@ -746,36 +760,24 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
     {
         foreach (AttributeData attr in type.GetAttributes())
         {
-            if (attr.AttributeClass?.Name != KnownNames.SerializeDynamicSizeAttributeName)
+            if (attr.AttributeClass?.Name == KnownNames.SerializeDynamicSizeAttributeName)
             {
-                continue;
-            }
-
-            if (attr.ConstructorArguments.Length > 0 &&
-                attr.ConstructorArguments[0].Value is int size)
-            {
-                return size;
+                if (attr.ConstructorArguments.Length > 0 && attr.ConstructorArguments[0].Value is int size)
+                {
+                    return size;
+                }
             }
         }
         return 0;
     }
 
-    // =========================================================================
-    // IPacket check
-    // =========================================================================
-
     private static bool IMPLEMENTSI_PACKET(INamedTypeSymbol type) => type.AllInterfaces.Any(i => i.Name == KnownNames.IPacketInterfaceName);
-
-    // =========================================================================
-    // Utilities shared with the partial-class emitter
-    // =========================================================================
 
     private static bool IS_PARTIAL(ITypeSymbol type)
     {
         foreach (SyntaxReference syntaxRef in type.DeclaringSyntaxReferences)
         {
-            if (syntaxRef.GetSyntax() is ClassDeclarationSyntax cds &&
-                cds.Modifiers.Any(m => m.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.PartialKeyword)))
+            if (syntaxRef.GetSyntax() is ClassDeclarationSyntax cds && cds.Modifiers.Any(m => m.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.PartialKeyword)))
             {
                 return true;
             }
@@ -811,13 +813,7 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
         {
             string def = named.OriginalDefinition.ToDisplayString();
             string fullType = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-
-            if (def is
-                "System.Collections.Generic.List<T>" or
-                "System.Collections.Generic.HashSet<T>" or
-                "System.Collections.Generic.Queue<T>" or
-                "System.Collections.Generic.Stack<T>" or
-                "System.Collections.Generic.Dictionary<TKey, TValue>")
+            if (def is "System.Collections.Generic.List<T>" or "System.Collections.Generic.HashSet<T>" or "System.Collections.Generic.Queue<T>" or "System.Collections.Generic.Stack<T>" or "System.Collections.Generic.Dictionary<TKey, TValue>")
             {
                 return $"new {fullType}()";
             }

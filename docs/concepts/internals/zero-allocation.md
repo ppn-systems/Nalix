@@ -1,32 +1,25 @@
 # Zero-Allocation Hot Path
 
 !!! warning "Advanced Topic"
-    This page describes extreme performance optimizations and bare-metal memory lifecycles. If you are just getting started, please see the [Quickstart](../../quickstart.md).
+    This page describes extreme performance optimizations and bare-metal memory lifecycles. If you are just getting started, see the [Quickstart](../../quickstart.md).
 
-!!! info "Learning Signals"
-    - :fontawesome-solid-layer-group: **Level**: Expert
-    - :fontawesome-solid-clock: **Time**: 20 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Architecture](../fundamentals/architecture.md)
-
-To support thousands of concurrent connections with sub-millisecond latency, Nalix implements a "Zero-Allocation Hot Path." This means that during peak traffic, the core networking loop executes without triggering any managed heap allocations.
+To support thousands of concurrent connections with sub-millisecond latency, Nalix implements a "Zero-Allocation Hot Path." During peak traffic, the core networking loop executes without triggering any managed heap allocations.
 
 ## The Integrated Journey
-
-The following diagram illustrates how a raw network buffer is transformed into a handled message without a single `new` operation on the heap.
 
 ```mermaid
 sequenceDiagram
     participant OS as Network Stack
     participant LP as Buffer Pool (BufferPoolManager)
-    participant DC as Dispatch Loop (Worker)
+    participant DC as Dispatch Channel (Sharded)
     participant FR as Frozen Registry (O(1))
     participant CH as Source-Generated Invoker
     participant CP as Context Pool (ObjectPoolManager)
 
     OS->>LP: Receive raw bytes
-    LP-->>OS: Return IBufferLease (Buffer Segment)
+    LP-->>OS: Return IBufferLease (Pooled)
     OS->>DC: Push(Lease)
-    DC->>DC: Worker drain loop
+    DC->>DC: Hash connection to shard
     DC->>FR: TryDeserialize(Lease.Span)
     FR-->>DC: IPacket (Pooled Deserialization)
     DC->>CP: Get<PacketContext<T>>()
@@ -42,7 +35,7 @@ sequenceDiagram
 
 ## 1. Efficient Packet Definitions
 
-High performance starts with how you define your data. Use `SerializeLayout.Explicit` to ensure the framework can use specialized bit-blitting deserializers.
+High performance starts with how you define your data. Use `SerializeLayout.Explicit` so the framework can use specialized bit-blitting deserializers.
 
 ```csharp
 using Nalix.Codec.DataFrames;
@@ -65,153 +58,206 @@ public sealed class HighFreqUpdate : PacketBase<HighFreqUpdate>
 !!! tip
     Using `struct` for small, high-frequency packets ensures they live on the stack or within the pooled `PacketContext`, avoiding heap allocation entirely.
 
----
+## 2. Setup & Compilation
 
-## 2. Source-Generated Handler Execution
+Nalix "bakes" your handlers and packet lookups during startup, handled automatically by `NetworkApplicationBuilder`:
 
-Nalix does not use reflection at runtime. The `PacketHandlerGenerator` source generator scans `[PacketHandler]` classes at compile time and emits zero-allocation invoker delegates.
-
-### Behind the Scenes
-
-The generator transforms your handler method into a compiled delegate similar to this:
+1. **Frozen Registry Creation** — `PacketRegistry` uses source-generated metadata to build an immutable `FrozenDictionary` for O(1), branch-prediction-friendly lookups.
+2. **Source-Generated Dispatch** — `PacketHandlerGenerator` emits zero-allocation invoker delegates at compile time, eliminating reflection overhead.
 
 ```csharp
-// Generated at compile time by PacketHandlerGenerator:
+using Nalix.Hosting;
+
+var app = NetworkApplication.CreateBuilder()
+    .MapHandlers<GameController>() // invokers generated at build time
+    .Build(); // lookups frozen at startup
+```
+
+If you're not using the hosting layer, populate dispatch options manually:
+
+```csharp
+var channel = new PacketDispatchChannel(options =>
+{
+    options.WithHandler(() => new MyController());
+});
+```
+
+The compiler transforms your handler method into a static delegate conceptually like this:
+
+```csharp
 public static ValueTask<object?> CompiledInvoker(object? instance, PacketContext<HighFreqUpdate> ctx)
-{
-    return ((MyController)instance!).HandleUpdate(ctx);
-}
+    => ((MyController)instance!).HandleUpdate(ctx);
 ```
 
-This delegate is then cached in a **`FrozenDictionary`**, providing $O(1)$ lookup time with significantly lower overhead than a standard `Dictionary`.
-
-### The "MemoryPacket" Bypass (Ultra Hot Path)
-
-For the absolute highest throughput where even deserialization overhead is unacceptable (e.g., forwarding raw data or custom bit-packing), you can define a handler that accepts `ReadOnlyMemory<byte>` directly.
-
-When the dispatcher detects such a handler, it **skips the Packet Registry entirely** and wraps the raw transport lease in a `MemoryPacket` struct.
-
-```csharp
-[PacketOpcode(0x9999)]
-public ValueTask HandleRaw(ReadOnlyMemory<byte> rawData, IPacketContext context)
-{
-    // Zero-deserialization: rawData points directly to the transport buffer lease.
-    // No Registry.TryDeserialize call was made.
-    return ValueTask.CompletedTask;
-}
-```
-
----
+This delegate is cached in a `FrozenDictionary`, giving O(1) lookup with lower overhead than a standard `Dictionary`.
 
 ## 3. The Pooling Pipeline
 
-### Buffer Leasing (Standalone Slabs)
+### Buffer leasing
 
-Incoming data is stored in a `BufferLease` backed by pooled pinned `byte[]` arrays managed by the framework's slab buckets. Each lease can still represent a slice of the underlying array, which is how the runtime keeps zero-copy handoffs possible without reallocating payload buffers.
-
-To further eliminate overhead, `BufferLease` instances (shells) are themselves pooled using a lock-free free-list with an **O(1) atomic counter**.
+Incoming data is stored in a `BufferLease` backed by pooled pinned `byte[]` arrays managed by the framework's slab buckets. `BufferLease` shells are themselves pooled via a lock-free free-list with an O(1) atomic counter.
 
 ```csharp
-// Optimized buffer rental
 using BufferLease lease = BufferLease.Rent(1024);
+// use lease.Span for zero-copy slicing
 ```
 
-### Object Pooling (Zero-Lock / Zero-Allocation)
+### Constructing outgoing packets
 
-To keep the pipeline zero-allocation, Nalix pools incoming context metadata and other hot-path objects using a hybrid `ObjectPool` model. This bypasses thread-contention bottleneck limits:
+When sending a packet, don't use `new byte[]` — rent a lease, serialize into it, and send the memory slice:
 
-- **Thread-Local Lock-Free Cache**: A fast single-slot cache (`ThreadLocalCache<T>`) bypasses the central pool, saving/retrieving objects on the same thread with zero synchronization overhead.
-- **Flat Index ID Resolution**: Unique type compile-time IDs (`PoolType<T>.Id`) index directly into a pre-allocated array of pools, eliminating the need to lock, scan, or compute hashes on generic type lookups.
+```csharp
+[PacketOpcode(0x5002)]
+public async ValueTask SendResponse(IPacketContext<MyPacket> context)
+{
+    var response = new MyResponse { Status = 200 };
 
-This ensures renting and returning objects executes in **~22 ns** with **0 B** allocated.
+    using var lease = BufferLease.Rent(response.Length);
+    int written = response.Serialize(lease.SpanFull);
+    lease.CommitLength(written);
 
-### Pattern: High-Performance Handler
+    await context.Connection.TCP.SendAsync(lease.Memory);
+}
+```
 
-To keep the path zero-allocation, your handler must follow these constraints:
+### Object pooling (zero-lock / zero-allocation)
 
-1. **Accept `IPacketContext<T>`**: This ensures usage of the pooled context and the (potentially) struct-based packet.
-2. **Synchronous Completion**: If possible, avoid `await`. If you must use it, only await `ValueTask` or `Task` that you know is already completed.
-3. **No Closures**: Do not use lambda expressions that capture local variables, as this allocates a closure object.
+Nalix pools incoming context metadata and other hot-path objects using a hybrid `ObjectPool` model:
+
+- **Thread-Local Lock-Free Cache** — `ThreadLocalCache<T>` bypasses the central pool, saving/retrieving on the same thread with zero synchronization overhead.
+- **Flat Index ID Resolution** — compile-time type IDs (`PoolType<T>.Id`) index directly into a pre-allocated array of pools, eliminating locks, scans, or hash computation on generic type lookups.
+
+This ensures renting and returning objects executes in ~22 ns with 0 B allocated.
+
+### Pattern: high-performance handler
+
+To keep the path zero-allocation, your handler must:
+
+1. **Accept `IPacketContext<T>`** — uses the pooled context and the (potentially) struct-based packet.
+2. **Complete synchronously where possible** — if you must `await`, only await a `ValueTask`/`Task` you know is already completed.
+3. **Avoid closures** — lambdas that capture local variables allocate a closure object.
 
 ```csharp
 [PacketOpcode(0x5001)]
 public ValueTask HandleUpdate(IPacketContext<HighFreqUpdate> context)
 {
-    // context.Packet is already deserialized into pooled/stack memory
     var packet = context.Packet;
-    
-    // Process purely on the stack
     GlobalState.UpdateEntity(packet.EntityId, packet.PositionX, packet.PositionY);
-    
-    // Returning ValueTask avoiding Task allocation for sync completion
     return ValueTask.CompletedTask;
 }
 ```
 
-!!! danger "Cancellation Hazards & Use-After-Free"
-    When writing asynchronous handlers (`async ValueTask`), you **must** pass `context.CancellationToken` to any I/O calls (such as `SendAsync`). 
-    
-    **Why?** Nalix uses aggressive `ObjectPool` caching for every packet. If a connection drops, the Dispatcher instantly cancels the pending pipeline and **returns the packet to the pool**. If your `SendAsync` call doesn't accept the cancellation token, it becomes an orphaned task running in the background. It will continue attempting to read from the pooled packet that has already been cleared or reassigned to a new connection, resulting in severe `ArgumentException` (e.g. `Buffer too small`) or memory corruption.
+!!! danger "Cancellation hazards & use-after-free"
+    When writing asynchronous handlers (`async ValueTask`), you **must** pass `context.CancellationToken` to any I/O call (such as `SendAsync`).
 
----
+    **Why?** Nalix uses aggressive `ObjectPool` caching for every packet. If a connection drops, the dispatcher instantly cancels the pending pipeline and returns the packet to the pool. If your `SendAsync` call doesn't accept the cancellation token, it becomes an orphaned task that keeps reading from a pooled packet that's already been cleared or reassigned to a new connection — this causes `ArgumentException` (e.g. "Buffer too small") or memory corruption.
 
+### Pattern: the ultra hot path (zero deserialization)
 
-## 4. Zero-Allocation Error Handling
+For packets where even bit-blitting deserialization is too costly (streaming media, encrypted proxy traffic), bypass the `PacketRegistry` entirely by accepting raw memory:
 
-Exception handling can be expensive. In the hot path, Nalix provides mechanisms to track errors without triggering heap noise.
+```csharp
+[PacketOpcode(0x7001)]
+public ValueTask HandleRawData(ReadOnlyMemory<byte> memory, IConnection connection)
+{
+    // 'memory' points directly to the pooled IBufferLease.Span.
+    // No deserialization, no allocation, no OpCode validation check.
+    Process(memory.Span);
+    return ValueTask.CompletedTask;
+}
+```
 
-### Zero-Allocation Exception Caching
+!!! important "Security vs performance"
+    Bypassing deserialization also bypasses the framework's built-in OpCode and checksum validation. Use this only for internal or already-authenticated streams.
 
-Standard exceptions are expensive due to stack trace generation. Nalix uses a **Cached Exception Pattern** via the `Throw` class for common transport failures (e.g., `ConnectionReset`, `SendFailed`, `MessageTooLarge`, `UdpPayloadTooLarge`, `UdpPartialSend`, `UdpSendFailed`).
+## 4. Fair Concurrency & Priority Management
 
-- **Static Instances**: Common exceptions are pre-instantiated as static readonly fields.
-- **Overridden StackTrace**: These cached exceptions override the `StackTrace` property to return a static string, bypassing the expensive stack crawl entirely.
-- **Socket Error Mapping**: `Throw.GetSocketError(SocketError)` returns a cached `SocketException` for standard OS errors, ensuring that even low-level networking failures don't trigger allocations.
+To process thousands of concurrent connections without one high-volume packet type (like movement updates) monopolizing CPU, Nalix uses a sharded, priority-aware dispatch system.
 
-### Pattern: Result-Based Flow
+**Thread affinity**: all packets from a single connection are processed sequentially on the same core, avoiding races without locks. **Parallelism**: different connections spread across all available cores.
 
-Instead of throwing exceptions for business logic failures, return a result object (or a pooled packet) that describes the failure.
+```csharp
+builder.ConfigureDispatchOptions(options => {
+    // Match shards to CPU cores (default: Environment.ProcessorCount)
+    options.WithDispatchLoopCount(Environment.ProcessorCount);
+    // Increase the budget of packets processed per core wake-up
+    options.Drain.MaxDrainPerWakeMultiplier = 12;
+});
+```
+
+Nalix also implements **Deficit Round Robin (DRR)** scheduling: if a client floods the server with low-priority packets, high-priority packets (like chat or items) still get processed within their guaranteed quota.
+
+```csharp
+[Packet]
+public sealed class UrgentAlert : PacketBase<UrgentAlert>
+{
+    public UrgentAlert()
+    {
+        OpCode = 0x9001;
+        Priority = PacketPriority.URGENT;
+    }
+}
+```
+
+Tune the relative budget per priority level via `dispatch.ini`:
+
+```ini
+[DispatchOptions]
+# Weights for [NONE, LOW, MEDIUM, HIGH, URGENT]
+# Default "1,2,4,8,16" means URGENT is 16x more likely to be served than NONE.
+PriorityWeights = 1,1,2,5,20
+```
+
+## 5. Zero-Allocation Error Handling
+
+Exception handling can be expensive. Standard exceptions are costly due to stack trace generation — Nalix caches common transport exceptions (`ConnectionReset`, `SendFailed`, `MessageTooLarge`, `UdpPayloadTooLarge`, `UdpPartialSend`, `UdpSendFailed`) as static readonly fields via the `Throw` class, overriding `StackTrace` to bypass the expensive stack crawl. `Throw.GetSocketError(SocketError)` returns a cached `SocketException` for standard OS errors.
+
+Prefer returning a result object over throwing for business-logic failures:
 
 ```csharp
 public ValueTask<LoginResult> HandleLogin(LoginRequest request)
 {
-    if (!Valid(request)) {
-        // Return a static/cached failure response instead of throwing
+    if (!Valid(request))
         return ValueTask.FromResult(LoginResult.InvalidCredentials);
-    }
     // ...
 }
 ```
 
-### Global Error Hook
-
-Instead of per-packet `try-catch` blocks in your handlers, use the global observer:
+Instead of per-packet `try-catch`, register a global observer — called only when a handler throws:
 
 ```csharp
 using Nalix.Hosting;
 
 builder.ConfigureDispatchOptions(options =>
 {
-    options.WithErrorHandling((exception, opCode) => 
+    options.WithErrorHandling((exception, opCode) =>
     {
-        // Log or increment a counter. 
-        // This is called only when a handler throws.
-        PerformanceCounters.DispatchErrors.Increment();
+        Logger.Error($"OpCode 0x{opCode:X4} failed: {exception.Message}");
+        Metrics.HandlerErrors.WithLabels(opCode.ToString()).Inc();
     });
 });
 ```
 
-### Health Monitoring
+Every connection tracks its own error count — Nalix calls `connection.IncrementErrorCount()` whenever a handler throws. Monitor this in middleware to disconnect unstable clients without extra allocations:
 
-Every connection tracks its own error count. If a handler throws, Nalix calls `connection.IncrementErrorCount()`. You can monitor this in your middleware to kick unstable connections without extra allocations.
+```csharp
+public sealed class HealthGuardMiddleware : IPacketMiddleware<IPacket>
+{
+    public async ValueTask InvokeAsync(IPacketContext<IPacket> context, Func<CancellationToken, ValueTask> next)
+    {
+        if (context.Connection.ErrorCount > 10)
+        {
+            context.Connection.Disconnect("Protocol violation threshold exceeded.");
+            return;
+        }
+        await next(context.CancellationToken);
+    }
+}
+```
 
----
+## 6. SIMD-Optimized Primitives
 
-## 5. SIMD-Optimized Primitives
-
-Zero-allocation extends to cryptographic primitive checks. `byte[]` arrays allocate heap memory and require slow sequential comparisons. Nalix implements custom value types like `Bytes32` for strict 256-bit (32-byte) payloads (e.g., Session Secrets, ChaCha20 Keys, Handshake Tokens).
-
-These primitives leverage **Hardware Intrinsics (AVX2 and SSE2)** to perform zero-allocation, extremely fast $O(1)$ memory comparisons directly on the CPU registers:
+Zero-allocation extends to cryptographic primitive checks. `byte[]` arrays allocate heap memory and require slow sequential comparisons. Nalix implements custom value types like `Bytes32` for strict 256-bit payloads (session secrets, X25519 keys, handshake hashes), using AVX2/SSE2 hardware intrinsics for O(1) comparisons directly on CPU registers:
 
 ```csharp
 [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -219,8 +265,7 @@ public readonly bool Equals(Bytes32 other)
 {
     if (Avx2.IsSupported)
     {
-        // 256-bit AVX2 hardware acceleration
-        // Compares 32 bytes in a single CPU cycle!
+        // 256-bit AVX2 hardware acceleration — compares 32 bytes in a single CPU cycle
         Vector256<byte> v = Unsafe.ReadUnaligned<Vector256<byte>>(ref a);
         Vector256<byte> o = Unsafe.ReadUnaligned<Vector256<byte>>(ref b);
         // ...
@@ -228,94 +273,36 @@ public readonly bool Equals(Bytes32 other)
 }
 ```
 
-This enforces exactly 32 bytes on the Call Stack and ensures that core security checkpoints (like comparing HMAC MAC proofs during Session Resumption) execute in fractions of a nanosecond, immune to timing side-channels and garbage collection.
-
----
-
-## 6. Operational Setup
-
-To enable this optimized path, ensure your hosting configuration is tuned for concurrency.
-
-```csharp
-using System;
-using Nalix.Hosting;
-
-var app = NetworkApplication.CreateBuilder()
-    .MapHandlers<GameHandlers>() // Registers handler for source-generated dispatch
-    .ConfigureDispatchOptions(options => {
-        // Scale dispatch loops to the current machine's logical CPU count
-        options.WithDispatchLoopCount(Environment.ProcessorCount);
-        // Increase per-wake drain budget for burst workloads
-        options.Drain.MaxDrainPerWakeMultiplier = 12;
-    })
-    .Build();
-```
-
----
+This makes core security checkpoints (like comparing HMAC MAC proofs during session resumption) execute in fractions of a nanosecond, immune to timing side-channels and garbage collection.
 
 ## Verifying Zero-Allocations
 
-### Runtime Verification
-
-You can programmatically verify that a block of code does not allocate in unit tests or integration tests:
+Verify a block of code allocates nothing in unit or integration tests:
 
 ```csharp
-using System;
-using Nalix.Abstractions.Networking.Packets;
-
 long startingBytes = GC.GetAllocatedBytesForCurrentThread();
-
-// Execute the hot path (e.g., dispatch 10,000 packets)
-await RunLoadTestAsync();
-
-long endingBytes = GC.GetAllocatedBytesForCurrentThread();
-long allocated = endingBytes - startingBytes;
-
-Assert.Equal(0, allocated); // Should be exactly 0
+await RunLoadTestAsync(); // e.g. dispatch 10,000 packets
+long allocated = GC.GetAllocatedBytesForCurrentThread() - startingBytes;
+Assert.Equal(0, allocated);
 ```
 
-### Micro-benchmarking with BenchmarkDotNet
-
-Use `MemoryDiagnoser` to verify that your handlers are truly "green" (0 B allocated).
+Or use BenchmarkDotNet's `MemoryDiagnoser` to confirm handlers are truly "green" (0 B allocated):
 
 ```csharp
-using BenchmarkDotNet.Attributes;
-using Nalix.Abstractions.Networking.Packets;
-
 [MemoryDiagnoser]
 public class ProtocolBenchmarks
 {
     [Benchmark]
     public async ValueTask HandlePacket()
-    {
-        await _dispatch.ExecutePacketHandlerAsync(_testPacket, _mockConnection);
-    }
+        => await _dispatch.ExecutePacketHandlerAsync(_testPacket, _mockConnection);
 }
 ```
 
----
-
 ## Advanced Monitoring
 
-To ensure the hot path remains stable in production, monitor these specific metrics:
-
-### 1. Buffer Pool Health (`BufferPoolManager`)
-
-- **MissRate**: If this is > 5%, your `BufferAllocations` are likely too small for your traffic spikes.
-- **UsageRatio**: A pool consistently at 90%+ usage suggests you are near capacity.
-
-### 2. Dispatch Health (`PacketDispatchChannel`)
-
-- **WakeSignals**: High signal counts relative to processed packets suggest efficient batching.
-- **Ready Connections**: A growing number here indicates your handlers are too slow or `DispatchLoopCount` is too low.
-
-### 3. CLI Monitoring
-
-Use `dotnet-counters` to monitor the framework in real-time:
-
-```bash
-dotnet-counters monitor -p <PID> --counters Nalix.Framework,System.Runtime[alloc-rate,gen-0-gc-count]
-```
+- **Buffer Pool Health** (`BufferPoolManager`) — `MissRate` > 5% means your `BufferAllocations` are too small for traffic spikes; `UsageRatio` consistently at 90%+ means you're near capacity.
+- **Dispatch Health** (`PacketDispatchChannel`) — high `WakeSignals` relative to processed packets suggests efficient batching; a growing `Ready Connections` count means handlers are too slow or `DispatchLoopCount` is too low.
+- **CLI monitoring** — `dotnet-counters monitor -p <PID> --counters Nalix.Framework,System.Runtime[alloc-rate,gen-0-gc-count]`.
 
 ## Summary Checklist
 
@@ -326,7 +313,6 @@ dotnet-counters monitor -p <PID> --counters Nalix.Framework,System.Runtime[alloc
 - [x] Use `[PacketOpcode]` for zero-reflection routing.
 - [x] Use SIMD primitives (`Bytes32`) for security checks.
 - [x] Return `ValueTask` from handlers.
-- [x] Avoid `new`, `LINQ`, and closures inside handlers.
+- [x] Avoid `new`, LINQ, and closures inside handlers.
 - [x] Use `Throw` for zero-allocation exception propagation.
-- [x] Register handlers via assembly scanning to enable compilation.
-- [x] Verify with `BenchmarkDotNet` [MemoryDiagnoser].
+- [x] Verify with BenchmarkDotNet `[MemoryDiagnoser]`.

@@ -3,11 +3,6 @@
 !!! warning "Advanced Topic"
     This page describes internal framework mechanics like Span limits, structure alignments, and GC overheads.
 
-!!! info "Learning Signals"
-    - :fontawesome-solid-layer-group: **Level**: Advanced
-    - :fontawesome-solid-clock: **Time**: 15 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Architecture](../fundamentals/architecture.md)
-
 Nalix is engineered to minimize latency and maximize throughput on the networking hot path. This page explains the specific techniques used and why they matter for production workloads.
 
 ## 1. Zero-Allocation Data Path
@@ -103,8 +98,8 @@ For measured performance data across serialization, cryptography, compression, a
 
 ## Recommended Next Pages
 
-- [Architecture](../fundamentals/architecture.md) — Layered component overview
-- [Packet System](../fundamentals/packet-system.md) — Serialization layouts and wire format
+- [Architecture](./architecture.md) — Layered component overview
+- [Packet System](../how-packets-work.md) — Serialization layouts and wire format
 - [Buffer Management](../../api/environment/memory/buffer-management.md) — Buffer pool API details
 - [Object Pooling](../../api/framework/memory/object-pooling.md) — Object recycling API details
 - [LZ4](../../api/codec/lz4.md) — Compression API details

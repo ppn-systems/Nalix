@@ -91,6 +91,75 @@ public sealed class EnvelopeCipherTests
         _ = Assert.Throws<ArgumentException>(() =>
             EnvelopeCipher.Encrypt(key, plaintext, tooSmall, seq: null, CipherSuiteType.Chacha20Poly1305, out _));
     }
+
+    [Theory]
+    [InlineData(CipherSuiteType.Chacha20Poly1305)]
+    [InlineData(CipherSuiteType.Salsa20Poly1305)]
+    public void DecryptWhenCiphertextByteIsTamperedThrowsCipherException(CipherSuiteType suite)
+    {
+        byte[] key = SequentialBytes(32, 1);
+        byte[] plaintext = SequentialBytes(32, 2);
+        byte[] envelope = new byte[EnvelopeSize(suite, plaintext.Length)];
+        byte[] decrypted = new byte[plaintext.Length];
+
+        EnvelopeCipher.Encrypt(key, plaintext, envelope, seq: 5u, suite, out int written);
+        envelope[written - 1] ^= 0xFF; // flip last byte (part of the tag)
+
+        _ = Assert.ThrowsAny<CipherException>(() =>
+            EnvelopeCipher.Decrypt(key, new System.ReadOnlySpan<byte>(envelope, 0, written), decrypted, suite, out _, out _));
+    }
+
+    [Theory]
+    [InlineData(CipherSuiteType.Chacha20Poly1305)]
+    [InlineData(CipherSuiteType.Salsa20Poly1305)]
+    public void DecryptWithWrongKeyThrowsCipherException(CipherSuiteType suite)
+    {
+        byte[] key = SequentialBytes(32, 1);
+        byte[] wrongKey = SequentialBytes(32, 200);
+        byte[] plaintext = SequentialBytes(32, 2);
+        byte[] envelope = new byte[EnvelopeSize(suite, plaintext.Length)];
+        byte[] decrypted = new byte[plaintext.Length];
+
+        EnvelopeCipher.Encrypt(key, plaintext, envelope, seq: 5u, suite, out int written);
+
+        _ = Assert.ThrowsAny<CipherException>(() =>
+            EnvelopeCipher.Decrypt(wrongKey, new System.ReadOnlySpan<byte>(envelope, 0, written), decrypted, suite, out _, out _));
+    }
+
+    [Theory]
+    [InlineData(CipherSuiteType.Chacha20Poly1305)]
+    [InlineData(CipherSuiteType.Salsa20Poly1305)]
+    public void DecryptWhenAadIsTamperedThrowsCipherException(CipherSuiteType suite)
+    {
+        byte[] key = SequentialBytes(32, 1);
+        byte[] plaintext = SequentialBytes(32, 2);
+        byte[] aad = SequentialBytes(11, 80);
+        byte[] wrongAad = SequentialBytes(11, 81);
+        byte[] envelope = new byte[EnvelopeSize(suite, plaintext.Length)];
+        byte[] decrypted = new byte[plaintext.Length];
+
+        EnvelopeCipher.Encrypt(key, plaintext, envelope, aad, seq: 5u, suite, out int written);
+
+        _ = Assert.ThrowsAny<CipherException>(() =>
+            EnvelopeCipher.Decrypt(key, new System.ReadOnlySpan<byte>(envelope, 0, written), decrypted, wrongAad, suite, out _, out _));
+    }
+
+    [Theory]
+    [InlineData(CipherSuiteType.Chacha20Poly1305)]
+    [InlineData(CipherSuiteType.Salsa20Poly1305)]
+    public void DecryptWhenEnvelopeIsTruncatedThrowsCipherException(CipherSuiteType suite)
+    {
+        byte[] key = SequentialBytes(32, 1);
+        byte[] plaintext = SequentialBytes(32, 2);
+        byte[] envelope = new byte[EnvelopeSize(suite, plaintext.Length)];
+        byte[] decrypted = new byte[plaintext.Length];
+
+        EnvelopeCipher.Encrypt(key, plaintext, envelope, seq: 5u, suite, out int written);
+        byte[] truncated = new System.ReadOnlySpan<byte>(envelope, 0, written - 1).ToArray();
+
+        _ = Assert.ThrowsAny<CipherException>(() =>
+            EnvelopeCipher.Decrypt(key, truncated, decrypted, suite, out _, out _));
+    }
 }
 
 

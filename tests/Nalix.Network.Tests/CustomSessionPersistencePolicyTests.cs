@@ -91,6 +91,36 @@ public sealed class CustomSessionPersistencePolicyTests
 
         attributes.Return();
     }
+
+    /// <summary>
+    /// Area 6 boundary: MinAttributesForPersistence defaults to 20 and the policy check is
+    /// <c>Count &lt;= MinAttributesForPersistence</c> — exactly 20 attributes (including the
+    /// RuntimeState internal flag) must still be rejected; the count must exceed the threshold.
+    /// </summary>
+    [Fact]
+    public void DefaultSessionPersistencePolicy_Fails_WhenAttributeCountExactlyAtThreshold()
+    {
+        var mockConnection = Substitute.For<IConnection>();
+        var attributes = Nalix.Framework.Memory.Objects.ObjectMap<AttributeKey, object>.Rent();
+
+        var runtimeState = new Nalix.Runtime.Internal.RuntimeConnectionState();
+        runtimeState.HandshakeEstablished = true;
+        attributes[ConnectionAttributes.RuntimeState] = runtimeState;
+
+        // 19 extra keys + 1 RuntimeState key = 20 total, exactly at the default threshold.
+        for (int i = 0; i < 19; i++)
+        {
+            attributes[AttributeKey.FromName($"key_{i}")] = i;
+        }
+        mockConnection.Attributes.Returns(attributes);
+
+        var policy = new DefaultSessionPersistencePolicy();
+
+        policy.ShouldPersist(mockConnection).Should().BeFalse(
+            "Count <= MinAttributesForPersistence (20 <= 20) must reject, not just Count < MinAttributesForPersistence");
+
+        attributes.Return();
+    }
 #endif
 }
 

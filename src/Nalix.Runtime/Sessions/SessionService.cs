@@ -115,16 +115,16 @@ public sealed class SessionService : ISessionService, IDisposable, IReportable
     }
 
     /// <inheritdoc/>
-    public ValueTask<SessionEntry?> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default)
+    public ValueTask<SessionScope> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default)
     {
         _ = Interlocked.Increment(ref _totalConsumesAttempted);
         try
         {
-            ValueTask<SessionEntry?> task = _store.ConsumeAsync(sessionToken, cancellationToken);
+            ValueTask<SessionScope> task = _store.ConsumeAsync(sessionToken, cancellationToken);
             if (task.IsCompleted)
             {
-                SessionEntry? entry = task.Result;
-                if (entry is not null)
+                SessionScope scope = task.Result;
+                if (scope.IsValid)
                 {
                     _ = Interlocked.Increment(ref _totalConsumesSucceeded);
                 }
@@ -143,12 +143,12 @@ public sealed class SessionService : ISessionService, IDisposable, IReportable
             throw;
         }
 
-        static async ValueTask<SessionEntry?> AWAIT_CONSUME_ASYNC(SessionService self, ValueTask<SessionEntry?> task)
+        static async ValueTask<SessionScope> AWAIT_CONSUME_ASYNC(SessionService self, ValueTask<SessionScope> task)
         {
             try
             {
-                SessionEntry? entry = await task.ConfigureAwait(false);
-                if (entry is not null)
+                SessionScope scope = await task.ConfigureAwait(false);
+                if (scope.IsValid)
                 {
                     _ = Interlocked.Increment(ref self._totalConsumesSucceeded);
                 }
@@ -156,7 +156,7 @@ public sealed class SessionService : ISessionService, IDisposable, IReportable
                 {
                     _ = Interlocked.Increment(ref self._totalConsumesFailed);
                 }
-                return entry;
+                return scope;
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {

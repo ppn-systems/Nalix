@@ -171,6 +171,15 @@ internal sealed class WsFrameReader : IDisposable
 
             if (!_sequence.IsValid(seq))
             {
+                if (Codec.DiagnosticsEvents.Source.IsEnabled(Codec.DiagnosticsEvents.Sequence.Rejected))
+                {
+                    Codec.DiagnosticsEvents.Write(Codec.DiagnosticsEvents.Sequence.Rejected, new
+                    {
+                        Transport = "WebSocket",
+                        ReceivedSeq = seq,
+                        CurrentSeq = _sequence.Current()
+                    });
+                }
                 return;
             }
 

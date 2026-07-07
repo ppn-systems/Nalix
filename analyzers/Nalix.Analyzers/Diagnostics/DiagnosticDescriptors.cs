@@ -28,11 +28,11 @@ internal static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor InvalidControllerHandlerSignature = new(
         id: "NALIX003",
         title: "Packet controller handler has unsupported signature",
-        messageFormat: "Handler method '{0}' has unsupported Nalix signature. Supported forms: (TPacket, IConnection), (TPacket, IConnection, CancellationToken), (PacketContext<T>), (PacketContext<T>, CancellationToken).",
+        messageFormat: "Handler method '{0}' has unsupported Nalix signature. Only 'public [static] <void|Task|ValueTask|Task<T>|ValueTask<T>> {0}(IPacketContext<TPacket> context)' is supported; use context.CancellationToken and context.Connection instead of separate parameters.",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Nalix packet handlers must follow one of the signatures supported by the source-generated handler invoker (PacketHandlerGenerator).");
+        description: "Nalix packet handlers must use the single canonical IPacketContext<T> signature supported by the source-generated handler invoker (PacketHandlerGenerator).");
 
     public static readonly DiagnosticDescriptor PacketContextTypeMismatch = new(
         id: "NALIX004",
@@ -579,4 +579,13 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true,
         description: "Nalix RpcService interfaces must be decorated with [RpcService] to be discovered by the Source Generator.");
+    
+    public static readonly DiagnosticDescriptor InjectFieldCannotBeReadOnly = new(
+        id: "NALIX104",
+        title: "[Inject] field cannot be readonly",
+        messageFormat: "Field '{0}' is marked with [Inject] and cannot be readonly, because the dependency injection container must be able to assign it",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "Fields annotated with [Inject] cannot be readonly since they are assigned via reflection or source generation after object instantiation.");
 }

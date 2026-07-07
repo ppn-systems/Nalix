@@ -40,6 +40,6 @@ if (PacketRegistry.TryGetSchema(opcode, out var schema))
 ## Related APIs
  
 - [Packet Registry](../../codec/packets/packet-registry.md)
-- [Binary Specification](../../../concepts/serialization/binary-spec.md)
+- [Binary Specification](../../../concepts/internals/binary-spec.md)
 - [Serialization Basics](../../codec/serialization/serialization-basics.md)
 - [Analyzers](../index.md)

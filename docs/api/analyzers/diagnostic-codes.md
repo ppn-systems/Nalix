@@ -9,7 +9,7 @@ The source of truth is `analyzers/Nalix.Analyzers/Diagnostics/DiagnosticDescript
 | --- | --- | ---: | --- | --- |
 | `NALIX001` | Packet controller contains duplicate PacketOpcode | Warning | Usage | Controller dispatch relies on unique opcodes per controller. |
 | `NALIX002` | Packet controller handler should declare PacketOpcode | Warning | Usage | Controller methods matching Nalix handler patterns should declare `[PacketOpcode(...)]`. |
-| `NALIX003` | Packet controller handler has unsupported signature | Warning | Usage | Handler signatures must match the forms supported by the source-generated invoker (`PacketHandlerGenerator`). |
+| `NALIX003` | Packet controller handler has unsupported signature | Warning | Usage | Only a single `IPacketContext<TPacket>` parameter is supported; use `context.Connection`/`context.CancellationToken` instead of separate parameters. Legacy multi-parameter handler shapes are no longer generated. |
 | `NALIX004` | PacketContext<`T`> does not match dispatch packet type | Warning | Usage | `PacketContext<T>` should use the dispatcher packet type. |
 | `NALIX005` | Registered controller handler packet type does not match dispatcher type | Warning | Usage | Registered controllers should contain handlers compatible with `PacketDispatchOptions<TPacket>`. |
 | `NALIX008` | Registered handler controller is missing PacketHandler | Warning | Usage | Types registered through `WithHandler` should declare `[PacketHandler]`. |
@@ -172,6 +172,12 @@ public static void Handle(IPacketContext<MyPacket> context)
 ```
 
 This is an intentional trade-off in the first release. Extracting into a local is the recommended pattern regardless, and the analyzer focuses on the most direct escape paths.
+
+## Source Generator Codes
+
+| ID | Title | Severity | Category | Description |
+| --- | --- | ---: | --- | --- |
+| `NALIX066` | Unsupported `[RpcService]` method return type | Error | Nalix.SDK.Transport | `RpcClientGenerator` can only emit a body for void-equivalent `ValueTask`/`Task`, `ValueTask<T>`/`Task<T>`, `RpcCall<T>`, and `RpcStream<T>` return types. Other return types report this diagnostic and throw `NotSupportedException` at runtime instead of emitting an empty method body. |
 
 ## Source Mapping
 

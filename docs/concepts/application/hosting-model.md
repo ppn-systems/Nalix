@@ -36,6 +36,8 @@ The hosting model manages the four major stages of a server's life:
 3. **Runtime**: Accepting connections, dispatching packets, and managing session state.
 4. **Shutdown**: Stopping listeners and disposing runtime resources through `NetworkApplication`.
 
+During `Build()`, `NetworkApplicationBuilder` applies every registered `Configure<TOptions>(...)`, ensures an `IConnectionHub` and a buffer pool manager exist (creating defaults if you didn't call `UseConnectionHub`/`UseBufferPoolManager`), initializes handshake handling, then creates the dispatcher and listeners — in that order.
+
 ## Why use the Hosting Model?
 
 While you can use the low-level `Nalix.Network` APIs directly, the Hosting model provides several built-in advantages:
@@ -48,5 +50,5 @@ While you can use the low-level `Nalix.Network` APIs directly, the Hosting model
 ## Related Topics
 
 - [Instance Manager](../../api/framework/instance-manager.md)
-- [Middleware Pipeline](../runtime/middleware-pipeline.md)
+- [Middleware Pipeline](../internals/middleware-pipeline.md)
 - [Server Setup Guide](../../guides/getting-started/server-blueprint.md)

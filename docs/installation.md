@@ -62,6 +62,23 @@ dotnet add package Nalix.Codec
 | Shared contracts | `Nalix.Abstractions`, `Nalix.Codec` |
 | Full stack | Server set + Client set, sharing one contracts assembly |
 
+## Multi-Project Solutions
+
+If you split contracts, server, and client into separate projects (see the [Quick Start](./quickstart.md) for the layout), pin the Nalix package version once in a root `Directory.Build.props` instead of repeating it per project — this prevents version drift between your server and client:
+
+```xml
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <NalixVersion>$(VersionFromYourReleasePlan)</NalixVersion>
+  </PropertyGroup>
+</Project>
+```
+
+When upgrading, bump `NalixVersion`, clear `obj`/`bin` if source-generated contracts changed, then `dotnet build` to confirm every project is aligned.
+
 ## Configuration File
 
 Most server setups and many SDK examples load options from the `server.ini` file via `ConfigurationManager`. This file will be automatically generated in your project's output directory:
@@ -105,52 +122,8 @@ socket.Validate();
 TransportOptions transport = ConfigurationManager.Instance.Get<TransportOptions>();
 ```
 
-## Package Dependency Graph
-
-```mermaid
-flowchart TD
-    subgraph App ["Application Layer"]
-        direction TB
-        Hosting["Nalix.Hosting"]
-        SDK["Nalix.SDK"]
-    end
-
-    subgraph Svc ["Service Layer"]
-        direction TB
-        Network["Nalix.Network"]
-        Runtime["Nalix.Runtime"]
-    end
-
-    subgraph Core ["Core Layer"]
-        direction TB
-        Codec["Nalix.Codec"]
-        Framework["Nalix.Framework"]
-    end
-
-    subgraph Base ["Base Layer"]
-        direction TB
-        Env["Nalix.Environment"]
-        Abstractions["Nalix.Abstractions"]
-    end
-
-    Hosting --> Network
-    Hosting --> Runtime
-    Hosting --> Framework
-    Hosting --> Codec
-    
-    SDK --> Codec
-
-    Network --> Framework
-    Runtime --> Codec
-    Runtime --> Framework
-
-    Codec --> Env
-    Framework --> Env
-    Env --> Abstractions
-```
-
 ## What to Read Next
 
-- [Introduction](./introduction.md) — Design philosophy and mental model
-- [Quickstart](./quickstart.md) — Build your first Ping/Pong service
-- [Packages Overview](./packages/index.md) — What each package provides
+- [Quick Start](./quickstart.md) — build your first client/server pair
+- [Packages Overview](./packages/index.md) — what each package provides
+- [Package dependency levels](./packages/index.md) — how the packages layer on each other, if you want the details

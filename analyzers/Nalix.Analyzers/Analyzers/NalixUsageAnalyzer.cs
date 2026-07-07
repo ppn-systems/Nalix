@@ -85,7 +85,8 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.RpcServiceInvalidReturnType,
             DiagnosticDescriptors.RpcServiceInvalidParameters,
             DiagnosticDescriptors.RpcServiceContainsInvalidMembers,
-            DiagnosticDescriptors.RpcServiceMissingAttribute
+            DiagnosticDescriptors.RpcServiceMissingAttribute,
+            DiagnosticDescriptors.InjectFieldCannotBeReadOnly
         ];
 
     public override void Initialize(AnalysisContext context)
@@ -154,12 +155,62 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                 syntaxContext => AnalyzeLocalDeclaration(syntaxContext, symbols),
                 Microsoft.CodeAnalysis.CSharp.SyntaxKind.LocalDeclarationStatement);
 
+            startContext.RegisterSyntaxNodeAction(
+                syntaxContext => AnalyzeFieldDeclaration(syntaxContext, symbols),
+                Microsoft.CodeAnalysis.CSharp.SyntaxKind.FieldDeclaration);
+
             startContext.RegisterOperationAction(
                 operationContext => AnalyzeContextEscape(operationContext, symbols),
                 OperationKind.SimpleAssignment,
                 OperationKind.Invocation,
                 OperationKind.EventAssignment);
         });
+    }
+
+    private static void AnalyzeFieldDeclaration(SyntaxNodeAnalysisContext context, SymbolSet symbols)
+    {
+        var fieldDeclaration = (FieldDeclarationSyntax)context.Node;
+
+        bool hasInjectAttribute = false;
+        foreach (var attributeList in fieldDeclaration.AttributeLists)
+        {
+            foreach (var attribute in attributeList.Attributes)
+            {
+                var name = attribute.Name.ToString();
+                if (name == "Inject" || name == "InjectAttribute" || name.EndsWith(".Inject") || name.EndsWith(".InjectAttribute"))
+                {
+                    hasInjectAttribute = true;
+                    break;
+                }
+            }
+            if (hasInjectAttribute) break;
+        }
+
+        if (!hasInjectAttribute)
+        {
+            return;
+        }
+
+        bool isReadOnly = false;
+        foreach (var modifier in fieldDeclaration.Modifiers)
+        {
+            if (modifier.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.ReadOnlyKeyword))
+            {
+                isReadOnly = true;
+                break;
+            }
+        }
+        
+        if (isReadOnly)
+        {
+            foreach (var variable in fieldDeclaration.Declaration.Variables)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    DiagnosticDescriptors.InjectFieldCannotBeReadOnly,
+                    variable.GetLocation(),
+                    variable.Identifier.Text));
+            }
+        }
     }
 
     private static void AnalyzeNamedType(
@@ -718,41 +769,13 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         }
     }
 
+    // Single canonical handler shape, kept in sync with PacketHandlerGenerator's
+    // `Parameters.Length != 1` guard (PacketHandlerGenerator.cs) — only
+    // `IPacketContext<T>` (exactly one parameter) is a supported handler signature.
     private static bool HasSupportedParameterSignature(IMethodSymbol methodSymbol, SymbolSet symbols)
     {
         ImmutableArray<IParameterSymbol> parameters = methodSymbol.Parameters;
-        if (parameters.Length == 0)
-        {
-            return false;
-        }
-
-        ITypeSymbol firstParameterType = parameters[0].Type;
-        if (IsPacketContext(firstParameterType, symbols))
-        {
-            return parameters.Length switch
-            {
-                1 => true,
-                2 => IsSymbol(parameters[1].Type, symbols.CancellationTokenType),
-                _ => false
-            };
-        }
-
-        if (Implements(firstParameterType, symbols.PacketInterface))
-        {
-            if (parameters.Length < 2 || !Implements(parameters[1].Type, symbols.ConnectionType))
-            {
-                return false;
-            }
-
-            return parameters.Length switch
-            {
-                2 => true,
-                3 => IsSymbol(parameters[2].Type, symbols.CancellationTokenType),
-                _ => false
-            };
-        }
-
-        return false;
+        return parameters.Length == 1 && IsPacketContext(parameters[0].Type, symbols);
     }
 
     private static bool HasSupportedReturnType(ITypeSymbol returnType, SymbolSet symbols)

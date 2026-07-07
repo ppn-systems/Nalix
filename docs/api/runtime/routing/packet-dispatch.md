@@ -119,4 +119,4 @@ When a worker pulls a lease:
 - [Dispatch Contracts](./dispatch-contracts.md)
 - [Packet Dispatch Options](../../options/runtime/packet-dispatch-options.md)
 - [Dispatch Channel and Router](./dispatch-channel-and-router.md)
-- [Middleware Pipeline](../../../concepts/runtime/middleware-pipeline.md)
+- [Middleware Pipeline](../../../concepts/internals/middleware-pipeline.md)

@@ -1,243 +1,212 @@
-# Quickstart
+# Quick Start
 
-!!! info "Learning Signals"
-    - :fontawesome-solid-layer-group: **Level**: Beginner
-    - :fontawesome-solid-clock: **Time**: 15 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Introduction](./introduction.md)
+This walks you through the HelloWorld sample: a server that replies to one request. You'll build a shared packet contract, a server, and a client, then run them and see a reply.
 
-This guide walks you through building a complete **Ping/Pong service** using Nalix over TCP. By the end, you will have a production-grade foundation with a shared contract project, a sharded server, and a type-safe client.
+Full source: `samples/HelloWorld`
 
----
+## What you need
 
-## 🗺️ Roadmap
+- .NET 10 SDK
 
-1. **Define Packets**: Create shared data contracts.
-2. **Identity Setup**: Generate server security keys.
-3. **Server Setup**: Route packets to a handler.
-4. **Client Connectivity**: Send requests and await replies.
+## 1. Create the projects
 
----
-
-## Step 1: Create the Solution
-
-We recommend a three-project structure to keep your networking logic clean and reusable.
+Create a solution with three projects and install the Nalix packages from NuGet:
 
 ```bash
-mkdir NalixPingPong && cd NalixPingPong
+mkdir HelloWorld && cd HelloWorld
 dotnet new sln
 
-# 1. Shared Contracts
-dotnet new classlib -n Contracts
-dotnet add Contracts package Nalix.Abstractions
+# Shared packet contracts
+dotnet new classlib -n HelloWorld.Contracts
+dotnet add HelloWorld.Contracts package Nalix.Abstractions
+dotnet add HelloWorld.Contracts package Nalix.Codec
 
-# 2. Server Host
-dotnet new console -n Server
-dotnet add Server reference Contracts
-dotnet add Server package Nalix.Hosting
+# Server
+dotnet new console -n HelloWorld.Server
+dotnet add HelloWorld.Server reference HelloWorld.Contracts
+dotnet add HelloWorld.Server package Nalix.Hosting
 
-# 3. Client App
-dotnet new console -n Client
-dotnet add Client reference Contracts
-dotnet add Client package Nalix.SDK
+# Client
+dotnet new console -n HelloWorld.Client
+dotnet add HelloWorld.Client reference HelloWorld.Contracts
+dotnet add HelloWorld.Client package Nalix.SDK
 
-dotnet sln add Contracts Server Client
+dotnet sln add HelloWorld.Contracts HelloWorld.Server HelloWorld.Client
 ```
 
----
+If you cloned the Nalix repository instead, you can skip this step and run `samples/HelloWorld` directly.
 
-## Step 2: Define Packets
+## 2. Define the packets
 
-Create the shared packet contracts in the `Contracts` project. Both server and client reference this assembly, ensuring binary alignment.
-
-=== "PingRequest.cs"
-
-    ```csharp
-    using Nalix.Codec.DataFrames;
-    using Nalix.Abstractions.Serialization;
-
-    namespace Contracts;
-
-    [SerializePackable]
-    public sealed class PingRequest : PacketBase<PingRequest>
-    {
-        public const ushort OpCodeValue = 0x1001;
-
-        public string Message { get; set; } = string.Empty;
-
-        public PingRequest() => OpCode = OpCodeValue;
-    }
-    ```
-
-=== "PingResponse.cs"
-
-    ```csharp
-    using Nalix.Codec.DataFrames;
-    using Nalix.Abstractions.Serialization;
-
-    namespace Contracts;
-
-    [SerializePackable]
-    public sealed class PingResponse : PacketBase<PingResponse>
-    {
-        public const ushort OpCodeValue = 0x1002;
-
-        public string Message { get; set; } = string.Empty;
-
-        public PingResponse() => OpCode = OpCodeValue;
-    }
-    ```
-
-!!! tip "Layout Strategy"
-    By default, `[SerializePackable]` uses `SerializeLayout.Auto`, which automatically orders fields for optimal packing. In production environments where binary stability is critical (e.g., cross-version compatibility), you can switch to `SerializeLayout.Explicit` and use `[SerializeOrder(n)]` to lock field positions.
-
----
-
-## Step 3: Identity Setup
-
-Nalix enforces mandatory security. By default, Nalix automatically generates a cryptographic identity (`certificate.private` and `certificate.public` in `Directories.ConfigurationDirectory`) at startup if none exists.
-
-If your certificate files live somewhere else, call `ConfigureCertificate(...)` before `Build()` so the hosting builder passes that path to the handshake subsystem.
+Create a shared contracts project with the request and response packet types. Both use `[Packet]` for registration and `[GenerateFormatter]` to generate the binary serializer at compile time.
 
 ```csharp
-var builder = NetworkApplication.CreateBuilder()
-    .ConfigureCertificate("./identity/certificate.private");
-
-using var app = builder
-    // Add packets, handlers, and listeners here.
-    .Build();
-```
-
----
-
-## Step 4: Implement the Server
-
-The server requires a **Handler** for logic and a **Protocol** bridge to the network.
-
-=== "Handler.cs"
-
-    ```csharp
-    using Contracts;
-    using Nalix.Abstractions.Networking.Packets;
-
-    [PacketHandler("PingHandler")]
-    public sealed class PingHandler
-    {
-        [PacketOpcode(PingRequest.OpCodeValue)]
-        public PingResponse Handle(IPacketContext<PingRequest> context)
-        {
-            return new PingResponse
-            {
-                Message = $"Pong: {context.Packet.Message}"
-            };
-        }
-    }
-    ```
-
-=== "Protocol.cs"
-
-    ```csharp
-    using Nalix.Abstractions.Networking;
-    using Nalix.Network.Protocols;
-    using Nalix.Runtime.Dispatching;
-
-    public sealed class PingProtocol : Protocol
-    {
-        private readonly IPacketDispatch _dispatch;
-
-        public PingProtocol(IPacketDispatch dispatch) => _dispatch = dispatch;
-
-        public override void ProcessMessage(object? sender, IConnectionEventArgs args)
-        {
-            if (args.Lease is null) return;
-            _dispatch.HandlePacket(args.Lease, args.Connection);
-        }
-    }
-    ```
-
-    !!! tip
-        If you don't need custom protocol logic, you can use the built-in `DefaultProtocol` from the `Nalix.Hosting` namespace instead of creating your own class: `.ListenTcp<DefaultProtocol>().Bind()`
-
-=== "Program.cs"
-
-    ```csharp
-    using Nalix.Hosting;
-    using Nalix.Network.Options;
-
-    using var app = NetworkApplication.CreateBuilder()
-        .MapHandlers<PingHandler>()
-        .Configure<NetworkSocketOptions>(opt => opt.Port = 5000)
-        .ListenTcp<DefaultProtocol>().Bind()
-        .Build();
-
-    await app.RunAsync();
-    ```
-
----
-
-## Step 5: Connect the Client
-
-Nalix SDK provides a `TcpSession` that handles reconnection and type-safe request correlation automatically.
-
-```csharp
-using System;
-using Contracts;
+// samples/HelloWorld/HelloWorld.Contracts/HelloRequestPacket.cs
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
+
+namespace HelloWorld.Contracts;
+
+[Packet]
+[GenerateFormatter]
+[SerializePackable(SerializeLayout.Explicit)]
+public sealed partial class HelloRequestPacket
+    : PacketBase<HelloRequestPacket>,
+      IFixedSizeSerializable,
+      IPacketStaticOpcode
+{
+    public static ushort StaticOpCode => 0x7001;
+
+    [SerializeOrder(0)]
+    public byte Greeting { get; set; }
+
+    public HelloRequestPacket() => this.Greeting = 1;
+}
+```
+
+```csharp
+// samples/HelloWorld/HelloWorld.Contracts/HelloResponsePacket.cs
+[Packet]
+[GenerateFormatter]
+[SerializePackable(SerializeLayout.Explicit)]
+public sealed partial class HelloResponsePacket
+    : PacketBase<HelloResponsePacket>,
+      IFixedSizeSerializable,
+      IPacketStaticOpcode
+{
+    public static ushort StaticOpCode => 0x7002;
+
+    [SerializeOrder(0)]
+    public byte Message { get; set; }
+
+    public HelloResponsePacket() => this.Message = 0;
+}
+```
+
+Full source: `samples/HelloWorld/HelloWorld.Contracts/HelloRequestPacket.cs`, `samples/HelloWorld/HelloWorld.Contracts/HelloResponsePacket.cs`
+
+## 3. Write the server
+
+A handler is a static class marked `[PacketHandler]`. Each method that should respond to a packet is marked `[PacketOpcode(...)]` with the opcode it handles.
+
+```csharp
+// samples/HelloWorld/HelloWorld.Server/HelloHandlers.cs
+using HelloWorld.Contracts;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.Pooling;
+
+namespace HelloWorld.Server;
+
+[PacketHandler("HelloWorld.Greetings")]
+public static class HelloHandlers
+{
+    [PacketOpcode(0x7001)]
+    public static async ValueTask HandleHelloAsync(IPacketContext<HelloRequestPacket> context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        using PacketScope<HelloResponsePacket> lease = PacketFactory<HelloResponsePacket>.Acquire();
+        HelloResponsePacket response = lease.Value;
+        response.Message = 1; // "Hello from Nalix!"
+
+        await context.Sender.SendAsync(response).ConfigureAwait(false);
+    }
+}
+```
+
+Full source: `samples/HelloWorld/HelloWorld.Server/HelloHandlers.cs`
+
+Then start the server with the hosting builder:
+
+```csharp
+// samples/HelloWorld/HelloWorld.Server/Program.cs
+using Nalix.Hosting;
+using Nalix.Hosting.Protocols;
+
+await using NetworkApplication app = NetworkApplication.CreateBuilder()
+    .UseLogger(logger)
+    .MapHandlers(typeof(HelloHandlers))
+    .ListenTcp<DefaultProtocol>().OnPort(57206).Bind()
+    .Build();
+
+await app.RunAsync(cts.Token);
+```
+
+Full source: `samples/HelloWorld/HelloWorld.Server/Program.cs`
+
+## 4. Write the client
+
+The client connects and sends a request, then waits for the typed response.
+
+```csharp
+// samples/HelloWorld/HelloWorld.Client/Program.cs
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
+using Nalix.SDK.Transport.Extensions;
 
-// 1. Build the packet registry (The 'Catalog')
-// Note: In modern Nalix, this is handled via Source Generators.
-// Simply configure and build the static registry.
-PacketRegistry.Build();
+TransportOptions options = new() { Address = "127.0.0.1", Port = 57206 };
 
-// 2. Open the session
-var options = new TransportOptions { Address = "127.0.0.1", Port = 5000 };
-using var client = new TcpSession(options);
-await client.ConnectAsync();
-await client.HandshakeAsync();
+using TcpSession session = new(options);
+await session.ConnectAsync("127.0.0.1", 57206);
 
-// 3. Request/Response (Type-Safe)
-var response = await client.RequestAsync<PingResponse>(
-    new PingRequest { Message = "Hello Nalix!" });
+HelloRequestPacket request = new();
+HelloResponsePacket response = await session.RequestAsync<HelloResponsePacket>(
+    request,
+    RequestOptions.Default.WithTimeout(5_000));
 
-// 4. Fire-and-forget (Optional Encryption)
-await client.SendAsync(new PingRequest { Message = "Silent Ping" }, encrypt: false);
+Console.WriteLine($"Server replied: {response.Message}");
 
-Console.WriteLine(response.Message); // "Pong: Hello Nalix!"
+await session.DisconnectAsync();
 ```
 
----
+Full source: `samples/HelloWorld/HelloWorld.Client/Program.cs`
 
-## 🛠️ Performance Architecture
+## Run it
 
-Nalix isn't just easy to use; it's built for high-scale environments.
-
-```mermaid
-sequenceDiagram
-    participant C as Client (SDK)
-    participant L as Listener (Transport)
-    participant D as Dispatch (Sharded)
-    participant H as Handler (Logic)
-
-    C->>L: Binary Frame
-    Note over L: FramePipeline (AEAD)
-    L->>D: Clean Message (IBufferLease)
-    Note over D: Zero-Alloc Routing
-    D->>H: Invoke Method
-    H-->>C: Transmit Response
+```bash
+dotnet build
 ```
 
-## Recommended Next Steps
+Open two terminals.
 
-<div class="grid items" markdown>
+Terminal 1 — start the server:
 
--   :material-sitemap: [**Architecture**](./concepts/fundamentals/architecture.md)
-    Deep dive into the sharded dispatch model.
+```bash
+dotnet run --project HelloWorld.Server
+```
 
--   :material-shield-key: [**Middleware**](./guides/application/middleware-usage.md)
-    Secure your packets with rate-limits and permissions.
+Terminal 2 — run the client:
 
--   :material-check-decagram: [**Production Prep**](./guides/deployment/production-checklist.md)
-    Checklist for high-traffic deployments.
+```bash
+dotnet run --project HelloWorld.Client
+```
 
-</div>
+(If you are running the sample from the Nalix repository, use `dotnet run --project samples/HelloWorld/HelloWorld.Server` and `.../HelloWorld.Client` instead.)
+
+## What you should see
+
+Server:
+
+```text
+HelloWorld server is running on 127.0.0.1:57206.
+Press Ctrl+C to stop.
+```
+
+Client:
+
+```text
+Connected to 127.0.0.1:57206.
+Server replied: Hello from Nalix!
+```
+
+Press Ctrl+C in the server terminal to stop it.
+
+!!! note "Port already in use"
+    Another process may already be listening on 57206. Stop it, or change the port in the server's `Program.cs` and the client's `TransportOptions`.
+
+## Next steps
+
+- [Your First Server](./guides/getting-started/your-first-server.md) — a closer look at what's happening in this sample
+- [Build a Chat Room](./guides/build-a-chat-room.md) — add server-to-client push messaging
+- [How Packets Work](./concepts/how-packets-work.md) — the packet attributes explained

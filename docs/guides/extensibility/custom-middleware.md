@@ -1,10 +1,5 @@
 # Custom Middleware Guide
 
-!!! info "Learning Signals"
-    - :fontawesome-solid-layer-group: **Level**: Intermediate
-    - :fontawesome-solid-clock: **Time**: 10 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Middleware](../../concepts/runtime/middleware-pipeline.md)
-
 This guide shows how to implement custom authorization rules that validate session tokens across the Nalix inbound pipeline.
 
 ## Implementation overview
@@ -94,13 +89,6 @@ public sealed class SecureHandlers
 ```
 
 ## Flow summary
-
-```mermaid
-flowchart LR
-    A["Socket buffer"] --> B["Deserialization"]
-    B --> C["SessionAuthorizationMiddleware"]
-    C --> D["Handler"]
-```
 
 ## Related pages
 

@@ -69,6 +69,31 @@ public partial interface IConnection
         /// </summary>
         /// <param name="framing">The framing mode to use.</param>
         void UseFraming(TransportFraming framing);
+
+        /// <summary>
+        /// Acquires a scope that must be held across sequence-number reservation
+        /// (<see cref="ITransportSequencer.NextSendSequence"/>) and the corresponding wire write
+        /// (<see cref="SendAsyncCore"/>), so that reservation order and wire-write order stay consistent
+        /// under concurrent sends.
+        /// </summary>
+        /// <remarks>
+        /// Transports whose <see cref="SendAsync"/> already writes synchronously enough that reservation
+        /// order always matches wire order (e.g. TCP/UDP) may return a no-op scope. Transports with
+        /// serialized, fully-async writes (e.g. WebSocket) must return a scope backed by a real lock.
+        /// </remarks>
+        /// <param name="cancellationToken">A token to cancel the acquisition.</param>
+        ValueTask<IAsyncDisposable> AcquireSendLockAsync(CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult<IAsyncDisposable>(Networking.NoOpAsyncDisposable.Instance);
+
+        /// <summary>
+        /// Writes <paramref name="message"/> to the transport without acquiring any additional send lock.
+        /// Callers that need atomicity with sequence reservation must first acquire the scope returned by
+        /// <see cref="AcquireSendLockAsync"/>.
+        /// </summary>
+        /// <param name="message">The data to send.</param>
+        /// <param name="cancellationToken">A token to cancel the sending operation.</param>
+        ValueTask SendAsyncCore(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default) =>
+            this.SendAsync(message, cancellationToken);
     }
 
     /// <summary>
@@ -101,4 +126,15 @@ public partial interface IConnection
         /// <returns>The detached <see cref="System.Net.Sockets.Socket"/>.</returns>
         System.Net.Sockets.Socket Unwrap();
     }
+}
+
+/// <summary>
+/// A no-op <see cref="IAsyncDisposable"/> used as the default <see cref="IConnection.ITransport.AcquireSendLockAsync"/>
+/// result for transports that need no additional locking.
+/// </summary>
+file sealed class NoOpAsyncDisposable : IAsyncDisposable
+{
+    internal static readonly NoOpAsyncDisposable Instance = new();
+
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }

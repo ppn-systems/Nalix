@@ -99,4 +99,4 @@ Reflector options are loaded from the INI configuration system (`ReflectorOption
 
 ## Documentation
 
-See [Nalix Traversal API Reference](https://ppn-system.me/api/traversal) for full protocol specifications and integration guides.
+See [Nalix Traversal API Reference](https://ppn.io.vn/api/traversal) for full protocol specifications and integration guides.

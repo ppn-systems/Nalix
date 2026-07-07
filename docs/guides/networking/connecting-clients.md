@@ -1,11 +1,8 @@
 # Client Session Guide
 
-!!! info "Learning Signals"
-    - :fontawesome-solid-layer-group: **Level**: Intermediate
-    - :fontawesome-solid-clock: **Time**: 15 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Architecture](../../concepts/fundamentals/architecture.md)
-
 This guide walks through creating, configuring, and connecting a client session using `Nalix.SDK`. It focuses on the actual SDK surface in the current source tree: `TransportOptions`, `TcpSession`, `UdpSession`, and the transport extension methods built on top of them.
+
+If you haven't yet, start with [Your First Server](../getting-started/your-first-server.md) — it covers the simpler `session.RequestAsync<T>()` path this guide builds on.
 
 !!! danger "Security Warning"
     Never expose the `Secret` key or the `SessionToken` snowflakes in clear-text logs or debug UIs. These are sensitive cryptographic materials.
@@ -139,7 +136,7 @@ async Task ConnectTcpStandardAsync()
 ```
 
 !!! tip "Performance Edge-case Options"
-    The `On<T>` extension is designed for highest developer velocity. If you need lower-level control, see our [Session APIs Guide](./session-apis.md) for raw `OnMessageReceived` / `OnMessageAsync` flows.
+    The `On<T>` extension is designed for highest developer velocity. If you need lower-level control, see our [Session APIs Guide](../../concepts/internals/low-level-session-apis.md) for raw `OnMessageReceived` / `OnMessageAsync` flows.
 
 !!! note "Performance Recommendation"
     While the SDK is mostly platform-agnostic, specialized socket options like `TCP_NODELAY` are enabled by default for gaming workloads.
@@ -254,7 +251,7 @@ session.Dispose();
 
 ## Related Information Paths
 
-- [Low-Level Advanced APIs](./session-apis.md)
+- [Low-Level Advanced APIs](../../concepts/internals/low-level-session-apis.md)
 - [SDK Overview](../../api/sdk/index.md)
 - [Transport Session Guidelines](../../api/sdk/transport-session.md)
 - [TCP Session Guidelines](../../api/sdk/tcp-session.md)

@@ -25,9 +25,9 @@ public interface ISessionStore
     /// <param name="sessionToken">The session token identifier.</param>
     /// <param name="cancellationToken">The cancellation token for the operation.</param>
     /// <returns>
-    /// A <see cref="ValueTask{TResult}"/> whose result is the <see cref="SessionEntry"/> if found
-    /// and successfully consumed; otherwise, <c>null</c> if the token does not exist or was already consumed.
+    /// A <see cref="ValueTask{TResult}"/> whose result is the <see cref="SessionScope"/> if found
+    /// and successfully consumed; otherwise, a default scope (invalid) if the token does not exist or was already consumed.
     /// </returns>
-    ValueTask<SessionEntry?> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default);
+    ValueTask<SessionScope> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default);
 }
 

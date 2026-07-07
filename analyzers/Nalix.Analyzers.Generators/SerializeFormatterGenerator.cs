@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -18,10 +19,94 @@ namespace Nalix.Analyzers.Generators;
 [Generator]
 public sealed class SerializeFormatterGenerator : IIncrementalGenerator
 {
+    public readonly struct SerializeFormatterModel : IEquatable<SerializeFormatterModel>
+    {
+        public string HintName { get; }
+        public string SourceCode { get; }
+        public string FullTypeName { get; }
+        public string FormatterFullName { get; }
+        public string FormatterName { get; }
+        public bool IsClass { get; }
+        public string? GeneratedNamespace { get; }
+        public Diagnostic? Diagnostic { get; }
+        public ImmutableArray<string> EnumTypes { get; }
+        public ImmutableArray<string> TupleArgs { get; }
+
+        public SerializeFormatterModel(string hintName, string sourceCode, string fullTypeName, string formatterFullName, string formatterName, bool isClass, string? generatedNamespace, Diagnostic? diagnostic, ImmutableArray<string> enumTypes, ImmutableArray<string> tupleArgs)
+        {
+            this.HintName = hintName;
+            this.SourceCode = sourceCode;
+            this.FullTypeName = fullTypeName;
+            this.FormatterFullName = formatterFullName;
+            this.FormatterName = formatterName;
+            this.IsClass = isClass;
+            this.GeneratedNamespace = generatedNamespace;
+            this.Diagnostic = diagnostic;
+            this.EnumTypes = enumTypes;
+            this.TupleArgs = tupleArgs;
+        }
+
+        public bool Equals(SerializeFormatterModel other)
+        {
+            if (this.HintName != other.HintName ||
+                this.SourceCode != other.SourceCode ||
+                this.FullTypeName != other.FullTypeName ||
+                this.FormatterFullName != other.FormatterFullName ||
+                this.FormatterName != other.FormatterName ||
+                this.IsClass != other.IsClass ||
+                this.GeneratedNamespace != other.GeneratedNamespace)
+            {
+                return false;
+            }
+
+            if (this.Diagnostic == null && other.Diagnostic != null)
+            {
+                return false;
+            }
+
+            if (this.Diagnostic != null && other.Diagnostic == null)
+            {
+                return false;
+            }
+
+            if (this.Diagnostic != null && other.Diagnostic != null && !this.Diagnostic.Equals(other.Diagnostic))
+            {
+                return false;
+            }
+
+            if (!this.EnumTypes.SequenceEqual(other.EnumTypes))
+            {
+                return false;
+            }
+
+            if (!this.TupleArgs.SequenceEqual(other.TupleArgs))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        public override bool Equals(object obj) => obj is SerializeFormatterModel other && this.Equals(other);
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = (hash * 23) + (this.HintName?.GetHashCode() ?? 0);
+                hash = (hash * 23) + (this.FullTypeName?.GetHashCode() ?? 0);
+                hash = (hash * 23) + (this.FormatterFullName?.GetHashCode() ?? 0);
+                hash = (hash * 23) + this.IsClass.GetHashCode();
+                return hash;
+            }
+        }
+    }
+
     /// <inheritdoc/>
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        IncrementalValuesProvider<ITypeSymbol?> provider = context.SyntaxProvider
+        IncrementalValuesProvider<SerializeFormatterModel> provider = context.SyntaxProvider
             .CreateSyntaxProvider(
                 predicate: static (node, _) =>
                     node is TypeDeclarationSyntax { AttributeLists.Count: > 0 } tds &&
@@ -30,9 +115,9 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
                         m.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.AbstractKeyword) ||
                         m.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.StaticKeyword)),
                 transform: static (ctx, _) => GetSemanticTarget(ctx))
-            .Where(static t => t is not null);
+            .Where(static m => m.FullTypeName != null);
 
-        context.RegisterSourceOutput(provider.Collect(), this.Execute);
+        context.RegisterSourceOutput(provider.Collect(), Execute);
     }
 
     // TODO: Recursive nested enum collection registration.
@@ -61,9 +146,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
         }
 
         // Nullable<T>
-        if (type is INamedTypeSymbol namedNullable &&
-            namedNullable.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T &&
-            namedNullable.TypeArguments.Length == 1)
+        if (type is INamedTypeSymbol namedNullable && namedNullable.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T && namedNullable.TypeArguments.Length == 1)
         {
             CollectEnumTypes(namedNullable.TypeArguments[0], enums);
             return;
@@ -83,14 +166,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
             // but use named (with type args) for ValueTuple detection since OriginalDefinition
             // returns "ValueTuple<,>" without type args.
             string origDefName = named.OriginalDefinition.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-
-            // Single type argument generics
-            if (origDefName == "global::System.Collections.Generic.List<T>" ||
-                origDefName == "global::System.Collections.Generic.HashSet<T>" ||
-                origDefName == "global::System.Collections.Generic.Queue<T>" ||
-                origDefName == "global::System.Collections.Generic.Stack<T>" ||
-                origDefName == "global::System.Memory<T>" ||
-                origDefName == "global::System.ReadOnlyMemory<T>")
+            if (origDefName is "global::System.Collections.Generic.List<T>" or "global::System.Collections.Generic.HashSet<T>" or "global::System.Collections.Generic.Queue<T>" or "global::System.Collections.Generic.Stack<T>" or "global::System.Memory<T>" or "global::System.ReadOnlyMemory<T>")
             {
                 CollectEnumTypes(named.TypeArguments[0], enums);
                 return;
@@ -111,6 +187,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
                 {
                     CollectEnumTypes(arg, enums);
                 }
+
                 return;
             }
         }
@@ -123,9 +200,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
     private static void CollectValueTupleTypes(ITypeSymbol type, HashSet<INamedTypeSymbol> tupleTypes)
     {
         // Nullable<T>
-        if (type is INamedTypeSymbol namedNullable &&
-            namedNullable.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T &&
-            namedNullable.TypeArguments.Length == 1)
+        if (type is INamedTypeSymbol namedNullable && namedNullable.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T && namedNullable.TypeArguments.Length == 1)
         {
             CollectValueTupleTypes(namedNullable.TypeArguments[0], tupleTypes);
             return;
@@ -143,12 +218,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
             string origDefName = named.OriginalDefinition.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
             // Single type argument generics — recurse into element type
-            if (origDefName == "global::System.Collections.Generic.List<T>" ||
-                origDefName == "global::System.Collections.Generic.HashSet<T>" ||
-                origDefName == "global::System.Collections.Generic.Queue<T>" ||
-                origDefName == "global::System.Collections.Generic.Stack<T>" ||
-                origDefName == "global::System.Memory<T>" ||
-                origDefName == "global::System.ReadOnlyMemory<T>")
+            if (origDefName is "global::System.Collections.Generic.List<T>" or "global::System.Collections.Generic.HashSet<T>" or "global::System.Collections.Generic.Queue<T>" or "global::System.Collections.Generic.Stack<T>" or "global::System.Memory<T>" or "global::System.ReadOnlyMemory<T>")
             {
                 CollectValueTupleTypes(named.TypeArguments[0], tupleTypes);
                 return;
@@ -184,6 +254,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
                 {
                     CollectValueTupleTypes(arg, tupleTypes);
                 }
+
                 return;
             }
         }
@@ -199,9 +270,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
             return true;
         }
 
-        if (type is INamedTypeSymbol namedNullable &&
-            namedNullable.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T &&
-            namedNullable.TypeArguments.Length == 1)
+        if (type is INamedTypeSymbol namedNullable && namedNullable.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T && namedNullable.TypeArguments.Length == 1)
         {
             return ContainsEnumType(namedNullable.TypeArguments[0]);
         }
@@ -225,46 +294,156 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
         return false;
     }
 
-    private static ITypeSymbol? GetSemanticTarget(GeneratorSyntaxContext context)
+    private static SerializeFormatterModel GetSemanticTarget(GeneratorSyntaxContext context)
     {
         if (context.Node is not TypeDeclarationSyntax typeDef)
         {
-            return null;
+            return default;
         }
 
         if (context.SemanticModel.GetDeclaredSymbol(typeDef) is not ITypeSymbol symbol)
         {
-            return null;
+            return default;
         }
 
+        bool hasAttr = false;
         foreach (AttributeData attr in symbol.GetAttributes())
         {
-            string? name = attr.AttributeClass?.Name;
-
-            if (name == KnownNames.GenerateFormatterAttributeName)
+            if (attr.AttributeClass?.Name == KnownNames.GenerateFormatterAttributeName)
             {
-                return symbol;
+                hasAttr = true;
+                break;
             }
         }
-        return null;
+        if (!hasAttr)
+        {
+            return default;
+        }
+
+        bool isClass = symbol.IsReferenceType;
+        string typeName = GetTypeName(symbol);
+        string formatterName = $"{GetFormatterName(symbol)}Formatter";
+        string hintName = formatterName;
+        string generatedNamespace = SourceGenNamespaces.Get(symbol);
+        string formatterFullName = $"global::{generatedNamespace}.{KnownNames.FormatterName}.{formatterName}";
+
+        if (isClass && !HasStaticCreateMethod(symbol))
+        {
+            return new SerializeFormatterModel(
+                hintName, "", typeName, formatterFullName, formatterName, isClass, generatedNamespace,
+                Diagnostic.Create(GeneratorDiagnosticDescriptors.MissingStaticCreateMethod, symbol.Locations[0], symbol.ToDisplayString()),
+                ImmutableArray<string>.Empty, ImmutableArray<string>.Empty);
+        }
+
+        HashSet<ITypeSymbol> enumTypesSet = new(SymbolEqualityComparer.Default);
+        HashSet<INamedTypeSymbol> tupleTypesSet = new(SymbolEqualityComparer.Default);
+
+        List<ISymbol> members = SerializationMember.Resolve(symbol);
+        foreach (ISymbol member in members)
+        {
+            ITypeSymbol memberType = GetSymbolType(member);
+            CollectEnumTypes(memberType, enumTypesSet);
+            CollectValueTupleTypes(memberType, tupleTypesSet);
+        }
+
+        ImmutableArray<string> enumList = [.. enumTypesSet.Select(e => e.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)).OrderBy(e => e)];
+        ImmutableArray<string> tupleList = [.. tupleTypesSet.Select(t =>
+        {
+            StringBuilder args = new();
+            for (int i = 0; i < t.TypeArguments.Length; i++)
+            {
+                if (i > 0)
+                {
+                    _ = args.Append(", ");
+                }
+
+                _ = args.Append(t.TypeArguments[i].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
+            }
+            return args.ToString();
+        }).OrderBy(e => e)];
+
+        string interfaceName = isClass ? $"IFillableFormatter<{typeName}>" : $"IFormatter<{typeName}>";
+
+        StringBuilder sb = new(4096);
+        _ = sb.AppendLine("// <auto-generated/>");
+        _ = sb.AppendLine("using System.Runtime.CompilerServices;");
+        _ = sb.AppendLine($"using {KnownNames.CodecMemoryNamespace};");
+        _ = sb.AppendLine($"using {KnownNames.LiteSerializerNamespace};");
+        _ = sb.AppendLine($"using {KnownNames.CodecExtensionsNamespace};");
+        _ = sb.AppendLine();
+        _ = sb.AppendLine("#pragma warning disable CS1591");
+        _ = sb.AppendLine("#pragma warning disable IDE0240");
+        _ = sb.AppendLine("#nullable enable");
+        _ = sb.AppendLine();
+        _ = sb.AppendLine($"namespace {generatedNamespace}.{KnownNames.FormatterName};");
+        _ = sb.AppendLine();
+        _ = sb.AppendLine("[System.Diagnostics.StackTraceHidden]");
+        _ = sb.AppendLine("[System.Diagnostics.DebuggerStepThrough]");
+        _ = sb.AppendLine("[System.Runtime.CompilerServices.SkipLocalsInit]");
+        _ = sb.AppendLine($"internal sealed class {formatterName} : {interfaceName}");
+        _ = sb.AppendLine("{");
+
+        // ==================== Serialize ====================
+        _ = sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]");
+        _ = sb.AppendLine($"    public void Serialize(ref DataWriter writer, in {typeName} value)");
+        _ = sb.AppendLine("    {");
+        if (isClass)
+        {
+            _ = sb.AppendLine("        System.ArgumentNullException.ThrowIfNull(value);");
+            _ = sb.AppendLine();
+        }
+        if (ImplementsFixedSizeSerializable(symbol))
+        {
+            _ = sb.AppendLine($"        writer.Expand({typeName}.Size);");
+        }
+        _ = sb.Append(GenerateSerializeBody(members));
+        _ = sb.AppendLine("    }");
+        _ = sb.AppendLine();
+
+        // ==================== Deserialize ====================
+        _ = sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]");
+        _ = sb.AppendLine($"    public {typeName} Deserialize(ref DataReader reader)");
+        _ = sb.AppendLine("    {");
+        if (isClass)
+        {
+            _ = sb.AppendLine($"        {typeName} instance = {typeName}.Create();");
+            _ = sb.AppendLine("        this.Fill(ref reader, instance);");
+            _ = sb.AppendLine("        return instance;");
+        }
+        else
+        {
+            _ = sb.AppendLine($"        {typeName} instance = default;");
+            _ = sb.Append(GenerateAssignmentBody(members, "instance"));
+            _ = sb.AppendLine("        return instance;");
+        }
+        _ = sb.AppendLine("    }");
+
+        // ==================== Fill ====================
+        if (isClass)
+        {
+            _ = sb.AppendLine();
+            _ = sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]");
+            _ = sb.AppendLine($"    public void Fill(ref DataReader reader, {typeName} value)");
+            _ = sb.AppendLine("    {");
+            _ = sb.AppendLine("        System.ArgumentNullException.ThrowIfNull(value);");
+            _ = sb.AppendLine();
+            _ = sb.Append(GenerateAssignmentBody(members, "value", true));
+            _ = sb.AppendLine("    }");
+        }
+
+        _ = sb.AppendLine("}");
+
+        return new SerializeFormatterModel(hintName, sb.ToString(), typeName, formatterFullName, formatterName, isClass, generatedNamespace, null, enumList, tupleList);
     }
 
     private static bool HasStaticCreateMethod(ITypeSymbol type)
     {
         ITypeSymbol? current = type;
-
         while (current is not null && current.SpecialType == SpecialType.None)
         {
             bool hasCreate = current.GetMembers()
                 .OfType<IMethodSymbol>()
-                .Any(m => m is
-                {
-                    Name: "Create",
-                    IsStatic: true,
-                    Parameters.Length: 0,
-                    DeclaredAccessibility: Accessibility.Public or Accessibility.Internal
-                });
-
+                .Any(m => m is { Name: "Create", IsStatic: true, Parameters.Length: 0, DeclaredAccessibility: Accessibility.Public or Accessibility.Internal });
             if (hasCreate)
             {
                 return true;
@@ -272,128 +451,51 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
 
             current = current.BaseType;
         }
-
         return false;
     }
 
-    private void Execute(SourceProductionContext context, ImmutableArray<ITypeSymbol?> targets)
+    private static void Execute(SourceProductionContext context, ImmutableArray<SerializeFormatterModel> targets)
     {
         if (targets.IsDefaultOrEmpty)
         {
             return;
         }
 
-        List<(string FullName, string FormatterName, bool IsClass)> registeredFormatters = new(targets.Length);
-        HashSet<ITypeSymbol> enumTypes = new(SymbolEqualityComparer.Default);
-        HashSet<INamedTypeSymbol> tupleTypes = new(SymbolEqualityComparer.Default);
-        string generatedNamespace = SourceGenNamespaces.Get(targets.First(static t => t is not null)!);
+        List<SerializeFormatterModel> registered = new(targets.Length);
+        HashSet<string> enumTypes = new();
+        HashSet<string> tupleTypes = new();
+        string generatedNamespace = null!;
 
-        foreach (ITypeSymbol? type in targets)
+        foreach (SerializeFormatterModel m in targets)
         {
-            if (type is null)
+            if (m.Diagnostic != null)
             {
-                continue;
+                context.ReportDiagnostic(m.Diagnostic);
             }
-
-            bool isClass = type.IsReferenceType;
-            string typeName = GetTypeName(type);
-            string formatterName = $"{GetFormatterName(type)}Formatter";
-
-            if (isClass && !HasStaticCreateMethod(type))
+            if (!string.IsNullOrEmpty(m.SourceCode))
             {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    GeneratorDiagnosticDescriptors.MissingStaticCreateMethod,
-                    type.Locations[0],
-                    type.ToDisplayString()));
+                registered.Add(m);
+                generatedNamespace ??= m.GeneratedNamespace!;
+                foreach (string e in m.EnumTypes)
+                {
+                    _ = enumTypes.Add(e);
+                }
 
-                continue;
+                foreach (string t in m.TupleArgs)
+                {
+                    _ = tupleTypes.Add(t);
+                }
+
+                context.AddSource($"{m.HintName}.g.cs", SourceText.From(m.SourceCode, Encoding.UTF8));
             }
-
-            registeredFormatters.Add((typeName, $"global::{generatedNamespace}.{KnownNames.FormatterName}.{formatterName}", isClass));
-
-            // Collect enum types and ValueTuple wrapper types from all serializable members
-            List<ISymbol> members = SerializationMember.Resolve(type);
-            foreach (ISymbol member in members)
-            {
-                ITypeSymbol memberType = GetSymbolType(member);
-                CollectEnumTypes(memberType, enumTypes);
-                CollectValueTupleTypes(memberType, tupleTypes);
-            }
-
-            string interfaceName = isClass ? $"IFillableFormatter<{typeName}>" : $"IFormatter<{typeName}>";
-
-            StringBuilder sb = new(4096);
-            _ = sb.AppendLine("// <auto-generated/>");
-            _ = sb.AppendLine("using System.Runtime.CompilerServices;");
-            _ = sb.AppendLine($"using {KnownNames.CodecMemoryNamespace};");
-            _ = sb.AppendLine($"using {KnownNames.LiteSerializerNamespace};");
-            _ = sb.AppendLine($"using {KnownNames.CodecExtensionsNamespace};");
-            _ = sb.AppendLine();
-            _ = sb.AppendLine("#pragma warning disable CS1591");
-            _ = sb.AppendLine("#pragma warning disable IDE0240");
-            _ = sb.AppendLine("#nullable enable");
-            _ = sb.AppendLine();
-            _ = sb.AppendLine($"namespace {generatedNamespace}.{KnownNames.FormatterName};");
-            _ = sb.AppendLine();
-            _ = sb.AppendLine("[System.Diagnostics.StackTraceHidden]");
-            _ = sb.AppendLine("[System.Diagnostics.DebuggerStepThrough]");
-            _ = sb.AppendLine("[System.Runtime.CompilerServices.SkipLocalsInit]");
-            _ = sb.AppendLine($"internal sealed class {formatterName} : {interfaceName}");
-            _ = sb.AppendLine("{");
-
-            // ==================== Serialize ====================
-            _ = sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]");
-            _ = sb.AppendLine($"    public void Serialize(ref DataWriter writer, in {typeName} value)");
-            _ = sb.AppendLine("    {");
-            if (isClass)
-            {
-                _ = sb.AppendLine("        System.ArgumentNullException.ThrowIfNull(value);");
-                _ = sb.AppendLine();
-            }
-            if (ImplementsFixedSizeSerializable(type))
-            {
-                _ = sb.AppendLine($"        writer.Expand({typeName}.Size);");
-            }
-            _ = sb.Append(this.GenerateSerializeBody(members));
-            _ = sb.AppendLine("    }");
-            _ = sb.AppendLine();
-
-            // ==================== Deserialize ====================
-            _ = sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]");
-            _ = sb.AppendLine($"    public {typeName} Deserialize(ref DataReader reader)");
-            _ = sb.AppendLine("    {");
-            if (isClass)
-            {
-                _ = sb.AppendLine($"        {typeName} instance = {typeName}.Create();");
-                _ = sb.AppendLine("        this.Fill(ref reader, instance);");
-                _ = sb.AppendLine("        return instance;");
-            }
-            else
-            {
-                _ = sb.AppendLine($"        {typeName} instance = default;");
-                _ = sb.Append(this.GenerateAssignmentBody(members, "instance"));
-                _ = sb.AppendLine("        return instance;");
-            }
-            _ = sb.AppendLine("    }");
-
-            // ==================== Fill ====================
-            if (isClass)
-            {
-                _ = sb.AppendLine();
-                _ = sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]");
-                _ = sb.AppendLine($"    public void Fill(ref DataReader reader, {typeName} value)");
-                _ = sb.AppendLine("    {");
-                _ = sb.AppendLine("        System.ArgumentNullException.ThrowIfNull(value);");
-                _ = sb.AppendLine();
-                _ = sb.Append(this.GenerateAssignmentBody(members, "value", true));
-                _ = sb.AppendLine("    }");
-            }
-
-            _ = sb.AppendLine("}");
-            context.AddSource($"{formatterName}.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
         }
 
-        GenerateBootstrapper(context, registeredFormatters, enumTypes, tupleTypes, generatedNamespace);
+        if (registered.Count == 0)
+        {
+            return;
+        }
+
+        GenerateBootstrapper(context, registered, enumTypes, tupleTypes, generatedNamespace);
     }
 
     private static bool ImplementsFixedSizeSerializable(ITypeSymbol type)
@@ -414,27 +516,21 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
             SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions |
             SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
 
-    private static string GetTypeName(ITypeSymbol type)
-        => type.ToDisplayString(s_fullyQualifiedNullableFormat);
+    private static string GetTypeName(ITypeSymbol type) => type.ToDisplayString(s_fullyQualifiedNullableFormat);
 
     private static string GetFormatterName(ITypeSymbol type)
     {
         Stack<string> names = new();
         ITypeSymbol? current = type;
-
         while (current is not null)
         {
-            names.Push(current.MetadataName
-                .Replace('`', '_')
-                .Replace('.', '_')
-                .Replace('+', '_'));
+            names.Push(current.MetadataName.Replace('`', '_').Replace('.', '_').Replace('+', '_'));
             current = current.ContainingType;
         }
-
         return string.Join("_", names);
     }
 
-    private string GenerateSerializeBody(List<ISymbol> members)
+    private static string GenerateSerializeBody(List<ISymbol> members)
     {
         StringBuilder code = new(members.Count * 64);
 
@@ -471,7 +567,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
         return code.ToString();
     }
 
-    private string GenerateAssignmentBody(List<ISymbol> members, string targetName, bool isFillContext = false)
+    private static string GenerateAssignmentBody(List<ISymbol> members, string targetName, bool isFillContext = false)
     {
         StringBuilder code = new(members.Count * 80);
 
@@ -502,10 +598,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
             else
             {
                 // Complex types + string + array + reference types
-                if (isFillContext &&
-                    type.IsReferenceType &&
-                    type.SpecialType != SpecialType.System_String &&
-                    type.TypeKind != TypeKind.Array)
+                if (isFillContext && type.IsReferenceType && type.SpecialType != SpecialType.System_String && type.TypeKind != TypeKind.Array)
                 {
                     _ = code.AppendLine($"        if ({memberAccess} is not null)");
                     _ = code.AppendLine("        {");
@@ -522,7 +615,6 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
                 }
             }
         }
-
         return code.ToString();
     }
 
@@ -533,9 +625,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
     /// </summary>
     private static bool IsNullableValueType(ITypeSymbol type)
     {
-        if (type is INamedTypeSymbol named &&
-            named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T &&
-            named.TypeArguments.Length == 1)
+        if (type is INamedTypeSymbol named && named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T && named.TypeArguments.Length == 1)
         {
             return named.TypeArguments[0].IsValueType;
         }
@@ -545,7 +635,6 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
     private static string GetEnumReadMethod(ITypeSymbol type)
     {
         SpecialType? underlying = ((INamedTypeSymbol)type).EnumUnderlyingType?.SpecialType;
-
         return underlying switch
         {
             SpecialType.System_SByte => "ReadEnumSByte",
@@ -574,14 +663,13 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
         _ => "ReadUnmanaged"
     };
 
-    private static ITypeSymbol GetSymbolType(ISymbol symbol)
-        => symbol is IPropertySymbol p ? p.Type : ((IFieldSymbol)symbol).Type;
+    private static ITypeSymbol GetSymbolType(ISymbol symbol) => symbol is IPropertySymbol p ? p.Type : ((IFieldSymbol)symbol).Type;
 
     private static void GenerateBootstrapper(
         SourceProductionContext context,
-        List<(string FullName, string FormatterName, bool IsClass)> registered,
-        HashSet<ITypeSymbol> enumTypes,
-        HashSet<INamedTypeSymbol> tupleTypes,
+        List<SerializeFormatterModel> registered,
+        HashSet<string> enumTypes,
+        HashSet<string> tupleTypes,
         string generatedNamespace)
     {
         int totalEntries = registered.Count;
@@ -609,9 +697,8 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
         if (enumTypes.Count > 0)
         {
             _ = sb.AppendLine("        // ── Auto-register enum formatter families used by generated DTOs ──");
-            foreach (ITypeSymbol enumType in enumTypes.OrderBy(static e => e.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))
+            foreach (string enumFullName in enumTypes.OrderBy(e => e))
             {
-                string enumFullName = enumType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                 _ = sb.AppendLine($"        global::{KnownNames.LiteSerializerNamespace}.{KnownNames.FormatterProviderName}.RegisterAllFormatters<{enumFullName}>();");
             }
             _ = sb.AppendLine();
@@ -622,35 +709,26 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
         if (tupleTypes.Count > 0)
         {
             _ = sb.AppendLine("        // ── Auto-register ValueTuple formatters containing enum types ──");
-            foreach (INamedTypeSymbol tupleType in tupleTypes.OrderBy(static t => t.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))
+            foreach (string tupleArgs in tupleTypes.OrderBy(t => t))
             {
                 // Build type arguments for RegisterTuple<T1, T2, ...>() call
-                StringBuilder args = new();
-                for (int i = 0; i < tupleType.TypeArguments.Length; i++)
-                {
-                    if (i > 0)
-                    {
-                        _ = args.Append(", ");
-                    }
-                    _ = args.Append(tupleType.TypeArguments[i].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat));
-                }
-                _ = sb.AppendLine($"        global::{KnownNames.LiteSerializerNamespace}.{KnownNames.FormatterProviderName}.RegisterTuple<{args}>();");
+                _ = sb.AppendLine($"        global::{KnownNames.LiteSerializerNamespace}.{KnownNames.FormatterProviderName}.RegisterTuple<{tupleArgs}>();");
             }
             _ = sb.AppendLine();
         }
 
         // ── Step 2: Register generated DTO formatters ──
-        foreach ((_, string formatterName, _) in registered)
+        foreach (SerializeFormatterModel r in registered)
         {
-            _ = sb.AppendLine($"        global::{KnownNames.LiteSerializerNamespace}.{KnownNames.FormatterProviderName}.RegisterGenerated(new {formatterName}());");
+            _ = sb.AppendLine($"        global::{KnownNames.LiteSerializerNamespace}.{KnownNames.FormatterProviderName}.RegisterGenerated(new {r.FormatterFullName}());");
         }
 
         // ── Step 3: Register List<T> and T[] formatters for class types ──
-        foreach ((string fullName, _, bool isClass) in registered)
+        foreach (SerializeFormatterModel r in registered)
         {
-            if (isClass)
+            if (r.IsClass)
             {
-                _ = sb.AppendLine($"        global::{KnownNames.LiteSerializerNamespace}.{KnownNames.FormatterProviderName}.RegisterCollectionFormatters<{fullName}>();");
+                _ = sb.AppendLine($"        global::{KnownNames.LiteSerializerNamespace}.{KnownNames.FormatterProviderName}.RegisterCollectionFormatters<{r.FullTypeName}>();");
             }
         }
 
@@ -665,11 +743,11 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
         _ = sb.AppendLine($"    internal static bool TryGet<T>(out global::{KnownNames.LiteSerializerNamespace}.IFormatter<T>? formatter)");
         _ = sb.AppendLine("    {");
 
-        foreach ((string fullName, string formatterName, _) in registered)
+        foreach (SerializeFormatterModel r in registered)
         {
-            _ = sb.AppendLine($"        if (typeof(T) == typeof({fullName}))");
+            _ = sb.AppendLine($"        if (typeof(T) == typeof({r.FullTypeName}))");
             _ = sb.AppendLine("        {");
-            _ = sb.AppendLine($"            formatter = (global::{KnownNames.LiteSerializerNamespace}.IFormatter<T>)(object)new {formatterName}();");
+            _ = sb.AppendLine($"            formatter = (global::{KnownNames.LiteSerializerNamespace}.IFormatter<T>)(object)new {r.FormatterFullName}();");
             _ = sb.AppendLine("            return true;");
             _ = sb.AppendLine("        }");
         }
@@ -682,5 +760,4 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
 
         context.AddSource("SerializeFormatterGenerated.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
-
 }

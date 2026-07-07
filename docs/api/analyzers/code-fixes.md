@@ -107,4 +107,4 @@ The available fixes currently cover these common workflows:
 - [Analyzers Overview](./index.md)
 - [Serialization Attributes](../abstractions/serialization-attributes.md)
 - [Packet Registry](../codec/packets/packet-registry.md)
-- [Middleware Pipeline](../../concepts/runtime/middleware-pipeline.md)
+- [Middleware Pipeline](../../concepts/internals/middleware-pipeline.md)

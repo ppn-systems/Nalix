@@ -22,7 +22,7 @@ using Nalix.Abstractions.Networking.Packets;
 [PacketHandler]
 public sealed class ExampleController
 {
-    public Task Handle(LoginPacket packet, IConnection connection)
+    public Task Handle(Nalix.Runtime.Dispatching.PacketContext<LoginPacket> context)
     {
         return Task.CompletedTask;
     }
@@ -45,7 +45,7 @@ using Nalix.Abstractions.Networking.Packets;
 public sealed class ExampleController
 {
     [PacketOpcode(0x0000)]
-    public Task Handle(LoginPacket packet, IConnection connection)
+    public Task Handle(Nalix.Runtime.Dispatching.PacketContext<LoginPacket> context)
     {
         return Task.CompletedTask;
     }
@@ -77,7 +77,7 @@ using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 public sealed class ExampleController
 {
     [PacketOpcode(1)]
-    public void Handle(LoginPacket packet, Nalix.Abstractions.Networking.IConnection connection)
+    public void Handle(Nalix.Runtime.Dispatching.PacketContext<LoginPacket> context)
     {
     }
 }
@@ -105,7 +105,7 @@ using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 public sealed class ExampleController
 {
     [PacketOpcode(1)]
-    public void Handle(LoginPacket packet, Nalix.Abstractions.Networking.IConnection connection)
+    public void Handle(Nalix.Runtime.Dispatching.PacketContext<LoginPacket> context)
     {
     }
 }

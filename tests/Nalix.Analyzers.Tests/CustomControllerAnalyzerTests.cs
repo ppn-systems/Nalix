@@ -19,7 +19,7 @@ using Nalix.Abstractions.Networking.Packets;
 public sealed class MyController
 {
     [PacketOpcode(0x0001)]
-    public void Handle(LoginPacket packet, Nalix.Abstractions.Networking.IConnection connection) { }
+    public void Handle(Nalix.Runtime.Dispatching.PacketContext<LoginPacket> context) { }
 }
 
 public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
@@ -44,7 +44,7 @@ using Nalix.Abstractions.Networking.Packets;
 public sealed class Controller1
 {
     [PacketOpcode(0x0200)]
-    public void Handle(LoginPacket packet, Nalix.Abstractions.Networking.IConnection connection) { }
+    public void Handle(Nalix.Runtime.Dispatching.PacketContext<LoginPacket> context) { }
 }
 
 public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
@@ -61,7 +61,7 @@ using Nalix.Abstractions.Networking.Packets;
 public sealed class Controller2
 {
     [PacketOpcode(0x0200)]
-    public void Handle(LoginPacket packet, Nalix.Abstractions.Networking.IConnection connection) { }
+    public void Handle(Nalix.Runtime.Dispatching.PacketContext<LoginPacket> context) { }
 }
 """;
 
@@ -81,7 +81,7 @@ using Nalix.Abstractions.Networking.Packets;
 public sealed class MyController
 {
     [PacketOpcode(0x0150)]
-    public void Handle(LoginPacket packet, Nalix.Abstractions.Networking.IConnection connection) { }
+    public void Handle(Nalix.Runtime.Dispatching.PacketContext<LoginPacket> context) { }
 }
 
 public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
@@ -104,7 +104,7 @@ using Nalix.Abstractions.Networking.Packets;
 public sealed class MyController
 {
     [PacketOpcode(0x0200)]
-    public void Handle(LoginPacket packet, Nalix.Abstractions.Networking.IConnection connection) 
+    public void Handle(Nalix.Runtime.Dispatching.PacketContext<LoginPacket> context) 
     { 
         var x = new object(); // Allocation in hot path
     }
@@ -135,7 +135,7 @@ public sealed class MyController
     /// Authenticates a user. OpCode: 0x0150
     /// </summary>
     [PacketOpcode(0x0300)]
-    public void Handle(LoginPacket packet, Nalix.Abstractions.Networking.IConnection connection) { }
+    public void Handle(Nalix.Runtime.Dispatching.PacketContext<LoginPacket> context) { }
 }
 
 public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
