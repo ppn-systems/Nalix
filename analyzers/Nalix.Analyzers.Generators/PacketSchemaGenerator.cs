@@ -288,7 +288,7 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
                 {
                     string sizeExpr = BUILD_SIZE_EXPRESSION(memberType, $"this.{memberName}");
                     _ = sb.AppendLine($"            size += {sizeExpr};");
-                    staticSize += 4; // minimum: length prefix for dynamic fields
+                    staticSize += GET_MIN_SIZE(memberType);
                 }
             }
 
@@ -566,6 +566,38 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
         }
 
         return "0";
+    }
+
+    private static int GET_MIN_SIZE(ITypeSymbol type)
+    {
+        int fixedSize = GET_FIXED_SIZE(type);
+        if (fixedSize > 0)
+        {
+            return fixedSize;
+        }
+
+        if (type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T })
+        {
+            return 1;
+        }
+
+        if (type is INamedTypeSymbol named && IMPLEMENTSI_PACKET(named))
+        {
+            return 0;
+        }
+
+        if (type.IsTupleType && type is INamedTypeSymbol tuple)
+        {
+            int size = 0;
+            for (int i = 0; i < tuple.TupleElements.Length; i++)
+            {
+                size += GET_MIN_SIZE(tuple.TupleElements[i].Type);
+            }
+
+            return size;
+        }
+
+        return 4;
     }
 
     private static string BUILD_ARRAY_SIZE_EXPRESSION(IArrayTypeSymbol arrayType, string accessor)
