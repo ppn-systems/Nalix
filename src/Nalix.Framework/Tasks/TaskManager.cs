@@ -182,7 +182,8 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
         _pendingWorkersSignal = new SemaphoreSlim(0, int.MaxValue);
         _workerDispatcherCts = new();
         _currentConcurrencyLimit = _options.MaxWorkers;
-        _concurrencyLimitRatio = _options.MaxWorkers > 0 ? 1.0 : 1.0;
+        // Starts at full concurrency (limit == MaxWorkers), so the initial ratio is 1.0.
+        _concurrencyLimitRatio = 1.0;
         _globalConcurrencyGate = new SemaphoreSlim(_currentConcurrencyLimit, _options.MaxWorkers);
         _workerDispatcherTask = this.WORKER_DISPATCH_LOOP_ASYNC(_workerDispatcherCts.Token);
 
@@ -331,8 +332,9 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
         ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
 
-        _ = Interlocked.Increment(ref _workerCompletionCount);
-
+        // Completion count is incremented on the actual completion path (EXECUTE_WORKER_SAFE),
+        // alongside the uptime/wait ticks it is the denominator for. Do NOT increment at schedule
+        // time — that double-counts and skews AverageWorkerUptime/WaitTime.
         _ = ThreadPool.UnsafeQueueUserWorkItem(static tuple =>
         {
             (Action<TState>? w, TState? s, string? n, TaskManager? m) = tuple;

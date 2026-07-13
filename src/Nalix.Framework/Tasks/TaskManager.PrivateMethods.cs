@@ -1026,7 +1026,7 @@ public partial class TaskManager
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void INITIALIZE_CPU_MEASUREMENT()
     {
-        Process proc = Process.GetCurrentProcess();
+        using Process proc = Process.GetCurrentProcess();
         Volatile.Write(ref _lastCpuProcessorTime, (long)proc.TotalProcessorTime.TotalMilliseconds);
         Volatile.Write(ref _lastCpuWallClockMs, _cpuMeasureStopwatch.ElapsedMilliseconds);
         _cpuWarmupDone = false;
@@ -1048,7 +1048,7 @@ public partial class TaskManager
             }
 
             // Đánh dấu đã xong warmup, cập nhật baseline một lần ngay lúc này
-            Process proc0 = Process.GetCurrentProcess();
+            using Process proc0 = Process.GetCurrentProcess();
             proc0.Refresh();
             Volatile.Write(ref _lastCpuProcessorTime, (long)proc0.TotalProcessorTime.TotalMilliseconds);
             Volatile.Write(ref _lastCpuWallClockMs, currentWallMs);
@@ -1056,7 +1056,7 @@ public partial class TaskManager
             return 0.0;
         }
 
-        Process proc = Process.GetCurrentProcess();
+        using Process proc = Process.GetCurrentProcess();
         proc.Refresh();
         long currentCpuMs = (long)proc.TotalProcessorTime.TotalMilliseconds;
 

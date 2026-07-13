@@ -58,6 +58,14 @@ internal sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDis
     private readonly Node?[] _stateBuckets;
     private readonly int _stateMask;
 
+    /// <summary>
+    /// Serializes structural bucket mutation (tombstone reuse, node append, node reclamation)
+    /// so removed nodes are recycled in place instead of leaking. The per-packet fast path in
+    /// <see cref="GetOrCreateState"/> that finds an existing live node stays lock-free; only the
+    /// rare once-per-connection create/remove transitions take this lock.
+    /// </summary>
+    private readonly System.Threading.Lock _stateMutationLock = new();
+
     private int _activeConnections;
     private int _readyConnections;
     private long _totalEvicted;
@@ -598,42 +606,82 @@ internal sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDis
     {
         int index = RuntimeHelpers.GetHashCode(connection) & _stateMask;
 
-        while (true)
+        // Fast path (lock-free): find an existing live node for this connection.
+        for (Node? node = Volatile.Read(ref _stateBuckets[index]); node is not null; node = node.Next)
         {
-            Node? head = Volatile.Read(ref _stateBuckets[index]);
-
-            for (Node? node = head; node is not null; node = node.Next)
+            if (!ReferenceEquals(node.Connection, connection))
             {
-                if (!ReferenceEquals(node.Connection, connection))
+                continue;
+            }
+
+            ConnectionState? existingState = node.State;
+            if (existingState is null)
+            {
+                continue;
+            }
+
+            if (Volatile.Read(ref node.Removed) != 0 &&
+                Interlocked.CompareExchange(ref node.Removed, 0, 1) == 1)
+            {
+                existingState.Reactivate();
+                _ = Interlocked.Increment(ref _activeConnections);
+            }
+
+            return existingState;
+        }
+
+        // Slow path: no live node found. Serialize with RemoveConnection so we can either
+        // recycle a tombstone in place or append exactly once — this bounds chain length to
+        // peak concurrent connections per bucket instead of leaking a node per reconnect.
+        return this.CreateOrReuseState(connection, index);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private ConnectionState CreateOrReuseState(IConnection connection, int index)
+    {
+        lock (_stateMutationLock)
+        {
+            Node? tombstone = null;
+            for (Node? node = _stateBuckets[index]; node is not null; node = node.Next)
+            {
+                // Another thread may have created a live node for this connection meanwhile.
+                if (ReferenceEquals(node.Connection, connection) && node.State is ConnectionState live)
                 {
-                    continue;
+                    if (Volatile.Read(ref node.Removed) != 0 &&
+                        Interlocked.CompareExchange(ref node.Removed, 0, 1) == 1)
+                    {
+                        live.Reactivate();
+                        _ = Interlocked.Increment(ref _activeConnections);
+                    }
+
+                    return live;
                 }
 
-                ConnectionState? existingState = node.State;
-                if (existingState is null)
-                {
-                    continue;
-                }
-
-                if (Volatile.Read(ref node.Removed) != 0 &&
-                    Interlocked.CompareExchange(ref node.Removed, 0, 1) == 1)
-                {
-                    existingState.Reactivate();
-                    _ = Interlocked.Increment(ref _activeConnections);
-                }
-
-                return existingState;
+                // A fully-cleared tombstone (removed, references broken) we can repopulate.
+                tombstone ??= node.Connection is null && node.State is null && Volatile.Read(ref node.Removed) != 0
+                    ? node
+                    : null;
             }
 
             ConnectionState createdState = new(connection, _boundedPerPriorityMode, _boundedPerPriorityCapacity);
-            Node createdNode = new(connection, createdState, head);
 
-            Node? prior = Interlocked.CompareExchange(ref _stateBuckets[index], createdNode, head);
-            if (ReferenceEquals(prior, head))
+            if (tombstone is not null)
             {
-                _ = Interlocked.Increment(ref _activeConnections);
-                return createdState;
+                // Reuse in place. Publish State before Connection so the lock-free reader that
+                // sees a non-null Connection is guaranteed to also see the matching State.
+                tombstone.State = createdState;
+                _ = Interlocked.Exchange(ref tombstone.Removed, 0);
+                tombstone.Connection = connection;
             }
+            else
+            {
+                Node? head = _stateBuckets[index];
+                Node createdNode = new(connection, createdState, head);
+                Volatile.Write(ref _stateBuckets[index], createdNode);
+            }
+
+            _ = Interlocked.Increment(ref _activeConnections);
+            return createdState;
         }
     }
 
@@ -698,11 +746,15 @@ internal sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDis
             DecrementNonNegative(ref _packetCount.Value, drained);
         }
 
-        // Break the tombstone node's strong references to the closed connection graph.
-        // The node may remain in the bucket chain as a small tombstone, but it must not
-        // retain ConnectionState, Connection, SocketConnection, or Socket.
-        node.State = null;
-        node.Connection = null;
+        // Break the tombstone node's strong references to the closed connection graph so it
+        // retains no ConnectionState, Connection, SocketConnection, or Socket. Serialize with
+        // CreateOrReuseState so this node can later be recycled in place. Clear Connection first
+        // (stops new readers matching), then State — the mirror of the publish order on reuse.
+        lock (_stateMutationLock)
+        {
+            node.Connection = null;
+            node.State = null;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -868,10 +920,15 @@ internal sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDis
 
         // Mutable so RemoveConnection can null them to break the tombstone's
         // retention of the closed connection graph (Connection -> SocketConnection
-        // -> Socket). Without this, every removed node
-        // permanently roots the entire connection object graph.
-        public ConnectionState? State = state;
-        public IConnection? Connection = connection;
+        // -> Socket), and so a later GetOrCreateState can repopulate the tombstone
+        // in place instead of appending a new node (bounds chain length to peak
+        // concurrent connections/bucket rather than total-ever connections).
+        //
+        // Volatile: the lock-free reader in GetOrCreateState/TryFindNode observes
+        // these without holding _stateMutationLock. Connection is always published
+        // AFTER State so a reader that sees a non-null Connection also sees its State.
+        public volatile ConnectionState? State = state;
+        public volatile IConnection? Connection = connection;
     }
 
     private sealed class UnboundedQueue
