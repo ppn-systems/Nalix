@@ -51,28 +51,23 @@ public sealed class RpcClientGenerator : IIncrementalGenerator
 
         public bool Equals(RpcMethodModel other)
         {
-            if (this.Name != other.Name || this.ReturnType != other.ReturnType || this.GenericArgument != other.GenericArgument || this.Parameters.Length != other.Parameters.Length)
+            if (this.Name != other.Name || this.ReturnType != other.ReturnType || this.GenericArgument != other.GenericArgument)
             {
                 return false;
             }
 
-            for (int i = 0; i < this.Parameters.Length; i++)
-            {
-                if (!this.Parameters[i].Equals(other.Parameters[i]))
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return Internal.ModelEquality.SequenceEqual(this.Parameters, other.Parameters);
         }
         public override bool Equals(object obj) => obj is RpcMethodModel other && this.Equals(other);
         public override int GetHashCode()
         {
             int hash = (this.Name, this.ReturnType, this.GenericArgument).GetHashCode();
-            foreach (RpcParameterModel p in this.Parameters)
+            if (!this.Parameters.IsDefaultOrEmpty)
             {
-                hash = (hash * 397) ^ p.GetHashCode();
+                foreach (RpcParameterModel p in this.Parameters)
+                {
+                    hash = (hash * 397) ^ p.GetHashCode();
+                }
             }
 
             return hash;
@@ -94,28 +89,23 @@ public sealed class RpcClientGenerator : IIncrementalGenerator
 
         public bool Equals(RpcServiceModel other)
         {
-            if (this.InterfaceName != other.InterfaceName || this.NamespaceName != other.NamespaceName || this.Methods.Length != other.Methods.Length)
+            if (this.InterfaceName != other.InterfaceName || this.NamespaceName != other.NamespaceName)
             {
                 return false;
             }
 
-            for (int i = 0; i < this.Methods.Length; i++)
-            {
-                if (!this.Methods[i].Equals(other.Methods[i]))
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return Internal.ModelEquality.SequenceEqual(this.Methods, other.Methods);
         }
         public override bool Equals(object obj) => obj is RpcServiceModel other && this.Equals(other);
         public override int GetHashCode()
         {
             int hash = (this.InterfaceName, this.NamespaceName).GetHashCode();
-            foreach (RpcMethodModel m in this.Methods)
+            if (!this.Methods.IsDefaultOrEmpty)
             {
-                hash = (hash * 397) ^ m.GetHashCode();
+                foreach (RpcMethodModel m in this.Methods)
+                {
+                    hash = (hash * 397) ^ m.GetHashCode();
+                }
             }
 
             return hash;

@@ -75,35 +75,10 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
             }
 
             // NB: EnumTypes/TupleArgs may be default (uninitialized) when this model came from a
-            // `return default` path. ImmutableArray.SequenceEqual dereferences the backing array and
-            // throws NRE on a default value, which the incremental generator surfaces as an IDE-wide
-            // crash. Compare through the null-safe helper instead.
-            if (!SequenceEqualSafe(this.EnumTypes, other.EnumTypes))
-            {
-                return false;
-            }
-
-            if (!SequenceEqualSafe(this.TupleArgs, other.TupleArgs))
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        private static bool SequenceEqualSafe(ImmutableArray<string> left, ImmutableArray<string> right)
-        {
-            if (left.IsDefaultOrEmpty && right.IsDefaultOrEmpty)
-            {
-                return true;
-            }
-
-            if (left.IsDefaultOrEmpty || right.IsDefaultOrEmpty)
-            {
-                return false;
-            }
-
-            return left.SequenceEqual(right);
+            // `return default` path. Accessing a default ImmutableArray throws NRE, which the
+            // incremental generator surfaces as an IDE-wide crash. Compare through the null-safe helper.
+            return Internal.ModelEquality.SequenceEqual(this.EnumTypes, other.EnumTypes)
+                && Internal.ModelEquality.SequenceEqual(this.TupleArgs, other.TupleArgs);
         }
 
         public override bool Equals(object obj) => obj is SerializeFormatterModel other && this.Equals(other);
