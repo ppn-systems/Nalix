@@ -147,14 +147,7 @@ public sealed class RequestResilienceTests : IDisposable
         }
     }
 
-    [Fact(Skip = "BUG: src/Nalix.Environment/Sequencing/SequenceCounter.cs:91 (IsValid, window=0 default) — " +
-        "TcpFrameReader validates inbound seq with the default strictly-monotonic window (see " +
-        "src/Nalix.SDK/Transport/Internal/Tcp/TcpFrameReader.cs PROCESS_NORMAL_FRAME, _sequence.IsValid(seq) " +
-        "with no window param). Concurrent RequestAsync calls on one session cause the server to emit response " +
-        "frames whose sequence numbers do not strictly increase in arrival order; any response arriving with " +
-        "seq <= current is silently dropped (no error, no exception), so its RequestAsync caller times out. " +
-        "Concurrent request/response correlation on a single session is effectively unsupported without an " +
-        "explicit reorder window.")]
+    [Fact]
     public async Task RequestAsync_ConcurrentOutOfOrderResponses_EachResolvesCorrectly()
     {
         int port = TestUtils.GetFreePort();

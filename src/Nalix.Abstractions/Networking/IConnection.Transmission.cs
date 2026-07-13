@@ -77,9 +77,9 @@ public partial interface IConnection
         /// under concurrent sends.
         /// </summary>
         /// <remarks>
-        /// Transports whose <see cref="SendAsync"/> already writes synchronously enough that reservation
-        /// order always matches wire order (e.g. TCP/UDP) may return a no-op scope. Transports with
-        /// serialized, fully-async writes (e.g. WebSocket) must return a scope backed by a real lock.
+        /// Transports whose <see cref="SendAsync"/> already guarantees reservation/write ordering may
+        /// return a no-op scope. Transports with fully asynchronous writes on ordered streams (for example,
+        /// TCP and WebSocket) must return a scope backed by a real lock.
         /// </remarks>
         /// <param name="cancellationToken">A token to cancel the acquisition.</param>
         ValueTask<IAsyncDisposable> AcquireSendLockAsync(CancellationToken cancellationToken = default) =>

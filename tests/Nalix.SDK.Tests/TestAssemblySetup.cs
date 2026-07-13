@@ -19,5 +19,8 @@ internal static class TestAssemblySetup
         ConnectionQuotaOptions quota = ConfigurationManager.Instance.Get<ConnectionQuotaOptions>();
         quota.MaxConnectionsPerIpAddress = 10000;
         quota.MaxConnectionsPerWindow = 10000000;
+
+        NetworkCallbackOptions callbacks = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
+        callbacks.MaxPerConnectionPendingPackets = 1024;
     }
 }

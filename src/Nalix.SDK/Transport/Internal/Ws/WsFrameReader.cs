@@ -9,7 +9,9 @@ using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Codec.Transforms;
+using Nalix.Environment.Configuration;
 using Nalix.Environment.Memory;
+using Nalix.Environment.Options;
 using Nalix.Environment.Sequencing;
 using Nalix.SDK.Options;
 
@@ -17,6 +19,8 @@ namespace Nalix.SDK.Transport.Internal.Ws;
 
 internal sealed class WsFrameReader : IDisposable
 {
+    private static readonly SequenceOptions s_sequenceOptions = ConfigurationManager.Instance.Get<SequenceOptions>();
+
     private readonly Action<Exception> _onError;
     private readonly Action<IBufferLease> _onMessage;
     private readonly Func<ClientWebSocket> _getSocket;
@@ -169,7 +173,7 @@ internal sealed class WsFrameReader : IDisposable
                 _options.Algorithm,
                 out seq);
 
-            if (!_sequence.IsValid(seq))
+            if (!_sequence.IsValid(seq, s_sequenceOptions.TcpWindow))
             {
                 if (Codec.DiagnosticsEvents.Source.IsEnabled(Codec.DiagnosticsEvents.Sequence.Rejected))
                 {

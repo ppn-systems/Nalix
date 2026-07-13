@@ -25,6 +25,7 @@ namespace Nalix.SDK.Transport.Internal.Tcp;
 internal sealed class TcpFrameReader : IDisposable
 {
     private static readonly FragmentOptions s_fragmentOptions = ConfigurationManager.Instance.Get<FragmentOptions>();
+    private static readonly SequenceOptions s_sequenceOptions = ConfigurationManager.Instance.Get<SequenceOptions>();
     private static readonly SocketException s_frameSizeExceeded = new((int)SocketError.MessageSize);
 
     private readonly SessionState _state;
@@ -168,7 +169,7 @@ internal sealed class TcpFrameReader : IDisposable
             // SEC-07: Verify signature/decrypt and decompress inbound packet.
             FramePipeline.ProcessInbound(ref lease, _state.Secret.AsSpan(), _options.Algorithm, out seq);
 
-            if (!_sequence.IsValid(seq))
+            if (!_sequence.IsValid(seq, s_sequenceOptions.TcpWindow))
             {
                 if (Codec.DiagnosticsEvents.Source.IsEnabled(Codec.DiagnosticsEvents.Sequence.Rejected))
                 {

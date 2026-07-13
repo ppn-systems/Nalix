@@ -157,6 +157,7 @@ internal static partial class OsCsprng
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    [System.Runtime.Versioning.SupportedOSPlatform("android")]
     private static unsafe void L(Span<byte> b)
     {
         fixed (byte* p = b)
