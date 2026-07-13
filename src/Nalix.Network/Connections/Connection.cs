@@ -228,7 +228,9 @@ public sealed partial class Connection :
                 return 0;
             }
 
-            return backing.Socket?.BytesSent ?? (0 + (backing.UdpTransport?.BytesSent ?? 0) + Volatile.Read(ref backing.BytesSent));
+            return (backing.Socket?.BytesSent ?? 0)
+                 + (backing.UdpTransport?.BytesSent ?? 0)
+                 + Volatile.Read(ref backing.BytesSent);
         }
     }
 
@@ -250,7 +252,9 @@ public sealed partial class Connection :
                 return 0;
             }
 
-            return backing.Socket?.BytesReceived ?? (0 + (backing.UdpTransport?.BytesReceived ?? 0) + Volatile.Read(ref backing.BytesReceived));
+            return (backing.Socket?.BytesReceived ?? 0)
+                 + (backing.UdpTransport?.BytesReceived ?? 0)
+                 + Volatile.Read(ref backing.BytesReceived);
         }
     }
 
@@ -499,7 +503,7 @@ public sealed partial class Connection :
                                 {
                                     if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
                                     {
-                                        // handlerEx, "[NW.Connection:this.Dispose] close-handler-error");
+                                        DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.Connection:Dispose", "close-handler-error", handlerEx));
                                     }
                                 }
                             }

@@ -73,6 +73,14 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     private int _isDisposed;
     private int _isLocked;
 
+    /// <summary>
+    /// Serializes mutating operations (Register / RemoveInstance / Clear) so that the
+    /// "is-previous-still-referenced then dispose" decision is atomic and cannot dispose an
+    /// instance that a concurrent registration has just re-stored under another handle.
+    /// Read paths (GetOrCreateInstance / GetExistingInstance) stay lock-free.
+    /// </summary>
+    private readonly Lock _mutationLock = new();
+
     #endregion Fields
 
     #region Properties
@@ -97,13 +105,24 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     #region Public API
 
     /// <summary>
-    /// Locks the InstanceManager, preventing any further registrations or reloads.
+    /// Locks the InstanceManager, preventing any further registrations, removals, or reloads.
     /// This should be called after application initialization is complete to prevent service hijacking.
+    /// Once locked, <see cref="Register{T}(T)"/>, <see cref="RemoveInstance(Type)"/>, and
+    /// <see cref="Clear(bool)"/> throw <see cref="InvalidOperationException"/>.
     /// </summary>
     public void Lockdown()
     {
         _ = Interlocked.Exchange(ref _isLocked, 1);
         this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:Lockdown", "lockdown");
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void THROW_IF_LOCKED()
+    {
+        if (Interlocked.CompareExchange(ref _isLocked, 0, 0) != 0)
+        {
+            throw new InvalidOperationException("InstanceManager is locked. Registration and removal are not permitted.");
+        }
     }
 
     /// <summary>
@@ -116,10 +135,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void Register<T>(T instance) where T : class
     {
-        if (Interlocked.CompareExchange(ref _isLocked, 0, 0) != 0)
-        {
-            throw new InvalidOperationException("InstanceManager is locked. Further registrations are not permitted.");
-        }
+        THROW_IF_LOCKED();
 
         ObjectDisposedException.ThrowIf(Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
 
@@ -128,40 +144,46 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
         // Collect distinct previous objects encountered during atomic replace so we dispose each once.
         HashSet<object> prevsToDispose = new(ReferenceEqualityComparer.Instance);
 
-        // Atomic add/replace for concrete type.
-        TRY_ADD_OR_REPLACE_ATOMIC_COLLECT(key, instance, typeof(T).Name, prevsToDispose);
-
-        // Invalidate L1 cache (increment monotonic version counter)
-        _ = Interlocked.Increment(ref s_slotsInvalidated);
-
-        // Interface registration is fully explicit. We check compile-time service mappings
-        // populated by the generated code for any attributes mapped on this type.
-        if (s_preRegisteredServiceMappings.TryGetValue(typeof(T), out System.Collections.Generic.List<Type>? serviceTypes))
+        // Serialize with RemoveInstance/Clear so the "still-referenced then dispose" decision below
+        // cannot race a concurrent registration that re-stores a previous instance under another handle.
+        lock (_mutationLock)
         {
-            lock (serviceTypes)
+            // Atomic add/replace for concrete type.
+            TRY_ADD_OR_REPLACE_ATOMIC_COLLECT(key, instance, typeof(T).Name, prevsToDispose);
+
+            // Invalidate L1 cache (increment monotonic version counter)
+            _ = Interlocked.Increment(ref s_slotsInvalidated);
+
+            // Interface registration is fully explicit. We check compile-time service mappings
+            // populated by the generated code for any attributes mapped on this type.
+            if (s_preRegisteredServiceMappings.TryGetValue(typeof(T), out System.Collections.Generic.List<Type>? serviceTypes))
             {
-                for (int i = 0; i < serviceTypes.Count; i++)
+                lock (serviceTypes)
                 {
-                    Type itf = serviceTypes[i];
-                    RuntimeTypeHandle itfKey = itf.TypeHandle;
-                    TRY_ADD_OR_REPLACE_ATOMIC_COLLECT(itfKey, instance, itf.Name, prevsToDispose);
+                    for (int i = 0; i < serviceTypes.Count; i++)
+                    {
+                        Type itf = serviceTypes[i];
+                        RuntimeTypeHandle itfKey = itf.TypeHandle;
+                        TRY_ADD_OR_REPLACE_ATOMIC_COLLECT(itfKey, instance, itf.Name, prevsToDispose);
+                    }
                 }
             }
-        }
 
-        // After finishing all replacements, dispose each distinct previous object exactly once.
-        foreach (object prev in prevsToDispose)
-        {
-            if (!_instanceCache.Values.Contains(prev))
+            // Track disposable AFTER instance successfully stored, BEFORE disposing previous,
+            // so a previous instance re-stored under another handle is still tracked.
+            if (instance is IDisposable disp)
             {
-                SAFE_DISPOSE_PREVIOUS(prev, "register-replaced");
+                _ = _disposables.TryAdd(disp, 0);
             }
-        }
 
-        // Track disposable AFTER instance successfully stored.
-        if (instance is IDisposable disp)
-        {
-            _ = _disposables.TryAdd(disp, 0);
+            // After finishing all replacements, dispose each distinct previous object exactly once.
+            foreach (object prev in prevsToDispose)
+            {
+                if (!_instanceCache.Values.Contains(prev))
+                {
+                    SAFE_DISPOSE_PREVIOUS(prev, "register-replaced");
+                }
+            }
         }
 
         if (instance is IReportable reportable)
@@ -371,67 +393,37 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     public bool RemoveInstance(Type type)
     {
         ObjectDisposedException.ThrowIf(Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
+        THROW_IF_LOCKED();
 
         ArgumentNullException.ThrowIfNull(type, nameof(type));
 
         RuntimeTypeHandle key = type.TypeHandle;
         bool removedAny = false;
 
-        // Remove the type-keyed instance (if any)
-        if (_instanceCache.TryRemove(key, out object? instance))
+        // Serialize with Register/Clear so the "still-referenced then dispose" checks below are atomic.
+        lock (_mutationLock)
         {
-            removedAny = true;
-
-            // Remove mapped interface entries from _instanceCache if any exist
-            if (s_preRegisteredServiceMappings.TryGetValue(type, out System.Collections.Generic.List<Type>? serviceTypes))
-            {
-                lock (serviceTypes)
-                {
-                    for (int i = 0; i < serviceTypes.Count; i++)
-                    {
-                        _ = _instanceCache.TryRemove(serviceTypes[i].TypeHandle, out _);
-                    }
-                }
-            }
-
-            if (instance is IDisposable d && !_instanceCache.Values.Contains(d))
-            {
-                _ = _disposables.TryRemove(d, out _);
-                try { d.Dispose(); }
-                catch (ObjectDisposedException)
-                {
-                    this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:RemoveInstance", $"disposed-already type={type.Name}");
-                }
-                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-                {
-                    this.Emit(DiagnosticsEvents.Injection.Failure, "FW.InstanceManager:RemoveInstance", $"dispose-failed type={type.Name}", ex);
-                }
-
-                this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:RemoveInstance", $"disposed type={type.Name}");
-            }
-
-            this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:RemoveInstance", $"removed type={type.Name}");
-        }
-
-        // Also remove any signature instances whose target type matches
-        List<ActivatorKey> sigKeys = [];
-        foreach (ActivatorKey k in _signatureInstanceCache.Keys)
-        {
-            if (k.Target.Equals(key))
-            {
-                sigKeys.Add(k);
-            }
-        }
-
-        foreach (ActivatorKey sk in sigKeys)
-        {
-            if (_signatureInstanceCache.TryRemove(sk, out object? sinst))
+            // Remove the type-keyed instance (if any)
+            if (_instanceCache.TryRemove(key, out object? instance))
             {
                 removedAny = true;
-                if (sinst is IDisposable sd && !_instanceCache.Values.Contains(sd) && !_signatureInstanceCache.Values.Contains(sinst))
+
+                // Remove mapped interface entries from _instanceCache if any exist
+                if (s_preRegisteredServiceMappings.TryGetValue(type, out System.Collections.Generic.List<Type>? serviceTypes))
                 {
-                    _ = _disposables.TryRemove(sd, out _);
-                    try { sd.Dispose(); }
+                    lock (serviceTypes)
+                    {
+                        for (int i = 0; i < serviceTypes.Count; i++)
+                        {
+                            _ = _instanceCache.TryRemove(serviceTypes[i].TypeHandle, out _);
+                        }
+                    }
+                }
+
+                if (instance is IDisposable d && !_instanceCache.Values.Contains(d))
+                {
+                    _ = _disposables.TryRemove(d, out _);
+                    try { d.Dispose(); }
                     catch (ObjectDisposedException)
                     {
                         this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:RemoveInstance", $"disposed-already type={type.Name}");
@@ -440,9 +432,44 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
                     {
                         this.Emit(DiagnosticsEvents.Injection.Failure, "FW.InstanceManager:RemoveInstance", $"dispose-failed type={type.Name}", ex);
                     }
+
+                    this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:RemoveInstance", $"disposed type={type.Name}");
+                }
+
+                this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:RemoveInstance", $"removed type={type.Name}");
+            }
+
+            // Also remove any signature instances whose target type matches
+            List<ActivatorKey> sigKeys = [];
+            foreach (ActivatorKey k in _signatureInstanceCache.Keys)
+            {
+                if (k.Target.Equals(key))
+                {
+                    sigKeys.Add(k);
                 }
             }
-        }
+
+            foreach (ActivatorKey sk in sigKeys)
+            {
+                if (_signatureInstanceCache.TryRemove(sk, out object? sinst))
+                {
+                    removedAny = true;
+                    if (sinst is IDisposable sd && !_instanceCache.Values.Contains(sd) && !_signatureInstanceCache.Values.Contains(sinst))
+                    {
+                        _ = _disposables.TryRemove(sd, out _);
+                        try { sd.Dispose(); }
+                        catch (ObjectDisposedException)
+                        {
+                            this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:RemoveInstance", $"disposed-already type={type.Name}");
+                        }
+                        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                        {
+                            this.Emit(DiagnosticsEvents.Injection.Failure, "FW.InstanceManager:RemoveInstance", $"dispose-failed type={type.Name}", ex);
+                        }
+                    }
+                }
+            }
+        } // _mutationLock
 
         if (!removedAny)
         {
@@ -524,46 +551,50 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     public void Clear(bool dispose = true)
     {
         ObjectDisposedException.ThrowIf(Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
+        THROW_IF_LOCKED();
         this.ClearInternal(dispose);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private void ClearInternal(bool dispose)
     {
-        if (dispose)
+        lock (_mutationLock)
         {
-            // Snapshot keys to avoid modifying collection during enumeration.
-            foreach (IDisposable? d in (IDisposable[])[.. _disposables.Keys])
+            if (dispose)
             {
-                try
+                // Snapshot keys to avoid modifying collection during enumeration.
+                foreach (IDisposable? d in (IDisposable[])[.. _disposables.Keys])
                 {
-                    // Try to remove from tracking first to avoid double-dispose later.
-                    _ = _disposables.TryRemove(d, out _);
-                    d.Dispose();
-                    this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:Clear", "disposed");
-                }
-                catch (ObjectDisposedException)
-                {
-                    this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:Clear", "disposed-already");
-                }
-                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-                {
-                    this.Emit(DiagnosticsEvents.Injection.Failure, "FW.InstanceManager:Clear", "dispose-failed", ex);
+                    try
+                    {
+                        // Try to remove from tracking first to avoid double-dispose later.
+                        _ = _disposables.TryRemove(d, out _);
+                        d.Dispose();
+                        this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:Clear", "disposed");
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:Clear", "disposed-already");
+                    }
+                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                    {
+                        this.Emit(DiagnosticsEvents.Injection.Failure, "FW.InstanceManager:Clear", "dispose-failed", ex);
+                    }
                 }
             }
-        }
 
-        _instanceCache.Clear();
-        _signatureInstanceCache.Clear();
-        _activatorCache.Clear();
-        _disposables.Clear();
+            _instanceCache.Clear();
+            _signatureInstanceCache.Clear();
+            _activatorCache.Clear();
+            _disposables.Clear();
 
-        // Invalidate L1 thread-static caches (no need to enumerate)
-        _ = Interlocked.Increment(ref s_slotsInvalidated);
+            // Invalidate L1 thread-static caches (no need to enumerate)
+            _ = Interlocked.Increment(ref s_slotsInvalidated);
 
-        // Optional: clear thread L1 (best-effort for current thread)
-        s_tsKey0 = default; s_tsVal0 = null; s_tsMgr0 = null;
-        s_tsKey1 = default; s_tsVal1 = null; s_tsMgr1 = null;
+            // Optional: clear thread L1 (best-effort for current thread)
+            s_tsKey0 = default; s_tsVal0 = null; s_tsMgr0 = null;
+            s_tsKey1 = default; s_tsVal1 = null; s_tsMgr1 = null;
+        } // _mutationLock
 
         this.Emit(DiagnosticsEvents.Injection.Registered, "FW.InstanceManager:Clear", "cleared");
     }

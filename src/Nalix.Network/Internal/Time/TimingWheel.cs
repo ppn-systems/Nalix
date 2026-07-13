@@ -342,6 +342,7 @@ internal sealed class TimingWheel : IActivatable
         }
 
         IWorkerHandle? worker = Interlocked.Exchange(ref _worker, null);
+        bool loopStopped = true;
         if (worker != null)
         {
             worker.Dispose();
@@ -353,6 +354,14 @@ internal sealed class TimingWheel : IActivatable
                 Thread.Sleep(10);
                 elapsed += 10;
             }
+
+            // If the loop is still running after the drain timeout, it may still be
+            // dequeuing/re-enqueuing and returning tasks to the pool. Running the bucket
+            // drain concurrently with a live loop can return a task the loop already
+            // returned and the pool re-rented (Conn set again) — a double-return that
+            // corrupts the pool. In that case skip the drain: the still-live loop owns
+            // its tasks and will return them itself.
+            loopStopped = !worker.IsRunning;
         }
 
         try
@@ -415,7 +424,14 @@ internal sealed class TimingWheel : IActivatable
             }
         }
 
-        this.DRAIN_AND_RELEASE_ALL_BUCKETS();
+        if (loopStopped)
+        {
+            this.DRAIN_AND_RELEASE_ALL_BUCKETS();
+        }
+        else if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
+        {
+            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.TimingWheelBucket:Deactivate", "drain-skipped reason=loop-still-running-after-timeout"));
+        }
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
         {

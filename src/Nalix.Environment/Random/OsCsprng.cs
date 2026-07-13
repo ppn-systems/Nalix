@@ -67,7 +67,8 @@ internal static partial class OsCsprng
             ? W
             : OperatingSystem.IsBrowser()
                 ? B
-                : OperatingSystem.IsLinux()
+                : OperatingSystem.IsLinux() ||
+                  OperatingSystem.IsAndroid()
                     ? L
                     : OperatingSystem.IsMacOS() ||
                       OperatingSystem.IsIOS() ||
