@@ -27,6 +27,13 @@ public sealed partial class NetworkWebSocketOptions : ConfigurationLoader, IVali
     public string Path { get; set; } = "/ws/";
 
     /// <summary>
+    /// Gets or sets the HTTP path that returns 200 OK for uptime/health monitors
+    /// (e.g., Cloudflare Health Checks). Must differ from <see cref="Path"/>.
+    /// </summary>
+    [IniComment("HTTP health-check path returning 200 for uptime monitors (default /healthz)")]
+    public string HealthPath { get; set; } = "/healthz";
+
+    /// <summary>
     /// Gets or sets the host to bind the listener to (e.g., *, +, localhost).
     /// </summary>
     [IniComment("Host address to bind to (default *)")]

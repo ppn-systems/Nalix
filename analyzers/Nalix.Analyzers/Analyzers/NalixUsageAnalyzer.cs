@@ -156,7 +156,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                 Microsoft.CodeAnalysis.CSharp.SyntaxKind.LocalDeclarationStatement);
 
             startContext.RegisterSyntaxNodeAction(
-                syntaxContext => AnalyzeFieldDeclaration(syntaxContext, symbols),
+                AnalyzeFieldDeclaration,
                 Microsoft.CodeAnalysis.CSharp.SyntaxKind.FieldDeclaration);
 
             startContext.RegisterOperationAction(
@@ -167,23 +167,30 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         });
     }
 
-    private static void AnalyzeFieldDeclaration(SyntaxNodeAnalysisContext context, SymbolSet symbols)
+    private static void AnalyzeFieldDeclaration(SyntaxNodeAnalysisContext context)
     {
-        var fieldDeclaration = (FieldDeclarationSyntax)context.Node;
+        FieldDeclarationSyntax fieldDeclaration = (FieldDeclarationSyntax)context.Node;
 
         bool hasInjectAttribute = false;
-        foreach (var attributeList in fieldDeclaration.AttributeLists)
+        foreach (AttributeListSyntax attributeList in fieldDeclaration.AttributeLists)
         {
-            foreach (var attribute in attributeList.Attributes)
+            foreach (AttributeSyntax attribute in attributeList.Attributes)
             {
-                var name = attribute.Name.ToString();
-                if (name == "Inject" || name == "InjectAttribute" || name.EndsWith(".Inject") || name.EndsWith(".InjectAttribute"))
+                String name = attribute.Name.ToString();
+                if (name == "Inject"
+                    || name == "InjectAttribute"
+                    || name.EndsWith(".Inject", StringComparison.Ordinal)
+                    || name.EndsWith(".InjectAttribute", StringComparison.Ordinal))
                 {
                     hasInjectAttribute = true;
                     break;
                 }
             }
-            if (hasInjectAttribute) break;
+
+            if (hasInjectAttribute)
+            {
+                break;
+            }
         }
 
         if (!hasInjectAttribute)
@@ -192,7 +199,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         }
 
         bool isReadOnly = false;
-        foreach (var modifier in fieldDeclaration.Modifiers)
+        foreach (SyntaxToken modifier in fieldDeclaration.Modifiers)
         {
             if (modifier.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.ReadOnlyKeyword))
             {
@@ -200,10 +207,10 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                 break;
             }
         }
-        
+
         if (isReadOnly)
         {
-            foreach (var variable in fieldDeclaration.Declaration.Variables)
+            foreach (VariableDeclaratorSyntax variable in fieldDeclaration.Declaration.Variables)
             {
                 context.ReportDiagnostic(Diagnostic.Create(
                     DiagnosticDescriptors.InjectFieldCannotBeReadOnly,

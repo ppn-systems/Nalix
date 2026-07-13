@@ -15,11 +15,12 @@ public sealed partial class SequenceOptions : ConfigurationLoader, IValidatableC
 {
     /// <summary>
     /// Gets or sets the reordering window size for TCP connections.
-    /// TCP usually has very few out-of-order packets, so small value is recommended.
+    /// TCP preserves byte order, but concurrent application responses can be emitted
+    /// with earlier transport sequence numbers after later responses.
     /// </summary>
-    [IniComment("Reordering window for TCP (default: 0). Small value is sufficient and more secure.")]
+    [IniComment("Reordering window for TCP (default: 32). Small value is sufficient and more secure.")]
     [ValueRange(0, 256)]
-    public uint TcpWindow { get; set; } = 0;
+    public uint TcpWindow { get; set; } = 32;
 
     /// <summary>
     /// Gets or sets the reordering window size for UDP connections.

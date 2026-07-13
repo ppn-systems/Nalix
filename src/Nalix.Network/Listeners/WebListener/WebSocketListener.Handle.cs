@@ -211,6 +211,14 @@ public abstract partial class WebSocketListenerBase
                         connection.Dispose();
                     }
                 }
+                else if (context.Request.HttpMethod == "GET" &&
+                         string.Equals(context.Request.Url?.AbsolutePath, _config.HealthPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Health/uptime probe (Cloudflare Health Checks, UptimeRobot, LB health check).
+                    // Returns 200 so monitors don't flag the server as down.
+                    context.Response.StatusCode = 200;
+                    context.Response.Close();
+                }
                 else
                 {
                     this.Metrics.RECORD_REJECTED();

@@ -56,7 +56,8 @@ internal static class PacketPipeline
             // reserve seq in one order yet hit the wire in the opposite order, causing the
             // receiver's strict monotonic check to drop the lower-seq packet as a false replay.
             // ITransport.AcquireSendLockAsync/SendAsyncCore let each transport define what
-            // "atomic with reservation" means (no-op for TCP/UDP, a real lock for WebSocket).
+            // "atomic with reservation" means: ordered async streams such as TCP/WebSocket
+            // lock across reservation and write, while UDP remains datagram/window based.
             await using ConfiguredAsyncDisposable sendScope = (await transport.AcquireSendLockAsync(ct)
                 .ConfigureAwait(false)).ConfigureAwait(false);
 

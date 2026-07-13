@@ -10,8 +10,10 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Transforms;
+using Nalix.Environment.Configuration;
 using Nalix.Environment.Hashing;
 using Nalix.Environment.Memory;
+using Nalix.Environment.Options;
 using Nalix.Environment.Sequencing;
 using Nalix.SDK.Options;
 
@@ -24,6 +26,8 @@ namespace Nalix.SDK.Transport.Internal.Udp;
 /// </summary>
 internal sealed class UdpFrameReader : IDisposable
 {
+    private static readonly SequenceOptions s_sequenceOptions = ConfigurationManager.Instance.Get<SequenceOptions>();
+
     private readonly SessionState _state;
     private readonly Func<Socket> _getSocket;
     private readonly SequenceCounter _sequence;
@@ -169,7 +173,7 @@ internal sealed class UdpFrameReader : IDisposable
             // 2) Decompress / Decrypt
             FramePipeline.ProcessInbound(ref datagram, _state.Secret.AsSpan(), _options.Algorithm, out seq);
 
-            if (!_sequence.IsValid(seq, window: 64))
+            if (!_sequence.IsValid(seq, s_sequenceOptions.UdpWindow))
             {
                 if (Codec.DiagnosticsEvents.Source.IsEnabled(Codec.DiagnosticsEvents.Sequence.Rejected))
                 {
