@@ -116,30 +116,13 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
                 this.IsStatic != other.IsStatic ||
                 this.NamespaceName != other.NamespaceName ||
                 this.GeneratedNamespace != other.GeneratedNamespace ||
-                this.HasInjectedFields != other.HasInjectedFields ||
-                this.InjectedMembersAssignments.Length != other.InjectedMembersAssignments.Length ||
-                this.Methods.Length != other.Methods.Length)
+                this.HasInjectedFields != other.HasInjectedFields)
             {
                 return false;
             }
 
-            for (int i = 0; i < this.InjectedMembersAssignments.Length; i++)
-            {
-                if (this.InjectedMembersAssignments[i] != other.InjectedMembersAssignments[i])
-                {
-                    return false;
-                }
-            }
-
-            for (int i = 0; i < this.Methods.Length; i++)
-            {
-                if (!this.Methods[i].Equals(other.Methods[i]))
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return Internal.ModelEquality.SequenceEqual(this.InjectedMembersAssignments, other.InjectedMembersAssignments)
+                && Internal.ModelEquality.SequenceEqual(this.Methods, other.Methods);
         }
 
         public override bool Equals(object obj) => obj is ControllerModel other && this.Equals(other);
@@ -152,14 +135,20 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
                 hash = (hash * 23) + (this.FullyQualifiedName?.GetHashCode() ?? 0);
                 hash = (hash * 23) + (this.Name?.GetHashCode() ?? 0);
                 hash = (hash * 23) + this.IsStatic.GetHashCode();
-                foreach (string a in this.InjectedMembersAssignments)
+                if (!this.InjectedMembersAssignments.IsDefaultOrEmpty)
                 {
-                    hash = (hash * 23) + (a?.GetHashCode() ?? 0);
+                    foreach (string a in this.InjectedMembersAssignments)
+                    {
+                        hash = (hash * 23) + (a?.GetHashCode() ?? 0);
+                    }
                 }
 
-                foreach (HandlerMethodModel m in this.Methods)
+                if (!this.Methods.IsDefaultOrEmpty)
                 {
-                    hash = (hash * 23) + m.GetHashCode();
+                    foreach (HandlerMethodModel m in this.Methods)
+                    {
+                        hash = (hash * 23) + m.GetHashCode();
+                    }
                 }
 
                 return hash;

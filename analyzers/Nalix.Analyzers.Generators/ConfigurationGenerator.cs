@@ -43,20 +43,12 @@ public class ConfigurationGenerator : IIncrementalGenerator
 
         public bool Equals(ConfigPropertyModel other)
         {
-            if (this.Name != other.Name || this.IniMethod != other.IniMethod || this.Comment != other.Comment || this.IsString != other.IsString || this.IsEnum != other.IsEnum || this.ValidationSnippets.Length != other.ValidationSnippets.Length)
+            if (this.Name != other.Name || this.IniMethod != other.IniMethod || this.Comment != other.Comment || this.IsString != other.IsString || this.IsEnum != other.IsEnum)
             {
                 return false;
             }
 
-            for (int i = 0; i < this.ValidationSnippets.Length; i++)
-            {
-                if (this.ValidationSnippets[i] != other.ValidationSnippets[i])
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return Internal.ModelEquality.SequenceEqual(this.ValidationSnippets, other.ValidationSnippets);
         }
         public override bool Equals(object obj) => obj is ConfigPropertyModel other && this.Equals(other);
         public override int GetHashCode()
@@ -69,9 +61,12 @@ public class ConfigurationGenerator : IIncrementalGenerator
                 hash = (hash * 23) + (this.Comment?.GetHashCode() ?? 0);
                 hash = (hash * 23) + this.IsString.GetHashCode();
                 hash = (hash * 23) + this.IsEnum.GetHashCode();
-                foreach (string s in this.ValidationSnippets)
+                if (!this.ValidationSnippets.IsDefaultOrEmpty)
                 {
-                    hash = (hash * 23) + (s?.GetHashCode() ?? 0);
+                    foreach (string s in this.ValidationSnippets)
+                    {
+                        hash = (hash * 23) + (s?.GetHashCode() ?? 0);
+                    }
                 }
 
                 return hash;
@@ -100,28 +95,13 @@ public class ConfigurationGenerator : IIncrementalGenerator
 
         public bool Equals(ConfigClassModel other)
         {
-            if (this.HintName != other.HintName || this.Namespace != other.Namespace || this.Name != other.Name || this.SectionComment != other.SectionComment || this.NestingOpeners.Length != other.NestingOpeners.Length || this.Properties.Length != other.Properties.Length)
+            if (this.HintName != other.HintName || this.Namespace != other.Namespace || this.Name != other.Name || this.SectionComment != other.SectionComment)
             {
                 return false;
             }
 
-            for (int i = 0; i < this.NestingOpeners.Length; i++)
-            {
-                if (this.NestingOpeners[i] != other.NestingOpeners[i])
-                {
-                    return false;
-                }
-            }
-
-            for (int i = 0; i < this.Properties.Length; i++)
-            {
-                if (!this.Properties[i].Equals(other.Properties[i]))
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return Internal.ModelEquality.SequenceEqual(this.NestingOpeners, other.NestingOpeners)
+                && Internal.ModelEquality.SequenceEqual(this.Properties, other.Properties);
         }
         public override bool Equals(object obj) => obj is ConfigClassModel other && this.Equals(other);
         public override int GetHashCode()
@@ -133,14 +113,20 @@ public class ConfigurationGenerator : IIncrementalGenerator
                 hash = (hash * 23) + (this.Namespace?.GetHashCode() ?? 0);
                 hash = (hash * 23) + (this.Name?.GetHashCode() ?? 0);
                 hash = (hash * 23) + (this.SectionComment?.GetHashCode() ?? 0);
-                foreach (string s in this.NestingOpeners)
+                if (!this.NestingOpeners.IsDefaultOrEmpty)
                 {
-                    hash = (hash * 23) + (s?.GetHashCode() ?? 0);
+                    foreach (string s in this.NestingOpeners)
+                    {
+                        hash = (hash * 23) + (s?.GetHashCode() ?? 0);
+                    }
                 }
 
-                foreach (ConfigPropertyModel p in this.Properties)
+                if (!this.Properties.IsDefaultOrEmpty)
                 {
-                    hash = (hash * 23) + p.GetHashCode();
+                    foreach (ConfigPropertyModel p in this.Properties)
+                    {
+                        hash = (hash * 23) + p.GetHashCode();
+                    }
                 }
 
                 return hash;
