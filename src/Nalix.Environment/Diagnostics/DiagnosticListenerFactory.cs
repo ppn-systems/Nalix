@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace Nalix.Environment.Diagnostics;
@@ -20,6 +22,12 @@ public static class DiagnosticListenerFactory
     /// <returns>A safe <see cref="DiagnosticListener"/> instance.</returns>
     public static DiagnosticListener Create(string name)
     {
+        // DiagnosticListener cannot be constructed on Browser because the base
+        // constructor is unsupported. We intentionally bypass construction and
+        // override every virtual member to provide a safe no-op implementation.
+        //
+        // IMPORTANT:
+        // Do not access any DiagnosticListener base members from this type.
         if (OperatingSystem.IsBrowser())
         {
             return (DiagnosticListener)RuntimeHelpers.GetUninitializedObject(typeof(BrowserSafeDiagnosticListener));
@@ -35,8 +43,9 @@ public static class DiagnosticListenerFactory
 /// </summary>
 internal sealed class BrowserSafeDiagnosticListener : DiagnosticListener
 {
-    // Required to satisfy the compiler, but will be bypassed during instantiation via GetUninitializedObject.
-    public BrowserSafeDiagnosticListener() : base("Safe")
+    // Never executed when instantiated via RuntimeHelpers.GetUninitializedObject.
+    public BrowserSafeDiagnosticListener()
+        : base("BrowserSafe")
     {
     }
 
@@ -44,8 +53,28 @@ internal sealed class BrowserSafeDiagnosticListener : DiagnosticListener
 
     public override bool IsEnabled(string? name, object? arg1, object? arg2 = null) => false;
 
-    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("DiagnosticSource.Write requires unreferenced code analysis for payload property discovery.")]
-    public override void Write(string name, object? value)
+    public override IDisposable Subscribe(IObserver<KeyValuePair<string, object?>> observer) => NoOpDisposable.Instance;
+
+    public override IDisposable Subscribe(IObserver<KeyValuePair<string, object?>> observer, Predicate<string>? isEnabled) => NoOpDisposable.Instance;
+
+    public override IDisposable Subscribe(IObserver<KeyValuePair<string, object?>> observer, Func<string, object?, object?, bool>? isEnabled) => NoOpDisposable.Instance;
+
+    public override IDisposable Subscribe(IObserver<KeyValuePair<string, object?>> observer, Func<string, object?, object?, bool>? isEnabled, Action<Activity, object?>? onActivityImport = null, Action<Activity, object?>? onActivityExport = null) => NoOpDisposable.Instance;
+
+    /// <inheritdoc/>
+    [SuppressMessage("Usage", "CA2215:Dispose methods should call base class dispose", Justification = "<Pending>")]
+    public override void Dispose() { }
+
+    [RequiresUnreferencedCode(
+        "DiagnosticSource.Write requires unreferenced code analysis for payload property discovery.")]
+    public override void Write(string name, object? value) { }
+
+    private sealed class NoOpDisposable : IDisposable
     {
+        public static readonly NoOpDisposable Instance = new();
+
+        private NoOpDisposable() { }
+
+        public void Dispose() { }
     }
 }
