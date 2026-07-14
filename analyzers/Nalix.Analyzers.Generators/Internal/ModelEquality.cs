@@ -13,7 +13,7 @@ namespace Nalix.Analyzers.Generators.Internal;
 /// A model produced by a <c>return default</c> path carries <c>default</c> (null-backed) arrays. The
 /// incremental driver compares consecutive model values via <c>Equals</c> in
 /// <c>NodeStateTable.Builder.GetModifiedItemAndState</c>; any access to <see cref="ImmutableArray{T}.Length"/>
-/// or <see cref="ImmutableArray{T}.SequenceEqual"/> on a <c>default</c> value dereferences the null backing
+/// or <c>ImmutableArray{T}.SequenceEqual</c> on a <c>default</c> value dereferences the null backing
 /// array and throws <see cref="NullReferenceException"/>, which Roslyn surfaces as an IDE-wide crash. These
 /// helpers treat <c>default</c> and empty as equivalent so equality never touches the null backing array.
 /// </remarks>

@@ -193,7 +193,11 @@ public static class FormatterProvider
     /// </summary>
     /// <typeparam name="T">The serialization target type.</typeparam>
     /// <param name="formatter">The source-generated formatter instance.</param>
-    public static void RegisterGenerated<T>(IFormatter<T> formatter)
+    public static void RegisterGenerated<
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicConstructors |
+            DynamicallyAccessedMemberTypes.PublicProperties |
+            DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(IFormatter<T> formatter)
     {
         ArgumentNullException.ThrowIfNull(formatter);
         s_generatedFormatters[typeof(T)] = formatter;
@@ -205,7 +209,11 @@ public static class FormatterProvider
     /// Returns <see langword="null"/> if no generated formatter exists for the type.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static IFormatter<T>? TryGetGenerated<T>()
+    private static IFormatter<T>? TryGetGenerated<
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicConstructors |
+            DynamicallyAccessedMemberTypes.PublicProperties |
+            DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         if (s_generatedFormatters.TryGetValue(typeof(T), out object? obj))
         {
@@ -321,7 +329,11 @@ public static class FormatterProvider
     /// </summary>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Register<T>(IFormatter<T> formatter)
+    public static void Register<
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicConstructors |
+            DynamicallyAccessedMemberTypes.PublicProperties |
+            DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(IFormatter<T> formatter)
     {
         ArgumentNullException.ThrowIfNull(formatter);
 
@@ -434,7 +446,11 @@ public static class FormatterProvider
     /// </summary>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IFormatter<T> GetComplex<T>()
+    public static IFormatter<T> GetComplex<
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicConstructors |
+            DynamicallyAccessedMemberTypes.PublicProperties |
+            DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         Type type = typeof(T);
 

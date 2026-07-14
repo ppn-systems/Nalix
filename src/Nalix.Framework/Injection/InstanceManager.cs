@@ -135,7 +135,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void Register<T>(T instance) where T : class
     {
-        THROW_IF_LOCKED();
+        this.THROW_IF_LOCKED();
 
         ObjectDisposedException.ThrowIf(Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
 
@@ -393,7 +393,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     public bool RemoveInstance(Type type)
     {
         ObjectDisposedException.ThrowIf(Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
-        THROW_IF_LOCKED();
+        this.THROW_IF_LOCKED();
 
         ArgumentNullException.ThrowIfNull(type, nameof(type));
 
@@ -551,7 +551,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     public void Clear(bool dispose = true)
     {
         ObjectDisposedException.ThrowIf(Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
-        THROW_IF_LOCKED();
+        this.THROW_IF_LOCKED();
         this.ClearInternal(dispose);
     }
 
