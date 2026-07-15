@@ -1,40 +1,36 @@
 <p align="center">
-  <img src="docs/assets/!/banner.svg" alt="nalix Banner" width="100%">
-  <img src="docs/assets/!/claude.svg" alt="Claude Code mascot jumping" width="120" height="100"><br>
+  <img src="docs/assets/!/banner.svg" alt="Nalix Banner" width="100%">
 </p>
 
 <p align="center">
   <a href="https://dotnet.microsoft.com/"><img src="https://img.shields.io/badge/.NET-10.0-blueviolet?logo=dotnet&logoColor=white" alt=".NET"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/ppn-systems/nalix?style=flat-square" alt="License"></a>
-  <a href="https://www.nuget.org/packages/Nalix.Network"><img src="https://img.shields.io/nuget/v/Nalix.Network?style=flat-square&logo=nuget&label=NuGet" alt="NuGet"></a>
-  <a href="https://www.nuget.org/packages/Nalix.Network"><img src="https://img.shields.io/nuget/dt/Nalix.Network?style=flat-square&logo=nuget&label=Downloads" alt="Downloads"></a>
+  <a href="https://www.nuget.org/packages/Nalix.Network"><img src="https://img.shields.io/nuget/v/Nalix.Network?logo=nuget&label=NuGet" alt="NuGet"></a>
+  <a href="https://www.nuget.org/packages/Nalix.Network"><img src="https://img.shields.io/nuget/dt/Nalix.Network?logo=nuget&label=Downloads" alt="Downloads"></a>
+  <a href="https://github.com/ppn-systems/nalix/actions/workflows/ci-linux.yml"><img src="https://github.com/ppn-systems/nalix/actions/workflows/ci-linux.yml/badge.svg?branch=master" alt="CI Linux"></a>
+  <a href="https://github.com/ppn-systems/nalix/actions/workflows/ci-windows.yml"><img src="https://github.com/ppn-systems/nalix/actions/workflows/ci-windows.yml/badge.svg?branch=master" alt="CI Windows"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/ppn-systems/nalix" alt="License"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/ppn-systems/nalix/issues"><img src="https://img.shields.io/github/issues/ppn-systems/nalix?style=flat-square" alt="Issues"></a>
-  <a href="https://github.com/ppn-systems/nalix/pulls"><img src="https://img.shields.io/github/issues-pr/ppn-systems/nalix?style=flat-square" alt="PRs"></a>
-  <a href="https://github.com/ppn-systems/nalix"><img src="https://img.shields.io/github/repo-size/ppn-systems/nalix?style=flat-square" alt="Repo Size"></a>
-  <a href="https://github.com/ppn-systems/nalix/commits/master"><img src="https://img.shields.io/github/commit-activity/m/ppn-systems/nalix?style=flat-square&logo=github" alt="Commit Activity"></a>
-</p>
-
-<p align="center">
-  <b><a href="DOCUMENTATION.md">Documentation</a></b> · <b><a href="example/">Examples</a></b> · <b><a href="#-benchmarks">Benchmarks</a></b> · <b><a href="CONTRIBUTING.md">Contributing</a></b>
+  <b><a href="DOCUMENTATION.md">Documentation</a></b> · <b><a href="samples/">Samples</a></b> · <b><a href="#-benchmarks">Benchmarks</a></b> · <b><a href="CONTRIBUTING.md">Contributing</a></b>
 </p>
 
 ---
-
-## 📖 About
 
 **Nalix** is a modular, high-performance networking framework for .NET 10. It provides a complete stack for building real-time server applications — from low-level transport (TCP/UDP) to middleware pipelines, packet routing, and client SDKs — with a focus on zero-allocation hot paths, pluggable protocols, and enterprise-grade security.
 
----
+## Table of Contents
 
-## 🛠️ Build Status
-
-| Platform | Status |
-| :--- | :--- |
-| ![Linux](https://badgen.net/badge/icon/Ubuntu%20Linux%2022.04%20x64?icon=terminal&label&color=orange) | [![CI](https://github.com/ppn-systems/nalix/actions/workflows/ci-linux.yml/badge.svg?event=push)](https://github.com/ppn-systems/nalix/actions/workflows/ci-linux.yml) |
-| ![Windows](https://badgen.net/badge/icon/Windows,.NET%2010?icon=windows&label&list=1) | [![CI](https://github.com/ppn-systems/nalix/actions/workflows/ci-windows.yml/badge.svg?event=push)](https://github.com/ppn-systems/nalix/actions/workflows/ci-windows.yml) |
+- [Features](#-features)
+- [Architecture](#-architecture)
+- [Requirements](#-requirements)
+- [Benchmarks](#-benchmarks)
+- [Packages](#-nuget-packages)
+- [Quick Start](#-quick-start)
+- [Installation](#-installation)
+- [Contributing](#-contributing)
+- [Security](#-security)
+- [License](#-license)
 
 ---
 
@@ -53,6 +49,23 @@
 
 ---
 
+## 🏛️ Architecture
+
+Nalix is a layered stack — each package depends only on lower levels, so you install just the layers you need. There are **no circular references**.
+
+```plaintext
+Level 4  Nalix.Hosting        Host & builder APIs, bootstrap
+Level 3  Nalix.Runtime        Dispatch, middleware, throttling
+         Nalix.Network        TCP/UDP transport, sessions
+         Nalix.SDK            Client-side sessions & requests
+Level 2  Nalix.Codec          Framing, crypto, serialization
+         Nalix.Framework      Identity, DI, task orchestration
+Level 1  Nalix.Environment    IO primitives, buffer leasing
+Level 0  Nalix.Abstractions   Contracts, enums (zero deps)
+```
+
+---
+
 ## 🔧 Requirements
 
 | Requirement | Version |
@@ -60,19 +73,6 @@
 | .NET SDK | [10.0+](https://dotnet.microsoft.com/download/dotnet/10.0) |
 | C# Language | 14+ |
 | IDE | [Visual Studio 2026](https://visualstudio.microsoft.com/downloads/) / [VS Code](https://code.visualstudio.com/) / [Rider](https://www.jetbrains.com/rider/) |
-
----
-
-## 💻 Technologies
-
-<p align="center">
-  <a href="https://skillicons.dev"><img src="https://skillicons.dev/icons?i=dotnet,cs,docker,git" alt="Technologies"></a>
-</p>
-
-- **Language**: C# 14 on .NET 10
-- **Testing**: xUnit + BenchmarkDotNet
-- **CI/CD**: GitHub Actions (Linux & Windows)
-- **Packaging**: NuGet
 
 ---
 
@@ -119,15 +119,14 @@ Nalix is composed of several modular packages — install only what you need.
 | Package | Description |
 | :--- | :--- |
 | **[Nalix.Network](src/Nalix.Network)** | High-performance TCP/UDP transport, connection management, and session persistence. |
-| **[Nalix.Hosting](src/Nalix.Network.Hosting)** | Microsoft-style host and builder APIs for quick bootstrapping. |
+| **[Nalix.Hosting](src/Nalix.Hosting)** | Microsoft-style host and builder APIs for quick bootstrapping. |
 
 ### 🛠️ Utilities & Tooling
 
 | Package | Description |
 | :--- | :--- |
 | **[Nalix.SDK](src/Nalix.SDK)** | Client-side SDK: transport sessions, request/response patterns, and encryption. |
-| **[Nalix.Analyzers](src/Nalix.Analyzers)** | Roslyn analyzers and code fixes to enforce Nalix best practices. |
-| **[Nalix.Analyzers.Generators](src/Nalix.Analyzers.Generators)** | Source generators and analyzers. |
+| **[Nalix.Analyzers](analyzers/Nalix.Analyzers)** | Roslyn analyzers, code fixes, and source generators — packed into `Nalix.Abstractions`. |
 
 ---
 
@@ -152,7 +151,15 @@ using var host = NetworkApplication.CreateBuilder()
 await host.RunAsync();
 ```
 
-> See the [examples](example/) directory for complete implementation details.
+### 📂 Samples
+
+Runnable end-to-end projects, from beginner to production-grade:
+
+| Sample | Demonstrates |
+| :--- | :--- |
+| **[HelloWorld](samples/HelloWorld)** | Minimal TCP client/server — request/response packets, `[PacketHandler]`, graceful shutdown. Start here. |
+| **[ChatRoom](samples/ChatRoom)** | Server push — broadcasting to all clients via `IConnectionBroadcaster`, `session.On<T>()` on the client. |
+| **[SecureMultiTransportHelloWorld](samples/SecureMultiTransportHelloWorld)** | TCP + UDP + WebSocket under one secure session — X25519 handshake, AEAD encryption, authenticated UDP. |
 
 ---
 
@@ -160,13 +167,12 @@ await host.RunAsync();
 
 ```bash
 # Core server setup
-dotnet add package Nalix.Network.Hosting
+dotnet add package Nalix.Hosting
 
 # Optional: client SDK
 dotnet add package Nalix.SDK
 
-# Optional: Roslyn analyzers
-# Optional: Roslyn analyzers generators
+# Optional: Roslyn analyzers + source generators (packed into Abstractions)
 dotnet add package Nalix.Abstractions
 ```
 
@@ -186,13 +192,5 @@ Nalix is copyright &copy; PhcNguyen — provided under the [Apache License, Vers
 
 ## 📬 Contact
 
-For questions, suggestions, or support, open an issue on [GitHub](https://github.com/ppn-systems/Nalix/issues) or contact the maintainers at [ppn.system@gmail.com](mailto:ppn.system@gmail.com).
+For questions, suggestions, or support, open an issue on [GitHub Issues](https://github.com/ppn-systems/Nalix/issues) or start a [GitHub Discussion](https://github.com/ppn-systems/Nalix/discussions).
 
----
-
-<p align="center">
-  Give a ⭐️ if this project helped you!
-  <img src="docs/assets/!/footer.svg" alt="Footer" width="100%">
-</p>
-
-<img src="docs/assets/!/divider.svg" alt="Nalix divider" width="100%">
