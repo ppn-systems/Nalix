@@ -4,9 +4,9 @@
 using System;
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Security.Hashing;
+using Nalix.Codec.Security.Primitives;
 using Nalix.Environment.Random;
 
 namespace Nalix.Codec.Security;
@@ -72,7 +72,7 @@ public static class ProofOfWork
         Span<byte> expectedMac = stackalloc byte[32];
         HmacKeccak256.Compute(s_hmacKey, payload, expectedMac);
 
-        if (!CryptographicOperations.FixedTimeEquals(expectedMac, providedMac))
+        if (!BitwiseOperations.FixedTimeEquals(expectedMac, providedMac))
         {
             return false;
         }
