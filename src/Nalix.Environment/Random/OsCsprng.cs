@@ -63,6 +63,20 @@ internal static partial class OsCsprng
 
     static OsCsprng()
     {
+        // On published Apple binaries, the bare "Security" name does not resolve via dlopen because the
+        // framework lives at /System/Library/Frameworks/Security.framework/Security. Map it explicitly.
+        if (OperatingSystem.IsMacOS() ||
+            OperatingSystem.IsIOS() ||
+            OperatingSystem.IsTvOS() ||
+            OperatingSystem.IsWatchOS())
+        {
+            NativeLibrary.SetDllImportResolver(typeof(OsCsprng).Assembly, static (name, _, _) =>
+                name == "Security" &&
+                NativeLibrary.TryLoad("/System/Library/Frameworks/Security.framework/Security", out nint h)
+                    ? h
+                    : nint.Zero);
+        }
+
         s_f = OperatingSystem.IsWindows()
             ? W
             : OperatingSystem.IsBrowser()
@@ -228,14 +242,26 @@ internal static partial class OsCsprng
     [System.Runtime.Versioning.SupportedOSPlatform("watchos")]
     private static unsafe void A(Span<byte> b)
     {
-        fixed (byte* p = b)
+        int s;
+        try
         {
-            int s = SecRandomCopyBytes(nint.Zero, b.Length, (nint)p);
-            if (s != 0)
+            fixed (byte* p = b)
             {
-                Volatile.Write(ref s_f, D);
-                D(b);
+                s = SecRandomCopyBytes(nint.Zero, b.Length, (nint)p);
             }
+        }
+        catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException)
+        {
+            // Security framework could not be resolved (e.g. published osx-x64) -> permanently fall back.
+            Volatile.Write(ref s_f, D);
+            D(b);
+            return;
+        }
+
+        if (s != 0)
+        {
+            Volatile.Write(ref s_f, D);
+            D(b);
         }
     }
 
