@@ -67,7 +67,7 @@ Full source: `samples/ChatRoom/ChatRoom.Server/ChatHandlers.cs`
 
 ## The server setup is the same shape as HelloWorld
 
-The bootstrap is identical to [Quick Start §3](../../quickstart.md#3-write-the-server) — just swap in `ChatHandlers` and the chat port. No broadcast-specific wiring is needed on the builder; the broadcaster is resolved inside the handler.
+The bootstrap is identical to [Quick Start §3](../quickstart.md#3-write-the-server) — just swap in `ChatHandlers` and the chat port. No broadcast-specific wiring is needed on the builder; the broadcaster is resolved inside the handler.
 
 Full source: `samples/ChatRoom/ChatRoom.Server/Program.cs`
 
