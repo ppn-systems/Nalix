@@ -29,7 +29,6 @@ public static class HelloHandlers
     public static async ValueTask HandleHelloAsync(IPacketContext<HelloRequestPacket> context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        Console.WriteLine($"[DEBUG SERVER] HandleHelloAsync called! Reliable: {context.IsReliable}");
 
         // Rent a response packet from the pool (zero-allocation on repeat calls).
         using PacketScope<HelloResponsePacket> lease = PacketFactory<HelloResponsePacket>.Acquire();
@@ -37,15 +36,7 @@ public static class HelloHandlers
         response.Message = 1; // "Hello from Nalix!"
 
         // Send the response back to the client via the pipeline-aware sender.
-        try
-        {
-            await context.Sender.SendAsync(response).ConfigureAwait(false);
-            Console.WriteLine("[DEBUG SERVER] SendAsync completed successfully.");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[DEBUG SERVER] SendAsync threw: {ex}");
-            throw;
-        }
+        // Works identically for TCP, UDP, and WebSocket.
+        await context.Sender.SendAsync(response).ConfigureAwait(false);
     }
 }

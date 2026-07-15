@@ -10,8 +10,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Nalix.Abstractions" Version="14.1.1" />
-		<PackageReference Include="Nalix.Codec" Version="14.1.1" />
+		<PackageReference Include="Nalix.Abstractions" Version="14.2.4" />
+		<PackageReference Include="Nalix.Codec" Version="14.2.4" />
 	</ItemGroup>
 
 	<!-- Source generator: produces PacketRegistry entries and serialization formatters -->

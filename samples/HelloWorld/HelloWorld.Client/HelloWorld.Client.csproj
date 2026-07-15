@@ -10,7 +10,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Nalix.SDK" Version="14.1.1" />
+		<PackageReference Include="Nalix.SDK" Version="14.2.4" />
 	</ItemGroup>
 
 	<ItemGroup>
