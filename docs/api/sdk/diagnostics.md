@@ -22,7 +22,7 @@ Documenting real observability surfaces avoids integration code built on unavail
 - `src/Nalix.SDK/Transport/TransportSession.cs`
 - `src/Nalix.SDK/Transport/TcpSession.cs`
 - `src/Nalix.SDK/Transport/UdpSession.cs`
-- `src/Nalix.SDK/Transport/Extensions/TcpSessionSubscriptions.cs`
+- `src/Nalix.SDK/Transport/Extensions/TransportSessionSubscriptions.cs`
 
 ## Available Diagnostics Signals
 
@@ -46,7 +46,7 @@ Use these to instrument receive volume, handler latency, and packet decode outco
 
 ## 3. Subscription-level error tracing
 
-`TcpSessionSubscriptions` catches handler exceptions and writes diagnostics via `System.Diagnostics.Trace` (`TraceWarning` / `TraceError`), instead of propagating exceptions to the receive loop.
+`TransportSessionSubscriptions` catches handler exceptions and writes diagnostics via `System.Diagnostics.Trace` (`TraceWarning` / `TraceError`), instead of propagating exceptions to the receive loop.
 
 ## Practical Pattern
 

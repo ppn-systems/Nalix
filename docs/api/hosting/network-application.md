@@ -49,7 +49,7 @@ graph LR
 | Type | Public members |
 |---|---|
 | `NetworkApplication` | `CreateMinimal(...)`, `CreateBuilder()`, `ActivateAsync(...)`, `DeactivateAsync(...)`, `RunAsync(...)`, `DisposeAsync()`, `Dispose()` |
-| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `ConfigureConnectionHub(...)`, `ConfigureBufferPoolManager(...)`, `ConfigureObjectPoolManager(...)`, `ConfigureCertificate(...)`, `Configure<TOptions>(...)`, `ConfigureSessionService(...)`, `ConfigureSessionStore(...)`, `ConfigureSessionFactory(...)`, `MapHandlers(...)`, `ConfigureDispatchOptions(...)`, `ConfigureDispatch(...)`, `ListenTcp<T>().Bind()`, `ListenUdp<T>().Bind()`, `ListenWebSocket<T>().Bind()`, `Build()` |
+| `INetworkApplicationBuilder` | `UseLogger(...)`, `UseConnectionHub(...)`, `UseBufferPoolManager(...)`, `UseObjectPoolManager(...)`, `UseSecureConnections(...)`, `Configure<TOptions>(...)`, `UseSessionService(...)`, `UseSessionStore(...)`, `UseSessionFactory(...)`, `MapHandlers(...)`, `ConfigureDispatchOptions(...)`, `ConfigureDispatch(...)`, `ListenTcp<T>().Bind()`, `ListenUdp<T>().Bind()`, `ListenWebSocket<T>().Bind()`, `Build()` |
 
 ## Builder composition details
 
@@ -62,7 +62,7 @@ During activation, the builder preparation callback performs this source-defined
 3. create or register the packet registry
 4. ensure an `IConnectionHub` exists, creating `ConnectionHub(logger)` when missing
 5. ensure a `BufferPoolManager` exists and bind `BufferLease.ByteArrayPool` to it
-6. configure `HandshakeHandlers` with `ConfigureCertificate(...)` when provided, otherwise initialize the default identity path
+6. configure `HandshakeHandlers` with `UseSecureConnections(...)` when provided, otherwise initialize the default identity path
 
 Listener factories then resolve the shared `IConnectionHub` from `InstanceManager` and construct `TcpServerListener` or `UdpServerListener` with the protocol instance, optional explicit port, and optional UDP authentication predicate.
 
@@ -90,14 +90,14 @@ The builder uses a fluent API to configure the host before it is built.
 
 ### Logging and Options
 
-- `ConfigureLogging(ILogger)`: Registers the logger into the `InstanceManager` immediately and stores it for later host construction.
-- `ConfigureConnectionHub(IConnectionHub)`: Registers the shared connection hub into the `InstanceManager`. If omitted, the builder creates a default `ConnectionHub` during activation.
-- `ConfigureBufferPoolManager(BufferPoolManager)`: Explicitly registers a custom buffer pool manager and binds `BufferLease.ByteArrayPool` to that manager for pooled receive/send paths. If omitted, the builder creates and binds a default manager during activation.
-- `ConfigureObjectPoolManager(ObjectPoolManager)`: Explicitly registers a custom object pool manager for pooled object paths.
-- `ConfigureCertificate(string path)`: Stores the certificate path for activation; the path is passed to `HandshakeHandlers.SetCertificatePath(...)` during builder preparation.
-- `ConfigureSessionService(ISessionService)`: Registers a custom session service for session persistence.
-- `ConfigureSessionStore(ISessionStore)`: Registers a custom session store for the default session service.
-- `ConfigureSessionFactory(ISessionFactory)`: Registers a custom session factory for the default session service.
+- `UseLogger(ILogger)`: Registers the logger into the `InstanceManager` immediately and stores it for later host construction.
+- `UseConnectionHub(IConnectionHub)`: Registers the shared connection hub into the `InstanceManager`. If omitted, the builder creates a default `ConnectionHub` during activation.
+- `UseBufferPoolManager(BufferPoolManager)`: Explicitly registers a custom buffer pool manager and binds `BufferLease.ByteArrayPool` to that manager for pooled receive/send paths. If omitted, the builder creates and binds a default manager during activation.
+- `UseObjectPoolManager(ObjectPoolManager)`: Explicitly registers a custom object pool manager for pooled object paths.
+- `UseSecureConnections(string path)`: Stores the certificate path for activation; the path is passed to `HandshakeHandlers.SetCertificatePath(...)` during builder preparation.
+- `UseSessionService(ISessionService)`: Registers a custom session service for session persistence.
+- `UseSessionStore(ISessionStore)`: Registers a custom session store for the default session service.
+- `UseSessionFactory(ISessionFactory)`: Registers a custom session factory for the default session service.
 - `Configure<TOptions>(Action<TOptions>)`: Configures a specific options type during activation by mutating `ConfigurationManager.Instance.Get<TOptions>()`.
 
 !!! note
@@ -147,9 +147,9 @@ Protocol types can expose a constructor that accepts `IPacketDispatch`; otherwis
 
 ```csharp
 var app = NetworkApplication.CreateBuilder()
-    .ConfigureLogging(logger)
-    .ConfigureConnectionHub(new ConnectionHub())
-    .ConfigureBufferPoolManager(new BufferPoolManager())
+    .UseLogger(logger)
+    .UseConnectionHub(new ConnectionHub())
+    .UseBufferPoolManager(new BufferPoolManager())
     .Configure<NetworkSocketOptions>(options =>
     {
         options.Port = 57206;
@@ -165,7 +165,7 @@ await app.RunAsync(cancellationToken);
 
 To keep message reading allocation-free on the server hot path:
 
-- register a `BufferPoolManager` with `ConfigureBufferPoolManager(...)` (or let the builder create one)
+- register a `BufferPoolManager` with `UseBufferPoolManager(...)` (or let the builder create one)
 - keep protocol `ProcessMessage(...)` lease-based (`args.Lease`) and forward directly to dispatch
 - avoid copying raw payload into new `byte[]` in middleware/protocol unless required by business logic
 

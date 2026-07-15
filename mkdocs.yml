@@ -12,8 +12,6 @@ extra:
       link: https://github.com/ppn-systems/nalix
     - icon: fontawesome/brands/facebook
       link: https://facebook.com/ppn.system
-    - icon: fontawesome/solid/envelope
-      link: mailto:ppn.system@gmail.com
   announcement: |
     🚀 Nalix is under active development. Star us on GitHub!
   canonical_url: https://ppn.io.vn/
@@ -286,6 +284,7 @@ nav:
           - Token Bucket Limiter: api/runtime/middleware/token-bucket-limiter.md
           - Permission Middleware: api/runtime/middleware/permission-middleware.md
           - Timeout Middleware: api/runtime/middleware/timeout-middleware.md
+          - Concurrency Gate: api/runtime/middleware/concurrency-gate.md
       - Network:
         - Overview: api/network/index.md
         - Protocol: api/network/protocol.md

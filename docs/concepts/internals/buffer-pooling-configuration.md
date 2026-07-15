@@ -27,7 +27,7 @@ using Nalix.Framework.Options;
 
 var app = NetworkApplication.CreateBuilder()
     // 1. Initialize and configure the pool manager
-    .ConfigureBufferPoolManager(new BufferPoolManager(new BufferOptions
+    .UseBufferPoolManager(new BufferPoolManager(new BufferOptions
     {
         // Optional: Tuning parameters
         TotalBuffers = 10000
@@ -40,7 +40,7 @@ var app = NetworkApplication.CreateBuilder()
 You can precisely control how many buffers of each size are pre-allocated using the `BufferAllocations` format: `size,ratio; size,ratio`.
 
 ```csharp
-builder.ConfigureBufferPoolManager(new BufferPoolManager(new BufferOptions
+builder.UseBufferPoolManager(new BufferPoolManager(new BufferOptions
 {
     // Define a custom profile:
     // 256 bytes (15%), 1KB (15%), 4KB (30%), 16KB (30%), 32KB (10%)

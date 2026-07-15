@@ -16,7 +16,7 @@ using Nalix.Network.Options;
 
 var builder = NetworkApplication.CreateBuilder();
 
-builder.ConfigureCertificate("path/to/certificate.private")
+builder.UseSecureConnections("path/to/certificate.private")
        .Configure<NetworkSocketOptions>(options => options.Port = 8080)
        .MapHandlers<MyHandlers>()
        .ListenTcp<MyProtocol>()

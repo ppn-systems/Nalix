@@ -130,7 +130,7 @@ using Nalix.Framework.Options;
 
 var app = NetworkApplication.CreateBuilder()
     // 1. Initialize the global object pool manager
-    .ConfigureObjectPoolManager(new ObjectPoolManager())
+    .UseObjectPoolManager(new ObjectPoolManager())
     .Build();
 ```
 
