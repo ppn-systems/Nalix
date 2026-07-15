@@ -20,23 +20,7 @@ Server/
 
 ## The Simplest Entry Point
 
-For most applications, the hosting builder is all you need. It wires configuration, dispatch, and listeners for you:
-
-```csharp
-// samples/HelloWorld/HelloWorld.Server/Program.cs
-using Nalix.Hosting;
-using Nalix.Hosting.Protocols;
-
-await using NetworkApplication app = NetworkApplication.CreateBuilder()
-    .UseLogger(logger)
-    .MapHandlers(typeof(HelloHandlers))
-    .ListenTcp<DefaultProtocol>().OnPort(57206).Bind()
-    .Build();
-
-await app.RunAsync(cts.Token);
-```
-
-Full source: `samples/HelloWorld/HelloWorld.Server/Program.cs`
+For most applications, the hosting builder is all you need — see the basic `CreateBuilder()` chain in [Quick Start §3](../../quickstart.md#3-write-the-server). It wires configuration, dispatch, and listeners for you. The rest of this page adds the production concerns that sit around that chain.
 
 `DefaultProtocol` (from `Nalix.Hosting.Protocols`) is a ready-made protocol that forwards every inbound packet straight to the dispatcher — you only need a custom protocol class if you have transport-level logic beyond that.
 
