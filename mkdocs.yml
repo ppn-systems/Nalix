@@ -284,7 +284,6 @@ nav:
           - Token Bucket Limiter: api/runtime/middleware/token-bucket-limiter.md
           - Permission Middleware: api/runtime/middleware/permission-middleware.md
           - Timeout Middleware: api/runtime/middleware/timeout-middleware.md
-          - Concurrency Gate: api/runtime/middleware/concurrency-gate.md
       - Network:
         - Overview: api/network/index.md
         - Protocol: api/network/protocol.md
