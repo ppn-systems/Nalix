@@ -9,7 +9,7 @@ Everything here is correct and kept up to date, but it goes deeper than most peo
 - **How the pieces fit together**: [Architecture](architecture.md), [Packet Lifecycle](packet-lifecycle.md), [Real-time Engine](real-time-engine.md)
 - **Wire format and errors**: [Binary Specification](binary-spec.md), [Errors and Diagnostics](errors-and-diagnostics.md)
 - **Security in depth**: [Security Architecture](security-architecture.md), [Encryption Model](encryption-model.md), [Handshake Protocol](handshake-protocol.md), [Session Resumption](session-resumption.md)
-- **Performance and scale**: [Sharding and Concurrency](sharding.md), [Zero-Allocation Path](zero-allocation.md), [Performance Optimizations](performance-optimizations.md), [Dynamic Concurrency Adjustment](dynamic-concurrency-adjustment.md)
+- **Performance and scale**: [Sharding and Concurrency](sharding.md), [Zero-Allocation Path](zero-allocation.md), [Performance Optimizations](performance-optimizations.md)
 - **Memory management**: [BufferLease Utilization](buffer-lease-utilization.md), [Buffer Pooling Configuration](buffer-pooling-configuration.md)
 - **Reliability and guarantees**: [Guarantees and Failure Handling](guarantees-and-failure-handling.md), [Design Tradeoffs](design-tradeoffs.md)
 - **Advanced guides**: [Manual Wiring (No Hosting)](minimal-server.md), [Low-Level Session APIs](low-level-session-apis.md)

@@ -54,19 +54,18 @@ Each skill contains: **Triggers** (when to use it), **Rules** (invariants from s
 
 | Skill | Project | Focus |
 | :--- | :--- | :--- |
-| [nalix-abstractions](skills/nalix-abstractions.md) | `Nalix.Abstractions` | Adding contracts; `[SerializeOrder]` rules; `IConnection` auth pattern |
-| [nalix-environment](skills/nalix-environment.md) | `Nalix.Environment` | `BufferLease` ref counting; `DataReader` ref struct; fragment assembler |
-| [nalix-codec](skills/nalix-codec.md) | `Nalix.Codec` | Packet type definition; transform pipeline order; crypto invariants |
-| [nalix-analyzers-generators](skills/nalix-analyzers-generators.md) | `Nalix.Analyzers.Generators` | Generator triggers; `KnownNames` first rule; debug generated output |
-| [nalix-framework](skills/nalix-framework.md) | `Nalix.Framework` | `InstanceManager` singleton-only; pool `Reset()` completeness; Snowflake IDs |
-| [nalix-runtime](skills/nalix-runtime.md) | `Nalix.Runtime` | Handler shape; protocol ordering invariant; middleware stages; throttle tiers |
-| [nalix-network](skills/nalix-network.md) | `Nalix.Network` | Session timing; `ConnectionGuard` ban tiers; UDP anti-replay; session resume |
-| [nalix-hosting](skills/nalix-hosting.md) | `Nalix.Hosting` | Startup sequence; auto-registered handlers; middleware vs handler ordering |
-| [nalix-sdk](skills/nalix-sdk.md) | `Nalix.SDK` | Client connect flow; `On<T>()` vs `RequestAsync`; reconnect gotchas |
-| [nalix-sdk-native](skills/nalix-sdk-native.md) | `Nalix.SDK.Native` | C ABI constraints; error-code pattern; publish RIDs |
-| [nalix-analyzers](skills/nalix-analyzers.md) | `Nalix.Analyzers` | `NAL0xxx` ranges; adding diagnostic rules; zero-alloc constraint |
-| [nalix-analyzers-codefixes](skills/nalix-analyzers-codefixes.md) | `Nalix.Analyzers.CodeFixes` | MEF discovery; trivia preservation; adding code fixes |
-| [documentation](skills/documentation.md) | `Documentation` | MkDocs rules R1–R20; signature validation; reusable prompt template |
+| [nalix-abstractions](.claude/skills/nalix-abstractions.md) | `Nalix.Abstractions` | Adding contracts; `[SerializeOrder]` rules; `IConnection` auth pattern |
+| [nalix-environment](.claude/skills/nalix-environment.md) | `Nalix.Environment` | `BufferLease` ref counting; `DataReader` ref struct; fragment assembler |
+| [nalix-codec](.claude/skills/nalix-codec.md) | `Nalix.Codec` | Packet type definition; transform pipeline order; crypto invariants |
+| [nalix-analyzers-generators](.claude/skills/nalix-analyzers-generators.md) | `Nalix.Analyzers.Generators` | Generator triggers; `KnownNames` first rule; debug generated output |
+| [nalix-framework](.claude/skills/nalix-framework.md) | `Nalix.Framework` | `InstanceManager` singleton-only; pool `Reset()` completeness; Snowflake IDs |
+| [nalix-runtime](.claude/skills/nalix-runtime.md) | `Nalix.Runtime` | Handler shape; protocol ordering invariant; middleware stages; throttle tiers |
+| [nalix-network](.claude/skills/nalix-network.md) | `Nalix.Network` | Session timing; `ConnectionGuard` ban tiers; UDP anti-replay; session resume |
+| [nalix-hosting](.claude/skills/nalix-hosting.md) | `Nalix.Hosting` | Startup sequence; auto-registered handlers; middleware vs handler ordering |
+| [nalix-sdk](.claude/skills/nalix-sdk.md) | `Nalix.SDK` | Client connect flow; `On<T>()` vs `RequestAsync`; reconnect gotchas |
+| [nalix-analyzers](.claude/skills/nalix-analyzers.md) | `Nalix.Analyzers` | `NAL0xxx` ranges; adding diagnostic rules; zero-alloc constraint |
+| [nalix-analyzers-codefixes](.claude/skills/nalix-analyzers-codefixes.md) | `Nalix.Analyzers.CodeFixes` | MEF discovery; trivia preservation; adding code fixes |
+| [documentation](.claude/skills/documentation.md) | `Documentation` | MkDocs rules R1–R20; signature validation; reusable prompt template |
 
 ### Think Before Coding
 

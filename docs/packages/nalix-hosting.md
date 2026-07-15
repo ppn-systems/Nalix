@@ -47,14 +47,16 @@ flowchart LR
 
 The builder exposes fluent methods for configuring the server:
 
-- `ConfigureLogging(...)`
-- `ConfigureConnectionHub(...)`
-- `ConfigureBufferPoolManager(...)`
-- `ConfigureObjectPoolManager(...)`
-- `ConfigureCertificate(...)`
+- `Configure<TOptions>(...)`
 - `ConfigureDispatchOptions(...)`
 - `ConfigureDispatch(...)`
-- `Configure<TOptions>(...)`
+- `UseLogger(...)`
+- `UseConnectionHub(...)`
+- `UseConnectionGuard(...)`
+- `UseBufferPoolManager(...)`
+- `UseObjectPoolManager(...)`
+- `UseSecureConnections(...)`
+- `UseSessions(...)`
 - `MapHandlers<THandler>()`
 - `MapHandlers(Type controllerType)`
 - `ListenTcp<TProtocol>().Bind()`

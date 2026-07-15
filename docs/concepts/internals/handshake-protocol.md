@@ -20,7 +20,7 @@ Nalix implements a high-security, zero-trust handshake protocol based on **X2551
 - [x] **Adaptive Proof-of-Work**: When enabled, the server may require clients to solve a PoW puzzle before the handshake proceeds, throttling automated connection floods. See [Proof-of-Work](../../api/security/proof-of-work.md).
 
 !!! critical "Mandatory Identity"
-    Every Nalix server must possess a `certificate.private` file. By default, the host loads it from `Directories.ConfigurationDirectory`. You can override this path using `builder.ConfigureCertificate("path/to/certificate.private")` during host construction.
+    Every Nalix server must possess a `certificate.private` file. By default, the host loads it from `Directories.ConfigurationDirectory`. You can override this path using `builder.UseSecureConnections("path/to/certificate.private")` during host construction.
 
     Clients should load the hex public key from `certificate.public` into `TransportOptions.ServerPublicKey` to enable public-key pinning.
 

@@ -47,9 +47,6 @@ internal static class Program
         // outbound datagrams carry the correct session token.
         SessionState sharedState = new();
 
-        // Build registry explicitly to ensure module initializers have run
-        Nalix.Codec.DataFrames.PacketRegistry.Build();
-
         TransportOptions tcpOptions = new()
         {
             Address = Host,
@@ -92,16 +89,10 @@ internal static class Program
         // UDP is only used AFTER TCP secure setup is complete.
         // The shared SessionState provides the session token for authentication.
         //
-        // IMPORTANT: UDP in Nalix uses session-token + HMAC authentication.
-        // The 8-byte session token is prepended to each datagram, and an XxHash32
-        // MAC (signed with the shared secret) is appended. The server verifies
-        // both before processing the packet.
-        //
-        // Known limitation: The SDK's UdpSession supports sending authenticated
-        // datagrams, but UDP request/response (awaiting a typed reply) may not
-        // work in all configurations due to server-side response routing. This
-        // sample demonstrates send-only UDP to show the authenticated datagram
-        // flow. TCP remains connected throughout.
+        // UDP in Nalix uses session-token + HMAC authentication: the 8-byte
+        // session token is prepended to each datagram, and an XxHash32 MAC
+        // (signed with the shared secret) is appended. The server verifies
+        // both before processing the packet, then replies over the same session.
         Console.WriteLine();
         Console.WriteLine("Sending UDP hello (request/response)...");
         using UdpSession udpSession = new(udpOptions, sharedState);

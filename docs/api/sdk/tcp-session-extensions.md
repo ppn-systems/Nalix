@@ -14,7 +14,7 @@ graph TD
 
     TCP["TcpSession"] --> AC["ControlExtensions.AwaitControlAsync / SendControlAsync"]
     TCP --> CU["CipherExtensions.UpdateCipherAsync"]
-    TCP --> SUB["TcpSessionSubscriptions.On / OnOnce"]
+    TCP --> SUB["TransportSessionSubscriptions.On / OnOnce"]
     TCP --> RES["ResumeExtensions.ResumeSessionAsync / ConnectWithResumeAsync"]
 
     R --> PA["PacketAwaiter: subscribe -> send -> await -> unsubscribe"]
@@ -28,7 +28,7 @@ graph TD
 - `src/Nalix.SDK/Transport/Extensions/ControlExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/RequestExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/CipherExtensions.cs`
-- `src/Nalix.SDK/Transport/Extensions/TcpSessionSubscriptions.cs`
+- `src/Nalix.SDK/Transport/Extensions/TransportSessionSubscriptions.cs`
 - `src/Nalix.SDK/Extensions/SubscriptionExtensions.cs`
 - `src/Nalix.SDK/Transport/Internal/PacketAwaiter.cs`
 
@@ -61,7 +61,7 @@ Provides an unified `RequestAsync<TResponse>` method that handles the full cycle
 - **Race-Free**: Subscribes before sending to ensure no responses are missed.
 - **Resilient**: Configurable retry logic via `RequestOptions`.
 
-### 4. Subscriptions (`TcpSessionSubscriptions`)
+### 4. Subscriptions (`TransportSessionSubscriptions`)
 
 A specialized event system that handles buffer ownership and fault tolerance.
 

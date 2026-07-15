@@ -22,7 +22,7 @@ Thank you for considering contributing to Nalix! It's people like you that make 
 
 ## Code of Conduct
 
-This project and everyone participating in it is governed by the [Nalix Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [ppn.system@gmail.com](mailto:ppn.system@gmail.com).
+This project and everyone participating in it is governed by the [Nalix Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior via a [private security advisory](https://github.com/ppn-systems/Nalix/security/advisories/new).
 
 ---
 
@@ -62,14 +62,7 @@ This project and everyone participating in it is governed by the [Nalix Code of 
 5. **Build** the solution to verify everything compiles:
 
    ```bash
-   dotnet build
-   ```
-
-   If you hit `NuGet.targets(780,5): Value cannot be null. (Parameter 'path1')` on Windows shells with stripped env vars, use:
-
-   ```powershell
-   ./tools/restore.ps1 restore
-   ./tools/restore.ps1 build
+   dotnet build src/Nalix.sln --configuration Release
    ```
 
 ---
@@ -82,7 +75,7 @@ This project and everyone participating in it is governed by the [Nalix Code of 
 2. Create a feature branch.
 3. Make your changes.
 4. Write or update tests as needed.
-5. Run the test suite: `dotnet test`
+5. Run the test suite: `dotnet test tests/Nalix.Tests.sln --configuration Release`
 6. Commit with a [conventional message](#commit-convention).
 7. Push to your fork and open a Pull Request.
 
@@ -237,23 +230,28 @@ When reporting issues, please use the provided templates and include:
 
 ## Architecture
 
-Nalix follows [Domain-Driven Design](https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/ddd-oriented-microservice) principles:
+Nalix is a **layered package stack**. Each package depends only on lower levels — never introduce a circular reference or skip a level.
 
-| Layer | Responsibility |
-| :--- | :--- |
-| **Domain** | Business logic, entities, value objects, and domain events. |
-| **Application** | Orchestration of domain objects to perform tasks. |
-| **Infrastructure** | Technical capabilities (persistence, messaging, etc.). |
-| **Presentation** | User interface and API endpoints. |
+| Level | Package | Responsibility |
+| :--- | :--- | :--- |
+| 0 | **Nalix.Abstractions** | Contracts, enums, shared primitives (zero deps; packs analyzers). |
+| 1 | **Nalix.Environment** | Low-level IO, buffer leasing, configuration loading. |
+| 2 | **Nalix.Codec** | Framing, cryptography, serialization. |
+| 2 | **Nalix.Framework** | Identity, DI, task orchestration. |
+| 3 | **Nalix.Runtime** | Packet dispatch, middleware pipelines, throttling. |
+| 3 | **Nalix.Network** | TCP/UDP transport, connection & session management. |
+| 3 | **Nalix.SDK** | Client-side sessions and request/response flows. |
+| 4 | **Nalix.Hosting** | Microsoft-style host & builder APIs. |
 
-### Key DDD Concepts
+### Invariants
 
-- **Bounded Contexts** — clear boundaries between system parts.
-- **Entities** — objects with a distinct identity over time.
-- **Value Objects** — objects defined by their attributes, without identity.
-- **Aggregates** — clusters of domain objects treated as a single unit.
-- **Domain Events** — significant occurrences that domain experts care about.
-- **Repositories** — methods for obtaining domain objects.
+- **Nullable** enabled everywhere — never disable.
+- Prefer `sealed` classes and `readonly struct`.
+- **Hot paths are zero-allocation** — use `Span<T>`, pooled buffers, no LINQ.
+- Never invent crypto — reuse primitives in `Nalix.Codec.Security`.
+- Do not add NuGet dependencies unless explicitly requested.
+
+See [`CLAUDE.md`](CLAUDE.md) for the full dependency graph and per-package rules.
 
 ---
 

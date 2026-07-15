@@ -23,7 +23,7 @@ flowchart TD
 - `UdpSession` (with 8-byte session token support)
 - `TransportOptions`
 - `RequestOptions`
-- transport extensions such as `ControlExtensions`, `RequestExtensions`, `HandshakeExtensions`, `ResumeExtensions`, `CipherExtensions`, and `TcpSessionSubscriptions`
+- transport extensions such as `ControlExtensions`, `RequestExtensions`, `HandshakeExtensions`, `ResumeExtensions`, `CipherExtensions`, and `TransportSessionSubscriptions`
 - thread dispatching helpers such as `IThreadDispatcher` and `InlineDispatcher`
 - protocol string helpers such as `ProtocolStringExtensions`
 

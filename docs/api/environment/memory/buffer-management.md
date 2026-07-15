@@ -159,7 +159,7 @@ using Nalix.Framework.Memory.Buffers;
 
 var app = NetworkApplication.CreateBuilder()
     // 1. Explicitly enable and configure the buffer pool
-    .ConfigureBufferPoolManager(new BufferPoolManager(logger) 
+    .UseBufferPoolManager(new BufferPoolManager(logger) 
     {
         TotalBuffers = 50000,
         InitialCapacity = 1024,

@@ -12,8 +12,6 @@ extra:
       link: https://github.com/ppn-systems/nalix
     - icon: fontawesome/brands/facebook
       link: https://facebook.com/ppn.system
-    - icon: fontawesome/solid/envelope
-      link: mailto:ppn.system@gmail.com
   announcement: |
     🚀 Nalix is under active development. Star us on GitHub!
   canonical_url: https://ppn.io.vn/
@@ -169,7 +167,6 @@ nav:
           - Guarantees and Failure Handling: concepts/internals/guarantees-and-failure-handling.md
           - Design Tradeoffs: concepts/internals/design-tradeoffs.md
           - Performance Optimizations: concepts/internals/performance-optimizations.md
-          - Dynamic Concurrency Adjustment: concepts/internals/dynamic-concurrency-adjustment.md
           - Advanced Guides:
               - Manual Wiring (No Hosting): concepts/internals/minimal-server.md
               - Low-Level Session APIs: concepts/internals/low-level-session-apis.md
@@ -348,7 +345,6 @@ nav:
           - Session Store: api/options/network/session-store-options.md
           - Compression: api/options/network/compression-options.md
           - Token Bucket: api/options/network/token-bucket-options.md
-          - Concurrency: api/options/network/concurrency-options.md
           - Directive Guard: api/options/network/directive-guard-options.md
         - Hosting: api/options/hosting/hosting-options.md
         - SDK:

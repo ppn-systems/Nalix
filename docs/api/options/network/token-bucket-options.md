@@ -227,6 +227,5 @@ returns a denied `RateLimitDecision` with reason `HardLockout` and zero retry de
 ## Related APIs
 
 - [Network Options](./options.md)
-- [Concurrency Options](./concurrency-options.md)
 - [Token Bucket Limiter](../../runtime/middleware/token-bucket-limiter.md)
 - [Policy Rate Limiter](../../runtime/middleware/policy-rate-limiter.md)

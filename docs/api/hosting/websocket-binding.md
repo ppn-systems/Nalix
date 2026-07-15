@@ -77,7 +77,7 @@ public class Program
         // Initialize the network application builder
         INetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
 
-        builder.ConfigureLogging(logger);
+        builder.UseLogger(logger);
 
         // Bind our CustomProtocol to a WebSocket endpoint
         builder.ListenWebSocket<CustomProtocol>()

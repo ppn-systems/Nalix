@@ -8,7 +8,21 @@ Full source: `samples/HelloWorld`
 
 - .NET 10 SDK
 
+## Fastest path — run it in 30 seconds
+
+Clone the repo and run the ready-made sample:
+
+```bash
+git clone https://github.com/ppn-systems/nalix.git
+cd nalix/samples/HelloWorld
+dotnet run
+```
+
+That's the whole HelloWorld sample — server and client, request and reply. The rest of this page explains what's inside it so you can build your own.
+
 ## 1. Create the projects
+
+> Skip this if you cloned the repo — you already have `samples/HelloWorld`. This section is only for starting from scratch.
 
 Create a solution with three projects and install the Nalix packages from NuGet:
 
@@ -33,8 +47,6 @@ dotnet add HelloWorld.Client package Nalix.SDK
 
 dotnet sln add HelloWorld.Contracts HelloWorld.Server HelloWorld.Client
 ```
-
-If you cloned the Nalix repository instead, you can skip this step and run `samples/HelloWorld` directly.
 
 ## 2. Define the packets
 
@@ -132,6 +144,8 @@ await using NetworkApplication app = NetworkApplication.CreateBuilder()
 
 await app.RunAsync(cts.Token);
 ```
+
+> `logger` is an `ILogger` (e.g. from `LoggerFactory.Create(...)`) and `cts` a `CancellationTokenSource` — see the full source for the setup.
 
 Full source: `samples/HelloWorld/HelloWorld.Server/Program.cs`
 
