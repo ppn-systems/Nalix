@@ -89,4 +89,3 @@ that per-connection lock.
 
 - [Network Options](./options.md)
 - [Token Bucket Options](./token-bucket-options.md)
-- [Concurrency Options](./concurrency-options.md)
