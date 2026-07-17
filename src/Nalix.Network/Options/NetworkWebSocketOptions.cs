@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Validation;
 using Nalix.Environment.Configuration.Binding;
@@ -87,6 +88,86 @@ public sealed partial class NetworkWebSocketOptions : ConfigurationLoader, IVali
     [IniComment("Number of concurrent accept workers (default 1)")]
     [ValueRange(1, 1024)]
     public int MaxParallel { get; set; } = 1;
+
+    /// <summary>
+    /// Comma-separated allowlist of browser origins (scheme+host+port) permitted to open a
+    /// WebSocket handshake, e.g. <c>https://schools.eyc.education,https://app.example.com</c>.
+    /// Empty disables the check (legacy behavior). Guards against Cross-Site WebSocket Hijacking (CSWSH).
+    /// </summary>
+    [IniComment("Comma-separated allowed browser origins for CSWSH protection; empty disables the check (default empty)")]
+    public string AllowedOrigins { get; set; } = string.Empty;
+
+    /// <summary>
+    /// When an allowlist is configured, controls whether a handshake without an <c>Origin</c> header
+    /// (non-browser/native clients) is permitted. Ignored when <see cref="AllowedOrigins"/> is empty.
+    /// </summary>
+    [IniComment("Allow handshakes with no Origin header (native clients) when an allowlist is set (default true)")]
+    public bool AllowMissingOrigin { get; set; } = true;
+
+    // ponytail: cache is rebuilt when the source string reference changes; races between accept
+    // workers are benign (idempotent rebuild). Upgrade to a lock only if origins become mutable at runtime.
+    private string? _originsSource;
+    private string[] _originsCache = [];
+
+    /// <summary>
+    /// Determines whether a handshake carrying the given <c>Origin</c> header value is allowed.
+    /// </summary>
+    /// <param name="origin">The raw <c>Origin</c> header value, or <c>null</c> when absent.</param>
+    /// <returns><c>true</c> if the handshake may proceed; otherwise <c>false</c>.</returns>
+    internal bool IsOriginAllowed(string? origin)
+    {
+        string[] allow = this.GetAllowedOriginsCache();
+
+        // Empty allowlist => feature disabled, legacy behavior (cheapest path, no allocation).
+        if (allow.Length == 0)
+        {
+            return true;
+        }
+
+        if (string.IsNullOrEmpty(origin))
+        {
+            return this.AllowMissingOrigin;
+        }
+
+        System.ReadOnlySpan<char> normalized = origin.AsSpan().Trim().TrimEnd('/');
+        for (int i = 0; i < allow.Length; i++)
+        {
+            if (normalized.Equals(allow[i], System.StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private string[] GetAllowedOriginsCache()
+    {
+        string source = this.AllowedOrigins ?? string.Empty;
+        if (!ReferenceEquals(source, _originsSource))
+        {
+            _originsCache = ParseOrigins(source);
+            _originsSource = source;
+        }
+
+        return _originsCache;
+    }
+
+    private static string[] ParseOrigins(string source)
+    {
+        if (string.IsNullOrWhiteSpace(source))
+        {
+            return [];
+        }
+
+        string[] parts = source.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);
+        for (int i = 0; i < parts.Length; i++)
+        {
+            parts[i] = parts[i].TrimEnd('/');
+        }
+
+        return parts;
+    }
 
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.

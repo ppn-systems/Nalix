@@ -155,6 +155,18 @@ public abstract partial class WebSocketListenerBase
                         continue;
                     }
 
+                    // 2. Validate the Origin header to block Cross-Site WebSocket Hijacking (CSWSH).
+                    // WHY here: after the rate limiter (so an origin-spoofing flood is still throttled)
+                    // but before AcceptWebSocketAsync, so a rejected browser page never triggers the
+                    // SHA1 handshake or any allocation. No-op when the allowlist is empty (legacy behavior).
+                    if (!_config.IsOriginAllowed(context.Request.Headers["Origin"]))
+                    {
+                        this.Metrics.RECORD_REJECTED();
+                        context.Response.StatusCode = 403; // Forbidden
+                        context.Response.Close();
+                        continue;
+                    }
+
                     HttpListenerWebSocketContext wsContext;
                     try
                     {
