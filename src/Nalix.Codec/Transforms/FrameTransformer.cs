@@ -191,7 +191,7 @@ public static class FrameTransformer
             Throw.EncryptionKeyEmpty();
         }
 
-        if (src.Length <= Offset)
+        if (src.Length < Offset)
         {
             Throw.SourceTooSmall();
         }
@@ -239,7 +239,7 @@ public static class FrameTransformer
             Throw.EncryptionKeyEmpty();
         }
 
-        if (src.Length <= Offset)
+        if (src.Length < Offset)
         {
             Throw.SourceTooSmall();
         }
