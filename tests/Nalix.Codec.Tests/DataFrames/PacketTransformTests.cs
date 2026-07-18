@@ -54,6 +54,27 @@ public sealed class PacketTransformTests
     }
 
     [Fact]
+    public void FrameCipher_ZeroPayload_RoundtripShouldSucceed()
+    {
+        // Regression for #300: a header-only frame (Length == Offset, no payload)
+        // must encrypt/decrypt symmetrically instead of tripping SourceTooSmall.
+        using BufferLease src = BufferLease.Rent(FrameTransformer.Offset);
+        src.CommitLength(FrameTransformer.Offset);
+
+        src.Span[..FrameTransformer.Offset].Clear();
+        src.Span.AsHeaderRef() = new PacketHeader { Flags = PacketFlags.NONE };
+
+        using IBufferLease encrypted = FrameCipher.EncryptFrame(src, s_testKey, null, CipherSuiteType.Chacha20Poly1305);
+
+        Assert.True(encrypted.Span.AsHeaderRef().Flags.HasFlag(PacketFlags.ENCRYPTED));
+
+        using IBufferLease decrypted = FrameCipher.DecryptFrame(encrypted, s_testKey, CipherSuiteType.Chacha20Poly1305, out _);
+
+        Assert.False(decrypted.Span.AsHeaderRef().Flags.HasFlag(PacketFlags.ENCRYPTED));
+        Assert.Equal(FrameTransformer.Offset, decrypted.Length);
+    }
+
+    [Fact]
     public void FrameCompression_Roundtrip_ShouldSucceed()
     {
         // 1. Arrange
