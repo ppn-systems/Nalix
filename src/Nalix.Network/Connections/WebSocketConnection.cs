@@ -435,7 +435,6 @@ public sealed class WebSocketConnection :
     /// <inheritdoc/>
     public void Disconnect(string? reason = null)
     {
-        try { System.IO.File.AppendAllText("error.txt", $"[Disconnect WebSocket]: {reason}\n"); } catch { }
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
             DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.WebSocketConnection:Disconnect", reason ?? "Unknown"));
