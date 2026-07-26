@@ -41,7 +41,7 @@ public static class ChannelExtensions
                 FullMode = fullMode,
                 SingleWriter = false,
                 SingleReader = true
-            });
+            }, DisposePacket);
         }
         else
         {
@@ -86,5 +86,13 @@ public static class ChannelExtensions
         client.OnDisconnected += CleanupRegistration;
 
         return channel.Reader;
+    }
+
+    private static void DisposePacket(IPacket packet)
+    {
+        if (packet is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
     }
 }

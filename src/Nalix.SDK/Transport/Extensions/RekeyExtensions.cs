@@ -32,6 +32,7 @@ public static class RekeyExtensions
     {
         ArgumentNullException.ThrowIfNull(session);
 
+        Bytes32 previousKey = session.State.Secret;
         Bytes32 newKey = HandshakeX25519.DeriveRekeySecret(session.State.Secret);
 
         ushort seqId = (ushort)Csprng.GetInt32(1, ushort.MaxValue);
@@ -40,21 +41,30 @@ public static class RekeyExtensions
         Control rekeyPacket = lease.Value;
         rekeyPacket.Initialize(ControlType.SESSION_REKEY, seqId, PacketFlags.SYSTEM, ProtocolReason.NONE);
 
-        // Send the SESSION_REKEY packet and await the SESSION_REKEY_ACK from the server.
-        // We use AwaitAsync to ensure the server has processed the new key before we switch our local state.
-        _ = await PacketAwaiter.AwaitAsync<Control>(
-            session,
-            predicate: p => p.Type == ControlType.SESSION_REKEY_ACK && p.SequenceId == seqId,
-            sendAsync: async token =>
-            {
-                await session.SendAsync(rekeyPacket, token).ConfigureAwait(false);
+        try
+        {
+            // Send the SESSION_REKEY packet and await the SESSION_REKEY_ACK from the server.
+            // We use AwaitAsync to ensure the server has processed the new key before we switch our local state.
+            using Control ack = await PacketAwaiter.AwaitAsync<Control>(
+                session,
+                predicate: p => p.Type == ControlType.SESSION_REKEY_ACK && p.SequenceId == seqId,
+                sendAsync: async token =>
+                {
+                    await session.SendAsync(rekeyPacket, token).ConfigureAwait(false);
 
-                // Immediately switch to the new key and reset sequence counters for outbound frames
-                // so that subsequent frames (including any other concurrent sends) use the new state.
-                session.State.Secret = newKey;
-                session.ResetSequenceCounters();
-            },
-            timeoutMs: session?.Options.ConnectTimeoutMillis > 0 ? session.Options.ConnectTimeoutMillis : 5000,
-            ct: ct).ConfigureAwait(false);
+                    // Immediately switch to the new key and reset sequence counters for outbound frames
+                    // so that subsequent frames (including any other concurrent sends) use the new state.
+                    session.State.Secret = newKey;
+                    session.ResetSequenceCounters();
+                },
+                timeoutMs: session.Options.ConnectTimeoutMillis > 0 ? session.Options.ConnectTimeoutMillis : 5000,
+                ct: ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            session.State.Secret = previousKey;
+            session.ResetSequenceCounters();
+            throw;
+        }
     }
 }

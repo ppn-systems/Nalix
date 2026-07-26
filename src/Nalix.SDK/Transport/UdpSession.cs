@@ -104,7 +104,7 @@ public class UdpSession : TransportSession
             options,
             this.State,
             this.HandleReceiveMessage,
-            this.OnMessageAsync,           // pass async handler (can be changed at runtime)
+            () => this.OnMessageAsync,
             this.HandleError);
     }
 
