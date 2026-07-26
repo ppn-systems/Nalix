@@ -225,8 +225,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    /// <inheritdoc />
-    public IProtocolBindingBuilder ListenTcp<
+    public IProtocolBindingBuilder MapTcp<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol
     {
@@ -244,7 +243,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public IProtocolBindingBuilder ListenUdp<
+    public IProtocolBindingBuilder MapUdp<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol
     {
@@ -263,7 +262,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public IWebSocketBindingBuilder ListenWebSocket<
+    public IWebSocketBindingBuilder MapWebSocket<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol
     {
@@ -526,4 +525,23 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     #endregion Factory Methods
+
+    #region Obsolete APIs
+
+    /// <inheritdoc />
+    public IProtocolBindingBuilder ListenTcp<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
+        where TProtocol : class, IProtocol => this.MapTcp<TProtocol>();
+
+    /// <inheritdoc />
+    public IProtocolBindingBuilder ListenUdp<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
+        where TProtocol : class, IProtocol => this.MapUdp<TProtocol>();
+
+    /// <inheritdoc />
+    public IWebSocketBindingBuilder ListenWebSocket<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
+        where TProtocol : class, IProtocol => this.MapWebSocket<TProtocol>();
+
+    #endregion Obsolete APIs
 }
