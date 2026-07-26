@@ -998,25 +998,22 @@ public abstract partial class TcpListenerBase
                 return new AcceptResult(AcceptConnectionResult.Accepted, null);
             }
 
-            if (socket.RemoteEndPoint is not IPEndPoint ip || !_limiter.TryAccept(ip))
+            AcceptResult result = this.ProcessAcceptedSocket(socket, context);
+            if (result.Result == AcceptConnectionResult.Accepted)
             {
-                this.Metrics.RECORD_LIMITER_REJECTION();
-                SafeCloseSocket(socket);
-                return new AcceptResult(AcceptConnectionResult.RejectedByLimiter, null);
+                contextOwned = false;
+            }
+            else if (result.Result == AcceptConnectionResult.Pending)
+            {
+                contextOwned = false;
             }
 
-            // Transfer ownership: InitializeConnection will return the inner context.
-            // Set contextOwned = false BEFORE calling so that if InitializeConnection throws an error, it will not double-return.
-            // // After returning the context, it will not double-return.
-            contextOwned = false;
-#pragma warning disable CA2000
-            IConnection? connection = this.InitializeConnection(socket, context);
-#pragma warning restore CA2000
-            if (connection is null)
+            if (result.Result == AcceptConnectionResult.Failed)
             {
                 return new AcceptResult(AcceptConnectionResult.Failed, null);
             }
-            return new AcceptResult(AcceptConnectionResult.Accepted, connection);
+
+            return result;
         }
         catch (OperationCanceledException)
         {
