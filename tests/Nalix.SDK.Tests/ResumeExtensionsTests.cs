@@ -174,6 +174,9 @@ TestUtils.SetupCertificate();
             // 4. Verify Result
             // SessionHandlers returns TOKEN_REVOKED if proof is invalid
             Assert.Equal(ProtocolReason.TOKEN_REVOKED, result);
+
+            using SessionScope retained = await store.ConsumeAsync(token);
+            Assert.True(retained.IsValid, "invalid resume proof must not consume the stored session token");
         }
         finally
         {
@@ -261,7 +264,6 @@ TestUtils.SetupCertificate();
     public void Dispose() => InstanceManager.Instance.Clear(dispose: false);
 }
 #endif
-
 
 
 

@@ -21,5 +21,5 @@ public interface ISessionService : IDisposable
     ValueTask SaveSessionAsync(IConnection connection, CancellationToken cancellationToken = default);
 
     /// <inheritdoc/>
-    ValueTask<SessionScope> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default);
+    ValueTask<SessionScope> ConsumeAsync(ulong sessionToken, Func<SessionEntry, bool>? predicate = null, CancellationToken cancellationToken = default);
 }

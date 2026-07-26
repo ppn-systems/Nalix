@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -23,11 +24,11 @@ public interface ISessionStore
     /// successfully retrieve the same token before either removes it (SEC-33).
     /// </summary>
     /// <param name="sessionToken">The session token identifier.</param>
+    /// <param name="predicate">Optional validation predicate that must succeed before consuming the entry.</param>
     /// <param name="cancellationToken">The cancellation token for the operation.</param>
     /// <returns>
     /// A <see cref="ValueTask{TResult}"/> whose result is the <see cref="SessionScope"/> if found
     /// and successfully consumed; otherwise, a default scope (invalid) if the token does not exist or was already consumed.
     /// </returns>
-    ValueTask<SessionScope> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default);
+    ValueTask<SessionScope> ConsumeAsync(ulong sessionToken, Func<SessionEntry, bool>? predicate = null, CancellationToken cancellationToken = default);
 }
-
