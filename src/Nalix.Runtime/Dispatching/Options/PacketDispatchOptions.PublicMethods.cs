@@ -259,7 +259,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
             invoker,
             expectedPacketType);
 
-        if (!_handlerTable.TryAdd(opCode, runtimeHandler))
+        HandlerSlot slot = new(runtimeHandler);
+        if (Interlocked.CompareExchange(ref _handlerTable[opCode], slot, null) is not null)
         {
             throw new InternalErrorException($"OpCode '{opCode}' has already been registered.");
         }
@@ -292,7 +293,18 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </returns>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    internal bool TryResolveHandler(ushort opCode, out PacketHandler<TPacket> handler) => _handlerTable.TryGetValue(opCode, out handler);
+    internal bool TryResolveHandler(ushort opCode, out PacketHandler<TPacket> handler)
+    {
+        HandlerSlot? slot = Volatile.Read(ref _handlerTable[opCode]);
+        if (slot is null)
+        {
+            handler = default;
+            return false;
+        }
+
+        handler = slot.Handler;
+        return true;
+    }
 
     /// <summary>
     /// Executes a resolved handler with a pooled packet context and returns the context
