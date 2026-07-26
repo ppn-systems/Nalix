@@ -76,3 +76,5 @@ research/
 /.mcp.json
 /node_modules
 /.playwright-mcp
+/WsTest
+/scratch.cs

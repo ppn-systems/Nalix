@@ -175,6 +175,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         if (manager is ObjectPoolManager concrete)
         {
             InstanceManager.Instance.Register<ObjectPoolManager>(concrete);
+            ObjectPoolManager.Configure(concrete);
         }
 
         return this;
@@ -190,9 +191,11 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         where THandler : class
     {
 #pragma warning disable CA2263 // Factory is Func<object>; generic overload not applicable
-        _state.Handlers.Add(new HandlerDescriptor(
-            typeof(THandler),
-            () => InstanceManager.Instance.CreateInstanceWithInjection(typeof(THandler))));
+        Type handlerType = typeof(THandler);
+        object factory() => InstanceManager.Instance.CreateInstanceWithInjection(handlerType);
+
+        this.ValidateHandlerRegistration(handlerType, factory);
+        _state.Handlers.Add(new HandlerDescriptor(handlerType, factory));
 #pragma warning restore CA2263
 
         return this;
@@ -204,10 +207,11 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     {
         ArgumentNullException.ThrowIfNull(factory);
 
-        _state.Handlers.Add(new HandlerDescriptor(
-            typeof(THandler),
-            () => factory()));
+        Type handlerType = typeof(THandler);
+        object objectFactory() => factory();
 
+        this.ValidateHandlerRegistration(handlerType, objectFactory);
+        _state.Handlers.Add(new HandlerDescriptor(handlerType, objectFactory));
         return this;
     }
 
@@ -217,10 +221,10 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     {
         ArgumentNullException.ThrowIfNull(controllerType);
 
-        _state.Handlers.Add(new HandlerDescriptor(
-            controllerType,
-            () => InstanceManager.Instance.CreateInstanceWithInjection(controllerType)));
+        object factory() => InstanceManager.Instance.CreateInstanceWithInjection(controllerType);
 
+        this.ValidateHandlerRegistration(controllerType, factory);
+        _state.Handlers.Add(new HandlerDescriptor(controllerType, factory));
         return this;
     }
 
@@ -515,6 +519,26 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     // Handlers are registered explicitly via MapHandlers<T>() / MapHandlers(Type)
     // or discovered at compile time via source-generated PacketHandlerRegistry.
     private static IEnumerable<HandlerDescriptor> ResolveHandlerRegistrations(HostingBuilderContext state) => state.Handlers;
+
+    private void ValidateHandlerRegistration([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type handlerType, Func<object> factory)
+    {
+        ServiceRegistrar.RegisterObjectPoolManager(_state);
+
+        PacketDispatchOptions<IPacket> validationOptions = new();
+
+        for (int i = 0; i < _state.Handlers.Count; i++)
+        {
+            HandlerDescriptor existing = _state.Handlers[i];
+            if (existing.HandlerType == handlerType)
+            {
+                continue;
+            }
+
+            ServiceRegistrar.RegisterHandler(validationOptions, existing.HandlerType, existing.Factory);
+        }
+
+        ServiceRegistrar.RegisterHandler(validationOptions, handlerType, factory);
+    }
 
     private static void ApplyOptions(HostingBuilderContext state)
     {

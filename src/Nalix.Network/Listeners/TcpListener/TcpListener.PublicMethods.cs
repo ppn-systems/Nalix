@@ -199,6 +199,7 @@ public abstract partial class TcpListenerBase
             }
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
+            throw;
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
@@ -209,6 +210,7 @@ public abstract partial class TcpListenerBase
             }
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
+            throw;
         }
         finally
         {

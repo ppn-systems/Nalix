@@ -76,7 +76,7 @@ public static class StreamExtensions
 
         void OnDisconnected(object? sender, Exception ex) => channel.Writer.TryComplete(ex ?? new NetworkException("Client disconnected unexpectedly during stream."));
 
-        IDisposable msgSub = client.On<TResponse>(OnMessageReceived);
+        IDisposable msgSub = client.On<TResponse>(OnMessageReceived, disposeAfter: false);
         client.OnDisconnected += OnDisconnected;
 
         try
