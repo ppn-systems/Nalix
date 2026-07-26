@@ -38,7 +38,7 @@ public abstract partial class TcpListenerBase
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public void Activate(CancellationToken cancellationToken = default)
+    public virtual void Activate(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, this);
 
@@ -223,7 +223,7 @@ public abstract partial class TcpListenerBase
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public void Deactivate(CancellationToken cancellationToken = default)
+    public virtual void Deactivate(CancellationToken cancellationToken = default)
     {
         // If the listener is already disposed and fully stopped, there is nothing
         // left to deactivate.

@@ -4,451 +4,378 @@
 using System;
 using System.Diagnostics;
 using System.Net;
-using System.Net.WebSockets;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Channels;
-using System.Threading.Tasks;
-using Nalix.Abstractions.Concurrency;
+using System.Net.Sockets;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
-using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
-using Nalix.Framework.Injection;
-using Nalix.Framework.Options;
-using Nalix.Framework.Tasks;
-using Nalix.Network.Connections;
+using Nalix.Environment.Memory;
+using Nalix.Framework.Memory.Objects;
+using Nalix.Network.Internal.Pooling;
+using Nalix.Network.Internal.Tcp;
+using Nalix.Network.Internal.WebSockets;
 
 #pragma warning disable IDE0079
 #pragma warning disable CA2213
 #pragma warning disable CA1031
+#pragma warning disable CA2000
 
 namespace Nalix.Network.Listeners.Web;
 
 public abstract partial class WebSocketListenerBase
 {
-    #region Fields
+    // HTTP/1.1 101 Switching Protocols response
+    private static readonly byte[] s_handshakeResponsePrefix = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: "u8.ToArray();
+    private static readonly byte[] s_handshakeResponseSuffix = "\r\n\r\n"u8.ToArray();
 
-    private IWorkerHandle? _processWorker;
-    private Channel<IConnection>? _processChannel;
-
-    #endregion Fields
-
-    #region APIs
-
-    /// <summary>
-    /// Handles the close event of a connection.
-    /// </summary>
-    /// <param name="sender">The sender.</param>
-    /// <param name="args">The event arguments.</param>
     [DebuggerStepThrough]
-    protected void HandleConnectionClose(object? sender, IConnectionEventArgs args)
+    internal override AcceptResult ProcessAcceptedSocket(Socket socket, PooledAcceptContext context)
     {
-        if (args?.Connection == null)
+        // For non-proxy connections, we intercept here
+        if (!socket.Connected || socket.Handle.ToInt64() == -1)
         {
+            SafeCloseSocket(socket);
+            return new AcceptResult(AcceptConnectionResult.InvalidSocket, null);
+        }
+
+        if (socket.RemoteEndPoint is not IPEndPoint ip || !this.Limiter.TryAccept(ip))
+        {
+            this.Metrics.RECORD_LIMITER_REJECTION();
+            SafeCloseSocket(socket);
+            return new AcceptResult(AcceptConnectionResult.RejectedByLimiter, null);
+        }
+
+        if (!this.InitializeOptions(socket))
+        {
+            SafeCloseSocket(socket);
+            this.Metrics.RECORD_ERROR();
+            return new AcceptResult(AcceptConnectionResult.Failed, null);
+        }
+
+        // Return context to pool since we don't need it for WS handshake
+        ObjectPoolManager.Shared.Return(context);
+
+        this.BeginWebSocketHandshake(socket, ip, null, 0);
+
+        return new AcceptResult(AcceptConnectionResult.Pending, null);
+    }
+
+    [DebuggerStepThrough]
+    internal override AcceptResult ProcessProxyAcceptedSocket(Socket socket, EndPoint? realEndPoint, int headerBytesConsumed, byte[]? receiveBuffer, int bytesReceived)
+    {
+        // For proxy connections, we intercept here.
+        // The socket is already validated and options are initialized by TcpListenerBase.
+        // We just need to start the WS handshake.
+        this.BeginWebSocketHandshake(socket, realEndPoint, receiveBuffer, bytesReceived);
+
+        return new AcceptResult(AcceptConnectionResult.Pending, null);
+    }
+
+    private void BeginWebSocketHandshake(Socket socket, EndPoint? realEndPoint, byte[]? proxyBuffer, int proxyBytesReceived)
+    {
+        WebSocketUpgradeContext state = ObjectPoolManager.Shared.Get<WebSocketUpgradeContext>();
+        state.Socket = socket;
+        state.RealEndPoint = realEndPoint;
+        state.HandshakeStartTimeTicks = Stopwatch.GetTimestamp();
+
+        int initialOffset = 0;
+        if (proxyBuffer != null && proxyBytesReceived > 0)
+        {
+            state.Buffer = BufferLease.ByteArrayPool.Rent(Math.Max(_config.MaxUpgradeRequestSize, proxyBytesReceived));
+            Buffer.BlockCopy(proxyBuffer, 0, state.Buffer, 0, proxyBytesReceived);
+            state.BytesReceived = proxyBytesReceived;
+            initialOffset = proxyBytesReceived;
+            // Return proxy buffer since we copied what we needed
+            BufferLease.ByteArrayPool.Return(proxyBuffer);
+        }
+        else
+        {
+            state.Buffer = BufferLease.ByteArrayPool.Rent(_config.MaxUpgradeRequestSize);
+            state.BytesReceived = 0;
+        }
+
+        SocketAsyncEventArgs args = new()
+        {
+            UserToken = state
+        };
+        args.Completed += this.OnWebSocketReadCompleted;
+        args.SetBuffer(state.Buffer, initialOffset, state.Buffer.Length - initialOffset);
+
+        lock (_wsUpgradeLock)
+        {
+            this.EnqueueWsUpgradeContext(state);
+        }
+
+        bool pending = false;
+        try
+        {
+            pending = socket.ReceiveAsync(args);
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            lock (_wsUpgradeLock)
+            {
+                this.DetachWsUpgradeContext(state);
+            }
+            this.Metrics.RECORD_ERROR();
+            this.ReleaseWsUpgradeContext(state, args, success: false);
             return;
         }
 
-        args.Connection.ConnectionClosed -= this.HandleConnectionClose;
-        args.Connection.ConnectionClosed -= _limiter.OnConnectionClosed;
-        args.Connection.MessageProcessed -= _protocol.PostProcessMessage;
-        args.Connection.MessageProcessing -= _protocol.FrameProcessor.ProcessFrame;
-
-        args.Connection.Dispose();
+        if (!pending)
+        {
+            this.OnWebSocketReadCompleted(socket, args);
+        }
     }
 
-    /// <summary>
-    /// Processes a new connection.
-    /// </summary>
-    /// <param name="connection">The newly accepted connection.</param>
-    [DebuggerStepThrough]
-    protected void ProcessConnection(IConnection connection)
+    private void OnWebSocketReadCompleted(object? sender, SocketAsyncEventArgs args)
     {
-        ArgumentNullException.ThrowIfNull(connection);
+        WebSocketUpgradeContext state = (WebSocketUpgradeContext)args.UserToken!;
 
+        if (args.SocketError != SocketError.Success || args.BytesTransferred == 0)
+        {
+            lock (_wsUpgradeLock)
+            {
+                this.DetachWsUpgradeContext(state);
+            }
+            this.Metrics.RECORD_ERROR();
+            this.ReleaseWsUpgradeContext(state, args, success: false);
+            return;
+        }
+
+        state.BytesReceived += args.BytesTransferred;
+
+        WebSocketUpgradeResult result = WebSocketUpgradeParser.Parse(new ReadOnlySpan<byte>(state.Buffer, 0, state.BytesReceived));
+
+        if (!result.IsValid)
+        {
+            // If invalid, check if we've exceeded the max request size or if it's incomplete
+            if (state.BytesReceived >= _config.MaxUpgradeRequestSize)
+            {
+                lock (_wsUpgradeLock)
+                {
+                    this.DetachWsUpgradeContext(state);
+                }
+                this.Metrics.RECORD_ERROR();
+                this.ReleaseWsUpgradeContext(state, args, success: false);
+                return;
+            }
+
+            // Incomplete, read more
+            args.SetBuffer(state.BytesReceived, state.Buffer.Length - state.BytesReceived);
+            try
+            {
+                if (!state.Socket!.ReceiveAsync(args))
+                {
+                    this.OnWebSocketReadCompleted(sender, args);
+                }
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            {
+                lock (_wsUpgradeLock)
+                {
+                    this.DetachWsUpgradeContext(state);
+                }
+                this.Metrics.RECORD_ERROR();
+                this.ReleaseWsUpgradeContext(state, args, success: false);
+            }
+            return;
+        }
+
+        // Handshake parsed successfully!
+        lock (_wsUpgradeLock)
+        {
+            this.DetachWsUpgradeContext(state);
+        }
+
+        // Validate path
+        string requestPath = System.Text.Encoding.UTF8.GetString(result.Path);
+        if (!requestPath.StartsWith(_path, StringComparison.OrdinalIgnoreCase))
+        {
+            this.Metrics.RECORD_ERROR();
+            this.ReleaseWsUpgradeContext(state, args, success: false);
+            return;
+        }
+
+        // Compute Sec-WebSocket-Accept
+        Span<byte> acceptKey = stackalloc byte[28]; // Base64(SHA1) = 28 bytes
+        int acceptKeyLen = WebSocketUpgradeParser.ComputeAcceptKey(result.SecWebSocketKey, acceptKey);
+
+        if (acceptKeyLen == 0)
+        {
+            this.Metrics.RECORD_ERROR();
+            this.ReleaseWsUpgradeContext(state, args, success: false);
+            return;
+        }
+
+        // Send 101 Switching Protocols response
         try
         {
-            _protocol.OnAccept(connection);
+            // Allocate exact size for response
+            int responseLength = s_handshakeResponsePrefix.Length + acceptKeyLen + s_handshakeResponseSuffix.Length;
+            byte[] responseBuffer = BufferLease.ByteArrayPool.Rent(responseLength);
 
-            if (connection != null && !connection.IsDisposed)
+            Buffer.BlockCopy(s_handshakeResponsePrefix, 0, responseBuffer, 0, s_handshakeResponsePrefix.Length);
+            acceptKey.CopyTo(new Span<byte>(responseBuffer, s_handshakeResponsePrefix.Length, acceptKeyLen));
+            Buffer.BlockCopy(s_handshakeResponseSuffix, 0, responseBuffer, s_handshakeResponsePrefix.Length + acceptKeyLen, s_handshakeResponseSuffix.Length);
+
+            // Send sync for now since it's small and kernel buffer can take it immediately
+            int sent = state.Socket!.Send(responseBuffer, 0, responseLength, SocketFlags.None);
+            BufferLease.ByteArrayPool.Return(responseBuffer);
+
+            if (sent != responseLength)
             {
-                // Register to the global connection pool/hub so that the server can broadcast
-                // messages or force-close connections globally.
-                _hub.RegisterConnection(connection);
-                this.Metrics.RECORD_ACCEPTED();
-            }
-            else
-            {
-                this.Metrics.RECORD_REJECTED();
+                this.Metrics.RECORD_ERROR();
+                this.ReleaseWsUpgradeContext(state, args, success: false);
+                return;
             }
 
-            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+            // Create Connection
+            IConnection? connection = this.InitializeConnection(state.Socket!, state.RealEndPoint, result.BytesConsumed, state.Buffer, state.BytesReceived);
+
+            if (connection != null)
             {
-                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.WebSocketListenerBase:ProcessConnection", $"new-connection remote-endpoint={connection?.NetworkEndpoint}"));
+                // We've successfully upgraded the socket to WebSocket!
+                // NOTE: InitializeConnection will attach it to TcpListenerBase's receive pipeline.
+                // However, TcpListenerBase creates a `Connection` which reads raw TCP stream.
+                // WE NEED TO DECORATE THIS WITH A WEBSOCKET CONNECTION LAYER.
+                // We'll wrap the underlying connection in a WebSocketConnection so it decodes WS frames.
+
+                // Let's release the context, keep socket open
+                this.ReleaseWsUpgradeContext(state, args, success: true);
+
+                // Dispatch
+                this.DISPATCH_CONNECTION(connection);
+                return;
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             this.Metrics.RECORD_ERROR();
-            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.LoopFaulted))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
             {
-                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.LoopFaulted, new DiagnosticLog("NW.WebSocketListenerBase:ProcessConnection", $"process-error remote-endpoint={connection?.NetworkEndpoint}", ex));
+                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.WebSocketListenerBase:Handle", "handshake-send-error", ex));
             }
-            connection?.Dispose();
         }
+
+        this.ReleaseWsUpgradeContext(state, args, success: false);
     }
 
-    /// <summary>
-    /// Asynchronously accepts connections from the HttpListener.
-    /// </summary>
-    /// <param name="ctx">The worker context.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    [DebuggerStepThrough]
-    protected async Task AcceptConnectionsAsync(IWorkerContext ctx, CancellationToken cancellationToken)
+    private void DetachWsUpgradeContext(WebSocketUpgradeContext state)
     {
-        ArgumentNullException.ThrowIfNull(ctx);
-        if (_listener == null)
+        if (state.Prev != null)
         {
-            return;
+            state.Prev.Next = state.Next;
+        }
+        else if (_wsUpgradeHead == state)
+        {
+            _wsUpgradeHead = state.Next;
         }
 
-        int backoffMs = 50;
-
-        while (!cancellationToken.IsCancellationRequested && _listener.IsListening)
+        if (state.Next != null)
         {
-            ctx.Beat();
-            try
+            state.Next.Prev = state.Prev;
+        }
+        else if (_wsUpgradeTail == state)
+        {
+            _wsUpgradeTail = state.Prev;
+        }
+
+        state.Next = null;
+        state.Prev = null;
+    }
+
+    private void EnqueueWsUpgradeContext(WebSocketUpgradeContext state)
+    {
+        state.Next = null;
+        state.Prev = _wsUpgradeTail;
+
+        if (_wsUpgradeTail != null)
+        {
+            _wsUpgradeTail.Next = state;
+        }
+        else
+        {
+            _wsUpgradeHead = state;
+        }
+
+        _wsUpgradeTail = state;
+    }
+
+    private void ReleaseWsUpgradeContext(WebSocketUpgradeContext state, SocketAsyncEventArgs args, bool success)
+    {
+        if (state.Buffer is { } buf)
+        {
+            // Only return the buffer if we aren't passing it down to the connection
+            if (!success)
             {
-                HttpListenerContext context = await _listener.GetContextAsync().ConfigureAwait(false);
+                BufferLease.ByteArrayPool.Return(buf);
+            }
+            state.Buffer = [];
+        }
 
-                if (context.Request.IsWebSocketRequest)
+        args.UserToken = null;
+        args.Completed -= this.OnWebSocketReadCompleted;
+        args.Dispose();
+
+        if (!success && state.Socket != null)
+        {
+            SafeCloseSocket(state.Socket);
+        }
+
+        state.ResetForPool();
+        ObjectPoolManager.Shared.Return(state);
+    }
+
+    private void SWEEP_WS_HANDSHAKE_TIMEOUTS()
+    {
+        long now = Stopwatch.GetTimestamp();
+        long timeoutTicks = (long)(_config.HandshakeTimeoutMs / 1000.0 * Stopwatch.Frequency);
+
+        lock (_wsUpgradeLock)
+        {
+            WebSocketUpgradeContext? current = _wsUpgradeHead;
+            while (current != null)
+            {
+                WebSocketUpgradeContext? next = current.Next;
+
+                if (now - current.HandshakeStartTimeTicks > timeoutTicks)
                 {
-                    if (_forwardedConfig.Enabled &&
-                        _forwardedConfig.RequireTrustedProxy &&
-                        context.Request.RemoteEndPoint is IPEndPoint remoteEp &&
-                        !_limiter.IsTrustedProxy(remoteEp))
-                    {
-                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
-                        {
-                            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.WebSocketListenerBase:AcceptConnectionsAsync", $"untrusted-proxy-rejected remote-endpoint={remoteEp}"));
-                        }
+                    this.DetachWsUpgradeContext(current);
 
-                        this.Metrics.RECORD_LIMITER_REJECTION();
-                        context.Response.StatusCode = 403; // Forbidden
-                        context.Response.Close();
-                        continue;
+                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+                    {
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
+                            new DiagnosticLog("NW.WebSocketListenerBase:Sweep", $"ws-handshake-timeout remote-endpoint={current.Socket?.RemoteEndPoint}"));
                     }
 
-                    EndPoint realEndpoint = this.GET_REAL_ENDPOINT(context.Request);
-
-                    // 1. Check Rate Limiter BEFORE accepting the WebSocket handshake.
-                    // WHY: AcceptWebSocketAsync performs cryptographic operations (SHA1) and allocations.
-                    // If we are under a DDoS attack or a client is spamming connections,
-                    // we want to drop the request as early and as cheaply as possible with HTTP 429.
-                    if (realEndpoint is not IPEndPoint ip || !_limiter.TryAccept(ip))
+                    // Force close the socket
+                    if (current.Socket != null)
                     {
-                        this.Metrics.RECORD_LIMITER_REJECTION();
-                        context.Response.StatusCode = 429;
-                        context.Response.Close();
-                        continue;
-                    }
-
-                    // 2. Validate the Origin header to block Cross-Site WebSocket Hijacking (CSWSH).
-                    // WHY here: after the rate limiter (so an origin-spoofing flood is still throttled)
-                    // but before AcceptWebSocketAsync, so a rejected browser page never triggers the
-                    // SHA1 handshake or any allocation. No-op when the allowlist is empty (legacy behavior).
-                    if (!_config.IsOriginAllowed(context.Request.Headers["Origin"]))
-                    {
-                        this.Metrics.RECORD_REJECTED();
-                        context.Response.StatusCode = 403; // Forbidden
-                        context.Response.Close();
-                        continue;
-                    }
-
-                    HttpListenerWebSocketContext wsContext;
-                    try
-                    {
-                        TimeSpan keepAlive = _config.KeepAliveIntervalSeconds > 0
-                            ? TimeSpan.FromSeconds(_config.KeepAliveIntervalSeconds)
-                            : WebSocket.DefaultKeepAliveInterval;
-
-                        wsContext = await context.AcceptWebSocketAsync(_config.SubProtocol, keepAlive).ConfigureAwait(false);
-                    }
-#pragma warning disable CA1031
-                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-#pragma warning restore CA1031
-                    {
-                        this.Metrics.RECORD_REJECTED();
-                        try
-                        {
-                            context.Response.Close();
-                        }
-#pragma warning disable CA1031
-                        catch
-#pragma warning restore CA1031
-                        {
-                            // Ignore close failures on aborted clients.
-                        }
-
-                        continue;
-                    }
-
-#pragma warning disable CA2000
-                    WebSocketConnection connection = new(wsContext.WebSocket, _protocol.OpCodeExtractor, realEndpoint);
-#pragma warning restore CA2000
-
-                    try
-                    {
-                        this.InitializeConnection(connection);
-
-                        if (_processChannel != null)
-                        {
-                            if (!_processChannel.Writer.TryWrite(connection))
-                            {
-                                this.Metrics.RECORD_QUEUE_FULL_REJECTION();
-                                connection.Disconnect("Queue full");
-                            }
-                        }
-                        else
-                        {
-                            this.Metrics.RECORD_QUEUE_FULL_REJECTION();
-                            connection.Disconnect("Queue completed");
-                        }
-                    }
-                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-                    {
-                        this.Metrics.RECORD_ERROR();
-                        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                        {
-                            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.WebSocketListenerBase:AcceptConnectionsAsync", "Failed to initialize connection", ex));
-                        }
-                        connection.Dispose();
+                        SafeCloseSocket(current.Socket);
                     }
                 }
-                else if (context.Request.HttpMethod == "GET" &&
-                         string.Equals(context.Request.Url?.AbsolutePath, _config.HealthPath, StringComparison.OrdinalIgnoreCase))
+
+                current = next;
+            }
+        }
+    }
+
+    private void CLEANUP_WS_UPGRADES()
+    {
+        lock (_wsUpgradeLock)
+        {
+            WebSocketUpgradeContext? current = _wsUpgradeHead;
+            while (current != null)
+            {
+                WebSocketUpgradeContext? next = current.Next;
+                if (current.Socket != null)
                 {
-                    // Health/uptime probe (Cloudflare Health Checks, UptimeRobot, LB health check).
-                    // Returns 200 so monitors don't flag the server as down.
-                    context.Response.StatusCode = 200;
-                    context.Response.Close();
+                    SafeCloseSocket(current.Socket);
                 }
-                else
-                {
-                    this.Metrics.RECORD_REJECTED();
-                    context.Response.StatusCode = 400;
-                    context.Response.Close();
-                }
-
-                backoffMs = 50;
-                ctx.Advance(1, note: "accepted");
+                current = next;
             }
-            catch (OperationCanceledException) { break; }
-            catch (HttpListenerException) { break; }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-            {
-                this.Metrics.RECORD_ERROR();
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-                {
-                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.WebSocketListenerBase:AcceptConnectionsAsync", "accept-loop-error", ex));
-                }
-
-                backoffMs = Math.Min(backoffMs * 2, 1000);
-                await Task.Delay(backoffMs + Random.Shared.Next(50), cancellationToken).ConfigureAwait(false);
-            }
+            _wsUpgradeHead = null;
+            _wsUpgradeTail = null;
         }
     }
-
-    #endregion APIs
-
-    #region Private Methods
-
-    private void START_PROCESS_CHANNEL(CancellationToken cancellationToken)
-    {
-        _processChannel = Channel.CreateBounded<IConnection>(
-            new BoundedChannelOptions(_config.ProcessChannelCapacity)
-            {
-                SingleReader = true,
-                SingleWriter = false,
-                FullMode = BoundedChannelFullMode.Wait,
-                AllowSynchronousContinuations = false,
-            });
-
-        _processWorker = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-            name: $"{TaskNaming.Tags.Net}.{TaskNaming.Tags.WebSocket}.{TaskNaming.Tags.Accept}.{_port}",
-            group: $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.WebSocket}/{_port}",
-            work: this.PROCESS_CHANNEL_LOOP_ASYNC,
-            options: new WorkerOptions
-            {
-                Tag = TaskNaming.Tags.Net,
-                RetainFor = TimeSpan.Zero,
-                IdType = SnowflakeType.System,
-                CancellationToken = cancellationToken,
-                OSPriority = ThreadPriority.BelowNormal,
-                ProcessorAffinity = _config.DispatchProcessorAffinity >= 0 ? _config.DispatchProcessorAffinity : null,
-            });
-    }
-
-    private void STOP_PROCESS_CHANNEL()
-    {
-        _ = (_processChannel?.Writer.TryComplete());
-
-        IWorkerHandle? worker = Interlocked.Exchange(ref _processWorker, null);
-        if (worker != null)
-        {
-            worker.Dispose();
-
-            int elapsed = 0;
-            int timeout = _config.ProcessChannelDrainTimeout;
-            while (worker.IsRunning && elapsed < timeout)
-            {
-                Thread.Sleep(10);
-                elapsed += 10;
-            }
-        }
-    }
-
-    private async ValueTask PROCESS_CHANNEL_LOOP_ASYNC(IWorkerContext ctx, CancellationToken cancellationToken)
-    {
-        Channel<IConnection>? processChannel = _processChannel;
-        if (processChannel is null)
-        {
-            return;
-        }
-
-        ChannelReader<IConnection> reader = processChannel.Reader;
-
-        try
-        {
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                ctx.Beat();
-
-#pragma warning disable CA2000
-                while (reader.TryRead(out IConnection? connection))
-#pragma warning restore CA2000
-                {
-                    if (connection is null)
-                    {
-                        continue;
-                    }
-
-                    this.INVOKE_PROCESS(connection);
-                    ctx.Advance(1);
-                }
-
-                if (!await reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
-                {
-                    break;
-                }
-            }
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-            {
-                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.WebSocketListenerBase:Internal", $"unhandled-error port={_port}", ex));
-            }
-        }
-        finally
-        {
-            while (reader.TryRead(out IConnection? connection))
-            {
-                if (connection is null)
-                {
-                    continue;
-                }
-
-                this.INVOKE_PROCESS(connection);
-            }
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void INVOKE_PROCESS(IConnection connection)
-    {
-        try
-        {
-            this.ProcessConnection(connection);
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            this.HANDLE_PROCESS_ERROR(connection, ex);
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void HANDLE_PROCESS_ERROR(IConnection connection, Exception ex)
-    {
-        this.Metrics.RECORD_ERROR();
-        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-        {
-            string remoteEndpoint = connection?.NetworkEndpoint?.ToString() ?? "<null>";
-            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
-            {
-                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.WebSocketListenerBase:Internal", $"error remote remote-endpoint={remoteEndpoint}", ex));
-            }
-            ;
-        }
-        connection?.Disconnect();
-    }
-
-    /// <summary>
-    /// Resolves the actual IP address of the client, even if the application is behind a reverse proxy.
-    /// </summary>
-    private EndPoint GET_REAL_ENDPOINT(HttpListenerRequest request)
-    {
-        if (!_forwardedConfig.Enabled)
-        {
-            return request.RemoteEndPoint ?? new IPEndPoint(IPAddress.Loopback, 0);
-        }
-
-        // 1. Check standard proxy headers.
-        // Cloudflare uses CF-Connecting-IP. Nginx/HAProxy typically use X-Forwarded-For or X-Real-IP.
-        string? forwardedFor = request.Headers["CF-Connecting-IP"] ?? request.Headers["X-Forwarded-For"] ?? request.Headers["X-Real-IP"];
-
-        if (!string.IsNullOrEmpty(forwardedFor))
-        {
-            int commaIndex = forwardedFor.IndexOf(',', StringComparison.Ordinal);
-            string ipString = commaIndex > 0 ? forwardedFor[..commaIndex].Trim() : forwardedFor.Trim();
-
-            if (IPAddress.TryParse(ipString, out IPAddress? ip))
-            {
-                return new IPEndPoint(ip, request.RemoteEndPoint?.Port ?? 0);
-            }
-        }
-
-        return request.RemoteEndPoint ?? new IPEndPoint(IPAddress.Loopback, 0);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void InitializeConnection(WebSocketConnection connection)
-    {
-        // Subscribe to lifecycle events.
-        connection.ConnectionClosed += this.HandleConnectionClose;
-
-        // WHY subscribe to _limiter.OnConnectionClosed:
-        // When the connection closes, the limiter's active connection counter for this IP 
-        // must be decremented so the client can connect again in the future.
-        connection.ConnectionClosed += _limiter.OnConnectionClosed;
-
-        // Keep post-process as you already have.
-        // If your PostProcessMessage should run after app protocol, leaving it subscribed is OK.
-        connection.MessageProcessed += _protocol.PostProcessMessage;
-
-        // Wire the internal listener method to handle the shared pipeline before routing.
-        connection.MessageProcessing += _protocol.FrameProcessor.ProcessFrame;
-
-        if (_config.EnableTimeout)
-        {
-            // Register connection with TimingWheel to track idle timeout.
-            // WHY TimingWheel instead of Timer per-connection:
-            // - Timer per-connection: O(n) memory + GC pressure when there are thousands of connections.
-            // - TimingWheel: O(1) tick, shared wheel for all connections -> much more efficient.
-            _timing.Register(connection);
-        }
-    }
-
-    #endregion Private Methods
 }

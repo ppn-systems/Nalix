@@ -11,12 +11,12 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
-using Nalix.Abstractions.Networking;
 using Nalix.Environment.Memory;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Internal.Protocol;
+using Nalix.Network.Internal.Tcp;
 using Nalix.Network.Internal.Transport;
 using Nalix.Network.RateLimiting;
 
@@ -279,13 +279,11 @@ public abstract partial class TcpListenerBase
             ? new IPEndPoint(parsedEndpoint.ToIPAddress(), parsedEndpoint.Port)
             : null;
 
-        IConnection? connection = null;
+        AcceptResult result = default;
 
         try
         {
-#pragma warning disable CA2000
-            connection = this.InitializeConnection(state.Socket!, realIp, consumed, state.Buffer, state.BytesReceived);
-#pragma warning restore CA2000
+            result = this.ProcessProxyAcceptedSocket(state.Socket!, realIp, consumed, state.Buffer, state.BytesReceived);
         }
         catch (ObjectDisposedException)
         {
@@ -316,11 +314,11 @@ public abstract partial class TcpListenerBase
             }
         }
 
-        this.ReleaseProxyContext(state, args, success: connection != null);
+        this.ReleaseProxyContext(state, args, success: result.Result == AcceptConnectionResult.Accepted || result.Result == AcceptConnectionResult.Pending);
 
-        if (connection != null)
+        if (result.Result == AcceptConnectionResult.Accepted && result.Connection != null)
         {
-            this.DISPATCH_CONNECTION(connection);
+            this.DISPATCH_CONNECTION(result.Connection);
         }
     }
 

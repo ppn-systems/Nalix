@@ -41,5 +41,10 @@ internal enum AcceptConnectionResult
     /// <summary>
     /// The connection accept operation failed for an unspecified reason.
     /// </summary>
-    Failed
+    Failed,
+
+    /// <summary>
+    /// The connection is pending asynchronous initialization (e.g. WebSocket handshake).
+    /// </summary>
+    Pending
 }

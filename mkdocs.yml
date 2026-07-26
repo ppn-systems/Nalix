@@ -141,6 +141,7 @@ nav:
           - Server Blueprint: guides/getting-started/server-blueprint.md
       - Deployment & Operations:
           - Production Checklist: guides/deployment/production-checklist.md
+          - Reverse Proxy TLS (nginx / Caddy): guides/deployment/reverse-proxy-tls.md
           - Troubleshooting Guide: guides/deployment/troubleshooting.md
   - Concepts:
       - Overview: concepts/index.md

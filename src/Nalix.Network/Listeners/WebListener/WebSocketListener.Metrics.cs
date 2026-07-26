@@ -94,7 +94,7 @@ public abstract partial class WebSocketListenerBase
     #endregion Nested Metrics Class
 
     /// <inheritdoc/>
-    public WMetrics Metrics
+    public new WMetrics Metrics
     {
         [DebuggerStepThrough]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

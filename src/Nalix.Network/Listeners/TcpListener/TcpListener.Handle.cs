@@ -148,7 +148,7 @@ public abstract partial class TcpListenerBase
     /// </para>
     /// </remarks>
     [DebuggerStepThrough]
-    private IConnection? InitializeConnection(Socket socket, PooledAcceptContext context)
+    internal virtual IConnection? InitializeConnection(Socket socket, PooledAcceptContext context)
     {
         Connection? connection = null;
         bool eventsHooked = false;
@@ -236,9 +236,25 @@ public abstract partial class TcpListenerBase
         }
     }
 
+    /// <summary>
+    /// Processes a socket that has completed Proxy Protocol parsing.
+    /// Can be overridden to delay connection creation (e.g. for WebSocket handshakes).
+    /// </summary>
+    [DebuggerStepThrough]
+    internal virtual AcceptResult ProcessProxyAcceptedSocket(Socket socket, EndPoint? realEndPoint, int headerBytesConsumed, byte[]? receiveBuffer, int bytesReceived)
+    {
+        IConnection? connection = this.InitializeConnection(socket, realEndPoint, headerBytesConsumed, receiveBuffer, bytesReceived);
+        if (connection == null)
+        {
+            return new AcceptResult(AcceptConnectionResult.Failed, null);
+        }
+
+        return new AcceptResult(AcceptConnectionResult.Accepted, connection);
+    }
+
     /// <inheritdoc/>
     [DebuggerStepThrough]
-    private IConnection? InitializeConnection(Socket socket, EndPoint? realEndPoint, int headerBytesConsumed, byte[]? receiveBuffer, int bytesReceived)
+    internal virtual IConnection? InitializeConnection(Socket socket, EndPoint? realEndPoint, int headerBytesConsumed, byte[]? receiveBuffer, int bytesReceived)
     {
         bool eventsHooked = false;
         Connection? connection = null;
@@ -318,8 +334,8 @@ public abstract partial class TcpListenerBase
     /// </remarks>
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    private static void SafeCloseSocket(Socket socket)
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveInlining)]
+    protected internal static void SafeCloseSocket(Socket socket)
     {
         try
         {
@@ -829,9 +845,9 @@ public abstract partial class TcpListenerBase
                     // Transient accept failures. We shouldn't sleep 50ms on expected accept pressure.
                     // No delay is needed for transient / expected pressure failures.
                     break;
-
-                case AcceptConnectionResult.ListenerClosed:
+                case AcceptConnectionResult.Pending:
                 case AcceptConnectionResult.SocketAborted:
+                case AcceptConnectionResult.ListenerClosed:
                 default:
                     // Stop accepting, break loop.
                     break;
@@ -1070,7 +1086,7 @@ public abstract partial class TcpListenerBase
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private AcceptResult ProcessAcceptedSocket(Socket socket, PooledAcceptContext context)
+    internal virtual AcceptResult ProcessAcceptedSocket(Socket socket, PooledAcceptContext context)
     {
         // Validate and limit checks occur BEFORE ownership transfer.
         // If a throw occurs here (invalid socket, limiter reject), contextOwned remains true.

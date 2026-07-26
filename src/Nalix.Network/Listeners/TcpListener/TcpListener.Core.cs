@@ -40,6 +40,7 @@ public abstract partial class TcpListenerBase : IListener
     private readonly TimingWheel _timing;
     private readonly ObjectPoolManager _pool;
     private readonly IConnectionGuard _limiter;
+
     private int _state;
     private int _isDisposed;
     private int _stopInitiated;
@@ -50,6 +51,11 @@ public abstract partial class TcpListenerBase : IListener
     private IWorkerHandle[]? _acceptWorkers;
     private CancellationToken _cancellationToken;
     private CancellationTokenRegistration _cancelReg;
+
+    /// <summary>
+    /// Gets the connection guard used to limit the number of concurrent connections.
+    /// </summary>
+    protected internal IConnectionGuard Limiter => _limiter;
 
     #endregion Fields
 
