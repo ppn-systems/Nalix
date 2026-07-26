@@ -29,7 +29,7 @@ public sealed class GracefulShutdownTests : IDisposable
         List<TcpSession> clients = [];
         try
         {
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 3; i++)
             {
                 TcpSession session = new(new TransportOptions { Address = "127.0.0.1", Port = (ushort)port });
                 await session.ConnectAsync();

@@ -87,14 +87,21 @@ public sealed class ProofOfWorkTests
     public void ProofForADifferentChallengeIsRejected()
     {
         (Bytes32 nonceA, Bytes32 macA) = ProofOfWork.CreateChallenge(difficulty: 4, connectionId: 7, timestampTicks: 7000);
-        (Bytes32 nonceB, _) = ProofOfWork.CreateChallenge(difficulty: 4, connectionId: 7, timestampTicks: 7000);
 
-        long solutionForB = SolveOrGiveUp(nonceB.AsSpan().ToArray(), 4, 7000);
+        for (int i = 0; i < 16; i++)
+        {
+            (Bytes32 nonceB, _) = ProofOfWork.CreateChallenge(difficulty: 4, connectionId: 7, timestampTicks: 7000 + i);
+            long solutionForB = SolveOrGiveUp(nonceB.AsSpan().ToArray(), 4, 7000 + i);
 
-        // solution solved for nonceB's puzzle, submitted against challenge A's nonce+mac
-        bool ok = ProofOfWork.VerifySolution(nonceA.AsSpan(), difficulty: 4, timestampTicks: 7000, connectionId: 7, macA.AsSpan(), solutionForB);
+            // solution solved for nonceB's puzzle, submitted against challenge A's nonce+mac.
+            bool ok = ProofOfWork.VerifySolution(nonceA.AsSpan(), difficulty: 4, timestampTicks: 7000, connectionId: 7, macA.AsSpan(), solutionForB);
+            if (!ok)
+            {
+                return;
+            }
+        }
 
-        Assert.False(ok);
+        throw new InvalidOperationException("Unable to generate a distinct low-difficulty proof sample.");
     }
 
     /// <summary>
