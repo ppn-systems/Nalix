@@ -113,7 +113,7 @@ public sealed partial class NetworkWebSocketOptions : ConfigurationLoader, IVali
         System.ReadOnlySpan<char> normalized = origin.AsSpan().Trim().TrimEnd('/');
         for (int i = 0; i < allow.Length; i++)
         {
-            if (normalized.Equals(allow[i], System.StringComparison.OrdinalIgnoreCase))
+            if (normalized.Equals(allow[i], StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
@@ -141,7 +141,7 @@ public sealed partial class NetworkWebSocketOptions : ConfigurationLoader, IVali
             return [];
         }
 
-        string[] parts = source.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);
+        string[] parts = source.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         for (int i = 0; i < parts.Length; i++)
         {
             parts[i] = parts[i].TrimEnd('/');
