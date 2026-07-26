@@ -105,7 +105,7 @@ public class WebSocketConnectionTimeoutTests : IDisposable
         ConfigurationManager.Instance.UpdateValue<ConnectionGuardOptions>("MaxErrorThreshold", 50);
         ConfigurationManager.Instance.UpdateValue<ConnectionGuardOptions>("MaxPacketPerSecond", 128);
         ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().Host = "127.0.0.1";
-        ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().EnableTimeout = true;
+        ConfigurationManager.Instance.Get<NetworkSocketOptions>().EnableTimeout = true;
 
         var protocol = new IntegrationTestProtocol();
         var hub = new ConnectionHub();
@@ -201,7 +201,7 @@ public class WebSocketConnectionTimeoutTests : IDisposable
         ConfigurationManager.Instance.UpdateValue<ConnectionGuardOptions>("MaxErrorThreshold", 50);
         ConfigurationManager.Instance.UpdateValue<ConnectionGuardOptions>("MaxPacketPerSecond", 128);
         ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().Host = "127.0.0.1";
-        ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().EnableTimeout = true;
+        ConfigurationManager.Instance.Get<NetworkSocketOptions>().EnableTimeout = true;
 
         // Configure dynamic short timeout for TimingWheel (generous enough for slow CI runner CPUs)
         var timingOptions = ConfigurationManager.Instance.Get<TimingWheelOptions>();
@@ -308,6 +308,5 @@ public class WebSocketConnectionTimeoutTests : IDisposable
     }
 }
 #endif
-
 
 

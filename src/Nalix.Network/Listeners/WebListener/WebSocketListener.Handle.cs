@@ -9,14 +9,12 @@ using System.Net.WebSockets;
 using System.Text;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
-using Nalix.Environment.Configuration;
 using Nalix.Environment.Memory;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Tcp;
 using Nalix.Network.Internal.WebSockets;
-using Nalix.Network.Options;
 #pragma warning disable IDE0079
 #pragma warning disable CA2213
 #pragma warning disable CA1031
@@ -203,6 +201,14 @@ public abstract partial class WebSocketListenerBase
             return;
         }
 
+        string? origin = result.Origin.IsEmpty ? null : Encoding.UTF8.GetString(result.Origin);
+        if (!_config.IsOriginAllowed(origin))
+        {
+            this.Metrics.RECORD_ERROR();
+            this.ReleaseWsUpgradeContext(state, args, success: false);
+            return;
+        }
+
         // Compute Sec-WebSocket-Accept
         Span<byte> acceptKey = stackalloc byte[28]; // Base64(SHA1) = 28 bytes
         int acceptKeyLen = WebSocketUpgradeParser.ComputeAcceptKey(result.SecWebSocketKey, acceptKey);
@@ -217,12 +223,23 @@ public abstract partial class WebSocketListenerBase
         // Send 101 Switching Protocols response
         try
         {
-            bool hasSubProtocol = !result.SubProtocol.IsEmpty;
+            string configuredSubProtocol = _config.SubProtocol;
+            bool hasConfiguredSubProtocol = !string.IsNullOrWhiteSpace(configuredSubProtocol);
+            bool hasSubProtocol = hasConfiguredSubProtocol && ContainsRequestedSubProtocol(result.SubProtocol, configuredSubProtocol);
+
+            if (hasConfiguredSubProtocol && !result.SubProtocol.IsEmpty && !hasSubProtocol)
+            {
+                this.Metrics.RECORD_ERROR();
+                this.ReleaseWsUpgradeContext(state, args, success: false);
+                return;
+            }
+
+            byte[]? subProtocolBytes = hasSubProtocol ? Encoding.UTF8.GetBytes(configuredSubProtocol) : null;
             int responseLength = s_handshakeResponsePrefix.Length + acceptKeyLen;
 
             if (hasSubProtocol)
             {
-                responseLength += s_handshakeSubProtocolPrefix.Length + result.SubProtocol.Length;
+                responseLength += s_handshakeSubProtocolPrefix.Length + subProtocolBytes!.Length;
             }
             responseLength += s_handshakeResponseSuffix.Length;
 
@@ -237,11 +254,12 @@ public abstract partial class WebSocketListenerBase
 
             if (hasSubProtocol)
             {
+                byte[] selectedSubProtocol = subProtocolBytes!;
                 Buffer.BlockCopy(s_handshakeSubProtocolPrefix, 0, responseBuffer, offset, s_handshakeSubProtocolPrefix.Length);
                 offset += s_handshakeSubProtocolPrefix.Length;
 
-                result.SubProtocol.CopyTo(new Span<byte>(responseBuffer, offset, result.SubProtocol.Length));
-                offset += result.SubProtocol.Length;
+                Buffer.BlockCopy(selectedSubProtocol, 0, responseBuffer, offset, selectedSubProtocol.Length);
+                offset += selectedSubProtocol.Length;
             }
 
             Buffer.BlockCopy(s_handshakeResponseSuffix, 0, responseBuffer, offset, s_handshakeResponseSuffix.Length);
@@ -264,13 +282,11 @@ public abstract partial class WebSocketListenerBase
             // Create a NetworkStream and wrap it in a WebSocket
             NetworkStream stream = new(socket, ownsSocket: false);
 
-            int idleTimeoutMs = ConfigurationManager.Instance.Get<TimingWheelOptions>().IdleTimeoutMs;
-
             WebSocket webSocket = WebSocket.CreateFromStream(stream, new WebSocketCreationOptions
             {
                 IsServer = true,
-                SubProtocol = hasSubProtocol ? Encoding.UTF8.GetString(result.SubProtocol) : null,
-                KeepAliveInterval = TimeSpan.FromMilliseconds(idleTimeoutMs > 0 ? idleTimeoutMs / 2.0 : 30000)
+                SubProtocol = hasSubProtocol ? configuredSubProtocol : null,
+                KeepAliveInterval = TimeSpan.FromSeconds(_config.KeepAliveIntervalSeconds)
             });
 
             WebSocketConnection? connection = new(webSocket, _protocol.OpCodeExtractor, realEndPoint);
@@ -310,6 +326,68 @@ public abstract partial class WebSocketListenerBase
         }
 
         this.ReleaseWsUpgradeContext(state, args, success: false);
+    }
+
+    private static bool ContainsRequestedSubProtocol(ReadOnlySpan<byte> requested, string configured)
+    {
+        ReadOnlySpan<char> expected = configured.AsSpan().Trim();
+        int start = 0;
+
+        while (start < requested.Length)
+        {
+            int comma = requested[start..].IndexOf((byte)',');
+            int end = comma < 0 ? requested.Length : start + comma;
+            ReadOnlySpan<byte> token = TrimAsciiSpace(requested[start..end]);
+
+            if (MatchesAscii(token, expected))
+            {
+                return true;
+            }
+
+            if (comma < 0)
+            {
+                break;
+            }
+
+            start = end + 1;
+        }
+
+        return false;
+    }
+
+    private static ReadOnlySpan<byte> TrimAsciiSpace(ReadOnlySpan<byte> value)
+    {
+        int start = 0;
+        while (start < value.Length && value[start] <= 32)
+        {
+            start++;
+        }
+
+        int end = value.Length - 1;
+        while (end >= start && value[end] <= 32)
+        {
+            end--;
+        }
+
+        return value[start..(end + 1)];
+    }
+
+    private static bool MatchesAscii(ReadOnlySpan<byte> value, ReadOnlySpan<char> expected)
+    {
+        if (value.Length != expected.Length)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < value.Length; i++)
+        {
+            if (value[i] != expected[i])
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private void DetachWsUpgradeContext(WebSocketUpgradeContext state)
