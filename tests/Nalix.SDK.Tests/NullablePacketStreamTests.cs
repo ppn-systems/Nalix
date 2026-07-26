@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Threading.Channels;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
@@ -67,6 +68,59 @@ public sealed partial class NullablePacketStreamTests
         Assert.Null(result.Duration);
     }
 
+    [Fact]
+    public async Task StreamAsyncWhenSequenceDoesNotMatchDisposesIgnoredPacket()
+    {
+        NullableStreamItem.DisposeCount = 0;
+
+        NullableStreamRequest request = new();
+        request.Header = request.Header with { SequenceId = 1003 };
+
+        NullableStreamItem ignored = new()
+        {
+            IsEndOfStream = false,
+            Capacity = 64,
+            Duration = null
+        };
+        ignored.Header = ignored.Header with { SequenceId = 9999 };
+
+        NullableStreamItem response = new()
+        {
+            IsEndOfStream = true,
+            Capacity = 128,
+            Duration = null
+        };
+        response.Header = response.Header with { SequenceId = request.Header.SequenceId };
+
+        FakeStreamSession session = new(ignored, response);
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(3));
+
+        List<NullableStreamSnapshot> snapshots = await ReadAllSnapshotsAsync(session, request, cts.Token);
+
+        NullableStreamSnapshot snapshot = Assert.Single(snapshots);
+        Assert.Equal(request.Header.SequenceId, snapshot.SequenceId);
+        Assert.Equal(1, NullableStreamItem.DisposeCount);
+    }
+
+    [Fact]
+    public async Task SubscribeChannelWhenBoundedChannelDropsWriteDisposesDroppedPacket()
+    {
+        NullableStreamItem.DisposeCount = 0;
+
+        FakeStreamSession session = new();
+        ChannelReader<NullableStreamItem> reader = session.SubscribeChannel<NullableStreamItem>(
+            boundedCapacity: 1,
+            fullMode: BoundedChannelFullMode.DropWrite);
+
+        session.Emit(new NullableStreamItem { IsEndOfStream = false, Capacity = 1 });
+        session.Emit(new NullableStreamItem { IsEndOfStream = false, Capacity = 2 });
+
+        NullableStreamItem retained = await reader.ReadAsync();
+
+        Assert.Equal(1, retained.Capacity);
+        Assert.Equal(1, NullableStreamItem.DisposeCount);
+    }
+
     private static async Task<NullableStreamItem> ReadSingleStreamItemAsync(NullableStreamRequest request, NullableStreamItem response)
     {
         FakeStreamSession session = new(response);
@@ -110,7 +164,7 @@ public sealed partial class NullablePacketStreamTests
         return snapshots;
     }
 
-    private sealed class FakeStreamSession(NullableStreamItem response) : TransportSession
+    private sealed class FakeStreamSession(params NullableStreamItem[] responses) : TransportSession
     {
         public override TransportOptions Options { get; } = new();
         public override bool IsConnected => true;
@@ -145,10 +199,19 @@ public sealed partial class NullablePacketStreamTests
 
         public override Task SendAsync(IPacket packet, bool? encrypt = null, CancellationToken ct = default)
         {
+            foreach (NullableStreamItem response in responses)
+            {
+                Emit(response);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        public void Emit(NullableStreamItem response)
+        {
             byte[] data = response.Serialize();
             using BufferLease lease = BufferLease.CopyFrom(data);
             this.OnMessageReceived?.Invoke(this, lease);
-            return Task.CompletedTask;
         }
 
         public override Task SendAsync(ReadOnlyMemory<byte> payload, bool? encrypt = null, CancellationToken ct = default)
@@ -179,6 +242,7 @@ public sealed partial class NullablePacketStreamTests
     public sealed partial class NullableStreamItem : PacketBase<NullableStreamItem>, IPacketStaticOpcode, IPacketStreamable
     {
         public static ushort StaticOpCode => 0x7A8A;
+        public static int DisposeCount { get; set; }
 
         [SerializeOrder(0)]
         public bool IsEndOfStream { get; set; }
@@ -188,5 +252,15 @@ public sealed partial class NullablePacketStreamTests
 
         [SerializeOrder(2)]
         public TimeSpan? Duration { get; set; }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                DisposeCount++;
+            }
+
+            base.Dispose(disposing);
+        }
     }
 }

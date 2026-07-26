@@ -35,7 +35,7 @@ internal sealed class UdpFrameReader : IDisposable
     private readonly TransportOptions _options;
     private readonly Action<Exception> _onError;
     private readonly Action<IBufferLease> _onMessageReceived;
-    private readonly Func<ReadOnlyMemory<byte>, Task>? _onMessageAsync;
+    private readonly Func<Func<ReadOnlyMemory<byte>, Task>?> _getOnMessageAsync;
 
     private int _disposed;
 
@@ -46,14 +46,14 @@ internal sealed class UdpFrameReader : IDisposable
     /// <param name="options">Transport options.</param>
     /// <param name="state">Session state.</param>
     /// <param name="onMessageReceived">Sync callback for <see cref="UdpSession.OnMessageReceived"/>.</param>
-    /// <param name="onMessageAsync">Async callback for <see cref="UdpSession.OnMessageAsync"/>.</param>
+    /// <param name="getOnMessageAsync">Gets the current async callback for <see cref="UdpSession.OnMessageAsync"/>.</param>
     /// <param name="onError">Error callback.</param>
     public UdpFrameReader(
         Func<Socket> getSocket,
         TransportOptions options,
         SessionState state,
         Action<IBufferLease> onMessageReceived,
-        Func<ReadOnlyMemory<byte>, Task>? onMessageAsync,
+        Func<Func<ReadOnlyMemory<byte>, Task>?> getOnMessageAsync,
         Action<Exception> onError)
     {
         _sequence = new SequenceCounter();
@@ -61,7 +61,7 @@ internal sealed class UdpFrameReader : IDisposable
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _state = state ?? throw new ArgumentNullException(nameof(state));
         _onMessageReceived = onMessageReceived ?? throw new ArgumentNullException(nameof(onMessageReceived));
-        _onMessageAsync = onMessageAsync;
+        _getOnMessageAsync = getOnMessageAsync ?? throw new ArgumentNullException(nameof(getOnMessageAsync));
         _onError = onError ?? throw new ArgumentNullException(nameof(onError));
     }
 
@@ -210,13 +210,13 @@ internal sealed class UdpFrameReader : IDisposable
         // Sync handler (hot path)
         _onMessageReceived?.Invoke(lease);
 
-        if (_onMessageAsync is not null)
+        if (_getOnMessageAsync() is { } onMessageAsync)
         {
             lease.Retain();
 
             try
             {
-                await _onMessageAsync(lease.Memory).ConfigureAwait(false);
+                await onMessageAsync(lease.Memory).ConfigureAwait(false);
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {

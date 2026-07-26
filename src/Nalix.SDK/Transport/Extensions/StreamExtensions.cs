@@ -61,11 +61,16 @@ public static class StreamExtensions
         {
             if (chunk.Header.SequenceId != expectedSeqId)
             {
+                DisposePacket(chunk);
                 return;
             }
 
             // Write the chunk to the channel
-            _ = channel.Writer.TryWrite(chunk);
+            if (!channel.Writer.TryWrite(chunk))
+            {
+                DisposePacket(chunk);
+                return;
+            }
 
             // If this is the final chunk, complete the channel
             if (chunk.IsEndOfStream)
@@ -97,6 +102,14 @@ public static class StreamExtensions
 
             // Ensure the channel is completed if we exit early (e.g. cancellation)
             _ = channel.Writer.TryComplete();
+        }
+    }
+
+    private static void DisposePacket(IPacket packet)
+    {
+        if (packet is IDisposable disposable)
+        {
+            disposable.Dispose();
         }
     }
 }
