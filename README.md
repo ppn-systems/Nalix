@@ -142,7 +142,7 @@ using Nalix.Hosting.Protocols;
 
 // Initialize and configure the application host
 using var host = NetworkApplication.CreateBuilder()
-    .ListenTcp<DefaultProtocol>().OnPort(8080).Bind()
+    .MapTcp<DefaultProtocol>().OnPort(8080).Bind()
     .MapHandlers<HandshakeHandlers>()
     .Configure<NetworkSocketOptions>(opt => opt.NoDelay = true)
     .Build();

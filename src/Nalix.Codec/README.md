@@ -1,84 +1,64 @@
 # Nalix.Codec
 
-> High-performance data transformation and framing engine.
+Serialization, packet framing, compression, and cryptographic transform primitives for Nalix.
 
-**Nalix.Codec** provides the unified pipeline for data handling in Nalix. It orchestrates serialization, LZ4 compression, AEAD cryptography, and protocol framing into a cohesive, high-throughput transform chain.
+Nalix.Codec owns the data representation layer: source-generated serialization, packet/frame
+models, LZ4 compression, AEAD envelope ciphers, and the transform pipeline used by the runtime and
+SDK.
 
-## Core Features
-
-| Feature | Description |
-| :--- | :--- |
-| 🛡️ **Security Engine** | Hardened AEAD cryptography (Chacha20Poly1305, Salsa20Poly1305) and secure X25519 handshake. |
-| 📦 **Packet System** | Highly optimized `PacketBase<TPacket>` and `FrameBase` primitives with integrated buffer pooling. |
-| 🗜️ **Compression** | High-speed, zero-allocation custom pool-backed LZ4 block compression. |
-| ⛓️ **Frame Pipeline** | Multi-layered orchestrated transformation pipelines (e.g., Serialize → Compress → Encrypt). |
-
-## Key Namespaces
-
-| Namespace | Purpose | Key Types |
-| :--- | :--- | :--- |
-| `Nalix.Codec.DataFrames` | High-performance data framing and runtime packet registry | `PacketBase<TPacket>`, `FrameBase`, `PacketRegistry`, `PacketSchema` |
-| `Nalix.Codec.ProtocolFrames` | Specialized low-level framing for control, directives, handshakes, and key exchanges | `Control`, `Directive`, `Handshake`, `KeyExchange`, `SessionResume` |
-| `Nalix.Codec.Transforms` | Orchestrated pipelines and transformers sequencing compression and encryption | `FrameTransformer`, `FramePipeline`, `FrameCompression`, `FrameCipher` |
-| `Nalix.Codec.Serialization` | Zero-allocation source-generated binary serialization and formatters | `LiteSerializer`, `FormatterProvider`, `IFormatter<T>`, `IFillableFormatter<T>` |
-| `Nalix.Codec.Security` | Cryptographic algorithms, envelope ciphers, and key exchange layers | `HandshakeX25519`, `EnvelopeCipher` |
-| `Nalix.Codec.Security.Symmetric` | Optimized C# stream cipher implementations | `ChaCha20`, `Salsa20` |
-| `Nalix.Codec.Security.Hashing` | Custom high-performance hash functions, message authenticators, and PBKDF2 | `Poly1305`, `Keccak256`, `Pbkdf2`, `HmacKeccak256` |
-| `Nalix.Codec.LZ4` & `.Engine` | High-performance stream/block compression and encoder pools | `LZ4BlockEncoder`, `LZ4Codec`, `LZ4Encoder`, `LZ4Decoder`, `LZ4HashTablePool` |
-| `Nalix.Codec.Pooling` | Scoped allocation lifecycle guards and factories | `PacketScope`, `PacketFactory` |
-
-## Installation
+## Install
 
 ```bash
 dotnet add package Nalix.Codec
 ```
 
-## Quick Example: Packet Definition
+## What It Provides
+
+| Area | Purpose | Main types |
+| :--- | :--- | :--- |
+| Packet model | Packet base types and runtime packet metadata | `PacketBase<TPacket>`, `FrameBase`, `PacketRegistry`, `PacketSchema` |
+| Protocol frames | Built-in control, directive, handshake, key exchange, and resume frames | `Control`, `Directive`, `Handshake`, `KeyExchange`, `SessionResume` |
+| Serialization | Source-generated binary serialization | `LiteSerializer`, `FormatterProvider`, `IFormatter<T>`, `IFillableFormatter<T>` |
+| Transform pipeline | Ordered compression and encryption stages | `FrameTransformer`, `FramePipeline`, `FrameCompression`, `FrameCipher` |
+| Cryptography | X25519 handshakes, envelope ciphers, hashes, and MACs | `HandshakeX25519`, `EnvelopeCipher`, `Keccak256`, `HmacKeccak256`, `Poly1305` |
+| Compression | Pool-backed LZ4 block and stream compression | `LZ4BlockEncoder`, `LZ4Codec`, `LZ4Encoder`, `LZ4Decoder` |
+| Pooling | Scoped packet allocation and object lifecycle helpers | `PacketScope`, `PacketFactory` |
+
+## Minimal Packet
 
 ```csharp
-using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
 
 [Packet]
 [GenerateFormatter]
 [SerializePackable(SerializeLayout.Explicit)]
-public partial class MyPacket : PacketBase<MyPacket>
+public partial class ChatMessage : PacketBase<ChatMessage>
 {
-    [SerializeOrder(0)] 
-    public string Message { get; set; } = string.Empty;
+    [SerializeOrder(0)]
+    public string Text { get; set; } = string.Empty;
 
-    public MyPacket()
+    public ChatMessage()
     {
-        this.OpCode = 101; // Assign custom opcode
+        this.OpCode = 201;
     }
 }
 ```
 
-## Quick Example: Using LiteSerializer
+## Serialization
 
 ```csharp
-using System;
-using Nalix.Codec.Serialization;
-
-// Create a custom serializable packet instance
-MyPacket packet = new MyPacket { Message = "Hello Nalix!" };
-
-// Serialize the packet into a byte array
-byte[] encoded = LiteSerializer.Serialize(packet);
-
-// Deserialize the byte array back to the packet type
-MyPacket decoded = LiteSerializer.Deserialize<MyPacket>(encoded, out int bytesRead);
-
-Console.WriteLine($"Decoded Message: {decoded.Message} (Read {bytesRead} bytes)");
+byte[] encoded = LiteSerializer.Serialize(new ChatMessage { Text = "hello" });
+ChatMessage decoded = LiteSerializer.Deserialize<ChatMessage>(encoded, out int bytesRead);
 ```
 
-## Performance Principles
+## Design Notes
 
-- **Zero-Allocation:** All hot paths use `Span<byte>` and pooled buffers.
-- **No Reflection:** Serialization is handled via compile-time source generation.
-- **Memory Efficient:** Uses `BufferLease` and reference counting for large data payloads.
+- Hot paths use spans and pooled buffers.
+- Packet serialization is source generated instead of reflection based.
+- Cryptographic primitives live in `Nalix.Codec.Security`; do not replace them with application code.
 
 ## Documentation
 
-For technical details on the transform pipeline and packet schema, see the [Codec API Reference](https://ppn.io.vn/api/Codec/index).
+- Package guide: https://ppn.io.vn/packages/nalix-codec/
+- API reference: https://ppn.io.vn/api/codec/

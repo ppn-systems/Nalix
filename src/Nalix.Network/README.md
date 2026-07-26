@@ -1,40 +1,34 @@
 # Nalix.Network
 
-> Low-level networking primitives for high-concurrency TCP, UDP, and WebSocket applications.
+Low-level TCP, UDP, WebSocket, connection, protocol, and admission-control infrastructure for
+Nalix servers.
 
-## Key Features
+Nalix.Network owns the transport layer. It accepts sockets, creates connection objects, enforces
+connection guard policy, manages active connection registries, and exposes protocol hooks used by
+Nalix.Runtime and Nalix.Hosting.
 
-| Feature | Description | Key Concept / Type |
-| :--- | :--- | :--- |
-| 📡 **TCP Listeners** | High-throughput asynchronous TCP listener foundation for custom transports. | `TcpListenerBase`, `TcpServerListener` |
-| 🚀 **UDP Listeners** | Session-aware UDP listener loop with endpoint pinning and sliding window anti-replay protection. | `UdpListenerBase`, `UdpServerListener` |
-| 🔗 **Connection Hub** | Central thread-safe management for active client connections with shard-aware lookups and evictions. | `ConnectionHub`, `ConnectionTerminator` |
-| 🛡️ **Admission Control** | Concurrency safety gates, flood protection datagram counters, and IP blacklists. | `ConnectionGuard`, `DatagramGuard` |
-| 🔌 **Protocol Base** | Pluggable protocol base classes translating low-level socket actions to high-level protocol messages. | `Protocol` |
-
-## Key Namespaces
-
-| Namespace | Purpose | Key Types |
-| :--- | :--- | :--- |
-| `Nalix.Network` | Root namespace containing core network interfaces and events | `NetworkEndpoint`, `IConnectEventArgs` |
-| `Nalix.Network.Listeners` | Concurrent socket listening loops and server hosts | `TcpServerListener`, `UdpServerListener`, `WebSocketServerListener` |
-| `Nalix.Network.Connections` | Centralized registry for all active TCP/UDP/WS connection sessions | `ConnectionHub`, `ConnectionTerminator` |
-| `Nalix.Network.Protocols` | Base abstract handlers for managing transport protocol lifecycles and states | `Protocol` |
-| `Nalix.Network.RateLimiting` | Security emission guards, socket flood limits, and IP address blacklists | `ConnectionGuard`, `DatagramGuard` |
-| `Nalix.Network.Options` | Core network, socket acceptor, TIMING wheel, and ban store options | `NetworkSocketOptions`, `ConnectionGuardOptions`, `DatagramGuardOptions`, `ConnectionHubOptions` |
-
-## Installation
+## Install
 
 ```bash
 dotnet add package Nalix.Network
 ```
 
-## Quick Example: Implementing a Custom Listener
+## What It Provides
 
-`Nalix.Network` provides high-concurrency abstract listener types (`TcpListenerBase` and `UdpListenerBase`) that manage system socket loops, connection limits, and timing wheels. To write a custom transport listener, simply extend the base class:
+| Area | Purpose | Main types |
+| :--- | :--- | :--- |
+| TCP listeners | High-throughput asynchronous TCP accept loops | `TcpListenerBase`, `TcpServerListener` |
+| UDP listeners | Session-aware UDP receive loops with endpoint pinning | `UdpListenerBase`, `UdpServerListener` |
+| WebSocket listeners | Raw WebSocket listener support for browser and proxy deployments | `WebSocketListenerBase`, `WebSocketServerListener` |
+| Connections | Active connection objects and lifecycle hooks | `Connection`, `WebSocketConnection`, `PassthroughConnection` |
+| Connection registry | Sharded active connection storage and broadcast support | `ConnectionHub`, `ConnectionTerminator` |
+| Protocols | Transport-neutral protocol lifecycle base | `Protocol` |
+| Admission control | Per-IP limits, flood protection, bans, and datagram guards | `ConnectionGuard`, `DatagramGuard` |
+| Options | Socket, guard, proxy, WebSocket, and timing-wheel configuration | `NetworkSocketOptions`, `ConnectionGuardOptions`, `ProxyProtocolOptions`, `NetworkWebSocketOptions` |
+
+## Custom TCP Listener
 
 ```csharp
-using System;
 using Nalix.Abstractions.Networking;
 using Nalix.Network.Listeners.Tcp;
 
@@ -45,49 +39,23 @@ public sealed class CustomTcpListener : TcpListenerBase
     {
     }
 
-    // Must implement the abstract ProcessFrame method to handle incoming frames
     public override void ProcessFrame(object? sender, IConnectEventArgs args)
     {
-        // Custom logic to process raw connection frames before protocol dispatch
+        // Dispatch or inspect connection frames here.
     }
 }
 ```
 
-## Quick Example: Managing Connections with ConnectionHub
+## Operational Notes
 
-The `ConnectionHub` manages all concurrent active client connections. You can use it to fetch connections, monitor active counts, force evictions, or broadcast real-time payloads asynchronously:
-
-```csharp
-using System;
-using System.Threading.Tasks;
-using Nalix.Abstractions.Networking;
-using Nalix.Network.Connections;
-
-// Initialize the ConnectionHub
-IConnectionHub hub = new ConnectionHub();
-
-// Check the active connection count
-int activeCount = hub.Count;
-Console.WriteLine($"Active connections: {activeCount}");
-
-// Retrieve a connection by its 64-bit Snowflake ID
-IConnection? client = hub.GetConnection(1234567890UL);
-if (client is not null)
-{
-    Console.WriteLine($"Found client: {client.ID} (IP: {client.NetworkEndpoint.Address})");
-}
-
-// Broadcast a system-wide broadcast message to all active TCP clients
-await hub.BroadcastAsync(
-    new SystemNotice { Text = "Server is undergoing maintenance in 5 minutes." },
-    async (conn, msg) => await conn.TCP.SendAsync(msg));
-
-// Evict/force close connections originating from a malicious IP address
-IConnectionTerminator terminator = new ConnectionTerminator(hub);
-int closedConnections = terminator.CloseByEndpoint(new NetworkEndpoint("192.168.1.100", 0));
-Console.WriteLine($"Force closed {closedConnections} connections.");
-```
+- Use `ConnectionGuard` and `DatagramGuard` for public-facing services.
+- Configure trusted proxies before honoring forwarded client IP headers.
+- Prefer Nalix.Hosting for application setup unless you are implementing a custom transport.
+- TCP supports PROXY protocol handling; WebSocket supports forwarded HTTP headers when enabled.
 
 ## Documentation
 
-For deep technical details on listeners, session persistence, and admission guard limits, see the [Transport & Networking Guide](https://ppn.io.vn/api/network/index).
+- Package guide: https://ppn.io.vn/packages/nalix-network/
+- API reference: https://ppn.io.vn/api/network/
+- WebSocket listener: https://ppn.io.vn/api/network/websocket-listener/
+- Trusted proxy options: https://ppn.io.vn/api/options/network/trusted-proxy-options/
