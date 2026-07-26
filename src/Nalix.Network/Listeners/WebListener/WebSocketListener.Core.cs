@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -34,7 +36,9 @@ public abstract partial class WebSocketListenerBase : TcpListenerBase
     // Intrusive linked list for WebSocket upgrade handshake timeout sweep
     private WebSocketUpgradeContext? _wsUpgradeHead;
     private WebSocketUpgradeContext? _wsUpgradeTail;
+
     private readonly Lock _wsUpgradeLock = new();
+    private readonly ConcurrentStack<SocketAsyncEventArgs> _wsReceiveArgsPool = new();
 
     #endregion Fields
 

@@ -93,11 +93,15 @@ public abstract partial class WebSocketListenerBase
             state.BytesReceived = 0;
         }
 
-        SocketAsyncEventArgs args = new()
+#pragma warning disable CA2000
+        if (!_wsReceiveArgsPool.TryPop(out SocketAsyncEventArgs? args))
         {
-            UserToken = state
-        };
-        args.Completed += this.OnWebSocketReadCompleted;
+            args = new SocketAsyncEventArgs();
+            args.Completed += this.OnWebSocketReadCompleted;
+        }
+#pragma warning restore CA2000
+
+        args.UserToken = state;
         args.SetBuffer(state.Buffer, initialOffset, state.Buffer.Length - initialOffset);
 
         lock (_wsUpgradeLock)
@@ -262,6 +266,13 @@ public abstract partial class WebSocketListenerBase
 
     private void DetachWsUpgradeContext(WebSocketUpgradeContext state)
     {
+        if (state.RemovedFromList)
+        {
+            return;
+        }
+
+        state.RemovedFromList = true;
+
         if (state.Prev != null)
         {
             state.Prev.Next = state.Next;
@@ -305,17 +316,12 @@ public abstract partial class WebSocketListenerBase
     {
         if (state.Buffer is { } buf)
         {
-            // Only return the buffer if we aren't passing it down to the connection
-            if (!success)
-            {
-                BufferLease.ByteArrayPool.Return(buf);
-            }
+            BufferLease.ByteArrayPool.Return(buf);
             state.Buffer = [];
         }
 
         args.UserToken = null;
-        args.Completed -= this.OnWebSocketReadCompleted;
-        args.Dispose();
+        _wsReceiveArgsPool.Push(args);
 
         if (!success && state.Socket != null)
         {
@@ -338,21 +344,23 @@ public abstract partial class WebSocketListenerBase
             {
                 WebSocketUpgradeContext? next = current.Next;
 
-                if (now - current.HandshakeStartTimeTicks > timeoutTicks)
+                if (now - current.HandshakeStartTimeTicks <= timeoutTicks)
                 {
-                    this.DetachWsUpgradeContext(current);
+                    break;
+                }
 
-                    if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
-                    {
-                        DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
-                            new DiagnosticLog("NW.WebSocketListenerBase:Sweep", $"ws-handshake-timeout remote-endpoint={current.Socket?.RemoteEndPoint}"));
-                    }
+                this.DetachWsUpgradeContext(current);
 
-                    // Force close the socket
-                    if (current.Socket != null)
-                    {
-                        SafeCloseSocket(current.Socket);
-                    }
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Trace))
+                {
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace,
+                        new DiagnosticLog("NW.WebSocketListenerBase:Sweep", $"ws-handshake-timeout remote-endpoint={current.Socket?.RemoteEndPoint}"));
+                }
+
+                // Force close the socket
+                if (current.Socket != null)
+                {
+                    SafeCloseSocket(current.Socket);
                 }
 
                 current = next;
