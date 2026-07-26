@@ -5,15 +5,18 @@ using System;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Net.WebSockets;
+using System.Text;
 using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Exceptions;
-using Nalix.Abstractions.Networking;
+using Nalix.Environment.Configuration;
 using Nalix.Environment.Memory;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Tcp;
 using Nalix.Network.Internal.WebSockets;
-
+using Nalix.Network.Options;
 #pragma warning disable IDE0079
 #pragma warning disable CA2213
 #pragma warning disable CA1031
@@ -23,8 +26,8 @@ namespace Nalix.Network.Listeners.Web;
 
 public abstract partial class WebSocketListenerBase
 {
-    // HTTP/1.1 101 Switching Protocols response
     private static readonly byte[] s_handshakeResponsePrefix = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: "u8.ToArray();
+    private static readonly byte[] s_handshakeSubProtocolPrefix = "\r\nSec-WebSocket-Protocol: "u8.ToArray();
     private static readonly byte[] s_handshakeResponseSuffix = "\r\n\r\n"u8.ToArray();
 
     [DebuggerStepThrough]
@@ -192,7 +195,7 @@ public abstract partial class WebSocketListenerBase
         }
 
         // Validate path
-        string requestPath = System.Text.Encoding.UTF8.GetString(result.Path);
+        string requestPath = Encoding.UTF8.GetString(result.Path);
         if (!requestPath.StartsWith(_path, StringComparison.OrdinalIgnoreCase))
         {
             this.Metrics.RECORD_ERROR();
@@ -214,13 +217,34 @@ public abstract partial class WebSocketListenerBase
         // Send 101 Switching Protocols response
         try
         {
-            // Allocate exact size for response
-            int responseLength = s_handshakeResponsePrefix.Length + acceptKeyLen + s_handshakeResponseSuffix.Length;
-            byte[] responseBuffer = BufferLease.ByteArrayPool.Rent(responseLength);
+            bool hasSubProtocol = !result.SubProtocol.IsEmpty;
+            int responseLength = s_handshakeResponsePrefix.Length + acceptKeyLen;
 
-            Buffer.BlockCopy(s_handshakeResponsePrefix, 0, responseBuffer, 0, s_handshakeResponsePrefix.Length);
-            acceptKey.CopyTo(new Span<byte>(responseBuffer, s_handshakeResponsePrefix.Length, acceptKeyLen));
-            Buffer.BlockCopy(s_handshakeResponseSuffix, 0, responseBuffer, s_handshakeResponsePrefix.Length + acceptKeyLen, s_handshakeResponseSuffix.Length);
+            if (hasSubProtocol)
+            {
+                responseLength += s_handshakeSubProtocolPrefix.Length + result.SubProtocol.Length;
+            }
+            responseLength += s_handshakeResponseSuffix.Length;
+
+            byte[] responseBuffer = BufferLease.ByteArrayPool.Rent(responseLength);
+            int offset = 0;
+
+            Buffer.BlockCopy(s_handshakeResponsePrefix, 0, responseBuffer, offset, s_handshakeResponsePrefix.Length);
+            offset += s_handshakeResponsePrefix.Length;
+
+            acceptKey.CopyTo(new Span<byte>(responseBuffer, offset, acceptKeyLen));
+            offset += acceptKeyLen;
+
+            if (hasSubProtocol)
+            {
+                Buffer.BlockCopy(s_handshakeSubProtocolPrefix, 0, responseBuffer, offset, s_handshakeSubProtocolPrefix.Length);
+                offset += s_handshakeSubProtocolPrefix.Length;
+
+                result.SubProtocol.CopyTo(new Span<byte>(responseBuffer, offset, result.SubProtocol.Length));
+                offset += result.SubProtocol.Length;
+            }
+
+            Buffer.BlockCopy(s_handshakeResponseSuffix, 0, responseBuffer, offset, s_handshakeResponseSuffix.Length);
 
             // Send sync for now since it's small and kernel buffer can take it immediately
             int sent = state.Socket!.Send(responseBuffer, 0, responseLength, SocketFlags.None);
@@ -233,24 +257,40 @@ public abstract partial class WebSocketListenerBase
                 return;
             }
 
-            // Create Connection
-            IConnection? connection = this.InitializeConnection(state.Socket!, state.RealEndPoint, result.BytesConsumed, state.Buffer, state.BytesReceived);
+            // Capture socket and endpoint before releasing state back to the pool
+            Socket socket = state.Socket!;
+            EndPoint realEndPoint = state.RealEndPoint ?? socket.RemoteEndPoint!;
 
-            if (connection != null)
+            // Create a NetworkStream and wrap it in a WebSocket
+            NetworkStream stream = new(socket, ownsSocket: false);
+
+            int idleTimeoutMs = ConfigurationManager.Instance.Get<TimingWheelOptions>().IdleTimeoutMs;
+
+            WebSocket webSocket = WebSocket.CreateFromStream(stream, new WebSocketCreationOptions
             {
-                // We've successfully upgraded the socket to WebSocket!
-                // NOTE: InitializeConnection will attach it to TcpListenerBase's receive pipeline.
-                // However, TcpListenerBase creates a `Connection` which reads raw TCP stream.
-                // WE NEED TO DECORATE THIS WITH A WEBSOCKET CONNECTION LAYER.
-                // We'll wrap the underlying connection in a WebSocketConnection so it decodes WS frames.
+                IsServer = true,
+                SubProtocol = hasSubProtocol ? Encoding.UTF8.GetString(result.SubProtocol) : null,
+                KeepAliveInterval = TimeSpan.FromMilliseconds(idleTimeoutMs > 0 ? idleTimeoutMs / 2.0 : 30000)
+            });
 
-                // Let's release the context, keep socket open
-                this.ReleaseWsUpgradeContext(state, args, success: true);
+            WebSocketConnection connection = new(webSocket, _protocol.OpCodeExtractor, realEndPoint);
 
-                // Dispatch
-                this.DISPATCH_CONNECTION(connection);
-                return;
+            connection.ConnectionClosed += this.HandleConnectionClose;
+            connection.ConnectionClosed += _limiter.OnConnectionClosed;
+            connection.MessageProcessed += _protocol.PostProcessMessage;
+            connection.MessageProcessing += _protocol.FrameProcessor.ProcessFrame;
+
+            if (base._config.EnableTimeout)
+            {
+                _timing.Register(connection);
             }
+
+            // Dispatch
+            this.DISPATCH_CONNECTION(connection);
+
+            // Successfully dispatched, release context (keeps socket open)
+            this.ReleaseWsUpgradeContext(state, args, success: true);
+            return;
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {

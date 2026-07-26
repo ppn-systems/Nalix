@@ -84,7 +84,7 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
         NetworkApplicationBuilder builder = CreateBuilder();
 
         // Default TCP binding with DefaultProtocol
-        IProtocolBindingBuilder tcpBuilder = builder.ListenTcp<DefaultProtocol>();
+        IProtocolBindingBuilder tcpBuilder = builder.MapTcp<DefaultProtocol>();
 
         if (port.HasValue)
         {

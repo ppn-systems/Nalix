@@ -8,6 +8,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
@@ -31,9 +32,10 @@ public abstract partial class WebSocketListenerBase : TcpListenerBase
     #region Fields
 
     private readonly string _path;
-    private readonly NetworkWebSocketOptions _config;
+    private new readonly NetworkWebSocketOptions _config;
 
     // Intrusive linked list for WebSocket upgrade handshake timeout sweep
+    private IRecurringHandle? _recurringHandle;
     private WebSocketUpgradeContext? _wsUpgradeHead;
     private WebSocketUpgradeContext? _wsUpgradeTail;
 
@@ -67,6 +69,23 @@ public abstract partial class WebSocketListenerBase : TcpListenerBase
     /// Initializes a new instance of the <see cref="WebSocketListenerBase"/> class using the configuration,
     /// and the specified protocol, buffer pool, and logger.
     /// </summary>
+    /// <param name="protocol">The WebSocket protocol implementation.</param>
+    /// <param name="hub">The connection hub to register active connections.</param>
+    /// <param name="guard">The connection guard to limit resources.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="protocol"/> is <c>null</c>.</exception>
+    [DebuggerStepThrough]
+    protected WebSocketListenerBase(IProtocol protocol, IConnectionHub hub, IConnectionGuard guard)
+        : base(protocol, hub, guard)
+    {
+        _config = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
+        _path = string.IsNullOrEmpty(_config.Path) ? "/ws/" : _config.Path;
+        _config.Validate();
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WebSocketListenerBase"/> class using the configuration,
+    /// and the specified protocol, buffer pool, and logger.
+    /// </summary>
     /// <param name="path">The HTTP path prefix to listen on.</param>
     /// <param name="protocol">The WebSocket protocol implementation.</param>
     /// <param name="hub">The connection hub to register active connections.</param>
@@ -87,9 +106,14 @@ public abstract partial class WebSocketListenerBase : TcpListenerBase
     {
         base.Activate(cancellationToken);
 
+        if (_recurringHandle != null && _recurringHandle.IsRunning)
+        {
+            return;
+        }
+
         // Start the WebSocket handshake timeout sweeper (fire and forget, as requested)
-        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
-            name: $"{TaskNaming.Tags.Tcp}.WebSocket.Sweep.{_config.Port}",
+        _recurringHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
+            name: $"{TaskNaming.Tags.WebSocket}.{TaskNaming.Tags.Service}.{_config.Port}",
             interval: TimeSpan.FromSeconds(1),
             work: _ => { this.SWEEP_WS_HANDSHAKE_TIMEOUTS(); return ValueTask.CompletedTask; }
         );
@@ -99,6 +123,13 @@ public abstract partial class WebSocketListenerBase : TcpListenerBase
     public override void Deactivate(CancellationToken cancellationToken = default)
     {
         base.Deactivate(cancellationToken);
+
+        if (_recurringHandle?.IsRunning == true)
+        {
+            _recurringHandle.Dispose();
+            _recurringHandle = null;
+        }
+
         this.CLEANUP_WS_UPGRADES();
     }
 

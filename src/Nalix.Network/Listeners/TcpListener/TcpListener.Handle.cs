@@ -487,10 +487,9 @@ public abstract partial class TcpListenerBase
                         connection = result.Connection;
                         this.DISPATCH_CONNECTION(connection!);
                     }
-                    else
+                    else if (result.Result != AcceptConnectionResult.Pending)
                     {
-                        this.RebindAcceptContext((PooledSocketAsyncEventArgs)args);
-                        return;
+                        _pool.Return(context);
                     }
                 }
 

@@ -29,17 +29,17 @@ public abstract partial class TcpListenerBase : IListener
 {
     #region Fields
 
-    private readonly ushort _port;
+    private protected readonly ushort _port;
 
-    private readonly SemaphoreSlim _lock;
-    private readonly IConnectionHub _hub;
-    private readonly IProtocol _protocol;
+    private protected readonly SemaphoreSlim _lock;
+    private protected readonly IConnectionHub _hub;
+    private protected readonly IProtocol _protocol;
 
-    private readonly NetworkSocketOptions _config;
-    private readonly ProxyProtocolOptions _proxyConfig;
-    private readonly TimingWheel _timing;
-    private readonly ObjectPoolManager _pool;
-    private readonly IConnectionGuard _limiter;
+    private protected readonly NetworkSocketOptions _config;
+    private protected readonly ProxyProtocolOptions _proxyConfig;
+    private protected readonly TimingWheel _timing;
+    private protected readonly ObjectPoolManager _pool;
+    private protected readonly IConnectionGuard _limiter;
 
     private int _state;
     private int _isDisposed;
