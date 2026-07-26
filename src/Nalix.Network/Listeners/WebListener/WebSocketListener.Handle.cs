@@ -273,23 +273,31 @@ public abstract partial class WebSocketListenerBase
                 KeepAliveInterval = TimeSpan.FromMilliseconds(idleTimeoutMs > 0 ? idleTimeoutMs / 2.0 : 30000)
             });
 
-            WebSocketConnection connection = new(webSocket, _protocol.OpCodeExtractor, realEndPoint);
-
-            connection.ConnectionClosed += this.HandleConnectionClose;
-            connection.ConnectionClosed += _limiter.OnConnectionClosed;
-            connection.MessageProcessed += _protocol.PostProcessMessage;
-            connection.MessageProcessing += _protocol.FrameProcessor.ProcessFrame;
-
-            if (base._config.EnableTimeout)
+            WebSocketConnection? connection = new(webSocket, _protocol.OpCodeExtractor, realEndPoint);
+            try
             {
-                _timing.Register(connection);
+                connection.ConnectionClosed += this.HandleConnectionClose;
+                connection.ConnectionClosed += _limiter.OnConnectionClosed;
+                connection.MessageProcessed += _protocol.PostProcessMessage;
+                connection.MessageProcessing += _protocol.FrameProcessor.ProcessFrame;
+
+                if (base._config.EnableTimeout)
+                {
+                    _timing.Register(connection);
+                }
+
+                // Dispatch
+                this.DISPATCH_CONNECTION(connection);
+                connection = null;
+
+                // Successfully dispatched, release context (keeps socket open)
+                this.ReleaseWsUpgradeContext(state, args, success: true);
+            }
+            finally
+            {
+                connection?.Dispose();
             }
 
-            // Dispatch
-            this.DISPATCH_CONNECTION(connection);
-
-            // Successfully dispatched, release context (keeps socket open)
-            this.ReleaseWsUpgradeContext(state, args, success: true);
             return;
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))

@@ -15,9 +15,10 @@ using Nalix.Network.Internal.Transport;
 
 namespace Nalix.Network.Internal.Connections;
 
-internal sealed class ConnectionBacking : IPoolable
+internal sealed class ConnectionBacking : IPoolStateTracked
 {
     private static readonly ObjectPoolManager s_pool = ObjectPoolManager.Shared;
+    private int _poolState;
 
     public readonly Lock Lock = new();
 
@@ -48,6 +49,8 @@ internal sealed class ConnectionBacking : IPoolable
     public EventHandler<IConnectionEventArgs>? ConnectionClosed;
     public EventHandler<IConnectionEventArgs>? MessageProcessed;
     public EventHandler<IConnectionEventArgs>? MessageProcessing;
+
+    public ref int PoolState => ref _poolState;
 
     public ConnectionBacking()
     {

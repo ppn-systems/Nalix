@@ -173,16 +173,23 @@ internal sealed record PacketNamespaceDescriptor(
 /// <summary>
 /// Describes a packet handler and its creation strategy.
 /// </summary>
-/// <param name="HandlerType">
+/// <param name="handlerType">
 /// The concrete handler type.
 /// </param>
-/// <param name="Factory">
+/// <param name="factory">
 /// A factory delegate used to create handler instances.
 /// </param>
-internal sealed record HandlerDescriptor(
+internal sealed class HandlerDescriptor(
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] Type HandlerType,
-    Func<object> Factory);
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)] Type handlerType,
+    Func<object> factory)
+{
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicMethods)]
+    public Type HandlerType { get; } = handlerType;
+
+    public Func<object> Factory { get; } = factory;
+}
 
 
 

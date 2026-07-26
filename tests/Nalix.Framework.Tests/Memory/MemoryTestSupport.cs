@@ -17,9 +17,13 @@ internal static class MemoryTestSupport
     }
 }
 
-internal sealed class TestPoolable : IPoolable
+internal sealed class TestPoolable : IPoolStateTracked
 {
+    private int _poolState;
+
     public int Value { get; set; }
+
+    public ref int PoolState => ref _poolState;
 
     public void ResetForPool() => this.Value = 0;
 }
@@ -37,7 +41,6 @@ internal sealed class GenericPoolable<T> : IPoolable
     {
     }
 }
-
 
 
 

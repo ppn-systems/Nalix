@@ -30,6 +30,23 @@ public sealed partial class MemoryTests
     }
 
     [Fact]
+    public void Return_ObjectPoolRejectsTrackedDoubleReturn()
+    {
+        ObjectPool pool = new(defaultMaxItemsPerType: 8);
+
+        TestPoolable instance = pool.Get<TestPoolable>();
+        pool.Return(instance);
+        pool.Return(instance);
+
+        TestPoolable first = pool.Get<TestPoolable>();
+        TestPoolable second = pool.Get<TestPoolable>();
+
+        Assert.Same(instance, first);
+        Assert.NotSame(first, second);
+        Assert.Equal(1, pool.TotalRejectedReturnCount);
+    }
+
+    [Fact]
     public void SetMaxCapacity_ObjectPoolUsesBatchApis_ReturnsExpectedResults()
     {
         ObjectPool pool = new(defaultMaxItemsPerType: 4);
@@ -168,7 +185,6 @@ public sealed partial class MemoryTests
         Assert.Equal("count", exception.ParamName);
     }
 }
-
 
 
 

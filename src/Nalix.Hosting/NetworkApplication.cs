@@ -97,7 +97,10 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
         // Handlers are discovered via source-generated PacketHandlerRegistry
         // or registered explicitly via MapHandlers<T>().
 
-        return builder.Build();
+#pragma warning disable NALIX044 // CreateMinimal binds the default TCP protocol through MapTcp<T>().Bind() above.
+        NetworkApplication application = builder.Build();
+#pragma warning restore NALIX044
+        return application;
     }
 
     /// <summary>

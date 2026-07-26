@@ -52,6 +52,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth 
     private long _totalReturned;
     private long _totalRented;
     private long _totalDropped;
+    private long _totalRejectedReturns;
     private readonly System.Diagnostics.Stopwatch _uptime = System.Diagnostics.Stopwatch.StartNew();
 
     /// <summary>
@@ -122,6 +123,11 @@ public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth 
     public long TotalDroppedCount => Interlocked.Read(ref _totalDropped);
 
     /// <summary>
+    /// Gets the total number of duplicate returns rejected by pool state tracking.
+    /// </summary>
+    public long TotalRejectedReturnCount => Interlocked.Read(ref _totalRejectedReturns);
+
+    /// <summary>
     /// Gets the pool uptime in milliseconds.
     /// </summary>
     public long UptimeMs => _uptime.ElapsedMilliseconds;
@@ -151,6 +157,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth 
             T? localObj = ThreadLocalCache<T>.TryPop(this);
             if (localObj != null)
             {
+                MarkRented(localObj);
                 _ = Interlocked.Increment(ref _totalRented);
                 return (localObj, true);
             }
@@ -167,12 +174,14 @@ public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth 
         // Rent from the bucket when possible; otherwise create a fresh instance.
         if (typePool.TryPop(out IPoolable? obj) && obj != null)
         {
+            MarkRented(obj);
             _ = Interlocked.Increment(ref _totalRented);
             return ((T)obj, true);
         }
 
         // Pool miss: create a new instance and account for it as a fresh allocation.
         T newObj = new();
+        MarkRented(newObj);
 
         _ = Interlocked.Increment(ref _totalCreated);
         _ = Interlocked.Increment(ref _totalRented);
@@ -183,6 +192,12 @@ public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth 
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     internal bool ReturnFast<T>(T obj, int id) where T : IPoolable
     {
+        if (!TryMarkReturned(obj))
+        {
+            _ = Interlocked.Increment(ref _totalRejectedReturns);
+            return false;
+        }
+
         obj.ResetForPool();
 
         TypePool? typePool = id < _typePoolsArray.Length ? _typePoolsArray[id] : null;
@@ -307,6 +322,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth 
         {
             // Preallocation stops as soon as the bucket reports that it is full.
             T obj = new();
+            _ = TryMarkReturned(obj);
             if (typePool.TryPush(obj))
             {
                 created++;
@@ -381,6 +397,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth 
             ["TotalRentedCount"] = this.TotalRentedCount,
             ["TotalReturnedCount"] = this.TotalReturnedCount,
             ["TotalDroppedCount"] = this.TotalDroppedCount,
+            ["TotalRejectedReturnCount"] = this.TotalRejectedReturnCount,
             ["ActiveRentals"] = this.TotalRentedCount - this.TotalReturnedCount,
             ["UptimeMs"] = this.UptimeMs,
             ["DefaultMaxItemsPerType"] = _defaultMaxItemsPerType
@@ -465,6 +482,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth 
         _ = Interlocked.Exchange(ref _totalRented, 0);
         _ = Interlocked.Exchange(ref _totalReturned, 0);
         _ = Interlocked.Exchange(ref _totalDropped, 0);
+        _ = Interlocked.Exchange(ref _totalRejectedReturns, 0);
         _uptime.Restart();
 
     }
@@ -509,6 +527,12 @@ public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth 
         {
             if (EqualityComparer<T>.Default.Equals(obj, default))
             {
+                continue;
+            }
+
+            if (!TryMarkReturned(obj))
+            {
+                _ = Interlocked.Increment(ref _totalRejectedReturns);
                 continue;
             }
 
@@ -589,6 +613,28 @@ public sealed class ObjectPool(int defaultMaxItemsPerType, int threadCacheDepth 
             ["MaxCapacity"] = maxCapacity,
             ["IsActive"] = isActive
         };
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static void MarkRented<T>(T obj) where T : IPoolable
+    {
+        if (obj is IPoolStateTracked tracked)
+        {
+            Volatile.Write(ref tracked.PoolState, 0);
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private static bool TryMarkReturned<T>(T obj) where T : IPoolable
+    {
+        if (obj is not IPoolStateTracked tracked)
+        {
+            return true;
+        }
+
+        return Interlocked.CompareExchange(ref tracked.PoolState, 1, 0) == 0;
     }
 
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]

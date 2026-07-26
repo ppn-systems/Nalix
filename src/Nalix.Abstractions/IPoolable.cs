@@ -24,6 +24,20 @@ public interface IPoolable
 }
 
 /// <summary>
+/// Defines an optional pool ownership marker used to reject duplicate returns.
+/// </summary>
+/// <remarks>
+/// <c>0</c> means the object is rented by a caller; <c>1</c> means the object is already stored in a pool.
+/// </remarks>
+public interface IPoolStateTracked : IPoolable
+{
+    /// <summary>
+    /// Gets a reference to the mutable pool state field.
+    /// </summary>
+    ref int PoolState { get; }
+}
+
+/// <summary>
 /// Defines a contract for objects that need to be notified when they are rented from a pool.
 /// </summary>
 public interface IPoolRentable : IPoolable
