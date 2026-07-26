@@ -83,9 +83,19 @@ public sealed partial class NetworkWebSocketOptions : ConfigurationLoader, IVali
     public int DispatchProcessorAffinity { get; set; } = -1;
 
     /// <summary>
-    /// Number of concurrent accept workers to spawn for handling new WebSocket connections.
+    /// Gets or sets the protocol-level keep-alive ping interval in seconds for WebSocket connections.
+    /// Default is 30 seconds.
     /// </summary>
-    [IniComment("Number of concurrent accept workers (default 1)")]
+    [IniComment("WebSocket protocol-level keep-alive ping interval in seconds (default 30)")]
+    [ValueRange(0, 3600)]
+    public int KeepAliveIntervalSeconds { get; set; } = 30;
+
+    /// <summary>
+    /// Gets or sets the number of concurrent accept workers to spawn for handling new WebSocket connections.
+    /// Default is 1 by design to prevent thread over-subscription when multiple listeners (TCP, UDP, WebSocket)
+    /// run concurrently. Tune to higher values for high-burst WebSocket accept workloads.
+    /// </summary>
+    [IniComment("Number of concurrent accept workers (default 1; tune higher for high-concurrency accept workloads)")]
     [ValueRange(1, 1024)]
     public int MaxParallel { get; set; } = 1;
 

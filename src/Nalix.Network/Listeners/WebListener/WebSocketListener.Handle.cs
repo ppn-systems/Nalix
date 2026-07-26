@@ -112,6 +112,8 @@ public abstract partial class WebSocketListenerBase
             return;
         }
 
+        int backoffMs = 50;
+
         while (!cancellationToken.IsCancellationRequested && _listener.IsListening)
         {
             ctx.Beat();
@@ -128,11 +130,7 @@ public abstract partial class WebSocketListenerBase
                     {
                         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
                         {
-                            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
-                            {
-                                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.WebSocketListenerBase:AcceptConnectionsAsync", $"untrusted-proxy-rejected remote-endpoint={remoteEp}"));
-                            }
-                            ;
+                            DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.WebSocketListenerBase:AcceptConnectionsAsync", $"untrusted-proxy-rejected remote-endpoint={remoteEp}"));
                         }
 
                         this.Metrics.RECORD_LIMITER_REJECTION();
@@ -170,7 +168,11 @@ public abstract partial class WebSocketListenerBase
                     HttpListenerWebSocketContext wsContext;
                     try
                     {
-                        wsContext = await context.AcceptWebSocketAsync(_config.SubProtocol).ConfigureAwait(false);
+                        TimeSpan keepAlive = _config.KeepAliveIntervalSeconds > 0
+                            ? TimeSpan.FromSeconds(_config.KeepAliveIntervalSeconds)
+                            : WebSocket.DefaultKeepAliveInterval;
+
+                        wsContext = await context.AcceptWebSocketAsync(_config.SubProtocol, keepAlive).ConfigureAwait(false);
                     }
 #pragma warning disable CA1031
                     catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -237,6 +239,8 @@ public abstract partial class WebSocketListenerBase
                     context.Response.StatusCode = 400;
                     context.Response.Close();
                 }
+
+                backoffMs = 50;
                 ctx.Advance(1, note: "accepted");
             }
             catch (OperationCanceledException) { break; }
@@ -244,7 +248,13 @@ public abstract partial class WebSocketListenerBase
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 this.Metrics.RECORD_ERROR();
-                await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Error))
+                {
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Error, new DiagnosticLog("NW.WebSocketListenerBase:AcceptConnectionsAsync", "accept-loop-error", ex));
+                }
+
+                backoffMs = Math.Min(backoffMs * 2, 1000);
+                await Task.Delay(backoffMs + Random.Shared.Next(50), cancellationToken).ConfigureAwait(false);
             }
         }
     }
