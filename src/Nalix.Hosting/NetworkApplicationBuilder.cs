@@ -529,16 +529,19 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     #region Obsolete APIs
 
     /// <inheritdoc />
+    [Obsolete("Use MapTcp<TProtocol>() instead. This method will be removed in a future version.")]
     public IProtocolBindingBuilder ListenTcp<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol => this.MapTcp<TProtocol>();
 
     /// <inheritdoc />
+    [Obsolete("Use MapUdp<TProtocol>() instead. This method will be removed in a future version.")]
     public IProtocolBindingBuilder ListenUdp<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol => this.MapUdp<TProtocol>();
 
     /// <inheritdoc />
+    [Obsolete("Use MapWebSocket<TProtocol>() instead. This method will be removed in a future version.")]
     public IWebSocketBindingBuilder ListenWebSocket<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol => this.MapWebSocket<TProtocol>();
