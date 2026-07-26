@@ -2,9 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
+using Nalix.Environment.Time;
 using Nalix.Framework.Identifiers;
 using Xunit;
 
@@ -202,7 +204,7 @@ public class IdentifierTests
     }
 
     [Fact]
-    public void NewIdExceedingSequenceCapacityBlocksUntilNextSecondAndProducesUniqueIds()
+    public void NewIdExceedingSequenceCapacityProducesUniqueIds()
     {
         int count = 16384 + 5;
         HashSet<ulong> ids = new(count);
@@ -212,6 +214,65 @@ public class IdentifierTests
             Snowflake id = Snowflake.NewId(SnowflakeType.System);
             Assert.True(ids.Add(id.ToUInt64()), $"Duplicate ID generated at index {i}: {id}");
         }
+    }
+
+    [Fact]
+    public void NewIdWhenClockMovesBackwardKeepsLogicalTimestamp()
+    {
+        (FieldInfo lastTimestampField, FieldInfo sequenceField) = GetSnowflakeGeneratorFields();
+        uint oldLastTimestamp = (uint)lastTimestampField.GetValue(null)!;
+        int oldSequence = (int)sequenceField.GetValue(null)!;
+        uint futureTimestamp = Clock.UnixSecondsNowUInt32() + 60;
+
+        try
+        {
+            lastTimestampField.SetValue(null, futureTimestamp);
+            sequenceField.SetValue(null, 0);
+
+            Snowflake id = Snowflake.NewId(SnowflakeType.System, machineId: 1);
+
+            Assert.Equal(futureTimestamp, id.Value);
+            Assert.Equal(1, id.Sequence);
+        }
+        finally
+        {
+            lastTimestampField.SetValue(null, oldLastTimestamp);
+            sequenceField.SetValue(null, oldSequence);
+        }
+    }
+
+    [Fact]
+    public void NewIdWhenSequenceCapacityIsExceededAdvancesLogicalTimestamp()
+    {
+        (FieldInfo lastTimestampField, FieldInfo sequenceField) = GetSnowflakeGeneratorFields();
+        uint oldLastTimestamp = (uint)lastTimestampField.GetValue(null)!;
+        int oldSequence = (int)sequenceField.GetValue(null)!;
+        uint timestamp = Clock.UnixSecondsNowUInt32();
+
+        try
+        {
+            lastTimestampField.SetValue(null, timestamp);
+            sequenceField.SetValue(null, 0x3FFF);
+
+            Snowflake id = Snowflake.NewId(SnowflakeType.System, machineId: 1);
+
+            Assert.Equal(timestamp + 1, id.Value);
+            Assert.Equal(0, id.Sequence);
+        }
+        finally
+        {
+            lastTimestampField.SetValue(null, oldLastTimestamp);
+            sequenceField.SetValue(null, oldSequence);
+        }
+    }
+
+    private static (FieldInfo LastTimestamp, FieldInfo Sequence) GetSnowflakeGeneratorFields()
+    {
+        const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Static;
+        return (
+            typeof(Snowflake).GetField("s_lastTimestamp", flags)!,
+            typeof(Snowflake).GetField("s_sequence", flags)!
+        );
     }
 
     private sealed class StubSnowflake : ISnowflake
@@ -230,8 +291,6 @@ public class IdentifierTests
         }
     }
 }
-
-
 
 
 

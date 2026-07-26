@@ -230,18 +230,18 @@ public readonly partial struct Snowflake : ISnowflake
         lock (s_genLock)
         {
             uint now = Clock.UnixSecondsNowUInt32();
+            if (now < s_lastTimestamp)
+            {
+                now = s_lastTimestamp;
+            }
+
             if (now == s_lastTimestamp)
             {
                 s_sequence++;
 
                 if (s_sequence > 0x3FFF)
                 {
-                    SpinWait spinWait = new();
-                    while (now == s_lastTimestamp)
-                    {
-                        spinWait.SpinOnce();
-                        now = Clock.UnixSecondsNowUInt32();
-                    }
+                    now = s_lastTimestamp + 1;
                     s_lastTimestamp = now;
                     s_sequence = 0;
                 }
@@ -349,4 +349,3 @@ public readonly partial struct Snowflake : ISnowflake
 
     #endregion Private Methods
 }
-
