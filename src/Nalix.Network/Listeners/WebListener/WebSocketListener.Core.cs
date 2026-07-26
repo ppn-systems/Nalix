@@ -33,6 +33,7 @@ public abstract partial class WebSocketListenerBase : TcpListenerBase
 
     private readonly string _path;
     private new readonly NetworkWebSocketOptions _config;
+    private readonly ForwardedHeadersOptions _forwardedConfig;
 
     // Intrusive linked list for WebSocket upgrade handshake timeout sweep
     private IRecurringHandle? _recurringHandle;
@@ -62,6 +63,7 @@ public abstract partial class WebSocketListenerBase : TcpListenerBase
     {
         _path = string.IsNullOrEmpty(path) ? "/ws/" : path;
         _config = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
+        _forwardedConfig = ConfigurationManager.Instance.Get<ForwardedHeadersOptions>();
         _config.Validate();
     }
 
@@ -78,6 +80,7 @@ public abstract partial class WebSocketListenerBase : TcpListenerBase
         : base(protocol, hub, guard)
     {
         _config = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
+        _forwardedConfig = ConfigurationManager.Instance.Get<ForwardedHeadersOptions>();
         _path = string.IsNullOrEmpty(_config.Path) ? "/ws/" : _config.Path;
         _config.Validate();
     }
