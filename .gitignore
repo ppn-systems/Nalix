@@ -75,3 +75,6 @@ research/
 /package-lock.json
 /.mcp.json
 /node_modules
+/.playwright-mcp
+/WsTest
+/scratch.cs

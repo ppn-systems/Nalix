@@ -127,7 +127,7 @@ public abstract partial class TcpListenerBase
     /// <c>DISPATCH_CONNECTION(connection);</c>
     /// </summary>
     /// <param name="connection"></param>
-    private void DISPATCH_CONNECTION(IConnection connection)
+    protected internal void DISPATCH_CONNECTION(IConnection connection)
     {
         System.Threading.Channels.Channel<IConnection>? processChannel = _processChannel;
         if (processChannel is null)

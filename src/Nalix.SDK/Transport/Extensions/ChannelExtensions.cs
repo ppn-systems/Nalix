@@ -56,7 +56,7 @@ public static class ChannelExtensions
         IDisposable msgSub = client.On<TEvent>(packet =>
         {
             _ = channel.Writer.TryWrite(packet);
-        });
+        }, disposeAfter: false);
 #pragma warning restore CA2000
 
         void OnDisconnected(object? sender, Exception ex)

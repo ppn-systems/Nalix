@@ -23,12 +23,12 @@ public abstract partial class TcpListenerBase
     private void ConfigureListenerSocket(Socket listener)
     {
         listener.Blocking = true;
-        listener.ExclusiveAddressUse = !_config.ReuseAddress;
+        listener.ExclusiveAddressUse = OperatingSystem.IsWindows() || !_config.ReuseAddress;
         listener.LingerState = new LingerOption(false, 0);
 
         // ReuseAddress MUST be set BEFORE Bind.
         // WHY: Allows binding the port again immediately after the server restart (avoid "Address already in use").
-        listener.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, _config.ReuseAddress ? 1 : 0);
+        listener.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, _config.ReuseAddress && !OperatingSystem.IsWindows() ? 1 : 0);
 
         // Buffer sizes: set on listener socket so that they are inherited by accepted sockets on Windows and Linux.
         // WHY: Setting Send/Receive buffer sizes on the listening socket propagates the defaults to all accepted sockets,
@@ -76,10 +76,6 @@ public abstract partial class TcpListenerBase
                 if (OperatingSystem.IsLinux())
                 {
                     listener.SetSocketOption(SocketOptionLevel.Socket, ReusePortOption, 1);
-                }
-                else if (OperatingSystem.IsWindows())
-                {
-                    listener.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseUnicastPort, 1);
                 }
             }
             catch (SocketException ex) when (ex.SocketErrorCode is SocketError.OperationNotSupported or SocketError.ProtocolNotSupported)

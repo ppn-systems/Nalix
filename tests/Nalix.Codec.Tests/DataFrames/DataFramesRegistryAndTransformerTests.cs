@@ -119,14 +119,14 @@ public sealed partial class DataFramesPublicApiTests
         byte[] packetBytes = CreatePacketBytes("abc");
         byte[] key = useEmptyKey ? [] : [.. Enumerable.Repeat((byte)7, 32)];
         using BufferLease source = useShortSource
-            ? BufferLease.Rent(FrameTransformer.Offset)
+            ? BufferLease.Rent(FrameTransformer.Offset - 1)
             : BufferLease.CopyFrom(packetBytes);
         using BufferLease destination = BufferLease.Rent(
             FrameTransformer.Offset + FrameTransformer.GetMaxCiphertextSize(CipherSuiteType.Chacha20, Math.Max(1, packetBytes.Length - FrameTransformer.Offset)));
 
         if (useShortSource)
         {
-            source.CommitLength(FrameTransformer.Offset);
+            source.CommitLength(FrameTransformer.Offset - 1);
         }
 
         if (useEmptyKey)
@@ -182,7 +182,6 @@ public sealed partial class DataFramesPublicApiTests
         _ = Assert.ThrowsAny<CipherException>(() => FrameCipher.DecryptFrame(source, key, CipherSuiteType.Chacha20, out _));
     }
 }
-
 
 
 

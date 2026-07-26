@@ -230,7 +230,8 @@ public sealed class TokenBucketLimiterTests
             SoftViolationWindowSeconds = 5,
             MaxSoftViolations = 5,
             MaxTrackedEndpoints = 1000,
-            InitialTokens = -1 // Full bucket
+            InitialTokens = -1, // Full bucket
+            AdaptiveThrottlingEnabled = false
         };
     }
 
@@ -321,4 +322,3 @@ public sealed class TokenBucketLimiterTests
         public void WriteReportData(System.Text.Json.Utf8JsonWriter writer) {}
     }
 }
-

@@ -148,7 +148,7 @@ public abstract partial class TcpListenerBase
     /// </para>
     /// </remarks>
     [DebuggerStepThrough]
-    private IConnection? InitializeConnection(Socket socket, PooledAcceptContext context)
+    internal virtual IConnection? InitializeConnection(Socket socket, PooledAcceptContext context)
     {
         Connection? connection = null;
         bool eventsHooked = false;
@@ -236,9 +236,25 @@ public abstract partial class TcpListenerBase
         }
     }
 
+    /// <summary>
+    /// Processes a socket that has completed Proxy Protocol parsing.
+    /// Can be overridden to delay connection creation (e.g. for WebSocket handshakes).
+    /// </summary>
+    [DebuggerStepThrough]
+    internal virtual AcceptResult ProcessProxyAcceptedSocket(Socket socket, EndPoint? realEndPoint, int headerBytesConsumed, byte[]? receiveBuffer, int bytesReceived)
+    {
+        IConnection? connection = this.InitializeConnection(socket, realEndPoint, headerBytesConsumed, receiveBuffer, bytesReceived);
+        if (connection == null)
+        {
+            return new AcceptResult(AcceptConnectionResult.Failed, null);
+        }
+
+        return new AcceptResult(AcceptConnectionResult.Accepted, connection);
+    }
+
     /// <inheritdoc/>
     [DebuggerStepThrough]
-    private IConnection? InitializeConnection(Socket socket, EndPoint? realEndPoint, int headerBytesConsumed, byte[]? receiveBuffer, int bytesReceived)
+    internal virtual IConnection? InitializeConnection(Socket socket, EndPoint? realEndPoint, int headerBytesConsumed, byte[]? receiveBuffer, int bytesReceived)
     {
         bool eventsHooked = false;
         Connection? connection = null;
@@ -318,8 +334,8 @@ public abstract partial class TcpListenerBase
     /// </remarks>
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    private static void SafeCloseSocket(Socket socket)
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveInlining)]
+    protected internal static void SafeCloseSocket(Socket socket)
     {
         try
         {
@@ -471,10 +487,9 @@ public abstract partial class TcpListenerBase
                         connection = result.Connection;
                         this.DISPATCH_CONNECTION(connection!);
                     }
-                    else
+                    else if (result.Result != AcceptConnectionResult.Pending)
                     {
-                        this.RebindAcceptContext((PooledSocketAsyncEventArgs)args);
-                        return;
+                        _pool.Return(context);
                     }
                 }
 
@@ -829,9 +844,9 @@ public abstract partial class TcpListenerBase
                     // Transient accept failures. We shouldn't sleep 50ms on expected accept pressure.
                     // No delay is needed for transient / expected pressure failures.
                     break;
-
-                case AcceptConnectionResult.ListenerClosed:
+                case AcceptConnectionResult.Pending:
                 case AcceptConnectionResult.SocketAborted:
+                case AcceptConnectionResult.ListenerClosed:
                 default:
                     // Stop accepting, break loop.
                     break;
@@ -983,25 +998,22 @@ public abstract partial class TcpListenerBase
                 return new AcceptResult(AcceptConnectionResult.Accepted, null);
             }
 
-            if (socket.RemoteEndPoint is not IPEndPoint ip || !_limiter.TryAccept(ip))
+            AcceptResult result = this.ProcessAcceptedSocket(socket, context);
+            if (result.Result == AcceptConnectionResult.Accepted)
             {
-                this.Metrics.RECORD_LIMITER_REJECTION();
-                SafeCloseSocket(socket);
-                return new AcceptResult(AcceptConnectionResult.RejectedByLimiter, null);
+                contextOwned = false;
+            }
+            else if (result.Result == AcceptConnectionResult.Pending)
+            {
+                contextOwned = false;
             }
 
-            // Transfer ownership: InitializeConnection will return the inner context.
-            // Set contextOwned = false BEFORE calling so that if InitializeConnection throws an error, it will not double-return.
-            // // After returning the context, it will not double-return.
-            contextOwned = false;
-#pragma warning disable CA2000
-            IConnection? connection = this.InitializeConnection(socket, context);
-#pragma warning restore CA2000
-            if (connection is null)
+            if (result.Result == AcceptConnectionResult.Failed)
             {
                 return new AcceptResult(AcceptConnectionResult.Failed, null);
             }
-            return new AcceptResult(AcceptConnectionResult.Accepted, connection);
+
+            return result;
         }
         catch (OperationCanceledException)
         {
@@ -1070,7 +1082,7 @@ public abstract partial class TcpListenerBase
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private AcceptResult ProcessAcceptedSocket(Socket socket, PooledAcceptContext context)
+    internal virtual AcceptResult ProcessAcceptedSocket(Socket socket, PooledAcceptContext context)
     {
         // Validate and limit checks occur BEFORE ownership transfer.
         // If a throw occurs here (invalid socket, limiter reject), contextOwned remains true.

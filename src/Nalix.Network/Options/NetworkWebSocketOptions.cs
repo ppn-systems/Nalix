@@ -53,6 +53,22 @@ public sealed partial class NetworkWebSocketOptions : ConfigurationLoader, IVali
     public bool EnableTimeout { get; set; } = true;
 
     /// <summary>
+    /// Maximum time in milliseconds to wait for the HTTP upgrade handshake to complete
+    /// before closing the socket. Prevents slowloris-style attacks.
+    /// </summary>
+    [IniComment("Maximum handshake wait time in ms (default 5000)")]
+    [ValueRange(500, 30000)]
+    public int HandshakeTimeoutMs { get; set; } = 5000;
+
+    /// <summary>
+    /// Maximum size in bytes for the HTTP upgrade request headers.
+    /// Requests exceeding this limit are rejected immediately.
+    /// </summary>
+    [IniComment("Maximum HTTP upgrade request size in bytes (default 8192)")]
+    [ValueRange(1024, 65536)]
+    public int MaxUpgradeRequestSize { get; set; } = 8192;
+
+    /// <summary>
     /// Gets or sets the maximum time in milliseconds to wait for the process channel to drain
     /// gracefully during shutdown before forceful termination.
     /// </summary>
@@ -83,9 +99,19 @@ public sealed partial class NetworkWebSocketOptions : ConfigurationLoader, IVali
     public int DispatchProcessorAffinity { get; set; } = -1;
 
     /// <summary>
-    /// Number of concurrent accept workers to spawn for handling new WebSocket connections.
+    /// Gets or sets the protocol-level keep-alive ping interval in seconds for WebSocket connections.
+    /// Default is 30 seconds.
     /// </summary>
-    [IniComment("Number of concurrent accept workers (default 1)")]
+    [IniComment("WebSocket protocol-level keep-alive ping interval in seconds (default 30)")]
+    [ValueRange(0, 3600)]
+    public int KeepAliveIntervalSeconds { get; set; } = 30;
+
+    /// <summary>
+    /// Gets or sets the number of concurrent accept workers to spawn for handling new WebSocket connections.
+    /// Default is 1 by design to prevent thread over-subscription when multiple listeners (TCP, UDP, WebSocket)
+    /// run concurrently. Tune to higher values for high-burst WebSocket accept workloads.
+    /// </summary>
+    [IniComment("Number of concurrent accept workers (default 1; tune higher for high-concurrency accept workloads)")]
     [ValueRange(1, 1024)]
     public int MaxParallel { get; set; } = 1;
 

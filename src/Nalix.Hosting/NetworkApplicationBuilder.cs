@@ -175,6 +175,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         if (manager is ObjectPoolManager concrete)
         {
             InstanceManager.Instance.Register<ObjectPoolManager>(concrete);
+            ObjectPoolManager.Configure(concrete);
         }
 
         return this;
@@ -190,9 +191,11 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         where THandler : class
     {
 #pragma warning disable CA2263 // Factory is Func<object>; generic overload not applicable
-        _state.Handlers.Add(new HandlerDescriptor(
-            typeof(THandler),
-            () => InstanceManager.Instance.CreateInstanceWithInjection(typeof(THandler))));
+        Type handlerType = typeof(THandler);
+        object factory() => InstanceManager.Instance.CreateInstanceWithInjection(handlerType);
+
+        this.ValidateHandlerRegistration(handlerType, factory);
+        _state.Handlers.Add(new HandlerDescriptor(handlerType, factory));
 #pragma warning restore CA2263
 
         return this;
@@ -204,10 +207,11 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     {
         ArgumentNullException.ThrowIfNull(factory);
 
-        _state.Handlers.Add(new HandlerDescriptor(
-            typeof(THandler),
-            () => factory()));
+        Type handlerType = typeof(THandler);
+        object objectFactory() => factory();
 
+        this.ValidateHandlerRegistration(handlerType, objectFactory);
+        _state.Handlers.Add(new HandlerDescriptor(handlerType, objectFactory));
         return this;
     }
 
@@ -217,16 +221,15 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     {
         ArgumentNullException.ThrowIfNull(controllerType);
 
-        _state.Handlers.Add(new HandlerDescriptor(
-            controllerType,
-            () => InstanceManager.Instance.CreateInstanceWithInjection(controllerType)));
+        object factory() => InstanceManager.Instance.CreateInstanceWithInjection(controllerType);
 
+        this.ValidateHandlerRegistration(controllerType, factory);
+        _state.Handlers.Add(new HandlerDescriptor(controllerType, factory));
         return this;
     }
 
     /// <inheritdoc />
-    /// <inheritdoc />
-    public IProtocolBindingBuilder ListenTcp<
+    public IProtocolBindingBuilder MapTcp<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol
     {
@@ -244,7 +247,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public IProtocolBindingBuilder ListenUdp<
+    public IProtocolBindingBuilder MapUdp<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol
     {
@@ -263,7 +266,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public IWebSocketBindingBuilder ListenWebSocket<
+    public IWebSocketBindingBuilder MapWebSocket<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
         where TProtocol : class, IProtocol
     {
@@ -517,6 +520,26 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     // or discovered at compile time via source-generated PacketHandlerRegistry.
     private static IEnumerable<HandlerDescriptor> ResolveHandlerRegistrations(HostingBuilderContext state) => state.Handlers;
 
+    private void ValidateHandlerRegistration([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type handlerType, Func<object> factory)
+    {
+        ServiceRegistrar.RegisterObjectPoolManager(_state);
+
+        PacketDispatchOptions<IPacket> validationOptions = new();
+
+        for (int i = 0; i < _state.Handlers.Count; i++)
+        {
+            HandlerDescriptor existing = _state.Handlers[i];
+            if (existing.HandlerType == handlerType)
+            {
+                continue;
+            }
+
+            ServiceRegistrar.RegisterHandler(validationOptions, existing.HandlerType, existing.Factory);
+        }
+
+        ServiceRegistrar.RegisterHandler(validationOptions, handlerType, factory);
+    }
+
     private static void ApplyOptions(HostingBuilderContext state)
     {
         for (int i = 0; i < state.Options.Count; i++)
@@ -526,4 +549,26 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     #endregion Factory Methods
+
+    #region Obsolete APIs
+
+    /// <inheritdoc />
+    [Obsolete("Use MapTcp<TProtocol>() instead. This method will be removed in a future version.")]
+    public IProtocolBindingBuilder ListenTcp<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
+        where TProtocol : class, IProtocol => this.MapTcp<TProtocol>();
+
+    /// <inheritdoc />
+    [Obsolete("Use MapUdp<TProtocol>() instead. This method will be removed in a future version.")]
+    public IProtocolBindingBuilder ListenUdp<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
+        where TProtocol : class, IProtocol => this.MapUdp<TProtocol>();
+
+    /// <inheritdoc />
+    [Obsolete("Use MapWebSocket<TProtocol>() instead. This method will be removed in a future version.")]
+    public IWebSocketBindingBuilder ListenWebSocket<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProtocol>()
+        where TProtocol : class, IProtocol => this.MapWebSocket<TProtocol>();
+
+    #endregion Obsolete APIs
 }

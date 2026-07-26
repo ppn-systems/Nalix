@@ -176,6 +176,7 @@ internal static class ServiceRegistrar
         catch (InvalidOperationException)
         {
             manager = new ObjectPoolManager();
+            ObjectPoolManager.Configure(manager);
         }
 
         try

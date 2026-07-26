@@ -39,9 +39,10 @@ public static class TransportSessionSubscriptions
     /// <typeparam name="TPacket">The packet type to receive.</typeparam>
     /// <param name="client">The transport session to subscribe to.</param>
     /// <param name="handler">The callback invoked for each received packet.</param>
+    /// <param name="disposeAfter">Whether to dispose the packet after the handler returns.</param>
     /// <returns>An <see cref="IDisposable"/> that removes the subscription when disposed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IDisposable On<TPacket>(this TransportSession client, Action<TPacket> handler)
+    public static IDisposable On<TPacket>(this TransportSession client, Action<TPacket> handler, bool disposeAfter = true)
         where TPacket : class, IPacket, IPacketStaticOpcode
     {
         ArgumentNullException.ThrowIfNull(client);
@@ -67,6 +68,8 @@ public static class TransportSessionSubscriptions
             try
             {
                 IPacket p = PacketRegistry.Deserialize(buffer.Span);
+                p.Header = header;
+
                 try
                 {
                     if (p is TPacket t)
@@ -76,11 +79,9 @@ public static class TransportSessionSubscriptions
                 }
                 finally
                 {
-                    // Always dispose the packet since it was rented by Deserialize.
-                    // If the handler wants to keep it, it should have its own retention logic
-                    // or we should follow the framework convention.
-                    // In Nalix, the dispatcher/subscriber owns the IPacket instance lifecycle.
-                    if (p is IDisposable d)
+                    // The dispatcher owns packets by default; async adapters can transfer
+                    // ownership to their consumers by passing disposeAfter: false.
+                    if (disposeAfter && p is IDisposable d)
                     {
                         d.Dispose();
                     }
@@ -115,7 +116,10 @@ public static class TransportSessionSubscriptions
         {
             try
             {
+                ref readonly PacketHeader header = ref buffer.Span.AsHeaderRef();
                 IPacket p = PacketRegistry.Deserialize(buffer.Span);
+                p.Header = header;
+
                 try
                 {
                     if (p is not TPacket t)
@@ -165,7 +169,9 @@ public static class TransportSessionSubscriptions
         {
             try
             {
+                ref readonly PacketHeader header = ref buffer.Span.AsHeaderRef();
                 IPacket p = PacketRegistry.Deserialize(buffer.Span);
+                p.Header = header;
 
                 if (p is null || !predicate(p))
                 {
@@ -223,6 +229,8 @@ public static class TransportSessionSubscriptions
             try
             {
                 IPacket p = PacketRegistry.Deserialize(buffer.Span);
+                p.Header = header;
+
                 bool delivered = false;
                 try
                 {
