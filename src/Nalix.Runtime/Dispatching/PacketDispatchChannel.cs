@@ -316,7 +316,8 @@ public sealed class PacketDispatchChannel
         _ = sb.AppendLine("Pending by Priority:");
         _ = sb.AppendLine("Priority          | Pending Connections");
         _ = sb.AppendLine("------------------|---------------------");
-        int[] priorities = _dispatch.PendingPerPriority;
+        Span<int> priorities = stackalloc int[(int)PacketPriority.URGENT + 1];
+        _dispatch.CopyPendingPerPriority(priorities);
         for (int p = priorities.Length - 1; p >= 0; p--)
         {
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{GetPriorityName(p),-18}| {priorities[p],-19}");
@@ -369,7 +370,8 @@ public sealed class PacketDispatchChannel
         writer.WriteNumber("IdleWorkers", Volatile.Read(ref _idleWorkers));
         writer.WriteString("PacketRegistryType", nameof(PacketRegistry));
 
-        int[] priorities = _dispatch.PendingPerPriority;
+        Span<int> priorities = stackalloc int[(int)PacketPriority.URGENT + 1];
+        _dispatch.CopyPendingPerPriority(priorities);
         writer.WriteStartObject("PendingPerPriority");
         for (int p = priorities.Length - 1; p >= 0; p--)
         {

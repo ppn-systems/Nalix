@@ -405,6 +405,33 @@ public sealed class DispatchChannelTests
 
     #endregion
 
+    #region Test Case 9: Pending priority copy avoids caller allocation
+
+    [Fact]
+    public void DispatchChannel_CopyPendingPerPriority_CopiesSnapshotIntoCallerBuffer()
+    {
+        using DispatchChannel<FakePacket> channel = new();
+        FakeConnection lowConnection = new();
+        FakeConnection urgentConnection = new();
+
+        channel.Push(lowConnection, CreatePacketLease(1, PacketPriority.LOW));
+        channel.Push(urgentConnection, CreatePacketLease(2, PacketPriority.URGENT));
+
+        Span<int> snapshot = stackalloc int[(int)PacketPriority.URGENT + 1];
+        channel.CopyPendingPerPriority(snapshot);
+
+        int[] allocatedSnapshot = channel.PendingPerPriority;
+        for (int i = 0; i < allocatedSnapshot.Length; i++)
+        {
+            Assert.Equal(allocatedSnapshot[i], snapshot[i]);
+        }
+
+        int[] tooSmall = new int[(int)PacketPriority.URGENT];
+        Assert.Throws<ArgumentException>(() => channel.CopyPendingPerPriority(tooSmall));
+    }
+
+    #endregion
+
     #region Reflection Helpers (test-only access to private Node type)
 
     private static void ForceFullGC()
@@ -597,4 +624,3 @@ public sealed class DispatchChannelTests
     #endregion
 }
 #endif
-

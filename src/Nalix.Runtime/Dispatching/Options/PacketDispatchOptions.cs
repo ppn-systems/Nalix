@@ -26,7 +26,7 @@ public sealed partial class PacketDispatchOptions<TPacket> : IPacketHandlerBuild
     #region Fields
 
     private readonly MiddlewarePipeline<TPacket> _pipeline;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<ushort, PacketHandler<TPacket>> _handlerTable;
+    private readonly HandlerSlot?[] _handlerTable;
     private readonly ObjectPoolManager _objectPool;
     private int _handlerCount;
 
@@ -47,7 +47,7 @@ public sealed partial class PacketDispatchOptions<TPacket> : IPacketHandlerBuild
     /// </remarks>
     public PacketDispatchOptions()
     {
-        _handlerTable = new System.Collections.Concurrent.ConcurrentDictionary<ushort, PacketHandler<TPacket>>();
+        _handlerTable = new HandlerSlot?[ushort.MaxValue + 1];
         _pipeline = new MiddlewarePipeline<TPacket>();
         _objectPool = ObjectPoolManager.Shared;
     }
@@ -74,4 +74,9 @@ public sealed partial class PacketDispatchOptions<TPacket> : IPacketHandlerBuild
     internal int RegisteredHandlerCount => Volatile.Read(ref _handlerCount);
 
     #endregion Properties
+
+    private sealed class HandlerSlot(PacketHandler<TPacket> handler)
+    {
+        public readonly PacketHandler<TPacket> Handler = handler;
+    }
 }

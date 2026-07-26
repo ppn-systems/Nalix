@@ -114,12 +114,7 @@ internal sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDis
         get
         {
             int[] snapshot = new int[PriorityLevels];
-            for (int i = 0; i < PriorityLevels; i++)
-            {
-                int current = Volatile.Read(ref _readyEntriesByPrio[i]);
-                snapshot[i] = current < 0 ? 0 : current;
-            }
-
+            this.CopyPendingPerPriority(snapshot);
             return snapshot;
         }
     }
@@ -330,6 +325,25 @@ internal sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDis
         if (!this.PushCore(connection, raw, out _))
         {
             raw?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Copies the pending ready-connection counts per priority into a caller-owned buffer.
+    /// </summary>
+    /// <param name="destination">Destination span with at least one slot per packet priority.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="destination"/> is too small.</exception>
+    public void CopyPendingPerPriority(Span<int> destination)
+    {
+        if (destination.Length < PriorityLevels)
+        {
+            throw new ArgumentException("Destination must contain at least one slot per packet priority.", nameof(destination));
+        }
+
+        for (int i = 0; i < PriorityLevels; i++)
+        {
+            int current = Volatile.Read(ref _readyEntriesByPrio[i]);
+            destination[i] = current < 0 ? 0 : current;
         }
     }
 
