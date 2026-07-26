@@ -118,6 +118,8 @@ jobs:
               --no-restore
               --logger "trx"
               --results-directory "$TEST_RESULTS_DIR"
+              --blame-hang
+              --blame-hang-timeout 120000
               -m
             )
 
