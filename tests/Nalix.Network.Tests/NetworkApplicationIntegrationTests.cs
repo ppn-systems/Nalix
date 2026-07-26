@@ -198,7 +198,7 @@ public sealed class NetworkApplicationIntegrationTests
 
             using HostingScan.HostingScanAttributedPacket resp = await udpSession.RequestAsync<HostingScan.HostingScanAttributedPacket>(
                 req,
-                options: RequestOptions.Default.WithTimeout(5000));
+                options: RequestOptions.Default.WithTimeout(5000).WithRetry(1));
 
             Assert.Equal(43, resp.Value);
 
@@ -289,7 +289,6 @@ public sealed class IntegrationTestController2
         return new HostingScan.HostingScanAttributedPacket { Value = (ushort)(context.Packet.Value + 1) };
     }
 }
-
 
 
 

@@ -9,6 +9,8 @@ namespace Nalix.Hosting.Tests;
 
 internal static class TestUtils
 {
+    public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
+
     public static int GetFreePort()
     {
         System.Net.Sockets.TcpListener l = new(IPAddress.Loopback, 0);

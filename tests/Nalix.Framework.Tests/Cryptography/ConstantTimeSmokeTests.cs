@@ -58,26 +58,29 @@ public sealed class ConstantTimeSmokeTests
             _ = EnvelopeCipher.TryDecrypt(key, tamperedLastByte.AsSpan(0, written), decrypted, suite, out _, out _);
         }
 
-        Stopwatch swFirst = Stopwatch.StartNew();
+        long firstTicks = 0;
+        long lastTicks = 0;
         for (int i = 0; i < iterations; i++)
         {
+            long beforeFirst = Stopwatch.GetTimestamp();
             _ = EnvelopeCipher.TryDecrypt(key, tamperedFirstByte.AsSpan(0, written), decrypted, suite, out _, out _);
-        }
-        swFirst.Stop();
+            long afterFirst = Stopwatch.GetTimestamp();
 
-        Stopwatch swLast = Stopwatch.StartNew();
-        for (int i = 0; i < iterations; i++)
-        {
+            long beforeLast = Stopwatch.GetTimestamp();
             _ = EnvelopeCipher.TryDecrypt(key, tamperedLastByte.AsSpan(0, written), decrypted, suite, out _, out _);
-        }
-        swLast.Stop();
+            long afterLast = Stopwatch.GetTimestamp();
 
-        double ratio = Math.Max(swFirst.Elapsed.TotalMilliseconds, swLast.Elapsed.TotalMilliseconds)
-                       / Math.Max(1, Math.Min(swFirst.Elapsed.TotalMilliseconds, swLast.Elapsed.TotalMilliseconds));
+            firstTicks += afterFirst - beforeFirst;
+            lastTicks += afterLast - beforeLast;
+        }
+
+        double firstMs = firstTicks * 1000.0 / Stopwatch.Frequency;
+        double lastMs = lastTicks * 1000.0 / Stopwatch.Frequency;
+        double ratio = Math.Max(firstMs, lastMs) / Math.Max(1, Math.Min(firstMs, lastMs));
 
         Assert.True(ratio < 2.0,
-            $"Smoke test only, not a timing-attack proof: first-byte-mismatch took {swFirst.ElapsedMilliseconds}ms, " +
-            $"last-byte-mismatch took {swLast.ElapsedMilliseconds}ms over {iterations} iterations (ratio {ratio:F2}). " +
+            $"Smoke test only, not a timing-attack proof: first-byte-mismatch took {firstMs:F0}ms, " +
+            $"last-byte-mismatch took {lastMs:F0}ms over {iterations} iterations (ratio {ratio:F2}). " +
             "A >2x gap could indicate an early-exit (non-fixed-time) comparison, but could also be measurement noise.");
     }
 }

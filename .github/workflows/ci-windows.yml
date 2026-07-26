@@ -32,3 +32,4 @@ jobs:
       project: src/Nalix.sln
       test: tests/Nalix.Tests.sln
       deploy: false
+      coverage: false

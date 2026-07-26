@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using Nalix.Environment.IO;
 using Xunit;
 
-[assembly: CollectionBehavior(CollectionBehavior.CollectionPerAssembly, MaxParallelThreads = 1)]
+[assembly: CollectionBehavior(CollectionBehavior.CollectionPerClass, MaxParallelThreads = 4)]
 
 namespace Nalix.Framework.Tests;
 
@@ -20,6 +20,20 @@ internal static class TestAssemblySetup
     }
 }
 
+[CollectionDefinition("Sequential Pooling Tests", DisableParallelization = true)]
+public sealed class SequentialPoolingTestCollection;
+
+[CollectionDefinition("ObjectPoolDiagnostics", DisableParallelization = true)]
+public sealed class ObjectPoolDiagnosticsCollection;
+
+[CollectionDefinition("ReturnValidation", DisableParallelization = true)]
+public sealed class ReturnValidationCollection;
+
+[CollectionDefinition("TypePoolPhase1", DisableParallelization = true)]
+public sealed class TypePoolPhase1Collection;
+
+[CollectionDefinition("ClockTests", DisableParallelization = true)]
+public sealed class ClockTestCollection;
 
 
 

@@ -30,6 +30,11 @@ on:
         required: false
         type: boolean
         default: false
+      coverage:
+        description: "Set true to collect and publish coverage"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -73,6 +78,7 @@ jobs:
           fi
 
       - name: Restore main project
+        if: ${{ inputs.test == '' || inputs.deploy }}
         shell: bash
         run: dotnet restore "${{ inputs.project }}"
 
@@ -82,6 +88,7 @@ jobs:
         run: dotnet restore "${{ inputs.test }}"
 
       - name: Build source projects
+        if: ${{ inputs.test == '' || inputs.deploy }}
         shell: bash
         timeout-minutes: 15
         run: dotnet build "${{ inputs.project }}" -c Release --no-restore -m
@@ -104,11 +111,23 @@ jobs:
             rm -rf "$TEST_RESULTS_DIR"/* 2>/dev/null || true
 
             echo "Running tests (Attempt $attempt/$max_retries)..."
-            if dotnet test "${{ inputs.test }}" --configuration Release --no-build --no-restore \
-              --logger "trx" --results-directory "$TEST_RESULTS_DIR" \
-              --collect:"XPlat Code Coverage" \
-              --blame-hang --blame-crash --blame-hang-timeout 300000 \
-              -m; then
+            test_args=(
+              "${{ inputs.test }}"
+              --configuration Release
+              --no-build
+              --no-restore
+              --logger "trx"
+              --results-directory "$TEST_RESULTS_DIR"
+              --blame-hang
+              --blame-hang-timeout 120000
+              -m
+            )
+
+            if [ "${{ inputs.coverage }}" = "true" ]; then
+              test_args+=(--collect:"XPlat Code Coverage")
+            fi
+
+            if dotnet test "${test_args[@]}"; then
               echo "Tests passed!"
               break
             fi
@@ -126,7 +145,7 @@ jobs:
 
       - name: Detect coverage reports
         id: coverage_files
-        if: ${{ inputs.test != '' }}
+        if: ${{ inputs.coverage && inputs.test != '' }}
         shell: bash
         run: |
           if [ -d "$TEST_RESULTS_DIR" ] && find "$TEST_RESULTS_DIR" -name 'coverage.cobertura.xml' -print -quit | grep -q .; then

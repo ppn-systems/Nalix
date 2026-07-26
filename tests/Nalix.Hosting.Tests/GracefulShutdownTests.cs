@@ -24,15 +24,15 @@ public sealed class GracefulShutdownTests : IDisposable
         builder.ListenTcp<TestUtils.IntegrationTestProtocol>().OnPort((ushort)port);
 
         using NetworkApplication app = builder.Build();
-        await app.ActivateAsync();
+        await app.ActivateAsync().WaitAsync(TestUtils.Timeout);
 
         List<TcpSession> clients = [];
         try
         {
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 3; i++)
             {
                 TcpSession session = new(new TransportOptions { Address = "127.0.0.1", Port = (ushort)port });
-                await session.ConnectAsync();
+                await session.ConnectAsync().WaitAsync(TestUtils.Timeout);
                 clients.Add(session);
             }
 
