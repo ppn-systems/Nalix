@@ -1,4 +1,4 @@
-# Reverse Proxy TLS (nginx / Caddy)
+# Reverse Proxy TLS (nginx / Caddy / Cloudflare Tunnel)
 
 Nalix does not terminate TLS itself. The WebSocket listener binds an
 `http://` prefix via `HttpListener` — there is no `wss://` support in
@@ -8,9 +8,10 @@ built-in X25519 handshake + ChaCha20-Poly1305 session encryption (see
 `wss://`, valid browser certificates, or SNI/cert rotation. For that, put a
 reverse proxy in front and let it own TLS.
 
-This guide covers the two proxies most commonly paired with Nalix:
-nginx (manual certs via certbot) and Caddy (automatic certs, zero config
-for renewal).
+This guide covers the proxies most commonly paired with Nalix: nginx
+(manual certs via certbot), Caddy (automatic certs, zero config for renewal),
+and Cloudflare Tunnel (Cloudflare terminates public TLS and tunnels plain HTTP
+to your origin).
 
 ## What the proxy must do
 
@@ -83,6 +84,49 @@ example.com {
 That's the whole config — Caddy issues, installs, and renews the
 certificate automatically on first request.
 
+## Cloudflare Tunnel
+
+Cloudflare Tunnel is the simplest setup when you do not want to expose the
+Nalix host or manage an origin certificate. Clients connect to
+`wss://example.com/ws/`; Cloudflare owns the public certificate and
+`cloudflared` forwards plain HTTP WebSocket traffic to Nalix.
+
+`cloudflared` ingress example:
+
+```yaml
+tunnel: nalix
+credentials-file: /etc/cloudflared/nalix.json
+
+ingress:
+  - hostname: example.com
+    service: http://127.0.0.1:57207
+  - service: http_status:404
+```
+
+Nalix should still bind to loopback:
+
+```ini
+[NetworkWebSocket]
+Host = 127.0.0.1
+Port = 57207
+AllowedOrigins = https://example.com
+AllowMissingOrigin = false
+
+[ForwardedHeaders]
+Enabled = true
+RequireTrustedProxy = true
+```
+
+Cloudflare sends `CF-Connecting-IP` to the origin. Nalix reads that header
+before `X-Real-IP` and `X-Forwarded-For`, but only honors it from a trusted
+physical peer. For Tunnel, add the local `cloudflared` peer to
+`trusted_proxies.txt`; for the loopback config above, that is usually
+`127.0.0.1` (and `::1` if IPv6 loopback is used).
+
+You do not need TLS between `cloudflared` and Nalix when `service` uses
+`http://127.0.0.1:57207`. Use an HTTPS origin service only if you intentionally
+want local origin TLS too.
+
 ## Nalix-side configuration
 
 Match the proxy setup on the Nalix side:
@@ -118,6 +162,7 @@ fields shown above: `Enabled` and `RequireTrustedProxy`.
 - [ ] `AllowedOrigins` set to your real origin(s); `AllowMissingOrigin = false` for browser-only deployments.
 - [ ] Proxy `proxy_read_timeout` / equivalent is longer than your idle timeout expectations for long-lived WebSocket connections.
 - [ ] Client connects to `wss://example.com/ws/`, not the raw Nalix port.
+- [ ] For Cloudflare Tunnel, `cloudflared` ingress points at `http://127.0.0.1:57207` unless you deliberately run origin TLS.
 
 ## Recommended Next Pages
 

@@ -24,6 +24,9 @@ internal static class WebSocketUpgradeParser
     private static ReadOnlySpan<byte> SecWebSocketKeyKey => "sec-websocket-key:"u8;
     private static ReadOnlySpan<byte> OriginKey => "origin:"u8;
     private static ReadOnlySpan<byte> SecWebSocketProtocolKey => "sec-websocket-protocol:"u8;
+    private static ReadOnlySpan<byte> CfConnectingIpKey => "cf-connecting-ip:"u8;
+    private static ReadOnlySpan<byte> XRealIpKey => "x-real-ip:"u8;
+    private static ReadOnlySpan<byte> XForwardedForKey => "x-forwarded-for:"u8;
 
     // Header expected values
     private static ReadOnlySpan<byte> UpgradeWebSocketValue => "websocket"u8;
@@ -83,6 +86,9 @@ internal static class WebSocketUpgradeParser
         ReadOnlySpan<byte> secWebSocketKey = default;
         ReadOnlySpan<byte> origin = default;
         ReadOnlySpan<byte> subProtocol = default;
+        ReadOnlySpan<byte> cfConnectingIp = default;
+        ReadOnlySpan<byte> xRealIp = default;
+        ReadOnlySpan<byte> xForwardedFor = default;
 
         Span<byte> lowerKeyBuffer = stackalloc byte[128]; // Max expected header key length
 
@@ -135,6 +141,18 @@ internal static class WebSocketUpgradeParser
                     {
                         subProtocol = value;
                     }
+                    else if (lowerKey.SequenceEqual(CfConnectingIpKey[..^1]))
+                    {
+                        cfConnectingIp = value;
+                    }
+                    else if (lowerKey.SequenceEqual(XRealIpKey[..^1]))
+                    {
+                        xRealIp = value;
+                    }
+                    else if (lowerKey.SequenceEqual(XForwardedForKey[..^1]))
+                    {
+                        xForwardedFor = value;
+                    }
                 }
             }
 
@@ -156,6 +174,9 @@ internal static class WebSocketUpgradeParser
             Origin = origin,
             SubProtocol = subProtocol,
             HttpMethod = method,
+            CfConnectingIp = cfConnectingIp,
+            XRealIp = xRealIp,
+            XForwardedFor = xForwardedFor,
             BytesConsumed = totalBytesConsumed
         };
     }

@@ -55,7 +55,7 @@ public abstract partial class WebSocketListenerBase
         // Return context to pool since we don't need it for WS handshake
         ObjectPoolManager.Shared.Return(context);
 
-        this.BeginWebSocketHandshake(socket, ip, null, 0);
+        this.BeginWebSocketHandshake(socket, null, null, 0);
 
         return new AcceptResult(AcceptConnectionResult.Pending, null);
     }
@@ -278,6 +278,35 @@ public abstract partial class WebSocketListenerBase
             // Capture socket and endpoint before releasing state back to the pool
             Socket socket = state.Socket!;
             EndPoint realEndPoint = state.RealEndPoint ?? socket.RemoteEndPoint!;
+
+            if (state.RealEndPoint is null && this.TryResolveForwardedEndpoint(socket, result, out IPEndPoint? forwardedEndpoint, out bool rejectForwarded))
+            {
+                if (rejectForwarded)
+                {
+                    if (socket.RemoteEndPoint is IPEndPoint physicalIp)
+                    {
+                        _limiter.Release(physicalIp);
+                    }
+
+                    this.Metrics.RECORD_LIMITER_REJECTION();
+                    this.ReleaseWsUpgradeContext(state, args, success: false);
+                    return;
+                }
+
+                if (forwardedEndpoint is not null && socket.RemoteEndPoint is IPEndPoint physicalEndPoint)
+                {
+                    if (!_limiter.TryAccept(forwardedEndpoint))
+                    {
+                        _limiter.Release(physicalEndPoint);
+                        this.Metrics.RECORD_LIMITER_REJECTION();
+                        this.ReleaseWsUpgradeContext(state, args, success: false);
+                        return;
+                    }
+
+                    _limiter.Release(physicalEndPoint);
+                    realEndPoint = forwardedEndpoint;
+                }
+            }
 
             // Create a NetworkStream and wrap it in a WebSocket
             NetworkStream stream = new(socket, ownsSocket: false);
