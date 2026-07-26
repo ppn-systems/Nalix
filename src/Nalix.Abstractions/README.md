@@ -1,34 +1,39 @@
 # Nalix.Abstractions
 
-> Base abstractions, enums, and shared contracts for the entire Nalix ecosystem.
+Foundational contracts, enums, attributes, and shared primitives for the Nalix stack.
 
-**Nalix.Abstractions** defines the fundamental interfaces, protocol constants, and primitive types that all other Nalix packages depend on. It is the lowest-level building block — every module in the stack references this package.
+Nalix.Abstractions is the dependency floor for the repository. Higher-level packages build on
+these interfaces instead of sharing implementation details across package boundaries.
 
-## Key Namespaces
-
-| Namespace | Purpose | Key Types |
-| :--- | :--- | :--- |
-| `Nalix.Abstractions` | Root namespace for core lifecycle, activation, and memory management | `IPoolable`, `IBufferLease`, `IBufferPoolManager`, `IObjectPoolManager`, `IActivatable` |
-| `Nalix.Abstractions.Networking` | Essential network connection management and transport configurations | `IConnection`, `IConnectionHub`, `INetworkEndpoint`, `NetworkTransport` |
-| `Nalix.Abstractions.Networking.Packets` | Rich packet modeling, metadata attributes, and deserializers | `IPacket`, `IPacketContext`, `PacketOpcodeAttribute`, `PacketTransportAttribute`, `IPacketSender` |
-| `Nalix.Abstractions.Networking.Protocols` | Low-level protocol codes and routing advice | `ProtocolOpCode`, `ProtocolAdvice`, `ControlFlags`, `ProtocolReason` |
-| `Nalix.Abstractions.Networking.Sessions` | Core abstractions for session lifecycle and storage services | `ISessionStore`, `ISessionService`, `ISessionFactory`, `SessionEntry` |
-| `Nalix.Abstractions.Serialization` | Declarative serialization metadata and fixed-size layout primitives | `[SerializeOrder]`, `[SerializeHeader]`, `SerializeLayout`, `IFixedSizeSerializable` |
-| `Nalix.Abstractions.Security` | Cryptographic configurations, cipher suite configurations, and access levels | `CipherSuiteType`, `PermissionLevel`, `DropPolicy`, `ISequenceCounter` |
-| `Nalix.Abstractions.Identity` | Highly optimized 64-bit distributed snowflake identifier definitions | `ISnowflake`, `SnowflakeType` |
-| `Nalix.Abstractions.Concurrency` | Lightweight task executions, background worker/handles, and prioritizations | `ITaskManager`, `IWorker`, `IWorkerHandle`, `WorkerPriority` |
-| `Nalix.Abstractions.Exceptions` | Classifiers and exception models tailored for high-speed networking | `BaseException`, `CipherException`, `NetworkException`, `ExceptionClassifier` |
-| `Nalix.Abstractions.Diagnostics` | Core observability and performance telemetry contracts | `CoreTelemetryTarget` |
-| `Nalix.Abstractions.Middleware` | Cross-cutting packet interceptor and pipeline stages | `IPacketMiddleware`, `MiddlewareStage`, `MiddlewareOrderAttribute` |
-
-## Installation
+## Install
 
 ```bash
 dotnet add package Nalix.Abstractions
 ```
 
-> **Note:** You typically don't need to install this package directly — it is referenced transitively by all higher-level Nalix packages.
+Most applications do not need to reference this package directly. It is pulled in transitively by
+Nalix.Codec, Nalix.Network, Nalix.Runtime, Nalix.Hosting, and Nalix.SDK.
+
+## What It Provides
+
+| Area | Purpose | Main types |
+| :--- | :--- | :--- |
+| Lifecycle and pooling | Shared lifecycle and pool reset contracts | `IPoolable`, `IActivatable`, `IBufferLease`, `IBufferPoolManager`, `IObjectPoolManager` |
+| Connections | Transport-neutral connection contracts | `IConnection`, `IConnectionHub`, `INetworkEndpoint`, `NetworkTransport` |
+| Packets | Packet metadata, context, and sending abstractions | `IPacket`, `IPacketContext`, `IPacketSender`, `PacketOpcodeAttribute`, `PacketTransportAttribute` |
+| Protocols | Wire-level control codes and protocol advice | `ProtocolOpCode`, `ProtocolAdvice`, `ControlFlags`, `ProtocolReason` |
+| Sessions | Session persistence contracts | `ISessionStore`, `ISessionService`, `ISessionFactory`, `SessionEntry` |
+| Serialization | Source-generator serialization metadata | `SerializeOrderAttribute`, `SerializeHeaderAttribute`, `SerializeLayout`, `IFixedSizeSerializable` |
+| Security | Cipher, permission, and sequence contracts | `CipherSuiteType`, `PermissionLevel`, `DropPolicy`, `ISequenceCounter` |
+| Concurrency | Worker and task scheduling contracts | `ITaskManager`, `IWorker`, `IWorkerHandle`, `WorkerPriority` |
+| Middleware | Packet pipeline extension points | `IPacketMiddleware`, `MiddlewareStage`, `MiddlewareOrderAttribute` |
+
+## Package Role
+
+Use Nalix.Abstractions when you are writing reusable components that must compile without taking a
+dependency on Nalix.Network, Nalix.Runtime, or other implementation packages.
 
 ## Documentation
 
-For detailed API reference, see the [Nalix.Abstractions package guide](https://ppn.io.vn/api/Abstractions/index).
+- Package guide: https://ppn.io.vn/packages/nalix-abstractions/
+- API reference: https://ppn.io.vn/api/abstractions/

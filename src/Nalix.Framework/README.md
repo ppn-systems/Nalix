@@ -1,86 +1,57 @@
 # Nalix.Framework
 
-> High-performance dependency injection, task orchestration, memory/object pooling, unique identity generation, and diagnostic reporting — the foundational engine room of Nalix.
+Dependency injection, task orchestration, object pooling, identifiers, and diagnostics for Nalix.
 
-## Key Features
+Nalix.Framework is the shared runtime services package. It provides the object and buffer pools,
+singleton container, Snowflake IDs, task workers, recurring scheduling, and report registries used
+by the networking stack.
 
-| Feature | Description | Key Concept / Type |
-| :--- | :--- | :--- |
-| 💉 **Dependency Injection** | Highly optimized, thread-safe service registration and transient/singleton activation container. | `InstanceManager`, `Activator` |
-| ⚙️ **Task Orchestration** | Background thread worker priority queuing, recurring scheduling, group cancellation, and diagnostic monitoring. | `TaskManager`, `IWorker`, `IRecurringHandle` |
-| 🧠 **Memory & Object Pooling** | Shard-aware memory buffer and reusable object pools with sentinel leak detection. | `ObjectPoolManager`, `BufferPoolManager` |
-| 🆔 **Identifiers** | 64-bit globally unique, chronologically sortable distributed identity generation. | `Snowflake`, `ISnowflake` |
-| 📊 **Observability** | Solution-wide performance telemetry collection, report registries, and custom diagnostic listeners. | `ReportRegistry`, `DiagnosticsEvents` |
-
-## Key Namespaces
-
-| Namespace | Purpose | Key Types |
-| :--- | :--- | :--- |
-| `Nalix.Framework` | Root namespace containing observability registries and diagnostics events | `ReportRegistry`, `DiagnosticsEvents` |
-| `Nalix.Framework.Injection` | Thread-safe service container and dependency injection activators | `InstanceManager`, `SingletonBase<T>` |
-| `Nalix.Framework.Tasks` | High-performance background worker execution, recurring jobs, and scheduler runners | `TaskManager`, `IWorker`, `IWorkerHandle`, `IRecurringHandle` |
-| `Nalix.Framework.Identifiers` | Dynamic 64-bit chronological unique Snowflake identifier models | `Snowflake` |
-| `Nalix.Framework.Memory.Objects` | Custom reusable object pools, periodic scrubbing, and memory sentinel diagnostics | `ObjectPoolManager` |
-| `Nalix.Framework.Memory.Buffers` | High-performance shard-aware pinned memory buffer slab pools | `BufferPoolManager` |
-| `Nalix.Framework.Options` | Core framework options POCO settings mapping configurations | `SnowflakeOptions`, `TaskManagerOptions`, `BufferOptions`, `ObjectPoolOptions` |
-
-## Installation
+## Install
 
 ```bash
 dotnet add package Nalix.Framework
 ```
 
-## Quick Example: Object Pooling
+## What It Provides
+
+| Area | Purpose | Main types |
+| :--- | :--- | :--- |
+| Injection | Thread-safe service registration and activation | `InstanceManager`, `SingletonBase<T>` |
+| Tasks | Priority workers, recurring jobs, and handles | `TaskManager`, `IWorker`, `IWorkerHandle`, `IRecurringHandle` |
+| Object pooling | Reusable object pools with diagnostics | `ObjectPoolManager` |
+| Buffer pooling | Shard-aware buffer slab pools | `BufferPoolManager` |
+| Identifiers | Chronologically sortable 64-bit IDs | `Snowflake`, `ISnowflake` |
+| Diagnostics | Telemetry reports and diagnostic events | `ReportRegistry`, `DiagnosticsEvents` |
+| Options | Framework-level configuration models | `SnowflakeOptions`, `TaskManagerOptions`, `BufferOptions`, `ObjectPoolOptions` |
+
+## Minimal Object Pool
 
 ```csharp
-using System;
 using Nalix.Abstractions;
 using Nalix.Framework.Memory.Objects;
 
-// 1. Define a class implementing IPoolable
-public class ConnectionSession : IPoolable
+public sealed class ConnectionState : IPoolable
 {
     public string SessionKey { get; set; } = string.Empty;
 
-    public void ResetForPool()
-    {
-        SessionKey = string.Empty; // Reset state for safe pool reuse
-    }
+    public void ResetForPool() => this.SessionKey = string.Empty;
 }
 
-// 2. Rent and return using ObjectPoolManager
-ObjectPoolManager manager = new();
+ObjectPoolManager pool = new();
+pool.Prealloc<ConnectionState>(32);
 
-// Preallocate 32 instances to warm up the pool
-manager.Prealloc<ConnectionSession>(32);
-
-// Rent a connection session instance
-ConnectionSession session = manager.Get<ConnectionSession>();
-session.SessionKey = "Session_abc123";
-
-// ... perform work ...
-
-// Return the instance back to the pool (automatically invoking ResetForPool)
-manager.Return(session);
+ConnectionState state = pool.Get<ConnectionState>();
+state.SessionKey = "session-1";
+pool.Return(state);
 ```
 
-## Quick Example: Unique ID Generation (Snowflake)
+## Design Notes
 
-```csharp
-using System;
-using Nalix.Abstractions.Identity;
-using Nalix.Framework.Identifiers;
-
-// Generate a new 64-bit unique Snowflake ID for a Session entity
-Snowflake sessionId = Snowflake.NewId(SnowflakeType.Session);
-
-Console.WriteLine($"Generated ID: {sessionId}");
-Console.WriteLine($"Timestamp Component: {sessionId.Value}");
-Console.WriteLine($"Machine ID Component: {sessionId.MachineId}");
-```
+- Pools are explicit ownership boundaries. Return rented objects exactly once.
+- `InstanceManager` is the Nalix service container; avoid adding a second container unless hosting integration requires it.
+- Snowflake IDs are time ordered and suitable for connection and session identity.
 
 ## Documentation
 
-For deep dives into dependency injection, task scheduling, and memory pooling, see the [official documentation](https://ppn.io.vn/concepts/packet-system).
-
-
+- Package guide: https://ppn.io.vn/packages/nalix-framework/
+- API reference: https://ppn.io.vn/api/framework/

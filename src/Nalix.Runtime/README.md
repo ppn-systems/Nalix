@@ -1,97 +1,76 @@
 # Nalix.Runtime
 
-> Application-level execution engine — handles packet routing, shard-aware Weighted Round-Robin dispatch, throttling, sessions, and middleware execution.
+Packet dispatch, middleware, handlers, throttling, session persistence, and runtime services for
+Nalix applications.
 
-## Key Features
+Nalix.Runtime sits above transport and codec packages. It routes decoded packets to handlers,
+executes middleware, applies rate policies, handles handshake/session flows, and coordinates
+dispatch work away from socket threads.
 
-| Feature | Description | Key Concept / Type |
-| :--- | :--- | :--- |
-| ⚡ **Packet Dispatch** | Shard-aware Weighted Round-Robin execution loops decoupling packet handling from network socket threads. | `PacketDispatchChannel`, `PacketContext` |
-| 🛤️ **Middleware Pipeline** | Highly performant inbound and outbound packet interceptor chain with custom ordering. | `MiddlewarePipeline`, `IPacketMiddleware` |
-| 🎯 **Controllers** | Attribute-based compile-time generated routing routes via static controllers. | `[PacketHandler]`, `[PacketOpcode]` |
-| 💾 **Session Tracking** | Thread-safe, high-speed in-memory session persistence, factories, and observers. | `SessionService`, `InMemorySessionStore` |
-| 🚦 **Traffic Throttling** | Low-overhead request rate limiters and concurrent execution gate filters. | `ConcurrencyGate`, `TokenBucketLimiter` |
-
-## Key Namespaces
-
-| Namespace | Purpose | Key Types |
-| :--- | :--- | :--- |
-| `Nalix.Runtime.Dispatching` | Shard-aware concurrent message dispatch channels and packet contexts | `PacketDispatchChannel`, `PacketContext`, `PacketDispatcherBase` |
-| `Nalix.Runtime.Middleware` | Inbound/outbound pipeline engines and standard middleware blocks | `MiddlewarePipeline`, `RateLimitMiddleware`, `TimeoutMiddleware` |
-| `Nalix.Runtime.Handlers` | Pre-built core handshake, key exchange, and system controllers | `SessionHandlers`, `HandshakeHandlers`, `KeyExchangeHandlers` |
-| `Nalix.Runtime.Throttling` | Microsecond-optimized concurrency controls and rate limiting filters | `ConcurrencyGate`, `TokenBucketLimiter`, `PolicyRateLimiter` |
-| `Nalix.Runtime.Sessions` | Distributed session services, persistence caches, and session stores | `SessionService`, `InMemorySessionStore`, `SessionPersistenceObserver` |
-| `Nalix.Runtime.Timekeeping` | Monotonic time synchronization and clock skew adapters | `TimeSynchronizer` |
-| `Nalix.Runtime.Options` | Option models mapping settings for dispatchers and throttling rules | `DispatchOptions`, `TokenBucketOptions`, `SessionStoreOptions` |
-
-## Installation
+## Install
 
 ```bash
 dotnet add package Nalix.Runtime
 ```
 
-## Quick Example: Middleware
+## What It Provides
+
+| Area | Purpose | Main types |
+| :--- | :--- | :--- |
+| Dispatching | Shard-aware packet dispatch channels and contexts | `PacketDispatchChannel`, `PacketContext`, `PacketDispatcherBase` |
+| Middleware | Inbound and outbound packet pipeline | `MiddlewarePipeline`, `IPacketMiddleware`, `RateLimitMiddleware`, `TimeoutMiddleware` |
+| Handlers | Built-in handshake, key exchange, and session handlers | `HandshakeHandlers`, `KeyExchangeHandlers`, `SessionHandlers` |
+| Throttling | Concurrency gates and token-bucket rate limiting | `ConcurrencyGate`, `TokenBucketLimiter`, `PolicyRateLimiter` |
+| Sessions | Session services, persistence observers, and in-memory store | `SessionService`, `InMemorySessionStore`, `SessionPersistenceObserver` |
+| Timekeeping | Clock skew and synchronization helpers | `TimeSynchronizer` |
+| Options | Runtime dispatch and throttling configuration | `DispatchOptions`, `TokenBucketOptions`, `SessionStoreOptions` |
+
+## Middleware
 
 ```csharp
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Nalix.Abstractions.Middleware;
 using Nalix.Abstractions.Networking.Packets;
 
-public class MyLoggingMiddleware<T> : IPacketMiddleware<T> where T : IPacket
+public sealed class AuditMiddleware<TPacket> : IPacketMiddleware<TPacket>
+    where TPacket : IPacket
 {
     public async ValueTask InvokeAsync(
-        IPacketContext<T> context,
+        IPacketContext<TPacket> context,
         Func<CancellationToken, ValueTask> next)
     {
-        Console.WriteLine($"In-flight packet: {typeof(T).Name}");
         await next(context.CancellationToken);
     }
 }
 ```
 
-## Quick Example: Packet Controller
-
-Nalix uses compile-time source generation to discover and compile routing paths for your packets. To handle incoming packets, decorate your controllers with the `[PacketHandler]` attribute and define static methods annotated with `[PacketOpcode]`:
+## Packet Handler
 
 ```csharp
-using System;
-using System.Threading.Tasks;
-using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Security;
 
 [PacketHandler("Chat")]
-public sealed class ChatController
+public static class ChatHandlers
 {
-    [PacketOpcode(201)] // Handles ChatMessage packets (Opcode = 201)
+    [PacketOpcode(201)]
     [PacketPermission(PermissionLevel.USER)]
-    public static async ValueTask HandleMessageAsync(IPacketContext<ChatMessage> context)
+    public static ValueTask HandleMessageAsync(IPacketContext<ChatMessage> context)
     {
-        ChatMessage packet = context.Packet;
-        string user = context.Connection.Attributes["Username"] as string ?? "Anonymous";
-
-        // Perform text verification
-        if (string.IsNullOrWhiteSpace(packet.Text))
-        {
-            return;
-        }
-
-        // Broadcast chat text to all active connections in the hub
-        IConnectionHub? hub = context.Connection.GetHub();
-        if (hub is not null)
-        {
-            await hub.BroadcastAsync(new ChatBroadcast
-            {
-                Sender = user,
-                Text = packet.Text
-            }, async (conn, msg) => await conn.TCP.SendAsync(msg));
-        }
+        ChatMessage message = context.Packet;
+        return ValueTask.CompletedTask;
     }
 }
 ```
 
+## Design Notes
+
+- Handlers are registered explicitly for Native AOT compatibility.
+- Dispatch channels keep application handlers off socket receive loops.
+- Session resume is single-use and proof-verified before token consumption.
+
 ## Documentation
 
-Learn about the [Middleware Pipeline](https://ppn.io.vn/concepts/middleware) and [Shard-Aware Dispatch](https://ppn.io.vn/concepts/architecture).
-
+- Package guide: https://ppn.io.vn/packages/nalix-runtime/
+- API reference: https://ppn.io.vn/api/runtime/
+- Middleware: https://ppn.io.vn/api/runtime/middleware/
+- Session resume: https://ppn.io.vn/api/security/session-resume/

@@ -1,54 +1,68 @@
 # Nalix.SDK
 
-> Client-side transport sessions and request helpers for Nalix applications.
+Client-side transport sessions, handshakes, request/response helpers, subscriptions, and cipher
+management for Nalix applications.
 
-## Key Features
+Nalix.SDK is the client package. It exposes TCP, UDP, and WebSocket sessions, typed request
+correlation, session resume helpers, subscription dispatch, and runtime cipher updates.
 
-| Feature | Description | Key Concept / Type |
-| :--- | :--- | :--- |
-| 🔗 **Transport Sessions** | Shared session abstraction plus high-performance TCP, UDP, and WebSocket client transports. | `TransportSession`, `TcpSession`, `UdpSession`, `WebSocketSession` |
-| 🔄 **Request / Response** | Race-safe, correlated typed request/response matching with timeouts and retries. | `RequestAsync<TResponse>`, `RequestOptions` |
-| 🤝 **Handshake / Resume** | High-security X25519 handshakes and fast session resumption helpers. | `ConnectAsync`, `ResumeAsync` |
-| 🔐 **Cipher Updates** | Dynamic runtime symmetric encryption cipher switching and rotation. | `UpdateCipherAsync` |
-| 📡 **Typed Subscriptions** | Highly performant typed packet subscription handlers with automatic dispatch. | `On<TPacket>()`, `OnExact<TPacket>()` |
-
-## Key Namespaces
-
-| Namespace | Purpose | Key Types |
-| :--- | :--- | :--- |
-| `Nalix.SDK` | Root namespace containing thread dispatchers and time synchronization calculators | `IThreadDispatcher`, `InlineDispatcher`, `TimeSyncCalculator` |
-| `Nalix.SDK.Transport` | Core client transport sessions supporting TCP, UDP, and WebSockets | `TransportSession`, `TcpSession`, `UdpSession`, `WebSocketSession` |
-| `Nalix.SDK.Transport.Extensions` | Fluent APIs for handshakes, request/response, session resumption, and ciphers | `RequestExtensions`, `HandshakeExtensions`, `ResumeExtensions`, `CipherExtensions` |
-| `Nalix.SDK.Transport.Internal` | High-efficiency transport frame readers, frame senders, and packet correlation | `PacketAwaiter`, `TcpFrameReader`, `UdpFrameReader`, `WsFrameReader` |
-| `Nalix.SDK.Options` | Client socket transport and request timeout settings configuration | `TransportOptions`, `WebSocketTransportOptions`, `RequestOptions` |
-| `Nalix.SDK.Extensions` | General helper extensions and subscription utilities | `SubscriptionExtensions` |
-
-## Installation
+## Install
 
 ```bash
 dotnet add package Nalix.SDK
 ```
 
-## Quick Example: Sending a Request
+## What It Provides
+
+| Area | Purpose | Main types |
+| :--- | :--- | :--- |
+| Transport sessions | Shared client session base and concrete transports | `TransportSession`, `TcpSession`, `UdpSession`, `WebSocketSession` |
+| Request/response | Correlated typed request matching with timeout support | `RequestAsync<TResponse>`, `RequestOptions` |
+| Handshake and resume | X25519 connection setup and session resumption | `ConnectAsync`, `ConnectWithResumeAsync` |
+| Cipher control | Runtime cipher switching and rotation | `UpdateCipherAsync` |
+| Subscriptions | Typed packet event handlers | `On<TPacket>()`, `OnExact<TPacket>()` |
+| Options | Client transport and request configuration | `TransportOptions`, `WebSocketTransportOptions`, `RequestOptions` |
+
+## TCP Request
 
 ```csharp
-using System;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 
-// Initialize a TCP session using the client options
-await using TcpSession session = new(options);
+TransportOptions options = new()
+{
+    Address = "127.0.0.1",
+    Port = 57200
+};
+
+using TcpSession session = new(options);
 await session.ConnectAsync(options.Address, options.Port);
 
-// Send a request and wait for a response of a specific type
 MyResponse response = await session.RequestAsync<MyResponse>(
     new MyRequest { Id = 1 },
     RequestOptions.Default.WithTimeout(5_000));
-
-Console.WriteLine(response.Data);
 ```
+
+## Subscriptions
+
+```csharp
+using Nalix.SDK.Transport.Extensions;
+
+using IDisposable subscription = session.On<ChatMessage>(message =>
+{
+    Console.WriteLine(message.Text);
+});
+```
+
+## Design Notes
+
+- Use one `TransportSession` per active client connection.
+- Request helpers correlate responses and clean up pending waiters on timeout.
+- WebSocket clients are useful for browser-compatible deployments behind reverse proxies.
 
 ## Documentation
 
-See [Nalix.SDK](https://ppn.io.vn/packages/nalix-sdk/) for the source-mapped package reference.
+- Package guide: https://ppn.io.vn/packages/nalix-sdk/
+- API reference: https://ppn.io.vn/api/sdk/
+- WebSocket session: https://ppn.io.vn/api/sdk/websocket-session/
