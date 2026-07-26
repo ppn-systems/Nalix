@@ -115,12 +115,12 @@ public sealed class SessionService : ISessionService, IDisposable, IReportable
     }
 
     /// <inheritdoc/>
-    public ValueTask<SessionScope> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default)
+    public ValueTask<SessionScope> ConsumeAsync(ulong sessionToken, Func<SessionEntry, bool>? predicate = null, CancellationToken cancellationToken = default)
     {
         _ = Interlocked.Increment(ref _totalConsumesAttempted);
         try
         {
-            ValueTask<SessionScope> task = _store.ConsumeAsync(sessionToken, cancellationToken);
+            ValueTask<SessionScope> task = _store.ConsumeAsync(sessionToken, predicate, cancellationToken);
             if (task.IsCompleted)
             {
                 SessionScope scope = task.Result;

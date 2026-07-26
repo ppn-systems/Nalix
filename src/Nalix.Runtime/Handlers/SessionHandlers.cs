@@ -77,52 +77,22 @@ public static partial class SessionHandlers
             return;
         }
 
-        // SEC-33: Use ConsumeAsync for atomic retrieve-and-remove to prevent TOCTOU race.
-        // Two parallel requests with the same token: only the first gets the entry,
-        // the second gets null because TryRemove is atomic.
-        using SessionScope scope = await s_sessionService.ConsumeAsync(packet.SessionToken)
-                                                     .ConfigureAwait(false);
+        // SEC-33: Atomically consume the token only after SEC-16 proof validation succeeds.
+        // Two parallel valid requests with the same token: only one predicate-accepted remove wins.
+        // Invalid proofs must not remove the entry, otherwise an observer could burn a resume token.
+        bool tokenRejected = false;
+        using SessionScope scope = await s_sessionService.ConsumeAsync(
+            packet.SessionToken,
+            session =>
+            {
+                bool valid = IsResumeProofValid(session, packet.SessionToken, packet.Proof);
+                tokenRejected = !valid;
+                return valid;
+            }).ConfigureAwait(false);
         SessionEntry? session = scope.Value;
         if (session == null)
         {
-            await HandleFailureAsync(context, ProtocolReason.SESSION_EXPIRED).ConfigureAwait(false);
-            return;
-        }
-
-        // SEC-16: Validate proof-of-possession (MAC) using the stored session secret.
-        // We compute HMAC-SHA256(Secret, SessionToken) and compare it with the client's proof.
-        // This ensures the client knows the secret without sending it over the wire.
-        if (session.Snapshot.Secret.IsZero)
-        {
-            await HandleFailureAsync(context, ProtocolReason.TOKEN_REVOKED).ConfigureAwait(false);
-            return;
-        }
-
-        Span<byte> messageBytes = stackalloc byte[16];
-        Span<byte> expectedProofBytes = stackalloc byte[32];
-
-        BinaryPrimitives.WriteUInt64LittleEndian(messageBytes, packet.SessionToken);
-
-        long currentWindow = Clock.UnixSecondsNow() / 30;
-        bool validProof = false;
-
-        // SEC-16: Validate proof-of-possession (MAC) using the stored session secret and sliding window.
-        // We compute HMAC-Keccak256(Secret, SessionToken || TimeWindow) for t-1, t, t+1.
-        for (long w = currentWindow - 1; w <= currentWindow + 1; w++)
-        {
-            BinaryPrimitives.WriteInt64LittleEndian(messageBytes[8..], w);
-            HmacKeccak256.Compute(session.Snapshot.Secret.AsSpan(), messageBytes, expectedProofBytes);
-
-            if (packet.Proof == new Bytes32(expectedProofBytes))
-            {
-                validProof = true;
-                break;
-            }
-        }
-
-        if (!validProof)
-        {
-            await HandleFailureAsync(context, ProtocolReason.TOKEN_REVOKED).ConfigureAwait(false);
+            await HandleFailureAsync(context, tokenRejected ? ProtocolReason.TOKEN_REVOKED : ProtocolReason.SESSION_EXPIRED).ConfigureAwait(false);
             return;
         }
 
@@ -171,6 +141,36 @@ public static partial class SessionHandlers
             flags: packet.Flags);
 
         await context.Sender.SendAsync(ack).ConfigureAwait(false);
+    }
+
+    private static bool IsResumeProofValid(SessionEntry session, ulong sessionToken, Bytes32 proof)
+    {
+        if (session.Snapshot.Secret.IsZero)
+        {
+            return false;
+        }
+
+        Span<byte> messageBytes = stackalloc byte[16];
+        Span<byte> expectedProofBytes = stackalloc byte[32];
+
+        BinaryPrimitives.WriteUInt64LittleEndian(messageBytes, sessionToken);
+
+        long currentWindow = Clock.UnixSecondsNow() / 30;
+
+        // SEC-16: Validate proof-of-possession (MAC) using the stored session secret and sliding window.
+        // We compute HMAC-Keccak256(Secret, SessionToken || TimeWindow) for t-1, t, t+1.
+        for (long w = currentWindow - 1; w <= currentWindow + 1; w++)
+        {
+            BinaryPrimitives.WriteInt64LittleEndian(messageBytes[8..], w);
+            HmacKeccak256.Compute(session.Snapshot.Secret.AsSpan(), messageBytes, expectedProofBytes);
+
+            if (proof == new Bytes32(expectedProofBytes))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

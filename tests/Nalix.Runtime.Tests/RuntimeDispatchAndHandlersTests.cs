@@ -408,7 +408,7 @@ public sealed class RuntimeDispatchAndHandlersTests
         public System.Threading.Tasks.ValueTask SaveSessionAsync(IConnection connection, System.Threading.CancellationToken cancellationToken = default)
             => System.Threading.Tasks.ValueTask.CompletedTask;
 
-        public System.Threading.Tasks.ValueTask<SessionScope> ConsumeAsync(ulong sessionToken, System.Threading.CancellationToken cancellationToken = default)
+        public System.Threading.Tasks.ValueTask<SessionScope> ConsumeAsync(ulong sessionToken, Func<SessionEntry, bool>? predicate = null, System.Threading.CancellationToken cancellationToken = default)
             => new(new SessionScope(null));
 
         public void Dispose() { }
@@ -422,8 +422,6 @@ public sealed class RuntimeDispatchAndHandlersTests
         public int Serialize(Span<byte> buffer) => 0;
     }
 }
-
-
 
 
 

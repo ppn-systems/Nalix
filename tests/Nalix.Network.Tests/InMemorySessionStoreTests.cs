@@ -323,12 +323,33 @@ public sealed class InMemorySessionStoreTests : IDisposable
         Assert.False(replay.IsValid, "a replayed resume token must be rejected on the second attempt");
     }
 
+    [Fact]
+    public async Task ConsumeAsync_WhenPredicateRejects_DoesNotConsumeToken()
+    {
+        ulong token = 626_262UL;
+        SessionSnapshot snapshot = new()
+        {
+            SessionToken = token,
+            ExpiresAtUnixMilliseconds = long.MaxValue
+        };
+        SessionEntry entry = new(snapshot, 1UL);
+        await _store.StoreAsync(entry);
+
+        using SessionScope rejected = await _store.ConsumeAsync(token, _ => false);
+        Assert.False(rejected.IsValid);
+
+        using SessionScope accepted = await _store.ConsumeAsync(token, _ => true);
+        Assert.True(accepted.IsValid);
+        Assert.Same(entry, accepted.Value);
+
+        using SessionScope replay = await _store.ConsumeAsync(token, _ => true);
+        Assert.False(replay.IsValid);
+    }
+
     public void Dispose()
     {
     }
 }
-
-
 
 
 

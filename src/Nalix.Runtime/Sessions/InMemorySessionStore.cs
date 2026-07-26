@@ -124,25 +124,40 @@ public sealed class InMemorySessionStore : ISessionStore, IWorker, IReportable
     /// retrieve-and-remove. Only one concurrent caller can successfully consume a given token.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ValueTask<SessionScope> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default)
+    public ValueTask<SessionScope> ConsumeAsync(ulong sessionToken, Func<SessionEntry, bool>? predicate = null, CancellationToken cancellationToken = default)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (!_store.TryRemove(sessionToken, out SessionEntry? entry))
+        while (true)
         {
-            return ValueTask.FromResult(new SessionScope(null));
-        }
+            cancellationToken.ThrowIfCancellationRequested();
 
-        // Check TTL — if expired, return the entry resources and report null.
-        if (entry.Snapshot.ExpiresAtUnixMilliseconds <= Clock.UnixMillisecondsNow())
-        {
-            _ = Interlocked.Increment(ref _totalExpired);
-            entry.Return();
-            return ValueTask.FromResult(new SessionScope(null));
-        }
+            if (!_store.TryGetValue(sessionToken, out SessionEntry? entry))
+            {
+                return ValueTask.FromResult(new SessionScope(null));
+            }
 
-        _ = Interlocked.Increment(ref _totalConsumed);
-        return ValueTask.FromResult(new SessionScope(entry));
+            if (entry.Snapshot.ExpiresAtUnixMilliseconds <= Clock.UnixMillisecondsNow())
+            {
+                if (((ICollection<KeyValuePair<ulong, SessionEntry>>)_store).Remove(new KeyValuePair<ulong, SessionEntry>(sessionToken, entry)))
+                {
+                    _ = Interlocked.Increment(ref _totalExpired);
+                    entry.Return();
+                    return ValueTask.FromResult(new SessionScope(null));
+                }
+
+                continue;
+            }
+
+            if (predicate is not null && !predicate(entry))
+            {
+                return ValueTask.FromResult(new SessionScope(null));
+            }
+
+            if (((ICollection<KeyValuePair<ulong, SessionEntry>>)_store).Remove(new KeyValuePair<ulong, SessionEntry>(sessionToken, entry)))
+            {
+                _ = Interlocked.Increment(ref _totalConsumed);
+                return ValueTask.FromResult(new SessionScope(entry));
+            }
+        }
     }
 
     /// <inheritdoc />
