@@ -25,14 +25,14 @@ public sealed class HostingLifecycleTests : IDisposable
         builder.ListenTcp<TestUtils.IntegrationTestProtocol>().OnPort((ushort)port);
 
         await using NetworkApplication app = builder.Build();
-        await app.ActivateAsync();
+        await app.ActivateAsync().WaitAsync(TestUtils.Timeout);
 
         using TcpSession client = new(new TransportOptions { Address = "127.0.0.1", Port = (ushort)port });
-        await client.ConnectAsync();
+        await client.ConnectAsync().WaitAsync(TestUtils.Timeout);
         Assert.True(client.IsConnected);
-        await client.DisconnectAsync();
+        await client.DisconnectAsync().WaitAsync(TestUtils.Timeout);
 
-        await app.DeactivateAsync();
+        await app.DeactivateAsync().WaitAsync(TestUtils.Timeout);
     }
 
     [Fact]
@@ -50,15 +50,15 @@ public sealed class HostingLifecycleTests : IDisposable
         // Wait until the listener is actually accepting.
         using (TcpSession probe = new(new TransportOptions { Address = "127.0.0.1", Port = (ushort)port }))
         {
-            await probe.ConnectAsync();
-            await probe.DisconnectAsync();
+            await probe.ConnectAsync().WaitAsync(TestUtils.Timeout);
+            await probe.DisconnectAsync().WaitAsync(TestUtils.Timeout);
         }
 
         cts.Cancel();
 
         Task completed = await Task.WhenAny(runTask, Task.Delay(TimeSpan.FromSeconds(10)));
         Assert.Same(runTask, completed);
-        await runTask; // Should complete without throwing (OperationCanceledException swallowed internally).
+        await runTask.WaitAsync(TestUtils.Timeout); // Should complete without throwing (OperationCanceledException swallowed internally).
     }
 
     [Fact]
@@ -70,8 +70,8 @@ public sealed class HostingLifecycleTests : IDisposable
         builder1.ListenTcp<TestUtils.IntegrationTestProtocol>().OnPort((ushort)port);
         using (NetworkApplication app1 = builder1.Build())
         {
-            await app1.ActivateAsync();
-            await app1.DeactivateAsync();
+            await app1.ActivateAsync().WaitAsync(TestUtils.Timeout);
+            await app1.DeactivateAsync().WaitAsync(TestUtils.Timeout);
         }
 
         var builder2 = NetworkApplication.CreateBuilder();
@@ -79,14 +79,14 @@ public sealed class HostingLifecycleTests : IDisposable
         using (NetworkApplication app2 = builder2.Build())
         {
             // Must not throw "address already in use" — the previous listener released the port.
-            await app2.ActivateAsync();
+            await app2.ActivateAsync().WaitAsync(TestUtils.Timeout);
 
             using TcpSession client = new(new TransportOptions { Address = "127.0.0.1", Port = (ushort)port });
-            await client.ConnectAsync();
+            await client.ConnectAsync().WaitAsync(TestUtils.Timeout);
             Assert.True(client.IsConnected);
-            await client.DisconnectAsync();
+            await client.DisconnectAsync().WaitAsync(TestUtils.Timeout);
 
-            await app2.DeactivateAsync();
+            await app2.DeactivateAsync().WaitAsync(TestUtils.Timeout);
         }
     }
 
@@ -98,7 +98,7 @@ public sealed class HostingLifecycleTests : IDisposable
         var builder1 = NetworkApplication.CreateBuilder();
         builder1.ListenTcp<TestUtils.IntegrationTestProtocol>().OnPort((ushort)port);
         using NetworkApplication app1 = builder1.Build();
-        await app1.ActivateAsync();
+        await app1.ActivateAsync().WaitAsync(TestUtils.Timeout);
 
         try
         {
@@ -106,11 +106,11 @@ public sealed class HostingLifecycleTests : IDisposable
             builder2.ListenTcp<TestUtils.IntegrationTestProtocol>().OnPort((ushort)port);
             using NetworkApplication app2 = builder2.Build();
 
-            await Assert.ThrowsAnyAsync<Exception>(() => app2.ActivateAsync());
+            await Assert.ThrowsAnyAsync<Exception>(() => app2.ActivateAsync().WaitAsync(TestUtils.Timeout));
         }
         finally
         {
-            await app1.DeactivateAsync();
+            await app1.DeactivateAsync().WaitAsync(TestUtils.Timeout);
         }
     }
 
@@ -123,18 +123,18 @@ public sealed class HostingLifecycleTests : IDisposable
         builder.ListenUdp<TestUtils.IntegrationTestProtocol>().OnPort((ushort)port);
 
         using NetworkApplication app = builder.Build();
-        await app.ActivateAsync();
+        await app.ActivateAsync().WaitAsync(TestUtils.Timeout);
 
         try
         {
             using TcpSession tcp = new(new TransportOptions { Address = "127.0.0.1", Port = (ushort)port });
-            await tcp.ConnectAsync();
+            await tcp.ConnectAsync().WaitAsync(TestUtils.Timeout);
             Assert.True(tcp.IsConnected);
-            await tcp.DisconnectAsync();
+            await tcp.DisconnectAsync().WaitAsync(TestUtils.Timeout);
         }
         finally
         {
-            await app.DeactivateAsync();
+            await app.DeactivateAsync().WaitAsync(TestUtils.Timeout);
         }
     }
 

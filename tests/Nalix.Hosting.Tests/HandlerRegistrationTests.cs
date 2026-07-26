@@ -41,12 +41,12 @@ public sealed class HandlerRegistrationTests : IDisposable
         builder.MapHandlers<HandlerScanController>();
 
         using NetworkApplication app = builder.Build();
-        await app.ActivateAsync();
+        await app.ActivateAsync().WaitAsync(TestUtils.Timeout);
 
         try
         {
             using TcpSession client = new(new TransportOptions { Address = "127.0.0.1", Port = (ushort)port });
-            await client.ConnectAsync();
+            await client.ConnectAsync().WaitAsync(TestUtils.Timeout);
 
             using HandlerScanPacket pkt = new() { Value = 1 };
             var h = pkt.Header;
@@ -65,7 +65,7 @@ public sealed class HandlerRegistrationTests : IDisposable
         }
         finally
         {
-            await app.DeactivateAsync();
+            await app.DeactivateAsync().WaitAsync(TestUtils.Timeout);
         }
     }
 
