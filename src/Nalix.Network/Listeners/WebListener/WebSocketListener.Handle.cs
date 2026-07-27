@@ -308,8 +308,8 @@ public abstract partial class WebSocketListenerBase
                 }
             }
 
-            // Create a NetworkStream and wrap it in a WebSocket
-            NetworkStream stream = new(socket, ownsSocket: false);
+            // Create a NetworkStream and wrap it in a WebSocket (ownsSocket: true so closing WS closes TCP socket immediately)
+            NetworkStream stream = new(socket, ownsSocket: true);
 
             WebSocket webSocket = WebSocket.CreateFromStream(stream, new WebSocketCreationOptions
             {
