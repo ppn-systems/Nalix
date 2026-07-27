@@ -154,7 +154,12 @@ public abstract partial class WebSocketListenerBase
 
             bool isVersion = pathStr.Equals("/version", StringComparison.OrdinalIgnoreCase);
             bool isMetrics = pathStr.Equals("/metrics", StringComparison.OrdinalIgnoreCase);
-            bool isHealthz = pathStr.Equals("/healthz", StringComparison.OrdinalIgnoreCase) || pathStr.Equals("/health", StringComparison.OrdinalIgnoreCase);
+            bool isHealthz = pathStr.Equals("/healthz", StringComparison.OrdinalIgnoreCase) ||
+                             pathStr.Equals("/health", StringComparison.OrdinalIgnoreCase) ||
+                             pathStr.Equals("/livez", StringComparison.OrdinalIgnoreCase) ||
+                             pathStr.Equals("/readyz", StringComparison.OrdinalIgnoreCase) ||
+                             pathStr.Equals("/startupz", StringComparison.OrdinalIgnoreCase) ||
+                             pathStr.Equals("/ping", StringComparison.OrdinalIgnoreCase);
 
             if (isHealthz || isVersion || isMetrics)
             {

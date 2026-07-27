@@ -63,6 +63,10 @@ public sealed class WebSocketHealthCheckTests : IDisposable
     [Theory]
     [InlineData("/healthz")]
     [InlineData("/health")]
+    [InlineData("/livez")]
+    [InlineData("/readyz")]
+    [InlineData("/startupz")]
+    [InlineData("/ping")]
     public async Task WebSocketListener_GetHealthzEndpoint_Returns200OKHealthy(string path)
     {
         ushort port = GetFreePort();
