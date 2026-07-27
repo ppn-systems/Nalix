@@ -15,6 +15,7 @@ using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Tcp;
 using Nalix.Network.Internal.WebSockets;
+
 #pragma warning disable IDE0079
 #pragma warning disable CA2213
 #pragma warning disable CA1031
@@ -24,10 +25,6 @@ namespace Nalix.Network.Listeners.Web;
 
 public abstract partial class WebSocketListenerBase
 {
-    private static readonly byte[] s_handshakeResponsePrefix = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: "u8.ToArray();
-    private static readonly byte[] s_handshakeSubProtocolPrefix = "\r\nSec-WebSocket-Protocol: "u8.ToArray();
-    private static readonly byte[] s_handshakeResponseSuffix = "\r\n\r\n"u8.ToArray();
-
     [DebuggerStepThrough]
     internal override AcceptResult ProcessAcceptedSocket(Socket socket, PooledAcceptContext context)
     {
@@ -81,7 +78,7 @@ public abstract partial class WebSocketListenerBase
         int initialOffset = 0;
         if (proxyBuffer != null && proxyBytesReceived > 0)
         {
-            state.Buffer = BufferLease.ByteArrayPool.Rent(Math.Max(_config.MaxUpgradeRequestSize, proxyBytesReceived));
+            state.Buffer = BufferLease.ByteArrayPool.Rent(Math.Max(_wsconfig.MaxUpgradeRequestSize, proxyBytesReceived));
             Buffer.BlockCopy(proxyBuffer, 0, state.Buffer, 0, proxyBytesReceived);
             state.BytesReceived = proxyBytesReceived;
             initialOffset = proxyBytesReceived;
@@ -90,7 +87,7 @@ public abstract partial class WebSocketListenerBase
         }
         else
         {
-            state.Buffer = BufferLease.ByteArrayPool.Rent(_config.MaxUpgradeRequestSize);
+            state.Buffer = BufferLease.ByteArrayPool.Rent(_wsconfig.MaxUpgradeRequestSize);
             state.BytesReceived = 0;
         }
 
@@ -151,10 +148,50 @@ public abstract partial class WebSocketListenerBase
 
         WebSocketUpgradeResult result = WebSocketUpgradeParser.Parse(new ReadOnlySpan<byte>(state.Buffer, 0, state.BytesReceived));
 
+        if (_wsconfig.EnableDevOpsEndpoints && !result.Path.IsEmpty)
+        {
+            ReadOnlySpan<byte> pathSpan = result.Path;
+
+            bool isVersion = pathSpan.SequenceEqual("/version"u8);
+            bool isMetrics = pathSpan.SequenceEqual("/metrics"u8);
+            bool isHealthz = pathSpan.SequenceEqual("/healthz"u8) ||
+                             pathSpan.SequenceEqual("/health"u8) ||
+                             pathSpan.SequenceEqual("/livez"u8) ||
+                             pathSpan.SequenceEqual("/readyz"u8) ||
+                             pathSpan.SequenceEqual("/startupz"u8) ||
+                             pathSpan.SequenceEqual("/ping"u8);
+
+            if (isHealthz || isVersion || isMetrics)
+            {
+                lock (_wsUpgradeLock)
+                {
+                    this.DetachWsUpgradeContext(state);
+                }
+
+                if (result.HttpMethod.SequenceEqual("OPTIONS"u8))
+                {
+                    this.SEND_STATIC_RESPONSE(state, args, CorsPreflightResponse);
+                }
+                else if (isHealthz)
+                {
+                    this.SEND_STATIC_RESPONSE(state, args, HealthzResponse);
+                }
+                else if (isVersion)
+                {
+                    this.SEND_STATIC_RESPONSE(state, args, _versionResponseBytes);
+                }
+                else if (isMetrics)
+                {
+                    this.SEND_METRICS_RESPONSE(state, args);
+                }
+                return;
+            }
+        }
+
         if (!result.IsValid)
         {
             // If invalid, check if we've exceeded the max request size or if it's incomplete
-            if (state.BytesReceived >= _config.MaxUpgradeRequestSize)
+            if (state.BytesReceived >= _wsconfig.MaxUpgradeRequestSize)
             {
                 lock (_wsUpgradeLock)
                 {
@@ -202,7 +239,7 @@ public abstract partial class WebSocketListenerBase
         }
 
         string? origin = result.Origin.IsEmpty ? null : Encoding.UTF8.GetString(result.Origin);
-        if (!_config.IsOriginAllowed(origin))
+        if (!_wsconfig.IsOriginAllowed(origin))
         {
             this.Metrics.RECORD_ERROR();
             this.ReleaseWsUpgradeContext(state, args, success: false);
@@ -223,7 +260,7 @@ public abstract partial class WebSocketListenerBase
         // Send 101 Switching Protocols response
         try
         {
-            string configuredSubProtocol = _config.SubProtocol;
+            string configuredSubProtocol = _wsconfig.SubProtocol;
             bool hasConfiguredSubProtocol = !string.IsNullOrWhiteSpace(configuredSubProtocol);
             bool hasSubProtocol = hasConfiguredSubProtocol && ContainsRequestedSubProtocol(result.SubProtocol, configuredSubProtocol);
 
@@ -234,39 +271,29 @@ public abstract partial class WebSocketListenerBase
                 return;
             }
 
-            byte[]? subProtocolBytes = hasSubProtocol ? Encoding.UTF8.GetBytes(configuredSubProtocol) : null;
-            int responseLength = s_handshakeResponsePrefix.Length + acceptKeyLen;
-
-            if (hasSubProtocol)
-            {
-                responseLength += s_handshakeSubProtocolPrefix.Length + subProtocolBytes!.Length;
-            }
-            responseLength += s_handshakeResponseSuffix.Length;
-
-            byte[] responseBuffer = BufferLease.ByteArrayPool.Rent(responseLength);
+            Span<byte> responseBuffer = stackalloc byte[256];
             int offset = 0;
 
-            Buffer.BlockCopy(s_handshakeResponsePrefix, 0, responseBuffer, offset, s_handshakeResponsePrefix.Length);
-            offset += s_handshakeResponsePrefix.Length;
+            HandshakeResponsePrefix.CopyTo(responseBuffer[offset..]);
+            offset += HandshakeResponsePrefix.Length;
 
-            acceptKey.CopyTo(new Span<byte>(responseBuffer, offset, acceptKeyLen));
+            acceptKey.CopyTo(responseBuffer[offset..]);
             offset += acceptKeyLen;
 
             if (hasSubProtocol)
             {
-                byte[] selectedSubProtocol = subProtocolBytes!;
-                Buffer.BlockCopy(s_handshakeSubProtocolPrefix, 0, responseBuffer, offset, s_handshakeSubProtocolPrefix.Length);
-                offset += s_handshakeSubProtocolPrefix.Length;
+                HandshakeSubProtocolPrefix.CopyTo(responseBuffer[offset..]);
+                offset += HandshakeSubProtocolPrefix.Length;
 
-                Buffer.BlockCopy(selectedSubProtocol, 0, responseBuffer, offset, selectedSubProtocol.Length);
-                offset += selectedSubProtocol.Length;
+                int bytesWritten = Encoding.UTF8.GetBytes(configuredSubProtocol, responseBuffer[offset..]);
+                offset += bytesWritten;
             }
 
-            Buffer.BlockCopy(s_handshakeResponseSuffix, 0, responseBuffer, offset, s_handshakeResponseSuffix.Length);
+            HandshakeResponseSuffix.CopyTo(responseBuffer[offset..]);
+            offset += HandshakeResponseSuffix.Length;
 
-            // Send sync for now since it's small and kernel buffer can take it immediately
-            int sent = state.Socket!.Send(responseBuffer, 0, responseLength, SocketFlags.None);
-            BufferLease.ByteArrayPool.Return(responseBuffer);
+            int responseLength = offset;
+            int sent = state.Socket!.Send(responseBuffer[..responseLength], SocketFlags.None);
 
             if (sent != responseLength)
             {
@@ -308,14 +335,14 @@ public abstract partial class WebSocketListenerBase
                 }
             }
 
-            // Create a NetworkStream and wrap it in a WebSocket
-            NetworkStream stream = new(socket, ownsSocket: false);
+            // Create a NetworkStream and wrap it in a WebSocket (ownsSocket: true so closing WS closes TCP socket immediately)
+            NetworkStream stream = new(socket, ownsSocket: true);
 
             WebSocket webSocket = WebSocket.CreateFromStream(stream, new WebSocketCreationOptions
             {
                 IsServer = true,
                 SubProtocol = hasSubProtocol ? configuredSubProtocol : null,
-                KeepAliveInterval = TimeSpan.FromSeconds(_config.KeepAliveIntervalSeconds)
+                KeepAliveInterval = TimeSpan.FromSeconds(_wsconfig.KeepAliveIntervalSeconds)
             });
 
             WebSocketConnection? connection = new(webSocket, _protocol.OpCodeExtractor, realEndPoint);
@@ -326,7 +353,7 @@ public abstract partial class WebSocketListenerBase
                 connection.MessageProcessed += _protocol.PostProcessMessage;
                 connection.MessageProcessing += _protocol.FrameProcessor.ProcessFrame;
 
-                if (base._config.EnableTimeout)
+                if (_config.EnableTimeout)
                 {
                     _timing.Register(connection);
                 }
@@ -490,7 +517,6 @@ public abstract partial class WebSocketListenerBase
     private void SWEEP_WS_HANDSHAKE_TIMEOUTS()
     {
         long now = Stopwatch.GetTimestamp();
-        long timeoutTicks = (long)(_config.HandshakeTimeoutMs / 1000.0 * Stopwatch.Frequency);
 
         lock (_wsUpgradeLock)
         {
@@ -499,7 +525,7 @@ public abstract partial class WebSocketListenerBase
             {
                 WebSocketUpgradeContext? next = current.Next;
 
-                if (now - current.HandshakeStartTimeTicks <= timeoutTicks)
+                if (now - current.HandshakeStartTimeTicks <= _handshakeTimeoutTicks)
                 {
                     break;
                 }

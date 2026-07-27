@@ -40,6 +40,19 @@ public sealed partial class NetworkWebSocketOptions : ConfigurationLoader, IVali
     public string SubProtocol { get; set; } = "nalix.v1";
 
     /// <summary>
+    /// Gets or sets the custom server version string exposed via the /version HTTP endpoint.
+    /// </summary>
+    [IniComment("Custom server version exposed via /version endpoint (default 1.0.0)")]
+    public string ServerVersion { get; set; } = "1.0.0";
+
+    /// <summary>
+    /// Gets or sets a value indicating whether native DevOps HTTP endpoints (/healthz, /version, /metrics) are enabled.
+    /// Default is true.
+    /// </summary>
+    [IniComment("Enable native HTTP endpoints (/healthz, /version, /metrics) (default true)")]
+    public bool EnableDevOpsEndpoints { get; set; } = true;
+
+    /// <summary>
     /// Maximum time in milliseconds to wait for the HTTP upgrade handshake to complete
     /// before closing the socket. Prevents slowloris-style attacks.
     /// </summary>
