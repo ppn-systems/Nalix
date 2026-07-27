@@ -32,7 +32,9 @@ public abstract partial class WebSocketListenerBase : TcpListenerBase
     #region Fields
 
     private readonly string _path;
-    private new readonly NetworkWebSocketOptions _config;
+    private readonly byte[] _versionResponseBytes;
+
+    private readonly NetworkWebSocketOptions _wsconfig;
     private readonly ForwardedHeadersOptions _forwardedConfig;
 
     // Intrusive linked list for WebSocket upgrade handshake timeout sweep
@@ -62,9 +64,10 @@ public abstract partial class WebSocketListenerBase : TcpListenerBase
         : base(port, protocol, hub, guard)
     {
         _path = string.IsNullOrEmpty(path) ? "/ws/" : path;
-        _config = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
+        _wsconfig = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
         _forwardedConfig = ConfigurationManager.Instance.Get<ForwardedHeadersOptions>();
-        _config.Validate();
+        _wsconfig.Validate();
+        _versionResponseBytes = this.BUILD_VERSION_RESPONSE_BYTES();
     }
 
     /// <summary>
@@ -79,10 +82,11 @@ public abstract partial class WebSocketListenerBase : TcpListenerBase
     protected WebSocketListenerBase(IProtocol protocol, IConnectionHub hub, IConnectionGuard guard)
         : base(protocol, hub, guard)
     {
-        _config = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
+        _wsconfig = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
         _forwardedConfig = ConfigurationManager.Instance.Get<ForwardedHeadersOptions>();
-        _path = string.IsNullOrEmpty(_config.Path) ? "/ws/" : _config.Path;
-        _config.Validate();
+        _path = string.IsNullOrEmpty(_wsconfig.Path) ? "/ws/" : _wsconfig.Path;
+        _wsconfig.Validate();
+        _versionResponseBytes = this.BUILD_VERSION_RESPONSE_BYTES();
     }
 
     /// <summary>
