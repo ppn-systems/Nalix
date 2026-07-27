@@ -61,6 +61,13 @@ public abstract partial class WebSocketListenerBase
     {
         address = IPAddress.None;
         value = TrimAsciiSpace(value);
-        return !value.IsEmpty && IPAddress.TryParse(Encoding.ASCII.GetString(value), out address!);
+        if (value.IsEmpty || value.Length > 45)
+        {
+            return false;
+        }
+
+        Span<char> charBuf = stackalloc char[value.Length];
+        int written = Encoding.ASCII.GetChars(value, charBuf);
+        return IPAddress.TryParse(charBuf[..written], out address!);
     }
 }

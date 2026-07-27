@@ -150,16 +150,16 @@ public abstract partial class WebSocketListenerBase
 
         if (_wsconfig.EnableDevOpsEndpoints && !result.Path.IsEmpty)
         {
-            string pathStr = Encoding.UTF8.GetString(result.Path);
+            ReadOnlySpan<byte> pathSpan = result.Path;
 
-            bool isVersion = pathStr.Equals("/version", StringComparison.OrdinalIgnoreCase);
-            bool isMetrics = pathStr.Equals("/metrics", StringComparison.OrdinalIgnoreCase);
-            bool isHealthz = pathStr.Equals("/healthz", StringComparison.OrdinalIgnoreCase) ||
-                             pathStr.Equals("/health", StringComparison.OrdinalIgnoreCase) ||
-                             pathStr.Equals("/livez", StringComparison.OrdinalIgnoreCase) ||
-                             pathStr.Equals("/readyz", StringComparison.OrdinalIgnoreCase) ||
-                             pathStr.Equals("/startupz", StringComparison.OrdinalIgnoreCase) ||
-                             pathStr.Equals("/ping", StringComparison.OrdinalIgnoreCase);
+            bool isVersion = pathSpan.SequenceEqual("/version"u8);
+            bool isMetrics = pathSpan.SequenceEqual("/metrics"u8);
+            bool isHealthz = pathSpan.SequenceEqual("/healthz"u8) ||
+                             pathSpan.SequenceEqual("/health"u8) ||
+                             pathSpan.SequenceEqual("/livez"u8) ||
+                             pathSpan.SequenceEqual("/readyz"u8) ||
+                             pathSpan.SequenceEqual("/startupz"u8) ||
+                             pathSpan.SequenceEqual("/ping"u8);
 
             if (isHealthz || isVersion || isMetrics)
             {
@@ -517,7 +517,6 @@ public abstract partial class WebSocketListenerBase
     private void SWEEP_WS_HANDSHAKE_TIMEOUTS()
     {
         long now = Stopwatch.GetTimestamp();
-        long timeoutTicks = (long)(_wsconfig.HandshakeTimeoutMs / 1000.0 * Stopwatch.Frequency);
 
         lock (_wsUpgradeLock)
         {
@@ -526,7 +525,7 @@ public abstract partial class WebSocketListenerBase
             {
                 WebSocketUpgradeContext? next = current.Next;
 
-                if (now - current.HandshakeStartTimeTicks <= timeoutTicks)
+                if (now - current.HandshakeStartTimeTicks <= _handshakeTimeoutTicks)
                 {
                     break;
                 }

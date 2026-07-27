@@ -33,6 +33,7 @@ public abstract partial class WebSocketListenerBase : TcpListenerBase
 
     private readonly string _path;
     private readonly byte[] _versionResponseBytes;
+    private readonly long _handshakeTimeoutTicks;
 
     private readonly NetworkWebSocketOptions _wsconfig;
     private readonly ForwardedHeadersOptions _forwardedConfig;
@@ -68,6 +69,7 @@ public abstract partial class WebSocketListenerBase : TcpListenerBase
         _forwardedConfig = ConfigurationManager.Instance.Get<ForwardedHeadersOptions>();
         _wsconfig.Validate();
         _versionResponseBytes = this.BUILD_VERSION_RESPONSE_BYTES();
+        _handshakeTimeoutTicks = (long)(_wsconfig.HandshakeTimeoutMs / 1000.0 * Stopwatch.Frequency);
     }
 
     /// <summary>
@@ -87,6 +89,7 @@ public abstract partial class WebSocketListenerBase : TcpListenerBase
         _path = string.IsNullOrEmpty(_wsconfig.Path) ? "/ws/" : _wsconfig.Path;
         _wsconfig.Validate();
         _versionResponseBytes = this.BUILD_VERSION_RESPONSE_BYTES();
+        _handshakeTimeoutTicks = (long)(_wsconfig.HandshakeTimeoutMs / 1000.0 * Stopwatch.Frequency);
     }
 
     /// <summary>
