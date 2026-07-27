@@ -15,6 +15,7 @@ using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Tcp;
 using Nalix.Network.Internal.WebSockets;
+
 #pragma warning disable IDE0079
 #pragma warning disable CA2213
 #pragma warning disable CA1031
@@ -150,6 +151,41 @@ public abstract partial class WebSocketListenerBase
         state.BytesReceived += args.BytesTransferred;
 
         WebSocketUpgradeResult result = WebSocketUpgradeParser.Parse(new ReadOnlySpan<byte>(state.Buffer, 0, state.BytesReceived));
+
+        if (_config.EnableDevOpsEndpoints && !result.Path.IsEmpty)
+        {
+            string pathStr = Encoding.UTF8.GetString(result.Path);
+            bool isHealth = pathStr.Equals("/healthz", StringComparison.OrdinalIgnoreCase) ||
+                            pathStr.Equals("/health", StringComparison.OrdinalIgnoreCase);
+            bool isVersion = pathStr.Equals("/version", StringComparison.OrdinalIgnoreCase);
+            bool isMetrics = pathStr.Equals("/metrics", StringComparison.OrdinalIgnoreCase);
+
+            if (isHealth || isVersion || isMetrics)
+            {
+                lock (_wsUpgradeLock)
+                {
+                    this.DetachWsUpgradeContext(state);
+                }
+
+                if (result.HttpMethod.SequenceEqual("OPTIONS"u8))
+                {
+                    this.SEND_CORS_PREFLIGHT_RESPONSE(state, args);
+                }
+                else if (isHealth)
+                {
+                    this.SEND_HEALTH_CHECK_RESPONSE(state, args);
+                }
+                else if (isVersion)
+                {
+                    this.SEND_VERSION_RESPONSE(state, args);
+                }
+                else if (isMetrics)
+                {
+                    this.SEND_METRICS_RESPONSE(state, args);
+                }
+                return;
+            }
+        }
 
         if (!result.IsValid)
         {
