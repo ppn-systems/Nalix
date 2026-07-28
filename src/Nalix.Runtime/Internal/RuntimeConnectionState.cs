@@ -47,16 +47,4 @@ internal sealed class RuntimeConnectionState
     /// Synchronization lock used to coordinate anti-spam directive send guards per connection.
     /// </summary>
     public Lock DirectiveGuardLock { get; } = new();
-
-    /// <inheritdoc/>
-    public void ResetForPool()
-    {
-        HandshakeState = null;
-        HandshakeEstablished = false;
-        InboundDirectiveTimeoutLastSentAtMs = 0;
-        InboundDirectiveRateLimitedLastSentAtMs = 0;
-        InboundDirectiveUnauthorizedLastSentAtMs = 0;
-        InboundControlLogLastSentAtMs = 0;
-        // Lock does not need to be reset, it must just be uncontended.
-    }
 }

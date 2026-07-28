@@ -26,8 +26,8 @@ public sealed class InMemoryGroupStore : IConnectionGroupRegistry
     /// </summary>
     public InMemoryGroupStore()
     {
-        _groups = new ConcurrentDictionary<string, ConcurrentDictionary<ulong, IConnection>>(StringComparer.Ordinal);
         _connectionGroups = new ConcurrentDictionary<ulong, ConcurrentDictionary<string, byte>>();
+        _groups = new ConcurrentDictionary<string, ConcurrentDictionary<ulong, IConnection>>(StringComparer.Ordinal);
     }
 
     /// <inheritdoc />
