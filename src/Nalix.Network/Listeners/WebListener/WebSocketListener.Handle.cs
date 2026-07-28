@@ -293,7 +293,11 @@ public abstract partial class WebSocketListenerBase
             offset += HandshakeResponseSuffix.Length;
 
             int responseLength = offset;
-            int sent = state.Socket!.Send(responseBuffer[..responseLength], SocketFlags.None);
+
+            // ponytail: fixed 1s timeout guards against a slow/stalled peer blocking this
+            // IOCP completion thread indefinitely; make configurable if load demands it.
+            state.Socket!.SendTimeout = 1000;
+            int sent = state.Socket.Send(responseBuffer[..responseLength], SocketFlags.None);
 
             if (sent != responseLength)
             {
@@ -518,6 +522,15 @@ public abstract partial class WebSocketListenerBase
     {
         long now = Stopwatch.GetTimestamp();
 
+        // Detach timed-out contexts into a local chain (reusing their own .Next pointer --
+        // zero extra allocation) while holding the lock (fast: pointer-chasing only), then
+        // close the sockets AFTER releasing it. Socket.Close() can block (TCP teardown,
+        // linger, OS scheduling); calling it while holding _wsUpgradeLock would stall every
+        // concurrent handshake/healthz/ping request queued on that same lock in
+        // BeginWebSocketHandshake / OnWebSocketReadCompleted for as long as the sweep takes
+        // to close all timed-out sockets.
+        WebSocketUpgradeContext? toClose = null;
+
         lock (_wsUpgradeLock)
         {
             WebSocketUpgradeContext? current = _wsUpgradeHead;
@@ -538,33 +551,49 @@ public abstract partial class WebSocketListenerBase
                         new DiagnosticLog("NW.WebSocketListenerBase:Sweep", $"ws-handshake-timeout remote-endpoint={current.Socket?.RemoteEndPoint}"));
                 }
 
-                // Force close the socket
-                if (current.Socket != null)
-                {
-                    SafeCloseSocket(current.Socket);
-                }
+                current.Next = toClose;
+                toClose = current;
 
                 current = next;
             }
         }
+
+        this.CloseChainOutsideLock(toClose);
     }
 
     private void CLEANUP_WS_UPGRADES()
     {
+        WebSocketUpgradeContext? toClose;
+
         lock (_wsUpgradeLock)
         {
-            WebSocketUpgradeContext? current = _wsUpgradeHead;
-            while (current != null)
-            {
-                WebSocketUpgradeContext? next = current.Next;
-                if (current.Socket != null)
-                {
-                    SafeCloseSocket(current.Socket);
-                }
-                current = next;
-            }
+            toClose = _wsUpgradeHead;
             _wsUpgradeHead = null;
             _wsUpgradeTail = null;
+        }
+
+        this.CloseChainOutsideLock(toClose);
+    }
+
+    /// <summary>
+    /// Closes every socket in a locally-detached chain of <see cref="WebSocketUpgradeContext"/>
+    /// (linked via <c>.Next</c>, reused as scratch space post-detach) without holding
+    /// <c>_wsUpgradeLock</c>. Must be called after the lock has been released.
+    /// </summary>
+    private void CloseChainOutsideLock(WebSocketUpgradeContext? head)
+    {
+        WebSocketUpgradeContext? current = head;
+        while (current != null)
+        {
+            WebSocketUpgradeContext? next = current.Next;
+            current.Next = null;
+
+            if (current.Socket != null)
+            {
+                SafeCloseSocket(current.Socket);
+            }
+
+            current = next;
         }
     }
 }
