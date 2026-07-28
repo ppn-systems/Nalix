@@ -42,6 +42,11 @@ public abstract partial class WebSocketListenerBase
         }
         catch { }
 
+        if (state.Socket != null)
+        {
+            SafeCloseSocket(state.Socket);
+        }
+
         this.ReleaseWsUpgradeContext(state, args, success: true);
     }
 
@@ -96,6 +101,11 @@ public abstract partial class WebSocketListenerBase
             state.Socket?.Shutdown(SocketShutdown.Send);
         }
         catch { }
+
+        if (state.Socket != null)
+        {
+            SafeCloseSocket(state.Socket);
+        }
 
         this.ReleaseWsUpgradeContext(state, args, success: true);
     }
