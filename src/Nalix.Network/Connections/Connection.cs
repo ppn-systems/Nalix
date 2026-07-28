@@ -434,6 +434,11 @@ public sealed partial class Connection :
             DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Trace, new DiagnosticLog("NW.Connection:Disconnect", $"disconnect request id={this.ConnectionId} remote={this.NetworkEndpoint} reason={reason}"));
         }
 
+        if (_disposed)
+        {
+            return;
+        }
+
         this.Dispose();
     }
 

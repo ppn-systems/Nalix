@@ -107,7 +107,7 @@ public sealed class WebSocketConnection :
     #region Properties
 
     /// <inheritdoc/>
-    public bool IsDisposed => _disposed;
+    public bool IsDisposed => _disposed || Volatile.Read(ref _backing) is null;
 
     /// <inheritdoc/>
     public bool IsUdpCreated => false; // UDP is not supported over WebSocket
@@ -348,7 +348,9 @@ public sealed class WebSocketConnection :
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.WebSocketConnection:TriggerProcessEvent", $"receive throttle triggered remote-endpoint={this.NetworkEndpoint}"));
+                DiagnosticsEvents.Write(
+                    DiagnosticsEvents.Internal.Warning,
+                    new DiagnosticLog("NW.WebSocketConnection:TriggerProcessEvent", $"receive throttle triggered remote-endpoint={this.NetworkEndpoint}"));
             }
 
             return;
@@ -440,11 +442,15 @@ public sealed class WebSocketConnection :
             DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Debug, new DiagnosticLog("NW.WebSocketConnection:Disconnect", reason ?? "Unknown"));
         }
 
-        if (_disposed || Interlocked.Exchange(ref _backing!.CloseSignaled, 1) == 1)
+        if (_disposed)
         {
             return;
         }
 
+        // Do NOT set CloseSignaled here — Dispose() uses that same flag to decide
+        // whether to fire ConnectionClosed. Setting it first would make Dispose()
+        // silently skip the event, so ConnectionHub never unregisters this connection.
+        // Dispose() is already idempotent via DisposeState, so just delegate to it.
         this.Dispose();
     }
 
