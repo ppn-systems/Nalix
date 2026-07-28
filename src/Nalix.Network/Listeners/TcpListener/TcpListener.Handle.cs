@@ -845,15 +845,46 @@ public abstract partial class TcpListenerBase
                     // No delay is needed for transient / expected pressure failures.
                     break;
                 case AcceptConnectionResult.Pending:
-                case AcceptConnectionResult.SocketAborted:
-                case AcceptConnectionResult.ListenerClosed:
-                default:
-                    // Stop accepting, break loop.
+                    // Ownership of the context was already transferred (async completion in flight);
+                    // nothing to do here, wait for the next loop iteration.
                     break;
+
+                case AcceptConnectionResult.ListenerClosed:
+                case AcceptConnectionResult.SocketAborted:
+                    // Handled below (after the switch) since the retry-vs-break decision also
+                    // depends on cancellationToken, not just the result value.
+                    break;
+
+                default:
+                    throw new System.ComponentModel.InvalidEnumArgumentException(
+                        nameof(acceptResult.Result), (int)acceptResult.Result, typeof(AcceptConnectionResult));
             }
+
+            // ListenerClosed/SocketAborted are only fatal when we actually asked to stop
+            // (cancellation requested). Both results can also occur transiently -- e.g. a
+            // momentarily disposed-looking socket handle, or an aborted in-flight accept
+            // caused by an abrupt client/proxy disconnect (observed in prod behind Cloudflare
+            // Tunnel) -- without the listener's CancellationToken ever being signaled. Treating
+            // them as unconditionally fatal breaks out of this loop for good; since MaxParallel
+            // defaults to 1, that silently kills the only accept-worker and the listener stops
+            // accepting new connections forever while the process keeps running (bug: listener
+            // hang under prod traffic, fixed by container restart -- root-caused 2026-07-28).
             if (acceptResult.Result is AcceptConnectionResult.ListenerClosed or AcceptConnectionResult.SocketAborted)
             {
-                break;
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                this.Metrics.RECORD_ERROR();
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Critical))
+                {
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Critical,
+                        new DiagnosticLog("NW.TcpListenerBase:AcceptConnectionsAsync",
+                            $"transient-{acceptResult.Result} port={_port} -- retrying accept, no cancellation requested"));
+                }
+
+                await Task.Delay(50, cancellationToken).ConfigureAwait(false);
             }
         }
 
