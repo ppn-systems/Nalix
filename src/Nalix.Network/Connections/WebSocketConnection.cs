@@ -348,7 +348,9 @@ public sealed class WebSocketConnection :
 
             if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
             {
-                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning, new DiagnosticLog("NW.WebSocketConnection:TriggerProcessEvent", $"receive throttle triggered remote-endpoint={this.NetworkEndpoint}"));
+                DiagnosticsEvents.Write(
+                    DiagnosticsEvents.Internal.Warning,
+                    new DiagnosticLog("NW.WebSocketConnection:TriggerProcessEvent", $"receive throttle triggered remote-endpoint={this.NetworkEndpoint}"));
             }
 
             return;

@@ -226,13 +226,11 @@ public sealed partial class PacketDispatchOptions<TPacket>
             throw new InternalErrorException($"Controller '{controllerType.Name}' was not processed by the Source Generator. Ensure it is marked with [PacketHandler].");
         }
 
-        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Information))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Debug))
         {
             DiagnosticsEvents.Write(
-                DiagnosticsEvents.Internal.Information,
-                new DiagnosticLog(
-                    "RT.PacketDispatchOptions:Internal",
-                    $"reg-controller name={controllerType.Name}"));
+                DiagnosticsEvents.Internal.Debug,
+                new DiagnosticLog("RT.PacketDispatchOptions:Internal", $"reg-controller name={controllerType.Name}"));
         }
 
         return this;
