@@ -365,6 +365,55 @@ public sealed class ConnectionGuardTests
     }
 
     [Fact]
+    public void TryAccept_WithIPv4MappedToIPv6_ReleasesSubnetSlotCorrectly()
+    {
+        // Regression test: dual-stack (DualMode) sockets surface IPv4 clients as
+        // IPv4-mapped-IPv6 (::ffff:a.b.c.d), whose AddressFamily is InterNetworkV6.
+        // TRY_ACQUIRE_SUBNET_SLOT used to key off that raw AddressFamily while Release()
+        // normalizes to plain IPv4 first via SocketEndpoint -- so accept incremented the
+        // IPv6 subnet map and release decremented the (never-incremented) IPv4 map,
+        // permanently leaking a slot per request until MaxConnectionsPerSubnet was hit
+        // and every subsequent connection from that /24 was rejected forever.
+        ConnectionQuotaOptions options = new()
+        {
+            MaxConnectionsPerSubnet = 5,
+            MaxSubnetConnectionsPerWindow = 1000,
+            MaxConnectionsPerIpAddress = 1000,
+            MaxConnectionsPerWindow = 1000
+        };
+        using ConnectionGuard guard = new(options);
+
+        byte[] subnetPrefix = Guid.NewGuid().ToByteArray();
+        IPEndPoint MappedEndpoint(byte lastOctet)
+        {
+            IPAddress v4 = new(new byte[] { (byte)(subnetPrefix[0] % 223 + 1), subnetPrefix[1], subnetPrefix[2], lastOctet });
+            IPAddress mapped = v4.MapToIPv6();
+            mapped.AddressFamily.Should().Be(System.Net.Sockets.AddressFamily.InterNetworkV6);
+            return new IPEndPoint(mapped, 12345);
+        }
+
+        // Fill the subnet slot (limit = 5) using IPv4-mapped-IPv6 addresses, as a dual-stack
+        // listener would surface them.
+        for (int i = 0; i < 5; i++)
+        {
+            guard.TryAccept(MappedEndpoint((byte)i)).Should().BeTrue();
+        }
+
+        // Subnet is now full -- next accept from the same /24 must be rejected.
+        guard.TryAccept(MappedEndpoint(200)).Should().BeFalse();
+
+        // Release all 5 accepted slots (as DevOps endpoints do post-request).
+        for (int i = 0; i < 5; i++)
+        {
+            guard.Release(MappedEndpoint((byte)i));
+        }
+
+        // Without the fix, release decrements the wrong (IPv4) map and the subnet stays
+        // permanently exhausted -- this would return false forever.
+        guard.TryAccept(MappedEndpoint(201)).Should().BeTrue();
+    }
+
+    [Fact]
     public void VerifyPowLogic()
     {
         (var nonce, var mac) = Nalix.Codec.Security.ProofOfWork.CreateChallenge(12, 822522449546468353, 189525343);
