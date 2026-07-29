@@ -314,27 +314,23 @@ public abstract partial class WebSocketListenerBase
             {
                 if (rejectForwarded)
                 {
-                    if (socket.RemoteEndPoint is IPEndPoint physicalIp)
-                    {
-                        _limiter.Release(physicalIp);
-                    }
-
+                    this.RELEASE_PHYSICAL_SLOT(socket);
                     this.Metrics.RECORD_LIMITER_REJECTION();
                     this.ReleaseWsUpgradeContext(state, args, success: false);
                     return;
                 }
 
-                if (forwardedEndpoint is not null && socket.RemoteEndPoint is IPEndPoint physicalEndPoint)
+                if (forwardedEndpoint is not null && socket.RemoteEndPoint is IPEndPoint)
                 {
                     if (!_limiter.TryAccept(forwardedEndpoint))
                     {
-                        _limiter.Release(physicalEndPoint);
+                        this.RELEASE_PHYSICAL_SLOT(socket);
                         this.Metrics.RECORD_LIMITER_REJECTION();
                         this.ReleaseWsUpgradeContext(state, args, success: false);
                         return;
                     }
 
-                    _limiter.Release(physicalEndPoint);
+                    this.RELEASE_PHYSICAL_SLOT(socket);
                     realEndPoint = forwardedEndpoint;
                 }
             }
