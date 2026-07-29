@@ -134,6 +134,95 @@ public sealed class HealthzSocketLeakTests : IDisposable
         }
     }
 
+    /// <summary>
+    /// DevOps endpoints never released their accept-time limiter slot (no IConnection is
+    /// ever created for them), so every /healthz request permanently consumed one slot from
+    /// ConnectionQuotaOptions.MaxConnectionsPerSubnet. At the real default (50) the subnet got
+    /// banned forever after ~50 requests and every request after that failed -- reproduced live
+    /// against a deployed instance. This test uses that same real default to catch a regression.
+    /// </summary>
+    [Fact]
+    public async Task RepeatedHealthzRequests_DoNotExhaustSubnetConnectionQuota()
+    {
+        ushort port = GetFreePort();
+        ConfigurationManager.Instance.UpdateValue<ConnectionGuardOptions>("MaxConnections", 2000);
+        ConfigurationManager.Instance.UpdateValue<ConnectionGuardOptions>("MaxErrorThreshold", 2000);
+        ConfigurationManager.Instance.UpdateValue<ConnectionGuardOptions>("MaxPacketPerSecond", 20000);
+        ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().Host = "127.0.0.1";
+        ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().EnableDevOpsEndpoints = true;
+
+        ConnectionHub hub = new();
+        var builder = NetworkApplication.CreateBuilder();
+        builder.UseSecureConnections(_certificatePath);
+        builder.UseConnectionHub(hub);
+        builder.MapWebSocket<PlainWsProtocol>()
+               .OnPort(port)
+               .WithPath("/ws/")
+               .WithFactory(_ => new PlainWsProtocol());
+
+        using var app = builder.Build();
+        await app.ActivateAsync();
+        await Task.Delay(300);
+
+        try
+        {
+            const int requestCount = 150; // > default MaxConnectionsPerSubnet (50)
+            for (int i = 0; i < requestCount; i++)
+            {
+                Assert.True(await ProbeHealthzAsync(port), $"/healthz failed at request #{i + 1} -- subnet quota exhausted?");
+            }
+        }
+        finally
+        {
+            await app.DeactivateAsync();
+        }
+    }
+
+    /// <summary>
+    /// DualMode (IPv6+IPv4 dual-stack) sockets surface IPv4 clients as IPv4-mapped-IPv6
+    /// addresses (::ffff:a.b.c.d). TRY_ACQUIRE_SUBNET_SLOT keyed off the raw AddressFamily
+    /// (InterNetworkV6) while Release() normalizes to plain IPv4 first -- so accept
+    /// increments the IPv6 subnet map and release decrements the IPv4 map, permanently
+    /// leaking a slot per request. The Host="127.0.0.1" test above doesn't hit dual-stack;
+    /// this uses Host="*" (the real production config) to catch that regression.
+    /// </summary>
+    [Fact]
+    public async Task RepeatedHealthzRequests_DoNotExhaustSubnetConnectionQuota_DualStackHost()
+    {
+        ushort port = GetFreePort();
+        ConfigurationManager.Instance.UpdateValue<ConnectionGuardOptions>("MaxConnections", 2000);
+        ConfigurationManager.Instance.UpdateValue<ConnectionGuardOptions>("MaxErrorThreshold", 2000);
+        ConfigurationManager.Instance.UpdateValue<ConnectionGuardOptions>("MaxPacketPerSecond", 20000);
+        ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().Host = "*";
+        ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().EnableDevOpsEndpoints = true;
+
+        ConnectionHub hub = new();
+        var builder = NetworkApplication.CreateBuilder();
+        builder.UseSecureConnections(_certificatePath);
+        builder.UseConnectionHub(hub);
+        builder.MapWebSocket<PlainWsProtocol>()
+               .OnPort(port)
+               .WithPath("/ws/")
+               .WithFactory(_ => new PlainWsProtocol());
+
+        using var app = builder.Build();
+        await app.ActivateAsync();
+        await Task.Delay(300);
+
+        try
+        {
+            const int requestCount = 150; // > default MaxConnectionsPerSubnet (50)
+            for (int i = 0; i < requestCount; i++)
+            {
+                Assert.True(await ProbeHealthzAsync(port), $"/healthz failed at request #{i + 1} -- subnet quota exhausted?");
+            }
+        }
+        finally
+        {
+            await app.DeactivateAsync();
+        }
+    }
+
     public void Dispose()
     {
         try

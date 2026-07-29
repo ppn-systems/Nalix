@@ -48,6 +48,18 @@ public sealed partial class ConnectionGuard
         int maxConnections = _config.MaxConnectionsPerSubnet;
         int maxAttempts = _config.MaxSubnetConnectionsPerWindow;
 
+        // Dual-stack sockets (DualMode) surface IPv4 clients as IPv4-mapped-IPv6
+        // (::ffff:a.b.c.d), whose AddressFamily is InterNetworkV6. Unmap first so
+        // this matches SocketEndpoint.FromIpAddress's normalization -- otherwise
+        // this method increments the IPv6 subnet map while Release() (which goes
+        // through the normalized SocketEndpoint key) decrements the IPv4 map,
+        // permanently leaking one subnet slot per request until the real limit
+        // (default 50) is hit and every subsequent connection is rejected forever.
+        if (address.IsIPv4MappedToIPv6)
+        {
+            address = address.MapToIPv4();
+        }
+
         bool isIpv4 = address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork;
 
         while (true)

@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers.Text;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using Nalix.Network.Internal.WebSockets;
@@ -36,6 +37,8 @@ public abstract partial class WebSocketListenerBase
         }
         catch { }
 
+        this.RELEASE_LIMITER_SLOT(state);
+
         try
         {
             state.Socket?.Shutdown(SocketShutdown.Send);
@@ -48,6 +51,35 @@ public abstract partial class WebSocketListenerBase
         }
 
         this.ReleaseWsUpgradeContext(state, args, success: true);
+    }
+
+    /// <summary>
+    /// DevOps endpoints (/healthz, /version, /metrics, ...) close the socket directly
+    /// without ever creating a connection object, so the ConnectionClosed-based limiter
+    /// release never fires. Release the accept-time slot here or it leaks permanently
+    /// per request until the subnet/IP is banned forever.
+    /// <para>
+    /// Must release the same key that was used at accept time. Behind a PROXY-protocol
+    /// front end (e.g. cloudflared), that key is the real client endpoint captured in
+    /// <see cref="WebSocketUpgradeContext.RealEndPoint"/> -- NOT the physical socket's
+    /// RemoteEndPoint, which is the proxy's own local address. Releasing the wrong key
+    /// leaves the real client's slot permanently leaked.
+    /// </para>
+    /// </summary>
+    private void RELEASE_LIMITER_SLOT(WebSocketUpgradeContext state)
+    {
+        try
+        {
+            if (state.RealEndPoint is IPEndPoint realIp)
+            {
+                _limiter.Release(realIp);
+            }
+            else if (state.Socket?.RemoteEndPoint is IPEndPoint ip)
+            {
+                _limiter.Release(ip);
+            }
+        }
+        catch { }
     }
 
     private void SEND_METRICS_RESPONSE(WebSocketUpgradeContext state, SocketAsyncEventArgs args)
@@ -95,6 +127,8 @@ public abstract partial class WebSocketListenerBase
             }
         }
         catch { }
+
+        this.RELEASE_LIMITER_SLOT(state);
 
         try
         {
