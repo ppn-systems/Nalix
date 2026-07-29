@@ -3,7 +3,9 @@
 
 using System;
 using System.Buffers.Text;
+using System.Net;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Nalix.Network.Internal.WebSockets;
 
@@ -14,6 +16,45 @@ namespace Nalix.Network.Listeners.Web;
 
 public abstract partial class WebSocketListenerBase
 {
+    /// <summary>
+    /// DevOps endpoints (/healthz, /version, /metrics, ...) close the socket directly
+    /// without ever creating a connection object, so the ConnectionClosed-based limiter
+    /// release never fires. Release the accept-time slot here or it leaks permanently
+    /// per request until the subnet/IP is banned forever.
+    /// <para>
+    /// Must release the same key that was used at accept time. Behind a PROXY-protocol
+    /// front end (e.g. cloudflared), that key is the real client endpoint captured in
+    /// <see cref="WebSocketUpgradeContext.RealEndPoint"/> -- NOT the physical socket's
+    /// RemoteEndPoint, which is the proxy's own local address. Releasing the wrong key
+    /// leaves the real client's slot permanently leaked.
+    /// </para>
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void RELEASE_LIMITER_SLOT(WebSocketUpgradeContext state)
+    {
+        try
+        {
+            if (state.RealEndPoint is IPEndPoint realIp)
+            {
+                _limiter.Release(realIp);
+            }
+            else if (state.Socket?.RemoteEndPoint is IPEndPoint ip)
+            {
+                _limiter.Release(ip);
+            }
+        }
+        catch { }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void RELEASE_PHYSICAL_SLOT(Socket socket)
+    {
+        if (socket.RemoteEndPoint is IPEndPoint physicalIp)
+        {
+            _limiter.Release(physicalIp);
+        }
+    }
+
     private byte[] BUILD_VERSION_RESPONSE_BYTES()
     {
         string ver = _wsconfig.ServerVersion ?? "1.0.0";
@@ -28,6 +69,7 @@ public abstract partial class WebSocketListenerBase
         return full;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void SEND_STATIC_RESPONSE(WebSocketUpgradeContext state, SocketAsyncEventArgs args, ReadOnlySpan<byte> response)
     {
         try
@@ -36,15 +78,23 @@ public abstract partial class WebSocketListenerBase
         }
         catch { }
 
+        this.RELEASE_LIMITER_SLOT(state);
+
         try
         {
             state.Socket?.Shutdown(SocketShutdown.Send);
         }
         catch { }
 
+        if (state.Socket != null)
+        {
+            SafeCloseSocket(state.Socket);
+        }
+
         this.ReleaseWsUpgradeContext(state, args, success: true);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void SEND_METRICS_RESPONSE(WebSocketUpgradeContext state, SocketAsyncEventArgs args)
     {
         try
@@ -91,11 +141,18 @@ public abstract partial class WebSocketListenerBase
         }
         catch { }
 
+        this.RELEASE_LIMITER_SLOT(state);
+
         try
         {
             state.Socket?.Shutdown(SocketShutdown.Send);
         }
         catch { }
+
+        if (state.Socket != null)
+        {
+            SafeCloseSocket(state.Socket);
+        }
 
         this.ReleaseWsUpgradeContext(state, args, success: true);
     }
