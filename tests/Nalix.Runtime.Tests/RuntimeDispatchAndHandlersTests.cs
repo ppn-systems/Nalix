@@ -327,7 +327,7 @@ public sealed class RuntimeDispatchAndHandlersTests
             methodName: "FakeHandler",
             returnType: typeof(object),
             compiledInvoker: invoker,
-            expectedPacketType: null);
+            expectedPacketType: typeof(TPacket));
     }
 
     private sealed class FakeSequenceCounter : ISequenceCounter
@@ -422,9 +422,6 @@ public sealed class RuntimeDispatchAndHandlersTests
         public int Serialize(Span<byte> buffer) => 0;
     }
 }
-
-
-
 
 
 
