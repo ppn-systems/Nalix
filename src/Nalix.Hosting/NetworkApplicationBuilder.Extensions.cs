@@ -2,11 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Abstractions.Security;
 using Nalix.Framework.Injection;
 using Nalix.Hosting.Internal;
 using Nalix.Network.RateLimiting;
+using Nalix.Runtime.Groups;
 using Nalix.Runtime.Handlers;
 using Nalix.Runtime.Security;
 using Nalix.Runtime.Sessions;
@@ -104,6 +106,24 @@ public static class NetworkApplicationBuilderExtensions
         _ = builder.MapHandlers(typeof(SessionHandlers));
 
         ServiceRegistrar.RegisterSessions();
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Enables connection group management. Registers an
+    /// <see cref="IConnectionGroupRegistry"/> (defaulting to
+    /// <see cref="InMemoryGroupStore"/>) and a
+    /// <see cref="GroupMembershipObserver"/> that automatically removes a
+    /// connection from all its groups when the connection hub unregisters it.
+    /// </summary>
+    /// <param name="builder">The application builder.</param>
+    /// <returns>The current builder instance.</returns>
+    public static INetworkApplicationBuilder UseGroups(this INetworkApplicationBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        ServiceRegistrar.RegisterGroups();
 
         return builder;
     }
