@@ -5,10 +5,12 @@ using Nalix.Codec.DataFrames;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Serialization;
 
 namespace Nalix.Codec.Tests.DataFrames;
 
-public sealed class PacketPoolLeaseTests
+public sealed partial class PacketPoolLeaseTests
 {
     [Fact]
     public void RentReturnsLeaseAndDisposeIsIdempotent()
@@ -36,9 +38,43 @@ public sealed class PacketPoolLeaseTests
 
         PacketRegistry.Configure(null!);
     }
+
+    [Fact]
+    public void AcquireAfterReturnClearsNestedCollections()
+    {
+        ObjectPoolManager manager = new();
+        PacketRegistry.Configure(manager);
+
+        try
+        {
+            using (PacketScope<PooledCollectionPacket> lease = PacketFactory<PooledCollectionPacket>.Acquire())
+            {
+                lease.Value.Items ??= [];
+                lease.Value.Items.Add(42);
+            }
+
+            using PacketScope<PooledCollectionPacket> nextLease = PacketFactory<PooledCollectionPacket>.Acquire();
+
+            Assert.NotNull(nextLease.Value.Items);
+            Assert.Empty(nextLease.Value.Items);
+        }
+        finally
+        {
+            PacketRegistry.Configure(null);
+        }
+    }
+
+    [Packet]
+    [GenerateFormatter]
+    [SerializePackable(SerializeLayout.Explicit)]
+    public sealed partial class PooledCollectionPacket : PacketBase<PooledCollectionPacket>, IPacketStaticOpcode
+    {
+        public static ushort StaticOpCode => 0x7B01;
+
+        [SerializeOrder(0)]
+        public List<int>? Items { get; set; }
+    }
 }
-
-
 
 
 

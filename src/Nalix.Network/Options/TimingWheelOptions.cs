@@ -32,6 +32,8 @@ public sealed partial class TimingWheelOptions : ConfigurationLoader, IValidatab
 
     /// <summary>
     /// Gets or sets the idle timeout for TCP connections in milliseconds.
+    /// This closes live connections that stop sending traffic; it does not control how long
+    /// disconnected sessions remain resumable. Use <c>SessionStoreOptions.SessionTtl</c> for that.
     /// </summary>
     [IniComment("TCP connection idle timeout in milliseconds before auto-close (default 60000 = 60s)")]
     [ValueRange(1, int.MaxValue)]

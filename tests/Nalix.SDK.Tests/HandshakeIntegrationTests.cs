@@ -95,10 +95,10 @@ public sealed class HandshakeIntegrationTests : IDisposable
                 ResumeTimeoutMillis = 30000
             });
 
-#pragma warning disable CS0612
             // 1. First connect (performs Handshake)
-            bool resumed1 = await session.ConnectWithResumeAsync();
-#pragma warning restore CS0612
+            ProtocolReason firstReason = await session.ConnectWithResumeDetailedAsync();
+            bool resumed1 = firstReason == ProtocolReason.NONE;
+            Assert.Equal(ProtocolReason.SESSION_NOT_FOUND, firstReason);
             Assert.False(resumed1);
             Assert.NotEqual(0UL, session.State.SessionToken);
 
@@ -227,8 +227,6 @@ public sealed class HandshakeIntegrationTests : IDisposable
         }
     }
 }
-
-
 
 
 

@@ -71,10 +71,6 @@ public static class ResumeExtensions
 
             if (response.Reason != ProtocolReason.NONE)
             {
-                if (response.Reason == ProtocolReason.NONE)
-                {
-                    session.State.SessionToken = response.SessionToken;
-                }
                 return response.Reason;
             }
 
@@ -124,17 +120,43 @@ public static class ResumeExtensions
         string? host = null,
         ushort? port = null,
         CancellationToken ct = default)
+        => await session.ConnectWithResumeDetailedAsync(host, port, ct).ConfigureAwait(false) == ProtocolReason.NONE;
+
+    /// <summary>
+    /// Connects the session, tries resume when configured and possible, and returns why a full handshake was used.
+    /// </summary>
+    /// <param name="session">The TCP session to connect and resume.</param>
+    /// <param name="host">The optional host override.</param>
+    /// <param name="port">The optional port override.</param>
+    /// <param name="ct">The cancellation token to observe.</param>
+    /// <returns>
+    /// <see cref="ProtocolReason.NONE"/> when resume succeeded; otherwise the reason resume was skipped or rejected before fallback handshake completed.
+    /// </returns>
+    public static async ValueTask<ProtocolReason> ConnectWithResumeDetailedAsync(
+        this TransportSession session,
+        string? host = null,
+        ushort? port = null,
+        CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(session);
 
         await session.ConnectAsync(host, port, ct).ConfigureAwait(false);
 
-        if (session.Options.ResumeEnabled && HasResumeState(session.State))
+        ProtocolReason reason;
+        if (!session.Options.ResumeEnabled)
         {
-            ProtocolReason reason = await session.ResumeSessionAsync(ct).ConfigureAwait(false);
+            reason = ProtocolReason.LOCAL_POLICY;
+        }
+        else if (!HasResumeState(session.State))
+        {
+            reason = ProtocolReason.SESSION_NOT_FOUND;
+        }
+        else
+        {
+            reason = await session.ResumeSessionAsync(ct).ConfigureAwait(false);
             if (reason == ProtocolReason.NONE)
             {
-                return true;
+                return ProtocolReason.NONE;
             }
 
             if (!session.Options.ResumeFallbackToHandshake)
@@ -150,6 +172,12 @@ public static class ResumeExtensions
             await session.ConnectAsync(host, port, ct).ConfigureAwait(false);
         }
 
+        await HandshakeAfterResumeFallbackAsync(session, ct).ConfigureAwait(false);
+        return reason;
+    }
+
+    private static async ValueTask HandshakeAfterResumeFallbackAsync(TransportSession session, CancellationToken ct)
+    {
         // Use explicit encrypt=false for the handshake send without mutating the shared
         // EncryptionEnabled flag — this avoids a race condition where concurrent SendAsync
         // calls could see a temporarily-disabled encryption state (SEC-06).
@@ -159,7 +187,6 @@ public static class ResumeExtensions
         try
         {
             await session.HandshakeAsync(ct).ConfigureAwait(false);
-            return false;
         }
         finally
         {

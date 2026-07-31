@@ -21,6 +21,9 @@ threshold.
 
 `Validate()` runs DataAnnotation validation and throws `ValidationException` when constraints are violated.
 
+!!! note "Idle timeout versus session TTL"
+    `IdleTimeoutMs` closes a live connection that stops sending traffic. It is not the resume window; `SessionStoreOptions.SessionTtl` controls how long disconnected session state remains resumable.
+
 ## Hosting Initialization
 
 `Bootstrap.Initialize()` loads `TimingWheelOptions` as part of server startup so the

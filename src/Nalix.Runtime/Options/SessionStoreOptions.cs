@@ -10,12 +10,15 @@ namespace Nalix.Runtime.Options;
 
 /// <summary>
 /// Store options for resumable sessions, controlling how long inactive sessions are retained before expiration.
+/// This applies after a connection is gone; live connection idle reaping is controlled by
+/// <c>TimingWheelOptions.IdleTimeoutMs</c> instead.
 /// </summary>
 [IniComment("Session store configuration — controls retention of resumable sessions and their expiration")]
 public sealed partial class SessionStoreOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Gets or sets the time-to-live for resumable sessions.
+    /// This does not keep an idle live connection open; it only retains disconnected session state for resume.
     /// </summary>
     [IniComment("Duration after which an inactive session expires (default 5m)")]
     [Required]
