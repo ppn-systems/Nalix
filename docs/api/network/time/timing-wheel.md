@@ -99,6 +99,9 @@ The behavior of the wheel is controlled via `TimingWheelOptions`:
 | `IdleTimeoutMs` | The threshold for closing idle connections. | 60,000 ms |
 | `WheelDrainTimeoutMs` | Maximum time to wait for the wheel to drain gracefully during shutdown. | 5000 ms |
 
+!!! note "Idle timeout versus session TTL"
+    `IdleTimeoutMs` applies while a connection is still live and silent. It is not the session resume window. `SessionStoreOptions.SessionTtl` controls how long disconnected session state is retained for resume after the timing wheel, peer close, or another transport failure has removed the connection.
+
 ## Best Practices
 
 - **Avoid Blocking**: The `TimingWheel` loop is a shared resource. If you implement custom cleanup logic, ensure any I/O is truly asynchronous.
