@@ -121,6 +121,121 @@ public sealed partial class NullablePacketStreamTests
         Assert.Equal(1, NullableStreamItem.DisposeCount);
     }
 
+    [Fact]
+    public async Task CollectStreamAsyncWhenExplicitTerminatorArrivesSkipsTerminator()
+    {
+        NullableStreamRequest request = new();
+        request.Header = request.Header with { SequenceId = 1004 };
+
+        NullableStreamItem item = new() { Capacity = 10 };
+        item.Header = item.Header with { SequenceId = request.Header.SequenceId };
+
+        NullableStreamItem terminator = new() { IsEndOfStream = true, IsTerminator = true };
+        terminator.Header = terminator.Header with { SequenceId = request.Header.SequenceId };
+
+        FakeStreamSession session = new(item, terminator);
+
+        List<NullableStreamItem> items = await session.CollectStreamAsync<NullableStreamItem>(() => request);
+
+        NullableStreamItem result = Assert.Single(items);
+        Assert.Equal(10, result.Capacity);
+    }
+
+    [Fact]
+    public async Task CollectStreamAsyncWhenRetrySucceedsUsesFreshRequest()
+    {
+        int requestCount = 0;
+
+        FakeStreamSession session = new(attempt =>
+        {
+            NullableStreamItem item = new() { Capacity = attempt };
+            item.Header = item.Header with { SequenceId = (ushort)(2000 + attempt) };
+
+            if (attempt == 1)
+            {
+                return [item];
+            }
+
+            item.IsEndOfStream = true;
+            return [item];
+        });
+
+        List<NullableStreamItem> items = await session.CollectStreamAsync<NullableStreamItem>(
+            () =>
+            {
+                requestCount++;
+                NullableStreamRequest request = new();
+                request.Header = request.Header with { SequenceId = (ushort)(2000 + requestCount) };
+                return request;
+            },
+            timeoutMs: 25,
+            maxAttempts: 2);
+
+        NullableStreamItem result = Assert.Single(items);
+        Assert.Equal(2, requestCount);
+        Assert.Equal(2, result.Capacity);
+    }
+
+    [Fact]
+    public async Task CollectStreamAsyncWhenDuplicateKeyArrivesDisposesDuplicate()
+    {
+        NullableStreamItem.DisposeCount = 0;
+
+        NullableStreamRequest request = new();
+        request.Header = request.Header with { SequenceId = 1005 };
+
+        NullableStreamItem first = new() { Capacity = 7 };
+        first.Header = first.Header with { SequenceId = request.Header.SequenceId };
+
+        NullableStreamItem duplicate = new() { Capacity = 7 };
+        duplicate.Header = duplicate.Header with { SequenceId = request.Header.SequenceId };
+
+        NullableStreamItem terminal = new() { Capacity = 8, IsEndOfStream = true };
+        terminal.Header = terminal.Header with { SequenceId = request.Header.SequenceId };
+
+        FakeStreamSession session = new(first, duplicate, terminal);
+
+        List<NullableStreamItem> items = await session.CollectStreamAsync<NullableStreamItem, int?>(
+            () => request,
+            item => item.Capacity);
+
+        Assert.Collection(
+            items,
+            item => Assert.Equal(7, item.Capacity),
+            item => Assert.Equal(8, item.Capacity));
+        Assert.Equal(1, NullableStreamItem.DisposeCount);
+    }
+
+    [Fact]
+    public async Task StreamIntoAsyncBatchesIncrementally()
+    {
+        NullableStreamRequest request = new();
+        request.Header = request.Header with { SequenceId = 1006 };
+
+        NullableStreamItem first = new() { Capacity = 1 };
+        first.Header = first.Header with { SequenceId = request.Header.SequenceId };
+
+        NullableStreamItem second = new() { Capacity = 2, IsEndOfStream = true };
+        second.Header = second.Header with { SequenceId = request.Header.SequenceId };
+
+        FakeStreamSession session = new(first, second);
+        List<NullableStreamItem> target = [];
+        int callbackCount = 0;
+
+        await session.StreamIntoAsync<NullableStreamItem, int?>(
+            () => request,
+            target,
+            item => item.Capacity,
+            () => callbackCount++,
+            batchCount: 1);
+
+        Assert.Collection(
+            target,
+            item => Assert.Equal(1, item.Capacity),
+            item => Assert.Equal(2, item.Capacity));
+        Assert.Equal(2, callbackCount);
+    }
+
     private static async Task<NullableStreamItem> ReadSingleStreamItemAsync(NullableStreamRequest request, NullableStreamItem response)
     {
         FakeStreamSession session = new(response);
@@ -164,8 +279,18 @@ public sealed partial class NullablePacketStreamTests
         return snapshots;
     }
 
-    private sealed class FakeStreamSession(params NullableStreamItem[] responses) : TransportSession
+    private sealed class FakeStreamSession : TransportSession
     {
+        private readonly Func<int, NullableStreamItem[]> _responseFactory;
+        private int _sendCount;
+
+        public FakeStreamSession(params NullableStreamItem[] responses) : this(_ => responses)
+        {
+        }
+
+        public FakeStreamSession(Func<int, NullableStreamItem[]> responseFactory)
+            => _responseFactory = responseFactory;
+
         public override TransportOptions Options { get; } = new();
         public override bool IsConnected => true;
 
@@ -199,7 +324,9 @@ public sealed partial class NullablePacketStreamTests
 
         public override Task SendAsync(IPacket packet, bool? encrypt = null, CancellationToken ct = default)
         {
-            foreach (NullableStreamItem response in responses)
+            int attempt = Interlocked.Increment(ref _sendCount);
+
+            foreach (NullableStreamItem response in _responseFactory(attempt))
             {
                 Emit(response);
             }
@@ -239,7 +366,7 @@ public sealed partial class NullablePacketStreamTests
     [Packet]
     [GenerateFormatter]
     [SerializePackable(SerializeLayout.Explicit)]
-    public sealed partial class NullableStreamItem : PacketBase<NullableStreamItem>, IPacketStaticOpcode, IPacketStreamable
+    public sealed partial class NullableStreamItem : PacketBase<NullableStreamItem>, IPacketStaticOpcode, IPacketStreamable, IPacketStreamTerminator
     {
         public static ushort StaticOpCode => 0x7A8A;
         public static int DisposeCount { get; set; }
@@ -252,6 +379,9 @@ public sealed partial class NullablePacketStreamTests
 
         [SerializeOrder(2)]
         public TimeSpan? Duration { get; set; }
+
+        [SerializeOrder(3)]
+        public bool IsTerminator { get; set; }
 
         protected override void Dispose(bool disposing)
         {

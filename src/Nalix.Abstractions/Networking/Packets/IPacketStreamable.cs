@@ -15,3 +15,14 @@ public interface IPacketStreamable
     /// </summary>
     bool IsEndOfStream { get; set; }
 }
+
+/// <summary>
+/// Marks a stream packet as a dedicated terminator frame without data payload.
+/// </summary>
+public interface IPacketStreamTerminator
+{
+    /// <summary>
+    /// Gets a value indicating whether this packet is a metadata-only stream terminator.
+    /// </summary>
+    bool IsTerminator { get; }
+}
