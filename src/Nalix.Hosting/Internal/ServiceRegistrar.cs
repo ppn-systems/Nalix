@@ -15,6 +15,7 @@ using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
 using Nalix.Network.RateLimiting;
+using Nalix.Runtime.Groups;
 using Nalix.Runtime.Routing;
 using Nalix.Runtime.Sessions;
 
@@ -81,6 +82,31 @@ internal static class ServiceRegistrar
                 SessionPersistenceObserver observer = new(hub, service);
 #pragma warning restore CA2000 // Dispose objects before losing scope
                 InstanceManager.Instance.Register<SessionPersistenceObserver>(observer);
+            }
+        }
+    }
+
+    public static void RegisterGroups()
+    {
+        IConnectionGroupRegistry? registry = InstanceManager.Instance.GetExistingInstance<IConnectionGroupRegistry>();
+
+        if (registry == null)
+        {
+#pragma warning disable CA2000 // Dispose objects before losing scope
+            registry = new InMemoryGroupStore();
+#pragma warning restore CA2000 // Dispose objects before losing scope
+            InstanceManager.Instance.Register<IConnectionGroupRegistry>(registry);
+        }
+
+        if (InstanceManager.Instance.GetExistingInstance<GroupMembershipObserver>() == null)
+        {
+            IConnectionHub? hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
+            if (hub is not null)
+            {
+#pragma warning disable CA2000 // Dispose objects before losing scope
+                GroupMembershipObserver observer = new(hub, registry);
+#pragma warning restore CA2000 // Dispose objects before losing scope
+                InstanceManager.Instance.Register<GroupMembershipObserver>(observer);
             }
         }
     }

@@ -26,10 +26,26 @@ namespace Nalix.Runtime.Sessions;
     Tag = TaskNaming.Tags.Cleanup, IdType = 1, RetainForMs = 0)]
 public sealed class InMemorySessionStore : ISessionStore, IWorker, IReportable
 {
+    // Bucketing granularity for the expiry index. Sessions expiring within the
+    // same minute share a bucket, so the scavenger only visits buckets that are
+    // actually due instead of scanning every live session every pass.
+    private const long BucketSpanMilliseconds = 60_000;
+
     private readonly ConcurrentDictionary<ulong, SessionEntry> _store = new();
+
+    // expiryBucket (ExpiresAtUnixMilliseconds / BucketSpanMilliseconds) -> session tokens due in that bucket.
+    // A stale entry (session consumed/removed, or re-stored with a later expiry) is harmless: the bucket
+    // is only ever a hint, the real expiry is re-checked against _store before anything is removed.
+    private readonly ConcurrentDictionary<long, ConcurrentDictionary<ulong, byte>> _expiryBuckets = new();
+
     private long _totalStored;
     private long _totalConsumed;
     private long _totalExpired;
+
+    private static long BucketOf(long expiresAtUnixMilliseconds) => expiresAtUnixMilliseconds / BucketSpanMilliseconds;
+
+    private void IndexExpiry(ulong token, long expiresAtUnixMilliseconds)
+        => _expiryBuckets.GetOrAdd(BucketOf(expiresAtUnixMilliseconds), static _ => new ConcurrentDictionary<ulong, byte>())[token] = 1;
 
     /// <summary>
     /// Executes the scavenging loop. This method is intended to be called by a <see cref="ITaskManager"/> worker.
@@ -44,7 +60,7 @@ public sealed class InMemorySessionStore : ISessionStore, IWorker, IReportable
 
             try
             {
-                await SCAVENGE_ASYNC(this, _store, cancellationToken).ConfigureAwait(false);
+                await SCAVENGE_ASYNC(this, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
@@ -52,28 +68,46 @@ public sealed class InMemorySessionStore : ISessionStore, IWorker, IReportable
             }
         }
 
-        static async ValueTask SCAVENGE_ASYNC(InMemorySessionStore self, ConcurrentDictionary<ulong, SessionEntry> store, CancellationToken cancellationToken)
+        static async ValueTask SCAVENGE_ASYNC(InMemorySessionStore self, CancellationToken cancellationToken)
         {
             long now = Clock.UnixMillisecondsNow();
+            long dueBucket = BucketOf(now);
             int count = 0;
 
-            foreach (KeyValuePair<ulong, SessionEntry> pair in store)
+            foreach (long bucketKey in self._expiryBuckets.Keys)
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
                     break;
                 }
 
-                if (pair.Value.Snapshot.ExpiresAtUnixMilliseconds <= now &&
-                    ((ICollection<KeyValuePair<ulong, SessionEntry>>)store).Remove(pair))
+                if (bucketKey > dueBucket || !self._expiryBuckets.TryRemove(bucketKey, out ConcurrentDictionary<ulong, byte>? tokens))
                 {
-                    _ = Interlocked.Increment(ref self._totalExpired);
-                    pair.Value.Return();
+                    continue;
                 }
 
-                if (++count % 1000 == 0)
+                foreach (ulong token in tokens.Keys)
                 {
-                    await Task.Yield();
+                    // Bucket membership is only a hint (a session re-stored with a later
+                    // expiry may still sit in an earlier bucket) — re-check the live
+                    // expiry and re-index it if it hasn't actually expired yet.
+                    if (self._store.TryGetValue(token, out SessionEntry? entry))
+                    {
+                        if (entry.Snapshot.ExpiresAtUnixMilliseconds > now)
+                        {
+                            self.IndexExpiry(token, entry.Snapshot.ExpiresAtUnixMilliseconds);
+                        }
+                        else if (((ICollection<KeyValuePair<ulong, SessionEntry>>)self._store).Remove(new KeyValuePair<ulong, SessionEntry>(token, entry)))
+                        {
+                            _ = Interlocked.Increment(ref self._totalExpired);
+                            entry.Return();
+                        }
+                    }
+
+                    if (++count % 1000 == 0)
+                    {
+                        await Task.Yield();
+                    }
                 }
             }
         }
@@ -95,6 +129,7 @@ public sealed class InMemorySessionStore : ISessionStore, IWorker, IReportable
             if (_store.TryAdd(token, entry))
             {
                 _ = Interlocked.Increment(ref _totalStored);
+                this.IndexExpiry(token, entry.Snapshot.ExpiresAtUnixMilliseconds);
                 return ValueTask.CompletedTask;
             }
 
@@ -112,6 +147,7 @@ public sealed class InMemorySessionStore : ISessionStore, IWorker, IReportable
             if (_store.TryUpdate(token, entry, current))
             {
                 _ = Interlocked.Increment(ref _totalStored);
+                this.IndexExpiry(token, entry.Snapshot.ExpiresAtUnixMilliseconds);
                 current.Return();
                 return ValueTask.CompletedTask;
             }

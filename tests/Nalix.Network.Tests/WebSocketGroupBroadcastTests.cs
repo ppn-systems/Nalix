@@ -218,6 +218,46 @@ public sealed class WebSocketGroupBroadcastTests : IDisposable
     }
 
     [Fact]
+    public async Task ConnectionUnregistered_WithoutObserver_LeavesConnectionInGroupStore()
+    {
+        // Without GroupMembershipObserver wired up, ConnectionHub.ConnectionUnregistered
+        // has no subscriber that cleans up group membership, so a disconnected
+        // connection stays in its groups forever (stale reference).
+        using ConnectionHub hub = new();
+        InMemoryGroupStore groupStore = new();
+
+        using TrackingStubWebSocket socket1 = new();
+        WebSocketConnection ws1 = new(socket1, _extractor, new IPEndPoint(IPAddress.Loopback, 8081));
+
+        hub.RegisterConnection(ws1);
+        await groupStore.AddToGroupAsync("room1", ws1);
+
+        ws1.Dispose(); // triggers ConnectionClosed -> hub unregisters -> fires ConnectionUnregistered
+
+        groupStore.GetGroupMembers("room1").Should().Contain(ws1,
+            "no observer is subscribed, so nothing removes the connection from its groups");
+    }
+
+    [Fact]
+    public async Task ConnectionUnregistered_WithObserver_RemovesConnectionFromGroupStore()
+    {
+        using ConnectionHub hub = new();
+        InMemoryGroupStore groupStore = new();
+        using GroupMembershipObserver observer = new(hub, groupStore);
+
+        using TrackingStubWebSocket socket1 = new();
+        WebSocketConnection ws1 = new(socket1, _extractor, new IPEndPoint(IPAddress.Loopback, 8081));
+
+        hub.RegisterConnection(ws1);
+        await groupStore.AddToGroupAsync("room1", ws1);
+
+        ws1.Dispose(); // triggers ConnectionClosed -> hub unregisters -> observer removes from groups
+
+        groupStore.GetGroupMembers("room1").Should().BeEmpty(
+            "GroupMembershipObserver must remove the connection from all groups on disconnect");
+    }
+
+    [Fact]
     public async Task MulticastAsync_EmptyGroup_ReturnsImmediately()
     {
         using ConnectionHub hub = new();
