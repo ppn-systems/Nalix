@@ -126,9 +126,13 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IPoolable, ID
     [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
     public async ValueTask SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
     {
+        // Peer already closed/closing -- swallow here (same as SocketTcpTransport's
+        // PeerClosed/Aborted swallow) instead of throwing, so callers several layers up
+        // (dispatch/control-send paths) don't have to catch-and-classify this by exception
+        // message string.
         if (_owner.IsDisposed || _webSocket.State != WebSocketState.Open)
         {
-            Throw.WebSocketClosed();
+            return;
         }
 
         // WebSockets handle framing natively, so we just send the message as binary.
@@ -173,7 +177,7 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IPoolable, ID
     {
         if (_owner.IsDisposed || _webSocket.State != WebSocketState.Open)
         {
-            Throw.WebSocketClosed();
+            return ValueTask.CompletedTask;
         }
 
         return this.SEND_CORE_ASYNC(message, cancellationToken);
