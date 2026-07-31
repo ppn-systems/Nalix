@@ -165,6 +165,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
+            throw;
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
@@ -215,6 +216,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
+            throw;
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
