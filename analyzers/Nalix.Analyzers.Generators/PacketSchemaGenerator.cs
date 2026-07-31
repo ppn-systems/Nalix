@@ -325,8 +325,7 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
                 }
 
                 ITypeSymbol memberType = GET_MEMBER_TYPE(member);
-                string resetValue = GET_RESET_VALUE(memberType);
-                _ = sb.AppendLine($"        this.{member.Name} = {resetValue};");
+                _ = sb.AppendLine(BUILD_RESET_STATEMENT(memberType, member.Name));
             }
 
             _ = sb.AppendLine("    }");
@@ -824,6 +823,26 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
         _ => throw new InvalidOperationException($"Unexpected member kind: {member.Kind}")
     };
 
+    private static string BUILD_RESET_STATEMENT(ITypeSymbol type, string memberName)
+    {
+        if (type is INamedTypeSymbol named && named.IsGenericType)
+        {
+            string def = named.OriginalDefinition.ToDisplayString();
+            string fullType = GET_CONSTRUCTIBLE_COLLECTION_TYPE_NAME(named);
+            if (def is "System.Collections.Generic.List<T>" or
+                "System.Collections.Generic.HashSet<T>" or
+                "System.Collections.Generic.Queue<T>" or
+                "System.Collections.Generic.Stack<T>" or
+                "System.Collections.Generic.Dictionary<TKey, TValue>")
+            {
+                return $"        this.{memberName} ??= new {fullType}();\n        this.{memberName}.Clear();";
+            }
+        }
+
+        string resetValue = GET_RESET_VALUE(type);
+        return $"        this.{memberName} = {resetValue};";
+    }
+
     private static string GET_RESET_VALUE(ITypeSymbol type)
     {
         if (type.SpecialType == SpecialType.System_String)
@@ -836,21 +855,42 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
             return $"global::System.Array.Empty<{arrayType.ElementType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>()";
         }
 
-        if (type.IsReferenceType)
-        {
-            return "null!";
-        }
-
         if (type is INamedTypeSymbol named && named.IsGenericType)
         {
             string def = named.OriginalDefinition.ToDisplayString();
-            string fullType = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            string fullType = GET_CONSTRUCTIBLE_COLLECTION_TYPE_NAME(named);
             if (def is "System.Collections.Generic.List<T>" or "System.Collections.Generic.HashSet<T>" or "System.Collections.Generic.Queue<T>" or "System.Collections.Generic.Stack<T>" or "System.Collections.Generic.Dictionary<TKey, TValue>")
             {
                 return $"new {fullType}()";
             }
         }
 
+        if (type.IsReferenceType)
+        {
+            return "null!";
+        }
+
         return "default";
+    }
+
+    private static string GET_FULL_TYPE_NAME(ITypeSymbol type)
+        => type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+            SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions |
+            SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier));
+
+    private static string GET_CONSTRUCTIBLE_COLLECTION_TYPE_NAME(INamedTypeSymbol type)
+    {
+        string def = type.OriginalDefinition.ToDisplayString();
+        string arg0 = GET_FULL_TYPE_NAME(type.TypeArguments[0]);
+
+        return def switch
+        {
+            "System.Collections.Generic.List<T>" => $"global::System.Collections.Generic.List<{arg0}>",
+            "System.Collections.Generic.HashSet<T>" => $"global::System.Collections.Generic.HashSet<{arg0}>",
+            "System.Collections.Generic.Queue<T>" => $"global::System.Collections.Generic.Queue<{arg0}>",
+            "System.Collections.Generic.Stack<T>" => $"global::System.Collections.Generic.Stack<{arg0}>",
+            "System.Collections.Generic.Dictionary<TKey, TValue>" => $"global::System.Collections.Generic.Dictionary<{arg0}, {GET_FULL_TYPE_NAME(type.TypeArguments[1])}>",
+            _ => GET_FULL_TYPE_NAME(type)
+        };
     }
 }
