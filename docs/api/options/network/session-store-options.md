@@ -19,6 +19,9 @@
 
 `Validate()` runs DataAnnotation validation and performs additional manual checks. Throws `ValidationException` for annotation failures and `ArgumentOutOfRangeException` for non-positive `SessionTtl` or negative `MinAttributesForPersistence`.
 
+!!! note "Session TTL versus idle timeout"
+    `SessionTtl` retains disconnected session state for resume after the connection is gone. It does not keep live idle connections open; `TimingWheelOptions.IdleTimeoutMs` controls live idle reaping.
+
 ## Hosting Initialization
 
 `Bootstrap.Initialize()` materializes this option set during server startup:
