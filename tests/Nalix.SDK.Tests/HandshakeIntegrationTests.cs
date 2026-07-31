@@ -71,7 +71,6 @@ public sealed class HandshakeIntegrationTests : IDisposable
         var builder = NetworkApplication.CreateBuilder();
         builder.Configure<Nalix.Runtime.Options.SessionStoreOptions>(opt =>
         {
-            opt.Enabled = true;
             opt.MinAttributesForPersistence = 0;
         });
         TrackingSessionStore store = new();
@@ -228,7 +227,6 @@ public sealed class HandshakeIntegrationTests : IDisposable
         }
     }
 }
-
 
 
 
