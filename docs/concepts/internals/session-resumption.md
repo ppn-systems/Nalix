@@ -68,6 +68,17 @@ The `SessionToken` is a "moving target". After a successful resumption:
 
 By default, the Nalix Hosting model handles session resumption automatically. However, you can control the behavior by implementing a custom `ISessionStore` (e.g., using Redis for distributed clusters).
 
+To make resume work end to end:
+
+1. Register session support on the server with `UseSessions()`.
+2. Register a store with `UseSessionStore(...)` when the default in-memory service is not enough.
+3. Set `SessionStoreOptions.MinAttributesForPersistence` low enough for the metadata your authenticated sessions actually carry.
+4. Set `SessionStoreOptions.SessionTtl` to the disconnected-session resume window you want.
+5. Keep `TransportOptions.ResumeEnabled` enabled on the client, and keep the client `SessionState` token and secret between reconnect attempts.
+
+!!! note "Idle timeout is not the resume window"
+    `TimingWheelOptions.IdleTimeoutMs` closes a live connection that stops sending traffic. `SessionStoreOptions.SessionTtl` decides how long its disconnected session state remains resumable after the connection is gone. Neither setting implies the other.
+
 ## Replay Window Policy
 
 The resume proof is `HMAC-Keccak256(Secret, SessionToken || (UnixSecondsNow() / 30))` — a 30-second time bucket, checked against `t-1`, `t`, `t+1` to tolerate clock skew. Within that ~90-second window the proof itself is deterministic and reproducible, but replaying it does not grant a second resume: the `SessionToken` is atomically consumed (`ISessionService.ConsumeAsync` → `ConcurrentDictionary.TryRemove`) on the **first** successful attempt, so a second resume with the same token — even with a byte-identical, still-valid proof — is rejected with `SESSION_EXPIRED`. The token, not the time bucket, is the single-use nonce.
