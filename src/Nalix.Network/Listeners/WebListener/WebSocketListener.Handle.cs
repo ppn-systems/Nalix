@@ -576,6 +576,14 @@ public abstract partial class WebSocketListenerBase
     /// (linked via <c>.Next</c>, reused as scratch space post-detach) without holding
     /// <c>_wsUpgradeLock</c>. Must be called after the lock has been released.
     /// </summary>
+    /// <remarks>
+    /// Each context here already consumed a ConnectionGuard accept-time slot (via
+    /// <c>Limiter.TryAccept</c> in ProcessAcceptedSocket/handshake-completion) that is
+    /// never released, because a stalled/timed-out handshake never reaches the point where
+    /// OnConnectionClosed gets wired up. Release it here, same as RELEASE_LIMITER_SLOT does for
+    /// the devops static-response close paths -- otherwise every swept/timed-out handshake leaks
+    /// its slot permanently.
+    /// </remarks>
     private void CloseChainOutsideLock(WebSocketUpgradeContext? head)
     {
         WebSocketUpgradeContext? current = head;
@@ -583,6 +591,8 @@ public abstract partial class WebSocketListenerBase
         {
             WebSocketUpgradeContext? next = current.Next;
             current.Next = null;
+
+            this.RELEASE_LIMITER_SLOT(current);
 
             if (current.Socket != null)
             {
