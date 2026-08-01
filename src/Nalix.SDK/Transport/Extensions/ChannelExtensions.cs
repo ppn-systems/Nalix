@@ -26,7 +26,7 @@ public static class ChannelExtensions
     /// <returns>A channel reader that asynchronously yields received packets.</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="client"/> is null.</exception>
     public static ChannelReader<TEvent> SubscribeChannel<TEvent>(
-        this TransportSession client, int? boundedCapacity = null,
+        this ITransportSession client, int? boundedCapacity = null,
         BoundedChannelFullMode fullMode = BoundedChannelFullMode.DropOldest,
         CancellationToken cancellationToken = default) where TEvent : class, IPacket, IPacketStaticOpcode
     {

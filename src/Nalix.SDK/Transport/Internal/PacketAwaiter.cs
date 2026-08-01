@@ -35,7 +35,7 @@ internal static class PacketAwaiter
     /// <exception cref="TimeoutException"></exception>
     /// <exception cref="OperationCanceledException"></exception>
     public static async Task<TPkt> AwaitAsync<TPkt>(
-        TransportSession client, Func<TPkt, bool> predicate,
+        ITransportSession client, Func<TPkt, bool> predicate,
         int timeoutMs, Func<CancellationToken, Task> sendAsync, CancellationToken ct)
         where TPkt : class, IPacket, IPacketStaticOpcode
     {

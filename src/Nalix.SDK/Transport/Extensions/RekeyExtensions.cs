@@ -28,7 +28,7 @@ public static class RekeyExtensions
     /// <param name="session">The transport session.</param>
     /// <param name="ct">The cancellation token.</param>
     /// <returns>A task that completes when the key rotation is successfully acknowledged by the server.</returns>
-    public static async ValueTask RekeyAsync(this TransportSession session, CancellationToken ct = default)
+    public static async ValueTask RekeyAsync(this ITransportSession session, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(session);
 

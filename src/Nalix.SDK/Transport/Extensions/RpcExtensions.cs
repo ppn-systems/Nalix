@@ -12,12 +12,12 @@ namespace Nalix.SDK.Transport.Extensions;
 /// </summary>
 public static class RpcExtensions
 {
-    private static readonly ConcurrentDictionary<Type, Func<TransportSession, object>> s_factories = new();
+    private static readonly ConcurrentDictionary<Type, Func<ITransportSession, object>> s_factories = new();
 
     /// <summary>
     /// Registers a factory delegate for a specific RPC service proxy. Used by Source Generators.
     /// </summary>
-    public static void RegisterFactory(Type serviceType, Func<TransportSession, object> factory) => s_factories[serviceType] = factory;
+    public static void RegisterFactory(Type serviceType, Func<ITransportSession, object> factory) => s_factories[serviceType] = factory;
 
     /// <summary>
     /// Creates a Typed-RPC client proxy for the specified service interface.
@@ -26,13 +26,13 @@ public static class RpcExtensions
     /// <typeparam name="T">The RPC service interface type.</typeparam>
     /// <param name="session">The transport session.</param>
     /// <returns>A proxy instance implementing the requested service interface.</returns>
-    public static T CreateRpcClient<T>(this TransportSession session) where T : class
+    public static T CreateRpcClient<T>(this ITransportSession session) where T : class
     {
         ArgumentNullException.ThrowIfNull(session);
 
         Type serviceType = typeof(T);
 
-        if (s_factories.TryGetValue(serviceType, out Func<TransportSession, object>? factory))
+        if (s_factories.TryGetValue(serviceType, out Func<ITransportSession, object>? factory))
         {
             return (T)factory(session);
         }
