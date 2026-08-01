@@ -80,6 +80,11 @@ public class WebSocketSession : TransportSession
         this.WebSocketOptions = webSocketOptions ?? new WebSocketTransportOptions();
         this.WebSocketOptions.Validate();
 
+        // Force eager creation so the reconnect supervisor subscribes to OnDisconnected
+        // before any disconnect can occur — lazy creation on first RequestAsync failure
+        // would miss the very disconnect it needs to react to.
+        _ = this.ReconnectSupervisor;
+
         _sender = new WsFrameSender(() => _socket!, options, this.State, this.HandleError);
         _reader = new WsFrameReader(() => _socket!, options, this.State, this.WebSocketOptions, this.HandleReceiveMessage, this.HandleError);
     }

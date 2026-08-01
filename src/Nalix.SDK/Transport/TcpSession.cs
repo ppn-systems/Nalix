@@ -77,6 +77,11 @@ public class TcpSession : TransportSession
     {
         this.Options = options ?? throw new ArgumentNullException(nameof(options));
 
+        // Force eager creation so the reconnect supervisor subscribes to OnDisconnected
+        // before any disconnect can occur — lazy creation on first RequestAsync failure
+        // would miss the very disconnect it needs to react to.
+        _ = this.ReconnectSupervisor;
+
         // Initialize frame helpers with a factory to get the latest socket instance
         _sender = new TcpFrameSender(() => _socket!, options, this.State, this.HandleError);
         _reader = new TcpFrameReader(() => _socket!, options, this.State, this.HandleReceiveMessage, this.HandleError);

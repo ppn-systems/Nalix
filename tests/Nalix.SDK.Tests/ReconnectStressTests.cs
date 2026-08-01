@@ -122,6 +122,7 @@ public sealed class ReconnectStressTests : IDisposable
 
         var builder = NetworkApplication.CreateBuilder();
         builder.ListenTcp<IntegrationTestProtocol>().OnPort((ushort)port);
+        builder.UseSecureConnections();
         builder.UseSystemControl();
         builder.UseTimeSync();
         using NetworkApplication app = builder.Build();
@@ -133,6 +134,7 @@ public sealed class ReconnectStressTests : IDisposable
             {
                 Address = "127.0.0.1",
                 Port = (ushort)port,
+                ServerPublicKey = TestUtils.GetServerPublicKey(),
                 AutoReconnectEnabled = true,
                 ReconnectBaseDelayMillis = 50,
                 ReconnectMaxDelayMillis = 200,
