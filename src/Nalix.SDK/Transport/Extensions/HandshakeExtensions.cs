@@ -43,7 +43,7 @@ public static class HandshakeExtensions
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="session"/> is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown if the session is not connected.</exception>
     /// <exception cref="NetworkException">Thrown if the handshake fails due to malformed packets, invalid proofs, or key agreement failures.</exception>
-    public static async ValueTask HandshakeAsync(this TransportSession session, CancellationToken ct = default)
+    public static async ValueTask HandshakeAsync(this ITransportSession session, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(session);
 

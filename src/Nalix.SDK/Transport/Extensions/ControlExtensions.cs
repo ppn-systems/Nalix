@@ -69,7 +69,7 @@ public static class ControlExtensions
     /// Control ping = client.NewControl(opCode, ControlType.PING).WithSeq(123).Build();
     /// </code>
     /// </example>
-    public static ControlBuilder NewControl(this TransportSession _, ControlType type)
+    public static ControlBuilder NewControl(this ITransportSession _, ControlType type)
     {
 #pragma warning disable CA2000 // Ownership is transferred to ControlBuilder; callers own/dispose the materialized Control returned by Build().
         Control c = Control.Create();
@@ -96,7 +96,7 @@ public static class ControlExtensions
     /// <exception cref="TimeoutException">Thrown when no matching packet is received within <paramref name="timeoutMs"/>.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
     public static ValueTask<TPkt> AwaitPacketAsync<TPkt>(
-        this TransportSession client,
+        this ITransportSession client,
         Func<TPkt, bool> predicate,
         int timeoutMs,
         CancellationToken ct = default)
@@ -131,7 +131,7 @@ public static class ControlExtensions
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ValueTask<Control> AwaitControlAsync(
-        this TransportSession client,
+        this ITransportSession client,
         Func<Control, bool> predicate,
         int timeoutMs,
         CancellationToken ct = default)
@@ -160,7 +160,7 @@ public static class ControlExtensions
     ///     ct: ct);
     /// </code>
     /// </example>
-    public static async ValueTask SendControlAsync(this TransportSession client, ControlType type, Action<Control>? configure = null, CancellationToken ct = default)
+    public static async ValueTask SendControlAsync(this ITransportSession client, ControlType type, Action<Control>? configure = null, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(client);
 

@@ -98,7 +98,7 @@ public static class RequestExtensions
     /// </code>
     /// </example>
     public static async ValueTask<TResponse> RequestAsync<TResponse>(
-        this TransportSession client,
+        this ITransportSession client,
         IPacket request,
         RequestOptions? options = null,
         Func<TResponse, bool>? predicate = null,
@@ -113,8 +113,7 @@ public static class RequestExtensions
 
         if (!client.IsConnected)
         {
-            throw new NetworkException(
-                $"[SDK.RequestAsync<{typeof(TResponse).Name}>] Client is not connected.");
+            await AwaitReadyOrThrowAsync(client, options.TimeoutMs, typeof(TResponse).Name, ct).ConfigureAwait(false);
         }
 
         Exception? lastException = null;
@@ -149,5 +148,32 @@ public static class RequestExtensions
 
         throw new TimeoutException(
             $"[SDK.RequestAsync<{typeof(TResponse).Name}>] No response after {totalAttempts} attempt(s) (timeout={options.TimeoutMs}ms each).", lastException);
+    }
+
+    /// <summary>
+    /// When the session is a <see cref="TransportSession"/> with auto-reconnect enabled, awaits
+    /// the in-flight reconnect (bounded by <paramref name="timeoutMs"/>). Otherwise throws
+    /// immediately, preserving the pre-existing "not connected" behavior.
+    /// </summary>
+    internal static async ValueTask AwaitReadyOrThrowAsync(
+        ITransportSession client, int timeoutMs, string responseTypeName, CancellationToken ct)
+    {
+        Internal.ReconnectSupervisor supervisor = (client as TransportSession)?.ReconnectSupervisor
+            ?? throw new NetworkException($"[SDK.RequestAsync<{responseTypeName}>] Client is not connected.");
+
+        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        if (timeoutMs > 0)
+        {
+            linkedCts.CancelAfter(timeoutMs);
+        }
+
+        try
+        {
+            await supervisor.ReadyAsync(linkedCts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new NetworkException($"[SDK.RequestAsync<{responseTypeName}>] Client is not connected (reconnect timed out).");
+        }
     }
 }

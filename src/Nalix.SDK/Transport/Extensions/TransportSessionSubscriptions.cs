@@ -42,7 +42,7 @@ public static class TransportSessionSubscriptions
     /// <param name="disposeAfter">Whether to dispose the packet after the handler returns.</param>
     /// <returns>An <see cref="IDisposable"/> that removes the subscription when disposed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IDisposable On<TPacket>(this TransportSession client, Action<TPacket> handler, bool disposeAfter = true)
+    public static IDisposable On<TPacket>(this ITransportSession client, Action<TPacket> handler, bool disposeAfter = true)
         where TPacket : class, IPacket, IPacketStaticOpcode
     {
         ArgumentNullException.ThrowIfNull(client);
@@ -106,7 +106,7 @@ public static class TransportSessionSubscriptions
     /// <param name="handler">The callback invoked for each received packet.</param>
     /// <returns>An <see cref="IDisposable"/> that removes the subscription when disposed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IDisposable OnExact<TPacket>(this TransportSession client, Action<TPacket> handler)
+    public static IDisposable OnExact<TPacket>(this ITransportSession client, Action<TPacket> handler)
         where TPacket : class, IPacket, IPacketStaticOpcode
     {
         ArgumentNullException.ThrowIfNull(client);
@@ -159,7 +159,7 @@ public static class TransportSessionSubscriptions
     /// <param name="handler">The callback invoked for each matching packet.</param>
     /// <returns>An <see cref="IDisposable"/> that removes the subscription when disposed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IDisposable On(this TransportSession client, Func<IPacket, bool> predicate, Action<IPacket> handler)
+    public static IDisposable On(this ITransportSession client, Func<IPacket, bool> predicate, Action<IPacket> handler)
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(predicate);
@@ -203,7 +203,7 @@ public static class TransportSessionSubscriptions
     /// <param name="disposeAfter">Whether to dispose the packet after the handler returns (default: true).</param>
     /// <returns>An <see cref="IDisposable"/> that removes the subscription when disposed.</returns>
     [Obsolete("Callback-based one-shot subscriptions are deprecated and will be removed in a future version. Use async/await Request-Response APIs instead.")]
-    public static IDisposable OnOnce<TPacket>(this TransportSession client, Func<TPacket, bool> predicate, Action<TPacket> handler, bool disposeAfter = true)
+    public static IDisposable OnOnce<TPacket>(this ITransportSession client, Func<TPacket, bool> predicate, Action<TPacket> handler, bool disposeAfter = true)
         where TPacket : class, IPacket, IPacketStaticOpcode
     {
         ArgumentNullException.ThrowIfNull(client);
@@ -293,7 +293,7 @@ public static class TransportSessionSubscriptions
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [Obsolete("Callback-based temporary subscriptions are deprecated. Use async/await Request-Response APIs instead.")]
-    public static IDisposable SubscribeTemp<TPacket>(this TransportSession client, Action<TPacket> onMessage, Action<Exception>? onDisconnected = null)
+    public static IDisposable SubscribeTemp<TPacket>(this ITransportSession client, Action<TPacket> onMessage, Action<Exception>? onDisconnected = null)
         where TPacket : class, IPacket, IPacketStaticOpcode
     {
         ArgumentNullException.ThrowIfNull(client);
@@ -334,7 +334,7 @@ public static class TransportSessionSubscriptions
     /// <returns>An <see cref="IDisposable"/> that unsubscribes when disposed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [Obsolete("Callback-based temporary subscriptions are deprecated. Use async/await Request-Response APIs instead.")]
-    public static IDisposable SubscribeTemp<TPacket>(this TransportSession client, Func<TPacket, bool> predicate, Action<TPacket> onMessage, Action<Exception>? onDisconnected = null)
+    public static IDisposable SubscribeTemp<TPacket>(this ITransportSession client, Func<TPacket, bool> predicate, Action<TPacket> onMessage, Action<Exception>? onDisconnected = null)
         where TPacket : class, IPacket, IPacketStaticOpcode
     {
         ArgumentNullException.ThrowIfNull(client);
@@ -380,7 +380,7 @@ public static class TransportSessionSubscriptions
     /// <param name="subs">The subscriptions to group.</param>
     /// <returns>A composite handle that disposes all subscriptions together.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static CompositeSubscription Subscribe(this TransportSession _, params IDisposable[] subs) => new(subs);
+    public static CompositeSubscription Subscribe(this ITransportSession _, params IDisposable[] subs) => new(subs);
 
     // ── Internal ─────────────────────────────────────────────────────────────
 

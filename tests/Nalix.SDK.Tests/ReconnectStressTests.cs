@@ -115,6 +115,64 @@ public sealed class ReconnectStressTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task AutoReconnect_ServerRestarts_PendingRequestSucceedsAfterReconnectAndReauth()
+    {
+        int port = TestUtils.GetFreePort();
+
+        var builder = NetworkApplication.CreateBuilder();
+        builder.ListenTcp<IntegrationTestProtocol>().OnPort((ushort)port);
+        builder.UseSystemControl();
+        builder.UseTimeSync();
+        using NetworkApplication app = builder.Build();
+        await app.ActivateAsync();
+
+        try
+        {
+            using TcpSession session = new(new TransportOptions
+            {
+                Address = "127.0.0.1",
+                Port = (ushort)port,
+                AutoReconnectEnabled = true,
+                ReconnectBaseDelayMillis = 50,
+                ReconnectMaxDelayMillis = 200,
+            });
+
+            bool reauthCalled = false;
+            session.OnReauthenticateAsync = _ =>
+            {
+                reauthCalled = true;
+                return Task.CompletedTask;
+            };
+
+            await session.ConnectAsync();
+            Assert.True(session.IsConnected);
+
+            // Simulate an unexpected drop by disconnecting without the caller reconnecting itself.
+            await session.DisconnectAsync();
+            Assert.False(session.IsConnected);
+
+            // The supervisor only starts a reconnect loop from the OnDisconnected event, which
+            // DisconnectAsync also raises (see ReconnectSupervisor ponytail note) — good enough
+            // to exercise the reconnect + bounded-wait + reauth path end-to-end.
+            var ping = new Nalix.Codec.ProtocolFrames.TimeSync();
+            ping.Initialize(Nalix.Abstractions.Networking.Protocols.ControlType.PING, 99, Nalix.Abstractions.Networking.Packets.PacketFlags.NONE);
+
+            Nalix.Codec.ProtocolFrames.TimeSync response = await session.RequestAsync<Nalix.Codec.ProtocolFrames.TimeSync>(
+                ping,
+                options: RequestOptions.Default.WithTimeout(5000),
+                predicate: p => p.Header.SequenceId == 99);
+
+            Assert.Equal(99u, response.Header.SequenceId);
+            Assert.True(session.IsConnected);
+            Assert.True(reauthCalled);
+        }
+        finally
+        {
+            await app.DeactivateAsync();
+        }
+    }
+
     public void Dispose() => Nalix.Framework.Injection.InstanceManager.Instance.Clear(dispose: false);
 }
 #endif

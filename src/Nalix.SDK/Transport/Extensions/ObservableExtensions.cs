@@ -21,14 +21,14 @@ public static class ObservableExtensions
     /// <param name="client">The transport session.</param>
     /// <returns>An observable sequence of packets.</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="client"/> is null.</exception>
-    public static IObservable<TEvent> AsObservable<TEvent>(this TransportSession client)
+    public static IObservable<TEvent> AsObservable<TEvent>(this ITransportSession client)
         where TEvent : class, IPacket, IPacketStaticOpcode
     {
         ArgumentNullException.ThrowIfNull(client);
         return new PacketObservable<TEvent>(client);
     }
 
-    private sealed class PacketObservable<TEvent>(TransportSession client) : IObservable<TEvent>
+    private sealed class PacketObservable<TEvent>(ITransportSession client) : IObservable<TEvent>
         where TEvent : class, IPacket, IPacketStaticOpcode
     {
         public IDisposable Subscribe(IObserver<TEvent> observer)
