@@ -97,6 +97,11 @@ public class UdpSession : TransportSession
     {
         this.Options = options ?? throw new ArgumentNullException(nameof(options));
 
+        // Force eager creation so the reconnect supervisor subscribes to OnDisconnected
+        // before any disconnect can occur — lazy creation on first RequestAsync failure
+        // would miss the very disconnect it needs to react to.
+        _ = this.ReconnectSupervisor;
+
         // Initialize frame helpers with a factory to get the latest socket instance
         _sender = new UdpFrameSender(() => _socket!, options, this.State, this.HandleError);
         _reader = new UdpFrameReader(
@@ -127,7 +132,7 @@ public class UdpSession : TransportSession
 
         if (this.IsConnected)
         {
-            await this.DisconnectAsync().ConfigureAwait(false);
+            await this.DisconnectInternalAsync().ConfigureAwait(false);
         }
 
         try
@@ -190,6 +195,8 @@ public class UdpSession : TransportSession
         {
             return Task.CompletedTask;
         }
+
+        this.MarkIntentionalDisconnect();
 
         return this.DisconnectInternalAsync();
     }
@@ -273,7 +280,10 @@ public class UdpSession : TransportSession
     private void HandleError(Exception ex)
     {
         this.OnError?.Invoke(this, ex);
-        _ = this.DisconnectAsync();
+        // Do not go through the public DisconnectAsync() path — that marks the disconnect as
+        // intentional (app-initiated), which would suppress auto-reconnect for what is actually
+        // an unexpected fault.
+        _ = this.DisconnectInternalAsync();
     }
 
     /// <summary>

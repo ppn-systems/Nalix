@@ -26,7 +26,7 @@ public static class ResumeExtensions
     /// <param name="session">The connected TCP session to resume.</param>
     /// <param name="ct">The cancellation token to observe.</param>
     /// <returns>The <see cref="ProtocolReason"/> reported by the server. <see cref="ProtocolReason.NONE"/> indicates success.</returns>
-    public static async ValueTask<ProtocolReason> ResumeSessionAsync(this TransportSession session, CancellationToken ct = default)
+    public static async ValueTask<ProtocolReason> ResumeSessionAsync(this ITransportSession session, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(session);
 
@@ -116,7 +116,7 @@ public static class ResumeExtensions
     /// <param name="ct">The cancellation token to observe.</param>
     /// <returns><see langword="true"/> when resume succeeded; <see langword="false"/> when a fresh handshake was used.</returns>
     public static async ValueTask<bool> ConnectWithResumeAsync(
-        this TransportSession session,
+        this ITransportSession session,
         string? host = null,
         ushort? port = null,
         CancellationToken ct = default)
@@ -133,7 +133,7 @@ public static class ResumeExtensions
     /// <see cref="ProtocolReason.NONE"/> when resume succeeded; otherwise the reason resume was skipped or rejected before fallback handshake completed.
     /// </returns>
     public static async ValueTask<ProtocolReason> ConnectWithResumeDetailedAsync(
-        this TransportSession session,
+        this ITransportSession session,
         string? host = null,
         ushort? port = null,
         CancellationToken ct = default)
@@ -176,7 +176,7 @@ public static class ResumeExtensions
         return reason;
     }
 
-    private static async ValueTask HandshakeAfterResumeFallbackAsync(TransportSession session, CancellationToken ct)
+    private static async ValueTask HandshakeAfterResumeFallbackAsync(ITransportSession session, CancellationToken ct)
     {
         // Use explicit encrypt=false for the handshake send without mutating the shared
         // EncryptionEnabled flag — this avoids a race condition where concurrent SendAsync

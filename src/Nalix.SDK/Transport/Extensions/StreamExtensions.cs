@@ -31,7 +31,7 @@ public static class StreamExtensions
     /// <exception cref="ArgumentNullException">Thrown if client or request is null.</exception>
     /// <exception cref="NetworkException">Thrown if the client is not connected.</exception>
     public static async IAsyncEnumerable<TResponse> StreamAsync<TResponse>(
-        this TransportSession client,
+        this ITransportSession client,
         IPacket request,
         RequestOptions? options = null,
         [EnumeratorCancellation] CancellationToken ct = default)
@@ -40,12 +40,12 @@ public static class StreamExtensions
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(request);
 
+        options ??= RequestOptions.Default;
+
         if (!client.IsConnected)
         {
-            throw new NetworkException($"[SDK.StreamAsync<{typeof(TResponse).Name}>] Client is not connected.");
+            await RequestExtensions.AwaitReadyOrThrowAsync(client, options.TimeoutMs, typeof(TResponse).Name, ct).ConfigureAwait(false);
         }
-
-        options ??= RequestOptions.Default;
 
         ushort expectedSeqId = request.Header.SequenceId;
 
@@ -116,7 +116,7 @@ public static class StreamExtensions
     /// <param name="ct">The cancellation token for the full operation.</param>
     /// <returns>The collected stream items.</returns>
     public static async Task<List<TResponse>> CollectStreamAsync<TResponse>(
-        this TransportSession client,
+        this ITransportSession client,
         Func<IPacket> requestFactory,
         int timeoutMs = 9_000,
         int maxAttempts = 2,
@@ -181,7 +181,7 @@ public static class StreamExtensions
     /// <param name="ct">The cancellation token for the full operation.</param>
     /// <returns>The collected stream items.</returns>
     public static async Task<List<TResponse>> CollectStreamAsync<TResponse, TKey>(
-        this TransportSession client,
+        this ITransportSession client,
         Func<IPacket> requestFactory,
         Func<TResponse, TKey> keySelector,
         int timeoutMs = 9_000,
@@ -259,7 +259,7 @@ public static class StreamExtensions
     /// <param name="maxAttempts">The maximum number of attempts.</param>
     /// <param name="ct">The cancellation token for the full operation.</param>
     public static async Task StreamIntoAsync<TResponse, TKey>(
-        this TransportSession client,
+        this ITransportSession client,
         Func<IPacket> requestFactory,
         List<TResponse> target,
         Func<TResponse, TKey> keySelector,

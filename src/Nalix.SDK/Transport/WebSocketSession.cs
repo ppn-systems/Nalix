@@ -19,7 +19,7 @@ namespace Nalix.SDK.Transport;
 /// <summary>
 /// Provides a WebSocket transport session built on <see cref="WsFrameReader"/> and <see cref="WsFrameSender"/>.
 /// </summary>
-public sealed class WebSocketSession : TransportSession
+public class WebSocketSession : TransportSession
 {
     #region Fields
 
@@ -79,6 +79,11 @@ public sealed class WebSocketSession : TransportSession
         this.Options = options ?? throw new ArgumentNullException(nameof(options));
         this.WebSocketOptions = webSocketOptions ?? new WebSocketTransportOptions();
         this.WebSocketOptions.Validate();
+
+        // Force eager creation so the reconnect supervisor subscribes to OnDisconnected
+        // before any disconnect can occur — lazy creation on first RequestAsync failure
+        // would miss the very disconnect it needs to react to.
+        _ = this.ReconnectSupervisor;
 
         _sender = new WsFrameSender(() => _socket!, options, this.State, this.HandleError);
         _reader = new WsFrameReader(() => _socket!, options, this.State, this.WebSocketOptions, this.HandleReceiveMessage, this.HandleError);
@@ -157,6 +162,8 @@ public sealed class WebSocketSession : TransportSession
         {
             return;
         }
+
+        this.MarkIntentionalDisconnect();
 
         await _connectionLock.WaitAsync().ConfigureAwait(false);
         try
@@ -283,7 +290,10 @@ public sealed class WebSocketSession : TransportSession
     private void HandleError(Exception ex)
     {
         this.OnError?.Invoke(this, ex);
-        _ = this.DisconnectAsync();
+        // Do not go through the public DisconnectAsync() path — that marks the disconnect as
+        // intentional (app-initiated), which would suppress auto-reconnect for what is actually
+        // an unexpected fault.
+        _ = this.DisconnectInternalAsync();
     }
 
     private void HandleReceiveMessage(IBufferLease lease)
