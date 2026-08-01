@@ -75,12 +75,14 @@ public sealed partial class PacketComplexCollectionsTests
 
         packet.ResetForPool();
 
-        // Collections should be null if not initialized in default ctor, 
-        // or empty if ResetForPool handles them (it resets to default(T))
-        Assert.Null(packet.IntList);
-        Assert.Null(packet.StringLongDict);
-        Assert.Null(packet.StringQueue);
-        Assert.Null(packet.FloatSet);
+        Assert.NotNull(packet.IntList);
+        Assert.Empty(packet.IntList);
+        Assert.NotNull(packet.StringLongDict);
+        Assert.Empty(packet.StringLongDict);
+        Assert.NotNull(packet.StringQueue);
+        Assert.Empty(packet.StringQueue);
+        Assert.NotNull(packet.FloatSet);
+        Assert.Empty(packet.FloatSet);
         Assert.Equal(default((int, string, bool)), packet.Tuple3);
     }
 
@@ -448,7 +450,6 @@ public sealed partial class PacketComplexCollectionsTests
             => PacketBase<EnumListPacket>.Deserialize(buffer);
     }
 }
-
 
 
 

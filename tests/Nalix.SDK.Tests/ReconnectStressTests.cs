@@ -81,11 +81,11 @@ public sealed class ReconnectStressTests : IDisposable
             var ping = new Nalix.Codec.ProtocolFrames.TimeSync();
             ping.Initialize(Nalix.Abstractions.Networking.Protocols.ControlType.PING, 42, Nalix.Abstractions.Networking.Packets.PacketFlags.NONE);
 
-            // Start a request that would normally succeed, but disconnect concurrently.
+            // Keep the request pending so disconnect owns completion.
             Task<Nalix.Codec.ProtocolFrames.TimeSync> pendingRequest = session.RequestAsync<Nalix.Codec.ProtocolFrames.TimeSync>(
                 ping,
                 options: Nalix.SDK.Options.RequestOptions.Default.WithTimeout(8000),
-                predicate: p => p.Header.SequenceId == 42).AsTask();
+                predicate: _ => false).AsTask();
 
             await session.DisconnectAsync();
 

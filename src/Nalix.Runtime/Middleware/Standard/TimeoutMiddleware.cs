@@ -95,7 +95,7 @@ public sealed class TimeoutMiddleware : IPacketMiddleware<IPacket>
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested && !context.CancellationToken.IsCancellationRequested)
         {
-            if (DirectiveGuard.TryAcquire(context.Connection,
+            if (!DirectiveGuard.TryAcquire(context.Connection,
                 state => state.InboundDirectiveTimeoutLastSentAtMs,
                 (state, val) => state.InboundDirectiveTimeoutLastSentAtMs = val))
             {
