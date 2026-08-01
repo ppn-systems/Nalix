@@ -113,6 +113,35 @@ public sealed partial class TransportOptions : ConfigurationLoader
     public bool ResumeFallbackToHandshake { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets whether the SDK should automatically reconnect when the transport disconnects unexpectedly.
+    /// </summary>
+    [IniComment("Automatically reconnect when the transport disconnects unexpectedly")]
+    public bool AutoReconnectEnabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets the base delay in milliseconds before the first reconnect attempt.
+    /// Subsequent attempts back off exponentially, capped at <see cref="ReconnectMaxDelayMillis"/>.
+    /// </summary>
+    [IniComment("Base delay in milliseconds before the first reconnect attempt")]
+    [ValueRange(1, int.MaxValue)]
+    public int ReconnectBaseDelayMillis { get; set; } = 500;
+
+    /// <summary>
+    /// Gets or sets the maximum delay in milliseconds between reconnect attempts.
+    /// </summary>
+    [IniComment("Maximum delay in milliseconds between reconnect attempts (exponential backoff cap)")]
+    [ValueRange(1, int.MaxValue)]
+    public int ReconnectMaxDelayMillis { get; set; } = 30000;
+
+    /// <summary>
+    /// Gets or sets the maximum number of consecutive reconnect attempts before giving up.
+    /// A value of 0 means unlimited attempts.
+    /// </summary>
+    [IniComment("Maximum number of consecutive reconnect attempts before giving up (0 = unlimited)")]
+    [ValueRange(0, int.MaxValue)]
+    public int ReconnectMaxAttempts { get; set; }
+
+    /// <summary>
     /// Gets or sets whether the internal global clock can be synchronized with the server's time during SyncTimeAsync.
     /// Disable this if the connection is untrusted to prevent cross-session clock skew.
     /// </summary>

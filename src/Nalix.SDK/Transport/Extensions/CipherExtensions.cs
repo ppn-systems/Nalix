@@ -29,7 +29,7 @@ public static class CipherExtensions
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="session"/> is null.</exception>
     /// <exception cref="NetworkException">Thrown if the session is not connected.</exception>
     public static async ValueTask UpdateCipherAsync(
-        this TransportSession session,
+        this ITransportSession session,
         CipherSuiteType cipherSuite,
         int timeoutMs = 5000,
         CancellationToken ct = default)
@@ -81,7 +81,7 @@ public static class CipherExtensions
     /// <remarks>
     /// This keeps the client from drifting out of sync with the server when the ACK never arrives.
     /// </remarks>
-    private static void RestoreCipher(TransportSession session, CipherSuiteType previousCipher)
+    private static void RestoreCipher(ITransportSession session, CipherSuiteType previousCipher)
     {
         if (session.Options.Algorithm != previousCipher)
         {

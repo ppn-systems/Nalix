@@ -44,7 +44,7 @@ public static class TimeSyncExtensions
     /// <summary>
     /// Creates a new TimeSync frame.
     /// </summary>
-    public static TimeSyncBuilder NewTimeSync(this TransportSession _, ControlType type)
+    public static TimeSyncBuilder NewTimeSync(this ITransportSession _, ControlType type)
     {
 #pragma warning disable CA2000
         TimeSync t = TimeSync.Create();
@@ -69,7 +69,7 @@ public static class TimeSyncExtensions
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="session"/> is null.</exception>
     /// <exception cref="NetworkException">Thrown if the session is not connected.</exception>
     /// <exception cref="TimeoutException">Thrown if no response is received within the specified timeout.</exception>
-    public static async ValueTask<(double RttMs, double AdjustedMs)> SyncTimeAsync(this TransportSession session, int timeoutMs = 5000, CancellationToken ct = default)
+    public static async ValueTask<(double RttMs, double AdjustedMs)> SyncTimeAsync(this ITransportSession session, int timeoutMs = 5000, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(session);
 

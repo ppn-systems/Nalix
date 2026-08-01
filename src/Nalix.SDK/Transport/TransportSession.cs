@@ -17,7 +17,7 @@ namespace Nalix.SDK.Transport;
 /// Derived sessions expose a consistent lifecycle for connecting, disconnecting,
 /// sending packets, and receiving transport events.
 /// </remarks>
-public abstract class TransportSession : IDisposable
+public abstract class TransportSession : IDisposable, ITransportSession
 {
     #region Properties
 
@@ -41,6 +41,60 @@ public abstract class TransportSession : IDisposable
     /// Gets a value indicating whether the session is currently connected.
     /// </summary>
     public abstract bool IsConnected { get; }
+
+    /// <summary>
+    /// Gets or sets a hook invoked after an automatic reconnect performs a fresh handshake
+    /// (i.e. session resume was not used), before the session is signalled as ready.
+    /// Lets the application re-establish identity without reimplementing handshake ordering.
+    /// Only used when <see cref="Options.TransportOptions.AutoReconnectEnabled"/> is set.
+    /// </summary>
+    public Func<CancellationToken, Task>? OnReauthenticateAsync { get; set; }
+
+    private Internal.ReconnectSupervisor? _reconnectSupervisor;
+    private int _intentionalDisconnect;
+
+    /// <summary>
+    /// Gets the reconnect supervisor for this session, creating it lazily when
+    /// <see cref="Options.TransportOptions.AutoReconnectEnabled"/> is enabled. Returns
+    /// <see langword="null"/> when auto-reconnect is disabled.
+    /// </summary>
+    internal Internal.ReconnectSupervisor? ReconnectSupervisor
+    {
+        get
+        {
+            if (!this.Options.AutoReconnectEnabled)
+            {
+                return null;
+            }
+
+            return _reconnectSupervisor ??= new Internal.ReconnectSupervisor(this);
+        }
+    }
+
+    /// <summary>
+    /// Marks the next <see cref="EventHandler{Exception}"/> raise of <c>OnDisconnected</c> as
+    /// application-initiated, so <see cref="ReconnectSupervisor"/> skips auto-reconnect for it.
+    /// Called by concrete sessions from their public <c>DisconnectAsync()</c> entry point only —
+    /// never from internal fault-handling paths.
+    /// </summary>
+    internal void MarkIntentionalDisconnect() => Interlocked.Exchange(ref _intentionalDisconnect, 1);
+
+    /// <summary>
+    /// Consumes (reads and clears) the intentional-disconnect flag. Used by
+    /// <see cref="Internal.ReconnectSupervisor"/> to decide whether an <c>OnDisconnected</c>
+    /// raise should start a reconnect loop.
+    /// </summary>
+    internal bool ConsumeIntentionalDisconnect() => Interlocked.Exchange(ref _intentionalDisconnect, 0) == 1;
+
+    /// <summary>
+    /// Awaits until the session is connected and, if a fresh handshake occurred, re-authenticated.
+    /// Completes immediately if the session is already connected and no reconnect is in flight, or
+    /// if <see cref="Options.TransportOptions.AutoReconnectEnabled"/> is not set.
+    /// </summary>
+    /// <param name="ct">The token to observe while waiting.</param>
+    /// <exception cref="TimeoutException">Auto-reconnect exhausted its configured attempts.</exception>
+    public Task WaitUntilReadyAsync(CancellationToken ct = default)
+        => this.ReconnectSupervisor?.ReadyAsync(ct) ?? Task.CompletedTask;
 
     #endregion Properties
 

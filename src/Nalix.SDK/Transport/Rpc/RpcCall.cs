@@ -18,13 +18,13 @@ namespace Nalix.SDK.Transport.Rpc;
 /// <typeparam name="TResponse">The expected response packet type.</typeparam>
 public readonly struct RpcCall<TResponse> where TResponse : class, IPacket, IPacketStaticOpcode
 {
-    private readonly TransportSession _session;
+    private readonly ITransportSession _session;
     private readonly IPacket _request;
 
     private readonly RequestOptions? _options;
 
     /// <inheritdoc/>
-    public RpcCall(TransportSession session, IPacket request, RequestOptions? options = null)
+    public RpcCall(ITransportSession session, IPacket request, RequestOptions? options = null)
     {
         _session = session;
         _request = request;

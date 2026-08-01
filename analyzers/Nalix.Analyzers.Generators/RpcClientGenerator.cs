@@ -201,9 +201,9 @@ public sealed class RpcClientGenerator : IIncrementalGenerator
         _ = sb.AppendLine($"    /// </summary>");
         _ = sb.AppendLine($"    internal sealed class {className} : {model.InterfaceName}");
         _ = sb.AppendLine($"    {{");
-        _ = sb.AppendLine($"        private readonly TransportSession _session;");
+        _ = sb.AppendLine($"        private readonly ITransportSession _session;");
         _ = sb.AppendLine();
-        _ = sb.AppendLine($"        public {className}(TransportSession session)");
+        _ = sb.AppendLine($"        public {className}(ITransportSession session)");
         _ = sb.AppendLine($"        {{");
         _ = sb.AppendLine($"            _session = session;");
         _ = sb.AppendLine($"        }}");
