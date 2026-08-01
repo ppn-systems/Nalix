@@ -132,7 +132,7 @@ public class UdpSession : TransportSession
 
         if (this.IsConnected)
         {
-            await this.DisconnectAsync().ConfigureAwait(false);
+            await this.DisconnectInternalAsync().ConfigureAwait(false);
         }
 
         try
@@ -195,6 +195,8 @@ public class UdpSession : TransportSession
         {
             return Task.CompletedTask;
         }
+
+        this.MarkIntentionalDisconnect();
 
         return this.DisconnectInternalAsync();
     }
@@ -278,7 +280,10 @@ public class UdpSession : TransportSession
     private void HandleError(Exception ex)
     {
         this.OnError?.Invoke(this, ex);
-        _ = this.DisconnectAsync();
+        // Do not go through the public DisconnectAsync() path — that marks the disconnect as
+        // intentional (app-initiated), which would suppress auto-reconnect for what is actually
+        // an unexpected fault.
+        _ = this.DisconnectInternalAsync();
     }
 
     /// <summary>

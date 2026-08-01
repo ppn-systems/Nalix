@@ -225,6 +225,8 @@ public class TcpSession : TransportSession
             return;
         }
 
+        this.MarkIntentionalDisconnect();
+
         await _connectionLock.WaitAsync().ConfigureAwait(false);
         try
         {
@@ -349,7 +351,10 @@ public class TcpSession : TransportSession
     private void HandleError(Exception ex)
     {
         this.OnError?.Invoke(this, ex);
-        _ = this.DisconnectAsync();
+        // Do not go through the public DisconnectAsync() path — that marks the disconnect as
+        // intentional (app-initiated), which would suppress auto-reconnect for what is actually
+        // an unexpected fault.
+        _ = this.DisconnectInternalAsync();
     }
 
     /// <summary>

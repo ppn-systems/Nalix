@@ -150,24 +150,75 @@ public sealed class ReconnectStressTests : IDisposable
             await session.ConnectAsync();
             Assert.True(session.IsConnected);
 
-            // Simulate an unexpected drop by disconnecting without the caller reconnecting itself.
-            await session.DisconnectAsync();
-            Assert.False(session.IsConnected);
+            // Simulate an unexpected drop: the server goes away out from under the client (not a
+            // client-initiated DisconnectAsync). The next send fails, which routes through
+            // HandleError -> DisconnectInternalAsync, letting the ReconnectSupervisor's
+            // OnDisconnected handler start a reconnect loop — a new server on the same port
+            // stands in for the restart.
+            await app.DeactivateAsync();
 
-            // The supervisor only starts a reconnect loop from the OnDisconnected event, which
-            // DisconnectAsync also raises (see ReconnectSupervisor ponytail note) — good enough
-            // to exercise the reconnect + bounded-wait + reauth path end-to-end.
+            var builder2 = NetworkApplication.CreateBuilder();
+            builder2.ListenTcp<IntegrationTestProtocol>().OnPort((ushort)port);
+            builder2.UseSecureConnections();
+            builder2.UseSystemControl();
+            builder2.UseTimeSync();
+            using NetworkApplication app2 = builder2.Build();
+            await app2.ActivateAsync();
+
             var ping = new Nalix.Codec.ProtocolFrames.TimeSync();
             ping.Initialize(Nalix.Abstractions.Networking.Protocols.ControlType.PING, 99, Nalix.Abstractions.Networking.Packets.PacketFlags.NONE);
 
+            // The request either observes the dead socket (triggering HandleError -> disconnect ->
+            // reconnect) or lands after the reconnect has already completed; either way it must
+            // eventually succeed against the replacement server. Generous timeout + retry to
+            // absorb CI scheduling jitter around when the dead socket is actually detected.
             Nalix.Codec.ProtocolFrames.TimeSync response = await session.RequestAsync<Nalix.Codec.ProtocolFrames.TimeSync>(
                 ping,
-                options: RequestOptions.Default.WithTimeout(5000),
+                options: RequestOptions.Default.WithTimeout(8000).WithRetry(2),
                 predicate: p => p.Header.SequenceId == 99);
 
             Assert.Equal(99u, response.Header.SequenceId);
             Assert.True(session.IsConnected);
             Assert.True(reauthCalled);
+
+            await app2.DeactivateAsync();
+        }
+        finally
+        {
+            await app.DeactivateAsync();
+        }
+    }
+
+    [Fact]
+    public async Task DeliberateDisconnect_AutoReconnectEnabled_DoesNotReconnect()
+    {
+        int port = TestUtils.GetFreePort();
+
+        var builder = NetworkApplication.CreateBuilder();
+        builder.ListenTcp<IntegrationTestProtocol>().OnPort((ushort)port);
+        using NetworkApplication app = builder.Build();
+        await app.ActivateAsync();
+
+        try
+        {
+            using TcpSession session = new(new TransportOptions
+            {
+                Address = "127.0.0.1",
+                Port = (ushort)port,
+                AutoReconnectEnabled = true,
+                ReconnectBaseDelayMillis = 50,
+                ReconnectMaxDelayMillis = 200,
+            });
+
+            await session.ConnectAsync();
+            Assert.True(session.IsConnected);
+
+            // An app-initiated disconnect (e.g. logout) must not trigger the reconnect loop.
+            await session.DisconnectAsync();
+            Assert.False(session.IsConnected);
+
+            await Task.Delay(500);
+            Assert.False(session.IsConnected);
         }
         finally
         {

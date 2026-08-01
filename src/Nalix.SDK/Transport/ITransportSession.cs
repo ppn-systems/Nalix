@@ -81,4 +81,11 @@ public interface ITransportSession
     /// Resets the sequence counters for both send and receive directions.
     /// </summary>
     void ResetSequenceCounters();
+
+    /// <summary>
+    /// Awaits until the session is connected and, if a fresh handshake occurred, re-authenticated.
+    /// Completes immediately if already connected/no reconnect in flight, or if auto-reconnect is
+    /// not enabled.
+    /// </summary>
+    Task WaitUntilReadyAsync(CancellationToken ct = default);
 }
