@@ -17,7 +17,7 @@ namespace Nalix.SDK.Transport;
 /// Derived sessions expose a consistent lifecycle for connecting, disconnecting,
 /// sending packets, and receiving transport events.
 /// </remarks>
-public abstract class TransportSession : IDisposable
+public abstract class TransportSession : IDisposable, ITransportSession
 {
     #region Properties
 
@@ -41,6 +41,34 @@ public abstract class TransportSession : IDisposable
     /// Gets a value indicating whether the session is currently connected.
     /// </summary>
     public abstract bool IsConnected { get; }
+
+    /// <summary>
+    /// Gets or sets a hook invoked after an automatic reconnect performs a fresh handshake
+    /// (i.e. session resume was not used), before the session is signalled as ready.
+    /// Lets the application re-establish identity without reimplementing handshake ordering.
+    /// Only used when <see cref="Options.TransportOptions.AutoReconnectEnabled"/> is set.
+    /// </summary>
+    public Func<CancellationToken, Task>? OnReauthenticateAsync { get; set; }
+
+    private Internal.ReconnectSupervisor? _reconnectSupervisor;
+
+    /// <summary>
+    /// Gets the reconnect supervisor for this session, creating it lazily when
+    /// <see cref="Options.TransportOptions.AutoReconnectEnabled"/> is enabled. Returns
+    /// <see langword="null"/> when auto-reconnect is disabled.
+    /// </summary>
+    internal Internal.ReconnectSupervisor? ReconnectSupervisor
+    {
+        get
+        {
+            if (!this.Options.AutoReconnectEnabled)
+            {
+                return null;
+            }
+
+            return _reconnectSupervisor ??= new Internal.ReconnectSupervisor(this);
+        }
+    }
 
     #endregion Properties
 
