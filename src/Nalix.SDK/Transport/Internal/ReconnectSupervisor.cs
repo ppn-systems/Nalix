@@ -40,6 +40,10 @@ internal sealed class ReconnectSupervisor
         return tcs is null ? Task.CompletedTask : tcs.Task.WaitAsync(ct);
     }
 
+    // ponytail: OnDisconnected fires for both unexpected drops and explicit DisconnectAsync()
+    // calls, so an app-initiated disconnect while AutoReconnectEnabled is on will also trigger
+    // a reconnect attempt. Fixing this requires an intentional-disconnect signal plumbed through
+    // TcpSession/UdpSession/WebSocketSession; add if this becomes a real usage pattern.
     private void OnDisconnected(object? sender, Exception ex)
     {
         if (!_session.Options.AutoReconnectEnabled)
