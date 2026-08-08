@@ -1418,41 +1418,11 @@ public sealed class IniConfig : IDisposable
                             string sectionCommentKey = section.Key;
                             bool hasSectionComment = _comments.ContainsKey(sectionCommentKey);
 
-                            // Check whether any key in this section has a comment
-                            bool hasAnyKeyComment = false;
-                            foreach (KeyValuePair<string, string> kv in section.Value)
-                            {
-                                if (_comments.ContainsKey(CreateCacheKey(section.Key, kv.Key)))
-                                {
-                                    hasAnyKeyComment = true;
-                                    break;
-                                }
-                            }
-
-                            bool hasAnyComment = hasSectionComment || hasAnyKeyComment;
-
-                            // ── Opening separator ────────────────────────────────────
-                            if (hasAnyComment)
-                            {
-                                writer.WriteLine(s_sectionSeparator);
-                            }
-
-                            // ── Section-level comment lines ──────────────────────────
+                            // ── Section-level comment lines (wrapped in separators) ──
                             if (hasSectionComment)
                             {
+                                writer.WriteLine(s_sectionSeparator);
                                 this.WriteInlineComment(writer, section.Key, commentKey: sectionCommentKey);
-                            }
-
-                            // ── Property-level comment lines (above the section header)
-                            foreach (KeyValuePair<string, string> keyValue in section.Value)
-                            {
-                                this.WriteInlineComment(writer, section.Key,
-                                    commentKey: CreateCacheKey(section.Key, keyValue.Key));
-                            }
-
-                            // ── Closing separator (only when there were comment lines) ─
-                            if (hasAnyComment)
-                            {
                                 writer.WriteLine(s_sectionSeparator);
                             }
 
@@ -1476,6 +1446,11 @@ public sealed class IniConfig : IDisposable
 
                         foreach (KeyValuePair<string, string> keyValue in section.Value)
                         {
+                            // Property-level comment lines go directly above their key=value line
+                            // so Load() can re-associate them with the correct key on round-trip.
+                            this.WriteInlineComment(writer, section.Key,
+                                commentKey: CreateCacheKey(section.Key, keyValue.Key));
+
                             writer.Write(keyValue.Key.PadRight(maxKeyLength));
                             writer.Write(" = ");
                             writer.WriteLine(keyValue.Value);

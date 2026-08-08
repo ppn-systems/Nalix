@@ -39,6 +39,23 @@ public class IniConfigTests : IDisposable
         // Should still be 1, not 11 or more
         Assert.Single(comments);
     }
+
+    [Fact]
+    public void RepeatedBoot_DoesNotDuplicatePropertyComment()
+    {
+        // Simulates the ConfigurationLoader boot sequence: each start re-registers
+        // the property comment via WriteComment(), then flushes.
+        for (int i = 0; i < 5; i++)
+        {
+            using IniConfig config = new(_path);
+            config.WriteComment("Section", "Key", "Key: description");
+            config.Flush();
+        }
+
+        string content = File.ReadAllText(_path);
+        int occurrences = System.Text.RegularExpressions.Regex.Matches(content, "Key: description").Count;
+        Assert.Equal(1, occurrences);
+    }
 }
 #endif
 
