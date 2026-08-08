@@ -1448,8 +1448,20 @@ public sealed class IniConfig : IDisposable
                         {
                             // Property-level comment lines go directly above their key=value line
                             // so Load() can re-associate them with the correct key on round-trip.
-                            this.WriteInlineComment(writer, section.Key,
-                                commentKey: CreateCacheKey(section.Key, keyValue.Key));
+                            string commentKey = CreateCacheKey(section.Key, keyValue.Key);
+
+                            // Normalize round-tripped on-disk comments ("Key: ...") back to the stored
+                            // form ("...") so WriteInlineComment doesn't double-prefix on each flush.
+                            if (_comments.TryGetValue(commentKey, out string? comment)
+                                && comment.Length >= keyValue.Key.Length + 2
+                                && comment.StartsWith(keyValue.Key, StringComparison.Ordinal)
+                                && comment[keyValue.Key.Length] == ':'
+                                && comment[keyValue.Key.Length + 1] == ' ')
+                            {
+                                _comments[commentKey] = comment[(keyValue.Key.Length + 2)..];
+                            }
+
+                            this.WriteInlineComment(writer, section.Key, commentKey: commentKey);
 
                             writer.Write(keyValue.Key.PadRight(maxKeyLength));
                             writer.Write(" = ");
