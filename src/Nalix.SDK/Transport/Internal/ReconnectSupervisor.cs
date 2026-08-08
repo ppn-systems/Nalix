@@ -40,6 +40,9 @@ internal sealed class ReconnectSupervisor
         return tcs is null ? Task.CompletedTask : tcs.Task.WaitAsync(ct);
     }
 
+    // OnDisconnected fires for both unexpected drops and explicit DisconnectAsync() calls.
+    // Concrete sessions should call TransportSession.MarkIntentionalDisconnect() from DisconnectAsync()
+    // so ConsumeIntentionalDisconnect() can prevent auto-reconnect for app-initiated disconnects.
     private void OnDisconnected(object? sender, Exception ex)
     {
         if (!_session.Options.AutoReconnectEnabled)
