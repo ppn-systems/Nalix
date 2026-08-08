@@ -43,17 +43,24 @@ public class IniConfigTests : IDisposable
     [Fact]
     public void RepeatedBoot_DoesNotDuplicatePropertyComment()
     {
-        // Simulates the ConfigurationLoader boot sequence: each start re-registers
-        // the property comment via WriteComment(), then flushes.
+        // Start from a file that has the section but no key/comment yet.
+        File.WriteAllText(_path, "[Section]\n");
+
+        // Repeated open/write/flush cycles should not duplicate or "grow" the property comment.
         for (int i = 0; i < 5; i++)
         {
             using IniConfig config = new(_path);
-            config.WriteComment("Section", "Key", "Key: description");
+            config.WriteComment("Section", "Key", "description");
+            config.WriteValue("Section", "Key", $"Value{i}");
             config.Flush();
         }
 
-        string content = File.ReadAllText(_path);
-        int occurrences = System.Text.RegularExpressions.Regex.Matches(content, "Key: description").Count;
+        string content = File.ReadAllText(_path).Replace("\r\n", "\n");
+        int occurrences = System.Text.RegularExpressions.Regex.Matches(
+            content,
+            @"^; Key: description$",
+            System.Text.RegularExpressions.RegexOptions.Multiline).Count;
+
         Assert.Equal(1, occurrences);
     }
 }
