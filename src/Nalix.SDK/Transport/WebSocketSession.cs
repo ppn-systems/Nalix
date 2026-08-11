@@ -30,6 +30,7 @@ public class WebSocketSession : TransportSession
 #pragma warning disable CA2213
     private ClientWebSocket? _socket;
     private CancellationTokenSource? _loopCts;
+    private Task? _loopTask;
 #pragma warning restore CA2213
 
     private int _disposed;
@@ -110,10 +111,12 @@ public class WebSocketSession : TransportSession
             string effectiveHost = string.IsNullOrWhiteSpace(host) ? this.Options.Address : host;
             ushort effectivePort = port ?? this.Options.Port;
 
-            if (this.IsConnected)
+            if (_socket is not null || _loopCts is not null || _loopTask is not null)
             {
-                await this.DisconnectInternalAsync().ConfigureAwait(false);
+                await this.DisconnectInternalAsync(waitForLoop: true).ConfigureAwait(false);
             }
+
+            this.ResetSequenceCounters();
 
             _socket = new ClientWebSocket();
 
@@ -141,11 +144,11 @@ public class WebSocketSession : TransportSession
             // LongRunning + TaskScheduler.Default deadlocks in single-threaded
             // runtimes (Blazor WASM). The async loop yields correctly via
             // ConfigureAwait(false) on both desktop and WASM.
-            _ = _reader.ReceiveLoopAsync(_loopCts.Token);
+            _loopTask = _reader.ReceiveLoopAsync(_loopCts.Token);
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            await this.DisconnectInternalAsync().ConfigureAwait(false);
+            await this.DisconnectInternalAsync(waitForLoop: true).ConfigureAwait(false);
             this.OnError?.Invoke(this, ex);
             throw new NetworkException($"WebSocket Connection failed: {ex.Message}", ex);
         }
@@ -176,9 +179,10 @@ public class WebSocketSession : TransportSession
         }
     }
 
-    private async Task DisconnectInternalAsync()
+    private async Task DisconnectInternalAsync(bool waitForLoop = false)
     {
         CancellationTokenSource? loopCts = Interlocked.Exchange(ref _loopCts, null);
+        Task? loopTask = Interlocked.Exchange(ref _loopTask, null);
         ClientWebSocket? socket = Interlocked.Exchange(ref _socket, null);
 
         try
@@ -219,6 +223,21 @@ public class WebSocketSession : TransportSession
 
             socket.Dispose();
             this.OnDisconnected?.Invoke(this, new NetworkException("The WebSocket session was disconnected."));
+        }
+
+        if (waitForLoop && loopTask is { IsCompleted: false })
+        {
+            try
+            {
+                await loopTask.ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            {
+                if (Volatile.Read(ref _disposed) == 0)
+                {
+                    this.OnError?.Invoke(this, ex);
+                }
+            }
         }
     }
 

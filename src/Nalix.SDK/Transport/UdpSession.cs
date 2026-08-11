@@ -42,10 +42,12 @@ public class UdpSession : TransportSession
     // Low-level components for reading and sending datagrams
     private readonly UdpFrameSender _sender;
     private readonly UdpFrameReader _reader;
+    private readonly SemaphoreSlim _connectionLock = new(1, 1);
 
     private Socket? _socket;
     private IPEndPoint? _remoteEndPoint;
     private CancellationTokenSource? _loopCts;
+    private Task? _loopTask;
     private int _disposed;
 
     #endregion Fields
@@ -127,16 +129,20 @@ public class UdpSession : TransportSession
             PacketRegistry.Build();
         }
 
-        string effectiveHost = string.IsNullOrWhiteSpace(host) ? this.Options.Address : host;
-        ushort effectivePort = port ?? this.Options.Port;
-
-        if (this.IsConnected)
-        {
-            await this.DisconnectInternalAsync().ConfigureAwait(false);
-        }
+        await _connectionLock.WaitAsync(ct).ConfigureAwait(false);
 
         try
         {
+            string effectiveHost = string.IsNullOrWhiteSpace(host) ? this.Options.Address : host;
+            ushort effectivePort = port ?? this.Options.Port;
+
+            if (_socket is not null || _loopCts is not null || _loopTask is not null)
+            {
+                await this.DisconnectInternalAsync(waitForLoop: true).ConfigureAwait(false);
+            }
+
+            this.ResetSequenceCounters();
+
             // Resolve the remote endpoint
             IPAddress[] addresses = await Dns.GetHostAddressesAsync(effectiveHost, ct).ConfigureAwait(false);
             if (addresses.Length == 0)
@@ -175,35 +181,48 @@ public class UdpSession : TransportSession
             _loopCts = new CancellationTokenSource();
 
             // Start background receive loop
-            _ = Task.Factory.StartNew(() => _reader.ReceiveLoopAsync(_loopCts.Token),
+            _loopTask = Task.Factory.StartNew(() => _reader.ReceiveLoopAsync(_loopCts.Token),
                 _loopCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
 
             this.OnConnected?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            await this.DisconnectInternalAsync().ConfigureAwait(false);
+            await this.DisconnectInternalAsync(waitForLoop: true).ConfigureAwait(false);
             this.OnError?.Invoke(this, ex);
             throw new NetworkException($"UDP Connection failed: {ex.Message}", ex);
+        }
+        finally
+        {
+            _ = _connectionLock.Release();
         }
     }
 
     /// <inheritdoc/>
-    public override Task DisconnectAsync()
+    public override async Task DisconnectAsync()
     {
         if (Volatile.Read(ref _disposed) == 1)
         {
-            return Task.CompletedTask;
+            return;
         }
 
         this.MarkIntentionalDisconnect();
 
-        return this.DisconnectInternalAsync();
+        await _connectionLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            await this.DisconnectInternalAsync(waitForLoop: true).ConfigureAwait(false);
+        }
+        finally
+        {
+            _ = _connectionLock.Release();
+        }
     }
 
-    private async Task DisconnectInternalAsync()
+    private async Task DisconnectInternalAsync(bool waitForLoop = false)
     {
         CancellationTokenSource? cts = Interlocked.Exchange(ref _loopCts, null);
+        Task? loopTask = Interlocked.Exchange(ref _loopTask, null);
         Socket? socket = Interlocked.Exchange(ref _socket, null);
 
         try
@@ -224,6 +243,21 @@ public class UdpSession : TransportSession
         }
 
         cts?.Dispose();
+
+        if (waitForLoop && loopTask is { IsCompleted: false })
+        {
+            try
+            {
+                await loopTask.ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            {
+                if (Volatile.Read(ref _disposed) == 0)
+                {
+                    this.OnError?.Invoke(this, ex);
+                }
+            }
+        }
     }
 
     /// <inheritdoc/>
@@ -269,6 +303,7 @@ public class UdpSession : TransportSession
         _ = this.DisconnectInternalAsync();
         _sender.Dispose();
         _reader.Dispose();
+        _connectionLock.Dispose();
         _socket?.Dispose();
         _loopCts?.Dispose();
     }

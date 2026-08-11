@@ -30,6 +30,7 @@ public class TcpSession : TransportSession
 #pragma warning disable CA2213 // Disposed through Interlocked.Exchange locals inside DisconnectInternalAsync/Dispose(bool).
     private Socket? _socket;
     private CancellationTokenSource? _loopCts;
+    private Task? _loopTask;
 #pragma warning restore CA2213
     private int _disposed;
 
@@ -108,11 +109,12 @@ public class TcpSession : TransportSession
             string effectiveHost = string.IsNullOrWhiteSpace(host) ? this.Options.Address : host;
             ushort effectivePort = port ?? this.Options.Port;
 
-            // Ensure single connection at a time
-            if (this.IsConnected)
+            if (_socket is not null || _loopCts is not null || _loopTask is not null)
             {
-                await this.DisconnectInternalAsync().ConfigureAwait(false);
+                await this.DisconnectInternalAsync(waitForLoop: true).ConfigureAwait(false);
             }
+
+            this.ResetSequenceCounters();
 
             // Initialize socket with NoDelay to reduce latency
             _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = this.Options.NoDelay };
@@ -135,7 +137,7 @@ public class TcpSession : TransportSession
             // Start background worker for reading frames
             _loopCts = new CancellationTokenSource();
 
-            _ = Task.Factory.StartNew(() => _reader.ReceiveLoopAsync(_loopCts.Token),
+            _loopTask = Task.Factory.StartNew(() => _reader.ReceiveLoopAsync(_loopCts.Token),
                 _loopCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -172,11 +174,12 @@ public class TcpSession : TransportSession
             string effectiveHost = string.IsNullOrWhiteSpace(host) ? this.Options.Address : host;
             ushort effectivePort = port ?? this.Options.Port;
 
-            // Ensure single connection at a time
-            if (this.IsConnected)
+            if (_socket is not null || _loopCts is not null || _loopTask is not null)
             {
-                await this.DisconnectInternalAsync().ConfigureAwait(false);
+                await this.DisconnectInternalAsync(waitForLoop: true).ConfigureAwait(false);
             }
+
+            this.ResetSequenceCounters();
 
             // Initialize socket with NoDelay to reduce latency
             _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = this.Options.NoDelay };
@@ -202,12 +205,12 @@ public class TcpSession : TransportSession
             // Start background worker for reading frames
             _loopCts = new CancellationTokenSource();
 
-            _ = Task.Factory.StartNew(() => _reader.ReceiveLoopAsync(_loopCts.Token),
+            _loopTask = Task.Factory.StartNew(() => _reader.ReceiveLoopAsync(_loopCts.Token),
                 _loopCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            await this.DisconnectInternalAsync().ConfigureAwait(false);
+            await this.DisconnectInternalAsync(waitForLoop: true).ConfigureAwait(false);
             this.OnError?.Invoke(this, ex);
             throw new NetworkException($"Connection failed: {ex.Message}", ex);
         }
@@ -238,9 +241,10 @@ public class TcpSession : TransportSession
         }
     }
 
-    private Task DisconnectInternalAsync()
+    private async Task DisconnectInternalAsync(bool waitForLoop = false)
     {
         CancellationTokenSource? loopCts = Interlocked.Exchange(ref _loopCts, null);
+        Task? loopTask = Interlocked.Exchange(ref _loopTask, null);
         Socket? socket = Interlocked.Exchange(ref _socket, null);
 
         try
@@ -289,7 +293,20 @@ public class TcpSession : TransportSession
             this.OnDisconnected?.Invoke(this, new NetworkException("The TCP session was disconnected."));
         }
 
-        return Task.CompletedTask;
+        if (waitForLoop && loopTask is { IsCompleted: false })
+        {
+            try
+            {
+                await loopTask.ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            {
+                if (Volatile.Read(ref _disposed) == 0)
+                {
+                    this.OnError?.Invoke(this, ex);
+                }
+            }
+        }
     }
 
     /// <summary>
