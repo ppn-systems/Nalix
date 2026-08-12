@@ -75,6 +75,11 @@ internal sealed class ReconnectSupervisor
 
         while (maxAttempts <= 0 || attempt < maxAttempts)
         {
+            if (!_session.Options.AutoReconnectEnabled)
+            {
+                break;
+            }
+
             attempt++;
 
             int delay = (int)Math.Min(maxDelay, baseDelay * Math.Pow(2, attempt - 1));
@@ -83,6 +88,11 @@ internal sealed class ReconnectSupervisor
             try
             {
                 await Task.Delay(delay).ConfigureAwait(false);
+
+                if (!_session.Options.AutoReconnectEnabled)
+                {
+                    break;
+                }
 
                 ProtocolReason reason = await _session.ConnectWithResumeDetailedAsync().ConfigureAwait(false);
 
@@ -103,7 +113,8 @@ internal sealed class ReconnectSupervisor
         }
 
         _readyTcs = null;
-        _ = tcs.TrySetException(
-            new TimeoutException($"Auto-reconnect gave up after {attempt} attempt(s)."));
+        _ = tcs.TrySetException(_session.Options.AutoReconnectEnabled
+            ? new TimeoutException($"Auto-reconnect gave up after {attempt} attempt(s).")
+            : new OperationCanceledException("Auto-reconnect stopped: AutoReconnectEnabled was disabled."));
     }
 }
