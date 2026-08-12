@@ -37,7 +37,7 @@ public abstract partial class WebSocketListenerBase
                 EndPoint? remoteEndPoint = socket.RemoteEndPoint;
                 DiagnosticsEvents.Write(diagEvent,
                     new DiagnosticLog("NW.WebSocketListenerBase:ForwardedHeaders",
-                        $"forwarded-header-ignored reason=untrusted-physical-peer remote-endpoint={remoteEndPoint?.ToString() ?? \"<null>\"} require-trusted-proxy={_forwardedConfig.RequireTrustedProxy}"));
+                        $"forwarded-header-ignored reason=untrusted-physical-peer remote-endpoint={remoteEndPoint?.ToString() ?? "<null>"} require-trusted-proxy={_forwardedConfig.RequireTrustedProxy}"));
             }
 
             reject = _forwardedConfig.RequireTrustedProxy;
