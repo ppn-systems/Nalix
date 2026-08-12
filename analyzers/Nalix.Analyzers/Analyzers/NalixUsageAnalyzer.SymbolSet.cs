@@ -156,7 +156,7 @@ public sealed partial class NalixUsageAnalyzer
         public INamedTypeSymbol? RpcStreamType { get; }
         public int PacketHeaderRegionOffset { get; }
 
-        public static SymbolSet? Create(Compilation compilation)
+        public static SymbolSet? Create(Compilation compilation, out string? missingSymbol)
         {
             INamedTypeSymbol? packetOpcodeAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.Networking.Packets.PacketOpcodeAttribute");
             INamedTypeSymbol? controllerAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.Networking.Packets.PacketHandlerAttribute");
@@ -221,10 +221,31 @@ public sealed partial class NalixUsageAnalyzer
                 }
             }
 
-            if (packetOpcodeAttribute is null || controllerAttribute is null || packetInterface is null || packetBaseType is null)
+            if (packetOpcodeAttribute is null)
             {
+                missingSymbol = "Nalix.Abstractions.Networking.Packets.PacketOpcodeAttribute";
                 return null;
             }
+
+            if (controllerAttribute is null)
+            {
+                missingSymbol = "Nalix.Abstractions.Networking.Packets.PacketHandlerAttribute";
+                return null;
+            }
+
+            if (packetInterface is null)
+            {
+                missingSymbol = "Nalix.Abstractions.Networking.Packets.IPacket";
+                return null;
+            }
+
+            if (packetBaseType is null)
+            {
+                missingSymbol = "Nalix.Codec.DataFrames.PacketBase`1";
+                return null;
+            }
+
+            missingSymbol = null;
 
             return new SymbolSet(
                     packetOpcodeAttribute,
