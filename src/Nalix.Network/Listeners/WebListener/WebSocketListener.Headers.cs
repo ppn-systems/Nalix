@@ -5,6 +5,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Network.Internal.WebSockets;
 
 namespace Nalix.Network.Listeners.Web;
@@ -27,6 +28,18 @@ public abstract partial class WebSocketListenerBase
         // Forwarded IP headers are client-controlled unless the physical peer is a trusted proxy.
         if (socket.RemoteEndPoint is not IPEndPoint physicalIp || !_limiter.IsTrustedProxy(physicalIp))
         {
+            string diagEvent = _forwardedConfig.RequireTrustedProxy
+                ? DiagnosticsEvents.Internal.Warning
+                : DiagnosticsEvents.Internal.Trace;
+
+            if (DiagnosticsEvents.Source.IsEnabled(diagEvent))
+            {
+                EndPoint? remoteEndPoint = socket.RemoteEndPoint;
+                DiagnosticsEvents.Write(diagEvent,
+                    new DiagnosticLog("NW.WebSocketListenerBase:ForwardedHeaders",
+                        $"forwarded-header-ignored reason=untrusted-physical-peer remote-endpoint={remoteEndPoint?.ToString() ?? "<null>"} require-trusted-proxy={_forwardedConfig.RequireTrustedProxy}"));
+            }
+
             reject = _forwardedConfig.RequireTrustedProxy;
             return true;
         }
