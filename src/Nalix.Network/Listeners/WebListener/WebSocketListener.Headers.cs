@@ -28,11 +28,16 @@ public abstract partial class WebSocketListenerBase
         // Forwarded IP headers are client-controlled unless the physical peer is a trusted proxy.
         if (socket.RemoteEndPoint is not IPEndPoint physicalIp || !_limiter.IsTrustedProxy(physicalIp))
         {
-            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Internal.Warning))
+            string diagEvent = _forwardedConfig.RequireTrustedProxy
+                ? DiagnosticsEvents.Internal.Warning
+                : DiagnosticsEvents.Internal.Trace;
+
+            if (DiagnosticsEvents.Source.IsEnabled(diagEvent))
             {
-                DiagnosticsEvents.Write(DiagnosticsEvents.Internal.Warning,
+                EndPoint? remoteEndPoint = socket.RemoteEndPoint;
+                DiagnosticsEvents.Write(diagEvent,
                     new DiagnosticLog("NW.WebSocketListenerBase:ForwardedHeaders",
-                        $"forwarded-header-ignored reason=untrusted-physical-peer remote-endpoint={socket.RemoteEndPoint?.ToString() ?? "<null>"} require-trusted-proxy={_forwardedConfig.RequireTrustedProxy}"));
+                        $"forwarded-header-ignored reason=untrusted-physical-peer remote-endpoint={remoteEndPoint?.ToString() ?? \"<null>\"} require-trusted-proxy={_forwardedConfig.RequireTrustedProxy}"));
             }
 
             reject = _forwardedConfig.RequireTrustedProxy;
