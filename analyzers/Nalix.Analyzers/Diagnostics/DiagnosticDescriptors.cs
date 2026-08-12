@@ -588,4 +588,14 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
         description: "Fields annotated with [Inject] cannot be readonly since they are assigned via reflection or source generation after object instantiation.");
+
+    public static readonly DiagnosticDescriptor RequiredSymbolUnresolved = new(
+        id: "NALIX105",
+        title: "Nalix analyzer disabled: required symbol could not be resolved",
+        messageFormat: "The Nalix analyzer found no diagnostics for this compilation because the required symbol '{0}' could not be resolved. Verify the project references the Nalix package that declares it.",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "When a mandatory Nalix symbol cannot be resolved (e.g. a missing package reference), the entire analyzer silently reports nothing. This diagnostic surfaces that condition instead of leaving it indistinguishable from 'no issues found'.",
+        customTags: WellKnownDiagnosticTags.CompilationEnd);
 }

@@ -86,7 +86,8 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.RpcServiceInvalidParameters,
             DiagnosticDescriptors.RpcServiceContainsInvalidMembers,
             DiagnosticDescriptors.RpcServiceMissingAttribute,
-            DiagnosticDescriptors.InjectFieldCannotBeReadOnly
+            DiagnosticDescriptors.InjectFieldCannotBeReadOnly,
+            DiagnosticDescriptors.RequiredSymbolUnresolved
         ];
 
     public override void Initialize(AnalysisContext context)
@@ -100,9 +101,14 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         context.EnableConcurrentExecution();
         context.RegisterCompilationStartAction(static startContext =>
         {
-            SymbolSet? symbols = SymbolSet.Create(startContext.Compilation);
+            SymbolSet? symbols = SymbolSet.Create(startContext.Compilation, out string? missingSymbol);
             if (symbols is null)
             {
+                startContext.RegisterCompilationEndAction(endContext =>
+                    endContext.ReportDiagnostic(Diagnostic.Create(
+                        DiagnosticDescriptors.RequiredSymbolUnresolved,
+                        Location.None,
+                        missingSymbol)));
                 return;
             }
 
