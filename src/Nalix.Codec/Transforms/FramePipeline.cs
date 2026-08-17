@@ -174,9 +174,11 @@ public static class FramePipeline
             // 5. Copy the header once
             srcSpan[..FrameTransformer.Offset].CopyTo(destFull[..FrameTransformer.Offset]);
 
-            // 6. Clear both ENCRYPTED and COMPRESSED flags from the final header
+            // 6. Clear the COMPRESSED flag from the final header. ENCRYPTED is
+            // intentionally preserved — downstream dispatch relies on it to confirm
+            // the frame arrived encrypted on the wire.
             ref PacketHeader header = ref destFull.AsHeaderRef();
-            header.Flags &= ~(PacketFlags.COMPRESSED | PacketFlags.ENCRYPTED);
+            header.Flags &= ~PacketFlags.COMPRESSED;
 
             // 7. Finalize the lease length
             finalLease.CommitLength(FrameTransformer.Offset + finalLen);

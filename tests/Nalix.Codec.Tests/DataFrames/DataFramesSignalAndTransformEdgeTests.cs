@@ -112,7 +112,7 @@ public sealed class DataFramesSignalAndTransformEdgeTests
     }
 
     [Fact]
-    public void FrameCipherDecryptRemovesOnlyEncryptedFlagAndKeepsOtherFlags()
+    public void FrameCipherDecryptPreservesEncryptedFlagAndOtherFlags()
     {
         byte[] key = new byte[32];
         for (int i = 0; i < key.Length; i++)
@@ -132,7 +132,7 @@ public sealed class DataFramesSignalAndTransformEdgeTests
 
         PacketFlags flags = decrypted.Span.AsHeaderRef().Flags;
         Assert.True(flags.HasFlag(PacketFlags.COMPRESSED));
-        Assert.False(flags.HasFlag(PacketFlags.ENCRYPTED));
+        Assert.True(flags.HasFlag(PacketFlags.ENCRYPTED));
     }
 
     [Fact]

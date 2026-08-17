@@ -24,7 +24,9 @@ namespace Nalix.Codec.Transforms;
 public static class FrameCipher
 {
     /// <summary>
-    /// Decrypts a framed packet and clears the encrypted flag in the resulting buffer.
+    /// Decrypts a framed packet. The ENCRYPTED flag is intentionally left set on the
+    /// resulting buffer's header so downstream dispatch can still tell the frame arrived
+    /// encrypted on the wire (see <see cref="PacketFlags.ENCRYPTED"/>).
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static IBufferLease DecryptFrame(
@@ -44,9 +46,6 @@ public static class FrameCipher
         try
         {
             FrameTransformer.Decrypt(src, dest, key, expectedAlgorithm, out seq);
-
-            ref PacketHeader header = ref dest.Span.AsHeaderRef();
-            header.Flags &= ~PacketFlags.ENCRYPTED;
 
             return dest;
         }
@@ -95,9 +94,8 @@ public static class FrameCipher
             return false;
         }
 
-        ref PacketHeader header = ref localDest.Span.AsHeaderRef();
-        header.Flags &= ~PacketFlags.ENCRYPTED;
-
+        // The ENCRYPTED flag is intentionally left set — downstream dispatch relies on
+        // it to confirm the frame arrived encrypted on the wire.
         dest = localDest;
         return true;
     }

@@ -46,7 +46,9 @@ public sealed class PacketTransformTests
         // 3. Decrypt
         using IBufferLease decrypted = FrameCipher.DecryptFrame(encrypted, s_testKey, CipherSuiteType.Chacha20Poly1305, out _);
 
-        Assert.False(decrypted.Span.AsHeaderRef().Flags.HasFlag(PacketFlags.ENCRYPTED));
+        // ENCRYPTED is intentionally preserved post-decrypt as an on-wire audit signal
+        // (see FrameCipher.DecryptFrame remarks).
+        Assert.True(decrypted.Span.AsHeaderRef().Flags.HasFlag(PacketFlags.ENCRYPTED));
         Assert.Equal(src.Length, decrypted.Length);
 
         byte[] resultPayload = decrypted.Span[FrameTransformer.Offset..].ToArray();
@@ -70,7 +72,7 @@ public sealed class PacketTransformTests
 
         using IBufferLease decrypted = FrameCipher.DecryptFrame(encrypted, s_testKey, CipherSuiteType.Chacha20Poly1305, out _);
 
-        Assert.False(decrypted.Span.AsHeaderRef().Flags.HasFlag(PacketFlags.ENCRYPTED));
+        Assert.True(decrypted.Span.AsHeaderRef().Flags.HasFlag(PacketFlags.ENCRYPTED));
         Assert.Equal(FrameTransformer.Offset, decrypted.Length);
     }
 
@@ -128,7 +130,7 @@ public sealed class PacketTransformTests
         using IBufferLease decompressed = FrameCompression.DecompressFrame(compressed);
         using IBufferLease decrypted = FrameCipher.DecryptFrame(decompressed, s_testKey, CipherSuiteType.Chacha20Poly1305, out _);
 
-        Assert.False(decrypted.Span.AsHeaderRef().Flags.HasFlag(PacketFlags.ENCRYPTED));
+        Assert.True(decrypted.Span.AsHeaderRef().Flags.HasFlag(PacketFlags.ENCRYPTED));
         Assert.False(decrypted.Span.AsHeaderRef().Flags.HasFlag(PacketFlags.COMPRESSED));
         Assert.Equal(src.Length, decrypted.Length);
 
@@ -174,9 +176,13 @@ public sealed class PacketTransformTests
         PacketFlags restoredFlags = restored.Span.AsHeaderRef().Flags;
         Assert.True(restoredFlags.HasFlag(PacketFlags.NONE));
         Assert.False(restoredFlags.HasFlag(PacketFlags.COMPRESSED));
-        Assert.False(restoredFlags.HasFlag(PacketFlags.ENCRYPTED));
+        Assert.True(restoredFlags.HasFlag(PacketFlags.ENCRYPTED));
         Assert.Equal(src.Length, restored.Length);
-        Assert.Equal(src.Span.ToArray(), restored.Span.ToArray());
+        // Compare payload only: the header's ENCRYPTED bit is intentionally preserved
+        // post-decrypt as an on-wire audit signal, so it differs from the plaintext src header.
+        Assert.Equal(
+            src.Span[FrameTransformer.Offset..].ToArray(),
+            restored.Span[FrameTransformer.Offset..].ToArray());
     }
 }
 
