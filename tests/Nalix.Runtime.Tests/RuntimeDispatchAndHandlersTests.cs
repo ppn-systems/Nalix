@@ -146,7 +146,7 @@ public sealed class RuntimeDispatchAndHandlersTests
         try
         {
             Func<Task> act = async () => await options.ExecuteResolvedHandlerAsync(
-                descriptor, new TestPacket(), connection, reliable: true).AsTask();
+                descriptor, new TestPacket(), connection, reliable: true, encryptedOnWire: false).AsTask();
 
             await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("sync boom");
         }
@@ -185,7 +185,7 @@ public sealed class RuntimeDispatchAndHandlersTests
         try
         {
             await options.ExecuteResolvedHandlerAsync(
-                descriptor, new TestPacket(), connection, reliable: true).AsTask();
+                descriptor, new TestPacket(), connection, reliable: true, encryptedOnWire: false).AsTask();
 
             observedException.Should().BeOfType<InvalidOperationException>().Which.Message.Should().Be("async boom");
             observedOpCode.Should().Be(descriptor.OpCode);
@@ -221,7 +221,7 @@ public sealed class RuntimeDispatchAndHandlersTests
         try
         {
             Func<Task> act = async () => await options.ExecuteResolvedHandlerAsync(
-                descriptor, new TestPacket(), connection, reliable: true, token: cts.Token).AsTask();
+                descriptor, new TestPacket(), connection, reliable: true, encryptedOnWire: false, token: cts.Token).AsTask();
 
             await act.Should().ThrowAsync<OperationCanceledException>();
             invoked.Should().BeFalse("a pre-cancelled token must short-circuit before the handler runs");
@@ -254,7 +254,7 @@ public sealed class RuntimeDispatchAndHandlersTests
         try
         {
             await options.ExecuteResolvedHandlerAsync(
-                descriptor, new TestPacket(), connection, reliable: true).AsTask();
+                descriptor, new TestPacket(), connection, reliable: true, encryptedOnWire: false).AsTask();
 
             connection.FakeTcp.SentMessages.Should().NotBeEmpty(
                 "a handler exceeding its configured timeout must cause a TIMEOUT directive to be sent");
@@ -291,7 +291,7 @@ public sealed class RuntimeDispatchAndHandlersTests
         try
         {
             Func<Task> act = async () => await options.ExecuteResolvedHandlerAsync(
-                descriptor, new TestPacket(), connection, reliable: true, token: outerCts.Token).AsTask();
+                descriptor, new TestPacket(), connection, reliable: true, encryptedOnWire: false, token: outerCts.Token).AsTask();
 
             await act.Should().ThrowAsync<OperationCanceledException>();
             connection.FakeTcp.SentMessages.Should().BeEmpty(
@@ -303,20 +303,86 @@ public sealed class RuntimeDispatchAndHandlersTests
         }
     }
 
+    /// <summary>
+    /// A handler marked [PacketEncryption(true)] must be denied with ProtocolReason.FORBIDDEN
+    /// when the packet context reports the frame did not arrive encrypted on the wire —
+    /// EncryptedOnWire is the dedicated audit signal CanExecute reads (the packet header's
+    /// transient ENCRYPTED flag is cleared by the inbound cipher transforms and cannot be
+    /// used for this check).
+    /// </summary>
+    [Fact]
+    public void CanExecute_EncryptionRequiredAndFrameNotEncryptedOnWire_DeniesWithForbidden()
+    {
+        PacketHandler<TestPacket> descriptor = CreateDescriptor(
+            (_, _) => new ValueTask<object?>((object?)null), requireEncryption: true);
+
+        PacketContext<TestPacket> context = new();
+        FakeConnection connection = new();
+        try
+        {
+            context.Initialize(
+                new TestPacket(), connection, descriptor.Metadata,
+                reliable: true, encryptedOnWire: false);
+
+            bool canExecute = descriptor.CanExecute(context, out ProtocolReason denyReason);
+
+            canExecute.Should().BeFalse();
+            denyReason.Should().Be(ProtocolReason.FORBIDDEN);
+        }
+        finally
+        {
+            context.Return();
+            connection.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// A handler marked [PacketEncryption(true)] must be allowed to execute when the packet
+    /// context reports the frame did arrive encrypted on the wire.
+    /// </summary>
+    [Fact]
+    public void CanExecute_EncryptionRequiredAndFrameEncryptedOnWire_Allows()
+    {
+        PacketHandler<TestPacket> descriptor = CreateDescriptor(
+            (_, _) => new ValueTask<object?>((object?)null), requireEncryption: true);
+
+        PacketContext<TestPacket> context = new();
+        FakeConnection connection = new();
+        try
+        {
+            context.Initialize(
+                new TestPacket(), connection, descriptor.Metadata,
+                reliable: true, encryptedOnWire: true);
+
+            bool canExecute = descriptor.CanExecute(context, out ProtocolReason denyReason);
+
+            canExecute.Should().BeTrue();
+            denyReason.Should().Be(ProtocolReason.NONE);
+        }
+        finally
+        {
+            context.Return();
+            connection.Dispose();
+        }
+    }
+
     private static PacketHandler<TestPacket> CreateDescriptor(
-        Func<object?, PacketContext<TestPacket>, ValueTask<object?>> invoker, int timeoutMs = 0)
-        => CreateDescriptor<TestPacket>(invoker, timeoutMs);
+        Func<object?, PacketContext<TestPacket>, ValueTask<object?>> invoker,
+        int timeoutMs = 0, bool requireEncryption = false)
+        => CreateDescriptor<TestPacket>(invoker, timeoutMs, requireEncryption);
 
     private static PacketHandler<TPacket> CreateDescriptor<TPacket>(
-        Func<object?, PacketContext<TPacket>, ValueTask<object?>> invoker, int timeoutMs = 0)
+        Func<object?, PacketContext<TPacket>, ValueTask<object?>> invoker,
+        int timeoutMs = 0, bool requireEncryption = false)
         where TPacket : IPacket
     {
         PacketTimeoutAttribute? timeout = timeoutMs > 0 ? new PacketTimeoutAttribute(timeoutMs) : null;
+        PacketEncryptionAttribute? encryption = requireEncryption ? new PacketEncryptionAttribute(true) : null;
         PacketMetadata metadata = new(
             opCode: new PacketOpcodeAttribute((ushort)1),
             timeout: timeout,
             permission: null,
-            encryption: null,
+            encryption: encryption,
             rateLimit: null,
             transport: null);
 
