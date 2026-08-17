@@ -568,6 +568,7 @@ public sealed class DispatchChannelTests
 
         public int Length => _buffer.Length;
         public bool IsReliable { get; set; }
+        public bool EncryptedOnWire { get; set; }
         public int Capacity => _buffer.Length;
         public Span<byte> Span => _disposed != 0 ? throw new ObjectDisposedException(nameof(FakeBufferLease)) : _buffer;
         public Span<byte> SpanFull => Span;

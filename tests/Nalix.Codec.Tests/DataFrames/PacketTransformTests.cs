@@ -46,7 +46,10 @@ public sealed class PacketTransformTests
         // 3. Decrypt
         using IBufferLease decrypted = FrameCipher.DecryptFrame(encrypted, s_testKey, CipherSuiteType.Chacha20Poly1305, out _);
 
+        // ENCRYPTED is transform-internal bookkeeping and is cleared post-decrypt;
+        // the dedicated EncryptedOnWire signal is the on-wire audit trail instead.
         Assert.False(decrypted.Span.AsHeaderRef().Flags.HasFlag(PacketFlags.ENCRYPTED));
+        Assert.True(decrypted.EncryptedOnWire);
         Assert.Equal(src.Length, decrypted.Length);
 
         byte[] resultPayload = decrypted.Span[FrameTransformer.Offset..].ToArray();
@@ -71,6 +74,7 @@ public sealed class PacketTransformTests
         using IBufferLease decrypted = FrameCipher.DecryptFrame(encrypted, s_testKey, CipherSuiteType.Chacha20Poly1305, out _);
 
         Assert.False(decrypted.Span.AsHeaderRef().Flags.HasFlag(PacketFlags.ENCRYPTED));
+        Assert.True(decrypted.EncryptedOnWire);
         Assert.Equal(FrameTransformer.Offset, decrypted.Length);
     }
 
@@ -130,6 +134,7 @@ public sealed class PacketTransformTests
 
         Assert.False(decrypted.Span.AsHeaderRef().Flags.HasFlag(PacketFlags.ENCRYPTED));
         Assert.False(decrypted.Span.AsHeaderRef().Flags.HasFlag(PacketFlags.COMPRESSED));
+        Assert.True(decrypted.EncryptedOnWire);
         Assert.Equal(src.Length, decrypted.Length);
 
         byte[] resultPayload = decrypted.Span[FrameTransformer.Offset..].ToArray();
@@ -175,6 +180,7 @@ public sealed class PacketTransformTests
         Assert.True(restoredFlags.HasFlag(PacketFlags.NONE));
         Assert.False(restoredFlags.HasFlag(PacketFlags.COMPRESSED));
         Assert.False(restoredFlags.HasFlag(PacketFlags.ENCRYPTED));
+        Assert.True(restored.EncryptedOnWire);
         Assert.Equal(src.Length, restored.Length);
         Assert.Equal(src.Span.ToArray(), restored.Span.ToArray());
     }

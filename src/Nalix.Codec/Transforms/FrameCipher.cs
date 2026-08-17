@@ -24,7 +24,9 @@ namespace Nalix.Codec.Transforms;
 public static class FrameCipher
 {
     /// <summary>
-    /// Decrypts a framed packet and clears the encrypted flag in the resulting buffer.
+    /// Decrypts a framed packet. The ENCRYPTED flag is intentionally left set on the
+    /// resulting buffer's header so downstream dispatch can still tell the frame arrived
+    /// encrypted on the wire (see <see cref="PacketFlags.ENCRYPTED"/>).
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static IBufferLease DecryptFrame(
@@ -44,6 +46,12 @@ public static class FrameCipher
         try
         {
             FrameTransformer.Decrypt(src, dest, key, expectedAlgorithm, out seq);
+
+            // The frame authenticated successfully, so it did arrive encrypted on the wire.
+            // Record that on the lease (survives further transforms like decompression)
+            // separately from the header's ENCRYPTED flag, which is transform-internal
+            // bookkeeping and is cleared below.
+            dest.EncryptedOnWire = true;
 
             ref PacketHeader header = ref dest.Span.AsHeaderRef();
             header.Flags &= ~PacketFlags.ENCRYPTED;
@@ -94,6 +102,10 @@ public static class FrameCipher
             localDest.Dispose();
             return false;
         }
+
+        // Record the on-wire encrypted state on the lease (see DecryptFrame remarks),
+        // then clear the header's transient ENCRYPTED flag.
+        localDest.EncryptedOnWire = true;
 
         ref PacketHeader header = ref localDest.Span.AsHeaderRef();
         header.Flags &= ~PacketFlags.ENCRYPTED;

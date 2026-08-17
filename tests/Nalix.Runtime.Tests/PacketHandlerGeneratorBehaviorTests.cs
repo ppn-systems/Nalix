@@ -50,7 +50,7 @@ public sealed class PacketHandlerGeneratorBehaviorTests
         FakeConnection connection = new();
 
         _ = options.TryResolveHandler(EchoController.VoidOpCode, out PacketHandler<EchoPacket> descriptor);
-        await options.ExecuteResolvedHandlerAsync(descriptor, MakePacket(EchoController.VoidOpCode), connection, reliable: true);
+        await options.ExecuteResolvedHandlerAsync(descriptor, MakePacket(EchoController.VoidOpCode), connection, reliable: true, encryptedOnWire: false);
 
         controller.VoidInvoked.Should().BeTrue();
         connection.FakeTcp.SentMessages.Should().BeEmpty("a void handler never produces an outbound payload");
@@ -64,7 +64,7 @@ public sealed class PacketHandlerGeneratorBehaviorTests
         FakeConnection connection = new();
 
         _ = options.TryResolveHandler(EchoController.ValueTaskOpCode, out PacketHandler<EchoPacket> descriptor);
-        await options.ExecuteResolvedHandlerAsync(descriptor, MakePacket(EchoController.ValueTaskOpCode), connection, reliable: true);
+        await options.ExecuteResolvedHandlerAsync(descriptor, MakePacket(EchoController.ValueTaskOpCode), connection, reliable: true, encryptedOnWire: false);
 
         controller.ValueTaskInvoked.Should().BeTrue("the generated invoker must await the ValueTask before returning");
         connection.FakeTcp.SentMessages.Should().BeEmpty();
@@ -78,7 +78,7 @@ public sealed class PacketHandlerGeneratorBehaviorTests
         FakeConnection connection = new();
 
         _ = options.TryResolveHandler(EchoController.TaskOpCode, out PacketHandler<EchoPacket> descriptor);
-        await options.ExecuteResolvedHandlerAsync(descriptor, MakePacket(EchoController.TaskOpCode), connection, reliable: true);
+        await options.ExecuteResolvedHandlerAsync(descriptor, MakePacket(EchoController.TaskOpCode), connection, reliable: true, encryptedOnWire: false);
 
         controller.TaskInvoked.Should().BeTrue();
         connection.FakeTcp.SentMessages.Should().BeEmpty();
@@ -101,7 +101,7 @@ public sealed class PacketHandlerGeneratorBehaviorTests
         FakeConnection connection = new();
 
         _ = options.TryResolveHandler(EchoController.ValueTaskOfTOpCode, out PacketHandler<EchoPacket> descriptor);
-        await options.ExecuteResolvedHandlerAsync(descriptor, MakePacket(EchoController.ValueTaskOfTOpCode), connection, reliable: true);
+        await options.ExecuteResolvedHandlerAsync(descriptor, MakePacket(EchoController.ValueTaskOfTOpCode), connection, reliable: true, encryptedOnWire: false);
 
         connection.FakeTcp.SentMessages.Should().NotBeEmpty(
             "a ValueTask<T> handler's result must be awaited and the resulting packet actually sent");
@@ -115,7 +115,7 @@ public sealed class PacketHandlerGeneratorBehaviorTests
         FakeConnection connection = new();
 
         _ = options.TryResolveHandler(EchoController.TaskOfTOpCode, out PacketHandler<EchoPacket> descriptor);
-        await options.ExecuteResolvedHandlerAsync(descriptor, MakePacket(EchoController.TaskOfTOpCode), connection, reliable: true);
+        await options.ExecuteResolvedHandlerAsync(descriptor, MakePacket(EchoController.TaskOfTOpCode), connection, reliable: true, encryptedOnWire: false);
 
         connection.FakeTcp.SentMessages.Should().NotBeEmpty(
             "a Task<T> handler's result must be awaited and the resulting packet actually sent");
@@ -129,7 +129,7 @@ public sealed class PacketHandlerGeneratorBehaviorTests
         FakeConnection connection = new();
 
         _ = options.TryResolveHandler(EchoController.ContextOpCode, out PacketHandler<EchoPacket> descriptor);
-        await options.ExecuteResolvedHandlerAsync(descriptor, MakePacket(EchoController.ContextOpCode), connection, reliable: true);
+        await options.ExecuteResolvedHandlerAsync(descriptor, MakePacket(EchoController.ContextOpCode), connection, reliable: true, encryptedOnWire: false);
 
         controller.ContextInvoked.Should().BeTrue();
         connection.FakeTcp.SentMessages.Should().NotBeEmpty(
@@ -144,7 +144,7 @@ public sealed class PacketHandlerGeneratorBehaviorTests
         FakeConnection connection = new();
 
         _ = options.TryResolveHandler(EchoController.ThrowingOpCode, out PacketHandler<EchoPacket> descriptor);
-        await options.ExecuteResolvedHandlerAsync(descriptor, MakePacket(EchoController.ThrowingOpCode), connection, reliable: true);
+        await options.ExecuteResolvedHandlerAsync(descriptor, MakePacket(EchoController.ThrowingOpCode), connection, reliable: true, encryptedOnWire: false);
 
         connection.FakeTcp.SentMessages.Should().NotBeEmpty(
             "an exception thrown asynchronously inside a generated handler must be converted to a FAIL control, not swallowed silently");

@@ -37,6 +37,7 @@ public static class PacketContextBridge
             baseContext.Connection,
             baseContext.Attributes,
             baseContext.IsReliable,
+            baseContext.EncryptedOnWire,
             ownsPacket: false,
             baseContext.CancellationToken);
 

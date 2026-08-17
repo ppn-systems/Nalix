@@ -133,6 +133,7 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         PacketFlags flags = decrypted.Span.AsHeaderRef().Flags;
         Assert.True(flags.HasFlag(PacketFlags.COMPRESSED));
         Assert.False(flags.HasFlag(PacketFlags.ENCRYPTED));
+        Assert.True(decrypted.EncryptedOnWire);
     }
 
     [Fact]

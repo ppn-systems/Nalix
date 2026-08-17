@@ -243,6 +243,7 @@ public sealed class BufferLease : IBufferLease, IPoolable, IPoolRentable
         this.Length = 0;
         this.ZeroOnDispose = false;
         this.IsReliable = false;
+        this.EncryptedOnWire = false;
     }
 
 #if DEBUG
@@ -271,6 +272,9 @@ public sealed class BufferLease : IBufferLease, IPoolable, IPoolRentable
 
     /// <inheritdoc/>
     public bool IsReliable { get; set; }
+
+    /// <inheritdoc/>
+    public bool EncryptedOnWire { get; set; }
 
     /// <summary>
     /// Gets the capacity of the owned slice (from <c>_start</c> to end of the array).

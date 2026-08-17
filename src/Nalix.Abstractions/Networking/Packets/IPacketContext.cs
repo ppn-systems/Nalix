@@ -22,6 +22,13 @@ public interface IPacketContext<TPacket> : IPoolable where TPacket : IPacket
     bool IsReliable { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the inbound frame this packet was deserialized from
+    /// arrived encrypted on the wire. Reflects <see cref="Nalix.Abstractions.IBufferLease.EncryptedOnWire"/>
+    /// as captured at decrypt time, independent of the packet header's transient flags.
+    /// </summary>
+    bool EncryptedOnWire { get; }
+
+    /// <summary>
     /// If true, outbound middlewares will be skipped for this context.
     /// </summary>
     bool SkipOutbound { get; }

@@ -84,11 +84,11 @@ public sealed partial class PacketDispatchOptions<TPacket>
     {
         ct.ThrowIfCancellationRequested();
 
-        // Permission check — sync, no allocation.
-        if (!descriptor.CanExecute(context))
+        // Permission / encryption policy check — sync, no allocation.
+        if (!descriptor.CanExecute(context, out ProtocolReason denyReason))
         {
             // Cold path: denied — requires async I/O to send directive.
-            return SendDenyControlAsync(this, descriptor, context);
+            return SendDenyControlAsync(this, descriptor, context, denyReason);
         }
 
         // Handler execution — try sync fast-path.
@@ -115,26 +115,30 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
     private static async ValueTask SendDenyControlAsync(
         PacketDispatchOptions<TPacket> owner, PacketHandler<TPacket> descriptor,
-        PacketContext<TPacket> context)
+        PacketContext<TPacket> context, ProtocolReason reason)
     {
         try
         {
-            // Rate limiting is treated as a protocol failure with a transient retry hint.
+            // Policy denials that can clear up on their own (e.g. rate limiting) get a
+            // transient retry hint; hard policy failures (e.g. missing required
+            // encryption) are not retryable without changing how the client sends.
+            bool transient = reason == ProtocolReason.RATE_LIMITED;
+
             await owner.TrySendControlAsync(
                 context,
                 descriptor.OpCode,
                 controlType: ControlType.FAIL,
-                reason: ProtocolReason.RATE_LIMITED,
-                action: ProtocolAdvice.RETRY,
+                reason: reason,
+                action: transient ? ProtocolAdvice.RETRY : ProtocolAdvice.DO_NOT_RETRY,
                 options: new ControlDirectiveOptions(
-                    Flags: ControlFlags.IS_TRANSIENT,
+                    Flags: transient ? ControlFlags.IS_TRANSIENT : ControlFlags.NONE,
                     SequenceId: context.Packet.Header.SequenceId,
                     Arg0: descriptor.OpCode)).ConfigureAwait(false);
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             await owner.HandleDispatchExceptionAsync(descriptor, context, ex)
-                      .ConfigureAwait(false);
+                       .ConfigureAwait(false);
         }
     }
 
@@ -170,7 +174,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             await owner.HandleDispatchExceptionAsync(descriptor, context, ex)
-                      .ConfigureAwait(false);
+                       .ConfigureAwait(false);
         }
         finally
         {
@@ -221,7 +225,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             await owner.HandleDispatchExceptionAsync(descriptor, context, ex)
-                      .ConfigureAwait(false);
+                       .ConfigureAwait(false);
         }
         finally
         {

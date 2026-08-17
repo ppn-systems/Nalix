@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Runtime.Dispatching;
 
 #if DEBUG
@@ -103,6 +104,10 @@ internal readonly struct PacketHandler<TPacket>(
     /// Determines whether this handler can be executed for the specified packet context.
     /// </summary>
     /// <param name="context">The packet context to validate for execution.</param>
+    /// <param name="denyReason">
+    /// When this method returns <see langword="false"/>, the protocol reason that should be
+    /// reported back to the caller for the denial.
+    /// </param>
     /// <returns><see langword="true"/> if the handler can be executed; otherwise, <see langword="false"/>.</returns>
     /// <remarks>
     /// This method can be extended to implement validation logic such as:
@@ -113,7 +118,7 @@ internal readonly struct PacketHandler<TPacket>(
     /// </list>
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public bool CanExecute(PacketContext<TPacket> context)
+    public bool CanExecute(PacketContext<TPacket> context, out ProtocolReason denyReason)
     {
         // SEC-77: Enforce permission policy by default on the hot path.
         // Middleware is still recommended for logging and more complex policies,
@@ -121,9 +126,25 @@ internal readonly struct PacketHandler<TPacket>(
         if (Metadata.Permission is { } permission &&
             permission.Level > context.Connection.Level)
         {
+            denyReason = ProtocolReason.RATE_LIMITED;
             return false;
         }
 
+        // Enforce declared encryption requirement: a handler marked
+        // [PacketEncryption(true)] must not execute for a frame that
+        // did not arrive encrypted on the wire. The header's ENCRYPTED flag
+        // is transient transform-internal bookkeeping and is cleared once the
+        // inbound cipher transforms finish decrypting, so it cannot be used
+        // here. PacketContext.EncryptedOnWire is a dedicated signal captured
+        // once at decrypt time (see FrameCipher.DecryptFrame / TryDecryptFrame)
+        // and propagated across subsequent transforms (e.g. decompression).
+        if (Metadata.Encryption is { IsEncrypted: true } && !context.EncryptedOnWire)
+        {
+            denyReason = ProtocolReason.FORBIDDEN;
+            return false;
+        }
+
+        denyReason = ProtocolReason.NONE;
         return true;
     }
 
