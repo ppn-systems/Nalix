@@ -124,6 +124,15 @@ internal readonly struct PacketHandler<TPacket>(
             return false;
         }
 
+        // Enforce declared encryption requirement: a handler marked
+        // [PacketEncryption(true)] must not execute for a frame that
+        // arrived without the ENCRYPTED flag set.
+        if (Metadata.Encryption is { IsEncrypted: true } &&
+            (context.Packet.Header.Flags & PacketFlags.ENCRYPTED) == 0)
+        {
+            return false;
+        }
+
         return true;
     }
 
