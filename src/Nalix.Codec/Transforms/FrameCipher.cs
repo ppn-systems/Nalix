@@ -47,6 +47,15 @@ public static class FrameCipher
         {
             FrameTransformer.Decrypt(src, dest, key, expectedAlgorithm, out seq);
 
+            // The frame authenticated successfully, so it did arrive encrypted on the wire.
+            // Record that on the lease (survives further transforms like decompression)
+            // separately from the header's ENCRYPTED flag, which is transform-internal
+            // bookkeeping and is cleared below.
+            dest.EncryptedOnWire = true;
+
+            ref PacketHeader header = ref dest.Span.AsHeaderRef();
+            header.Flags &= ~PacketFlags.ENCRYPTED;
+
             return dest;
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -94,8 +103,13 @@ public static class FrameCipher
             return false;
         }
 
-        // The ENCRYPTED flag is intentionally left set — downstream dispatch relies on
-        // it to confirm the frame arrived encrypted on the wire.
+        // Record the on-wire encrypted state on the lease (see DecryptFrame remarks),
+        // then clear the header's transient ENCRYPTED flag.
+        localDest.EncryptedOnWire = true;
+
+        ref PacketHeader header = ref localDest.Span.AsHeaderRef();
+        header.Flags &= ~PacketFlags.ENCRYPTED;
+
         dest = localDest;
         return true;
     }

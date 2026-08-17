@@ -84,6 +84,7 @@ public class PolicyRateLimiterBenchmarks
     private class BenchmarkPacketContext : IPacketContext<IPacket>
     {
         public bool IsReliable => true;
+        public bool EncryptedOnWire => false;
         public bool SkipOutbound => false;
         public IPacket Packet { get; }
         public IConnection Connection { get; }

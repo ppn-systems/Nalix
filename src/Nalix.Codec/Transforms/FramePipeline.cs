@@ -161,6 +161,7 @@ public static class FramePipeline
             // 3. Rent final lease for the fully decompressed packet
             BufferLease finalLease = BufferLease.Rent(FrameTransformer.Offset + decompressedSize);
             finalLease.IsReliable = current.IsReliable;
+            finalLease.EncryptedOnWire = true;
 
             Span<byte> destFull = finalLease.SpanFull;
 
@@ -174,11 +175,11 @@ public static class FramePipeline
             // 5. Copy the header once
             srcSpan[..FrameTransformer.Offset].CopyTo(destFull[..FrameTransformer.Offset]);
 
-            // 6. Clear the COMPRESSED flag from the final header. ENCRYPTED is
-            // intentionally preserved — downstream dispatch relies on it to confirm
-            // the frame arrived encrypted on the wire.
+            // 6. Clear both transient flags from the final header. The on-wire encrypted
+            // state was already recorded on finalLease.EncryptedOnWire above, so dispatch
+            // does not depend on this flag surviving decryption.
             ref PacketHeader header = ref destFull.AsHeaderRef();
-            header.Flags &= ~PacketFlags.COMPRESSED;
+            header.Flags &= ~(PacketFlags.COMPRESSED | PacketFlags.ENCRYPTED);
 
             // 7. Finalize the lease length
             finalLease.CommitLength(FrameTransformer.Offset + finalLen);

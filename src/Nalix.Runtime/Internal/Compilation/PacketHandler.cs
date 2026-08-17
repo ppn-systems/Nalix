@@ -132,13 +132,13 @@ internal readonly struct PacketHandler<TPacket>(
 
         // Enforce declared encryption requirement: a handler marked
         // [PacketEncryption(true)] must not execute for a frame that
-        // did not arrive encrypted on the wire. The ENCRYPTED flag on the
-        // deserialized header still reflects the frame's on-wire state here
-        // because the inbound cipher transforms preserve it (see
-        // FrameCipher.DecryptFrame / TryDecryptFrame and
-        // FramePipeline.TryProcessInboundFused).
-        if (Metadata.Encryption is { IsEncrypted: true } &&
-            (context.Packet.Header.Flags & PacketFlags.ENCRYPTED) == 0)
+        // did not arrive encrypted on the wire. The header's ENCRYPTED flag
+        // is transient transform-internal bookkeeping and is cleared once the
+        // inbound cipher transforms finish decrypting, so it cannot be used
+        // here. PacketContext.EncryptedOnWire is a dedicated signal captured
+        // once at decrypt time (see FrameCipher.DecryptFrame / TryDecryptFrame)
+        // and propagated across subsequent transforms (e.g. decompression).
+        if (Metadata.Encryption is { IsEncrypted: true } && !context.EncryptedOnWire)
         {
             denyReason = ProtocolReason.FORBIDDEN;
             return false;

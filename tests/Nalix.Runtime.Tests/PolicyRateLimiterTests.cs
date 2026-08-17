@@ -133,6 +133,7 @@ public sealed class PolicyRateLimiterTests : IDisposable
     private sealed class TestPacketContext(IConnection connection, ushort opCode, PacketRateLimitAttribute? rateLimit) : IPacketContext<IPacket>
     {
         public bool IsReliable => true;
+        public bool EncryptedOnWire => false;
         public bool SkipOutbound => false;
         public IPacket Packet { get; } = new TestPacket(opCode);
         public IConnection Connection { get; } = connection;

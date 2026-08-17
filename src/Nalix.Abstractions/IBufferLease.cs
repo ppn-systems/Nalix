@@ -20,6 +20,14 @@ public interface IBufferLease : IDisposable
     /// </summary>
     bool IsReliable { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether this frame arrived encrypted on the wire.
+    /// Set once by the inbound cipher transforms and preserved across subsequent transforms
+    /// (e.g. decompression) so dispatch can audit the frame's on-wire state even after the
+    /// header's transient <c>ENCRYPTED</c> flag has been cleared.
+    /// </summary>
+    bool EncryptedOnWire { get; set; }
+
     /// <summary>Gets the capacity of the underlying buffer.</summary>
     int Capacity { get; }
 
