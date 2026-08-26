@@ -179,11 +179,31 @@ public class WebSocketSession : TransportSession
         }
     }
 
-    private async Task DisconnectInternalAsync(bool waitForLoop = false)
+    private async Task DisconnectInternalAsync(ClientWebSocket? expectedSocket = null, bool waitForLoop = false)
     {
-        CancellationTokenSource? loopCts = Interlocked.Exchange(ref _loopCts, null);
-        Task? loopTask = Interlocked.Exchange(ref _loopTask, null);
-        ClientWebSocket? socket = Interlocked.Exchange(ref _socket, null);
+        ClientWebSocket? socket;
+        CancellationTokenSource? loopCts;
+        Task? loopTask;
+
+        if (expectedSocket is not null)
+        {
+            socket = Interlocked.CompareExchange(ref _socket, null, expectedSocket);
+            if (!ReferenceEquals(socket, expectedSocket))
+            {
+                // The socket field has already moved to a newer connection or been cleaned up.
+                // Do not tear down the newer connection!
+                return;
+            }
+
+            loopCts = Interlocked.Exchange(ref _loopCts, null);
+            loopTask = Interlocked.Exchange(ref _loopTask, null);
+        }
+        else
+        {
+            loopCts = Interlocked.Exchange(ref _loopCts, null);
+            loopTask = Interlocked.Exchange(ref _loopTask, null);
+            socket = Interlocked.Exchange(ref _socket, null);
+        }
 
         try
         {
@@ -306,13 +326,18 @@ public class WebSocketSession : TransportSession
         return normalized[0] == '/' ? normalized : "/" + normalized;
     }
 
-    private void HandleError(Exception ex)
+    private void HandleError(Exception ex, ClientWebSocket? originatingSocket = null)
     {
+        if (originatingSocket is not null && !ReferenceEquals(Volatile.Read(ref _socket), originatingSocket))
+        {
+            return;
+        }
+
         this.OnError?.Invoke(this, ex);
         // Do not go through the public DisconnectAsync() path — that marks the disconnect as
         // intentional (app-initiated), which would suppress auto-reconnect for what is actually
         // an unexpected fault.
-        _ = this.DisconnectInternalAsync();
+        _ = this.DisconnectInternalAsync(expectedSocket: originatingSocket);
     }
 
     private void HandleReceiveMessage(IBufferLease lease)
