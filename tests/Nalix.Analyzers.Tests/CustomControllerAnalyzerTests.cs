@@ -149,6 +149,58 @@ public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
             "NALIX038");
     }
 
+    [Fact]
+    public async Task FromScopeParameter_IsValid_ProducesNoDiagnostic()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Injection;
+
+public interface IMyService { }
+
+[PacketHandler]
+public sealed class MyController
+{
+    [PacketOpcode(0x0200)]
+    public void Handle(Nalix.Runtime.Dispatching.PacketContext<LoginPacket> context, [FromScope] IMyService service) { }
+}
+
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
+{
+    public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
+}
+""";
+
+        await Verifier<CodeFixes.PacketOpcodeCodeFixProvider>.VerifyAnalyzerAsync(source);
+    }
+
+    [Fact]
+    public async Task ExtraParameter_WithoutFromScope_ProducesNALIX003()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Abstractions.Networking.Packets;
+
+public interface IMyService { }
+
+[PacketHandler]
+public sealed class MyController
+{
+    [PacketOpcode(0x0200)]
+    public void Handle(Nalix.Runtime.Dispatching.PacketContext<LoginPacket> context, IMyService service) { }
+}
+
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
+{
+    public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
+}
+""";
+
+        await Verifier<CodeFixes.PacketOpcodeCodeFixProvider>.VerifyAnalyzerAsync(
+            source,
+            "NALIX003");
+    }
 }
 
 

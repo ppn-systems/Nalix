@@ -61,6 +61,12 @@ namespace Nalix.Abstractions.Middleware
     }
 }
 
+namespace Nalix.Abstractions.Injection
+{
+    public interface IPacketScope : IDisposable, IAsyncDisposable { }
+    public sealed class FromScopeAttribute : Attribute { }
+}
+
 namespace Nalix.Abstractions
 {
     public interface IBufferLease { }
@@ -115,6 +121,7 @@ namespace Nalix.Runtime.Dispatching
     {
         public TPacket Packet => default!;
         public IConnection Connection => null!;
+        public Nalix.Abstractions.Injection.IPacketScope Scope => null!;
         public CancellationToken CancellationToken => default;
     }
 

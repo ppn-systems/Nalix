@@ -7,6 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Security;
@@ -178,6 +179,14 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             ObjectPoolManager.Configure(concrete);
         }
 
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder RegisterScoped<TService>(Func<IPacketScope, TService> factory) where TService : class
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+        ScopedServiceRegistry.Instance.RegisterScoped(factory);
         return this;
     }
 

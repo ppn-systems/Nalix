@@ -56,6 +56,7 @@ public sealed partial class NalixUsageAnalyzer
             INamedTypeSymbol? exceptionClassifierType,
             INamedTypeSymbol? packetScopeType,
             INamedTypeSymbol? caughtExceptionType,
+            INamedTypeSymbol? fromScopeAttribute,
             INamedTypeSymbol? rpcServiceAttribute,
             INamedTypeSymbol? rpcCallType,
             INamedTypeSymbol? rpcStreamType,
@@ -103,6 +104,7 @@ public sealed partial class NalixUsageAnalyzer
             this.ExceptionClassifierType = exceptionClassifierType;
             this.PacketScopeType = packetScopeType;
             this.CaughtExceptionType = caughtExceptionType;
+            this.FromScopeAttribute = fromScopeAttribute;
             this.RpcServiceAttribute = rpcServiceAttribute;
             this.RpcCallType = rpcCallType;
             this.RpcStreamType = rpcStreamType;
@@ -151,6 +153,7 @@ public sealed partial class NalixUsageAnalyzer
         public INamedTypeSymbol? ExceptionClassifierType { get; }
         public INamedTypeSymbol? PacketScopeType { get; }
         public INamedTypeSymbol? CaughtExceptionType { get; }
+        public INamedTypeSymbol? FromScopeAttribute { get; }
         public INamedTypeSymbol? RpcServiceAttribute { get; }
         public INamedTypeSymbol? RpcCallType { get; }
         public INamedTypeSymbol? RpcStreamType { get; }
@@ -205,6 +208,7 @@ public sealed partial class NalixUsageAnalyzer
             INamedTypeSymbol? exceptionClassifierType = compilation.GetTypeByMetadataName("Nalix.Abstractions.Exceptions.ExceptionClassifier");
             INamedTypeSymbol? packetScopeType = compilation.GetTypeByMetadataName("Nalix.Codec.Pooling.PacketScope`1");
             INamedTypeSymbol? caughtExceptionType = compilation.GetTypeByMetadataName("System.Exception");
+            INamedTypeSymbol? fromScopeAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.Injection.FromScopeAttribute");
             INamedTypeSymbol? rpcServiceAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.Networking.Rpc.RpcServiceAttribute");
             INamedTypeSymbol? rpcCallType = compilation.GetTypeByMetadataName("Nalix.SDK.Transport.Rpc.RpcCall`1");
             INamedTypeSymbol? rpcStreamType = compilation.GetTypeByMetadataName("Nalix.SDK.Transport.Rpc.RpcStream`1");
@@ -290,6 +294,7 @@ public sealed partial class NalixUsageAnalyzer
                     exceptionClassifierType,
                     packetScopeType,
                     caughtExceptionType,
+                    fromScopeAttribute,
                     rpcServiceAttribute,
                     rpcCallType,
                     rpcStreamType,

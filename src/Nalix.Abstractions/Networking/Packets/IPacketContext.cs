@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Threading;
+using Nalix.Abstractions.Injection;
 
 namespace Nalix.Abstractions.Networking.Packets;
 
@@ -54,6 +55,11 @@ public interface IPacketContext<TPacket> : IPoolable where TPacket : IPacket
     /// Use this instead of calling connection.TCP.SendAsync() directly.
     /// </summary>
     IPacketSender Sender { get; }
+
+    /// <summary>
+    /// Gets the scoped service provider associated with the current packet lifecycle.
+    /// </summary>
+    IPacketScope Scope { get; }
 
     /// <summary>
     /// Gets or sets the cancellation token associated with the packet context.

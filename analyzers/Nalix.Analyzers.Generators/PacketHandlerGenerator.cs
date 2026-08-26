@@ -18,6 +18,43 @@ namespace Nalix.Analyzers.Generators;
 [Generator]
 public sealed class PacketHandlerGenerator : IIncrementalGenerator
 {
+    public readonly struct ScopeParameterModel : IEquatable<ScopeParameterModel>
+    {
+        public string Name { get; }
+        public string TypeFullyQualifiedStr { get; }
+        public bool IsNullable { get; }
+        public bool IsFromScope { get; }
+
+        public ScopeParameterModel(string name, string typeFullyQualifiedStr, bool isNullable, bool isFromScope)
+        {
+            this.Name = name;
+            this.TypeFullyQualifiedStr = typeFullyQualifiedStr;
+            this.IsNullable = isNullable;
+            this.IsFromScope = isFromScope;
+        }
+
+        public bool Equals(ScopeParameterModel other) =>
+            this.Name == other.Name &&
+            this.TypeFullyQualifiedStr == other.TypeFullyQualifiedStr &&
+            this.IsNullable == other.IsNullable &&
+            this.IsFromScope == other.IsFromScope;
+
+        public override bool Equals(object obj) => obj is ScopeParameterModel other && this.Equals(other);
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = (hash * 23) + (this.Name?.GetHashCode() ?? 0);
+                hash = (hash * 23) + (this.TypeFullyQualifiedStr?.GetHashCode() ?? 0);
+                hash = (hash * 23) + this.IsNullable.GetHashCode();
+                hash = (hash * 23) + this.IsFromScope.GetHashCode();
+                return hash;
+            }
+        }
+    }
+
     public readonly struct HandlerMethodModel : IEquatable<HandlerMethodModel>
     {
         public string MethodName { get; }
@@ -30,11 +67,13 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
         public string MetadataExpr { get; }
         public bool ReturnsTaskOrValueTask { get; }
         public bool ReturnsVoid { get; }
+        public ImmutableArray<ScopeParameterModel> ScopeParameters { get; }
 
         public HandlerMethodModel(
             string methodName, bool isStatic, ushort opcodeVal, string returnTypeStr,
             string expectedPacketTypeStr, bool isGenericContext, string? packetTypeStr,
-            string metadataExpr, bool returnsTaskOrValueTask, bool returnsVoid)
+            string metadataExpr, bool returnsTaskOrValueTask, bool returnsVoid,
+            ImmutableArray<ScopeParameterModel> scopeParameters)
         {
             this.MethodName = methodName;
             this.IsStatic = isStatic;
@@ -46,6 +85,7 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
             this.MetadataExpr = metadataExpr;
             this.ReturnsTaskOrValueTask = returnsTaskOrValueTask;
             this.ReturnsVoid = returnsVoid;
+            this.ScopeParameters = scopeParameters;
         }
 
         public bool Equals(HandlerMethodModel other) =>
@@ -58,7 +98,8 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
             this.PacketTypeStr == other.PacketTypeStr &&
             this.MetadataExpr == other.MetadataExpr &&
             this.ReturnsTaskOrValueTask == other.ReturnsTaskOrValueTask &&
-            this.ReturnsVoid == other.ReturnsVoid;
+            this.ReturnsVoid == other.ReturnsVoid &&
+            Internal.ModelEquality.SequenceEqual(this.ScopeParameters, other.ScopeParameters);
 
         public override bool Equals(object obj) => obj is HandlerMethodModel other && this.Equals(other);
 
@@ -77,6 +118,13 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
                 hash = (hash * 23) + (this.MetadataExpr?.GetHashCode() ?? 0);
                 hash = (hash * 23) + this.ReturnsTaskOrValueTask.GetHashCode();
                 hash = (hash * 23) + this.ReturnsVoid.GetHashCode();
+                if (!this.ScopeParameters.IsDefaultOrEmpty)
+                {
+                    foreach (ScopeParameterModel p in this.ScopeParameters)
+                    {
+                        hash = (hash * 23) + p.GetHashCode();
+                    }
+                }
                 return hash;
             }
         }
@@ -229,24 +277,44 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
 
             ushort opcodeVal = Convert.ToUInt16(val);
 
-            // Single canonical handler shape, kept in sync with NalixUsageAnalyzer's
-            // `HasSupportedParameterSignature` (NalixUsageAnalyzer.cs) — only a single
-            // `IPacketContext<T>` parameter is a supported handler signature; anything
-            // else is reported as NALIX003 by the analyzer, so silently skipping here
-            // is safe (no valid handler is ever dropped without a diagnostic).
-            if (method.Parameters.Length != 1)
+            if (method.Parameters.Length == 0)
             {
                 continue;
             }
 
-            IParameterSymbol param = method.Parameters[0];
+            IParameterSymbol firstParam = method.Parameters[0];
             INamedTypeSymbol? packetType = null;
             bool isGenericContext = false;
 
-            if (param.Type is INamedTypeSymbol namedParam && namedParam.IsGenericType && namedParam.TypeArguments.Length == 1)
+            if (firstParam.Type is INamedTypeSymbol namedParam && namedParam.IsGenericType && namedParam.TypeArguments.Length == 1)
             {
-                packetType = namedParam.TypeArguments[0] as INamedTypeSymbol;
-                isGenericContext = true;
+                if (namedParam.Name is "IPacketContext" or "PacketContext" || namedParam.ToDisplayString().Contains("IPacketContext"))
+                {
+                    packetType = namedParam.TypeArguments[0] as INamedTypeSymbol;
+                    isGenericContext = true;
+                }
+                else
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                continue;
+            }
+
+            ImmutableArray<ScopeParameterModel>.Builder scopeParams = ImmutableArray.CreateBuilder<ScopeParameterModel>();
+            for (int i = 1; i < method.Parameters.Length; i++)
+            {
+                IParameterSymbol sp = method.Parameters[i];
+                bool hasFromScope = sp.GetAttributes().Any(a =>
+                    a.AttributeClass?.ToDisplayString() == KnownNames.FromScopeAttributeMetadataName
+                    || a.AttributeClass?.Name is "FromScope" or "FromScopeAttribute");
+
+                string spTypeStr = sp.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                bool isNullable = sp.NullableAnnotation == NullableAnnotation.Annotated;
+
+                scopeParams.Add(new ScopeParameterModel(sp.Name, spTypeStr, isNullable, hasFromScope));
             }
 
             string? pTypeStr = packetType?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
@@ -280,7 +348,8 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
                 packetTypeStr: pTypeStr,
                 metadataExpr: metadataExpr,
                 returnsTaskOrValueTask: returnsTaskOrValueTask,
-                returnsVoid: returnsVoid
+                returnsVoid: returnsVoid,
+                scopeParameters: scopeParams.ToImmutable()
             ));
         }
 
@@ -411,28 +480,49 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
             }
             else
             {
-                contextCast = "(global::Nalix.Abstractions.Networking.Packets.IPacketContext)context";
+                contextCast = "(global::Nalix.Abstractions.Networking.Packets.IPacketContext<TPacket>)context";
             }
+
+            List<string> callArgs = [contextCast];
+            if (!method.ScopeParameters.IsDefaultOrEmpty)
+            {
+                for (int i = 0; i < method.ScopeParameters.Length; i++)
+                {
+                    ScopeParameterModel sp = method.ScopeParameters[i];
+                    string argName = $"__scoped_{sp.Name}_{i}";
+                    if (sp.IsNullable)
+                    {
+                        _ = sb.AppendLine($"                var {argName} = context.Scope.GetService<{sp.TypeFullyQualifiedStr}>();");
+                    }
+                    else
+                    {
+                        _ = sb.AppendLine($"                var {argName} = context.Scope.GetRequiredService<{sp.TypeFullyQualifiedStr}>();");
+                    }
+                    callArgs.Add(argName);
+                }
+            }
+
+            string invocationArgs = string.Join(", ", callArgs);
 
             if (method.ReturnsVoid)
             {
-                _ = sb.AppendLine($"                    {typeCall}{method.MethodName}({contextCast});");
+                _ = sb.AppendLine($"                    {typeCall}{method.MethodName}({invocationArgs});");
                 _ = sb.AppendLine($"                    return null;");
             }
             else if (method.ReturnsTaskOrValueTask)
             {
-                _ = sb.AppendLine($"                    await {typeCall}{method.MethodName}({contextCast});");
+                _ = sb.AppendLine($"                    await {typeCall}{method.MethodName}({invocationArgs});");
                 _ = sb.AppendLine($"                    return null;");
             }
             else
             {
                 if (method.ReturnTypeStr.Contains("System.Threading.Tasks.Task") || method.ReturnTypeStr.Contains("System.Threading.Tasks.ValueTask"))
                 {
-                    _ = sb.AppendLine($"                    return await {typeCall}{method.MethodName}({contextCast});");
+                    _ = sb.AppendLine($"                    return await {typeCall}{method.MethodName}({invocationArgs});");
                 }
                 else
                 {
-                    _ = sb.AppendLine($"                    return {typeCall}{method.MethodName}({contextCast});");
+                    _ = sb.AppendLine($"                    return {typeCall}{method.MethodName}({invocationArgs});");
                 }
             }
 

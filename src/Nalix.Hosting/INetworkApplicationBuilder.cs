@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Environment.Configuration.Binding;
@@ -82,6 +83,14 @@ public interface INetworkApplicationBuilder
     /// <param name="manager">The manager instance to use.</param>
     /// <returns>The current builder instance.</returns>
     INetworkApplicationBuilder UseObjectPoolManager(IObjectPoolManager manager);
+
+    /// <summary>
+    /// Registers a scoped service factory that creates per-packet instances from the active <see cref="Nalix.Abstractions.Injection.IPacketScope"/>.
+    /// </summary>
+    /// <typeparam name="TService">The service contract type.</typeparam>
+    /// <param name="factory">The factory delegate used to construct the service.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder RegisterScoped<TService>(Func<IPacketScope, TService> factory) where TService : class;
 
     /// <summary>
     /// Adds a packet controller type using the default Nalix activator.
