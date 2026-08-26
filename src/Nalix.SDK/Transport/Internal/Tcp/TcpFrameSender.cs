@@ -27,7 +27,7 @@ internal sealed class TcpFrameSender : IDisposable
     private readonly SemaphoreSlim _sendLock;
     private readonly SequenceCounter _sequence;
     internal SequenceCounter Sequence => _sequence;
-    private readonly Action<Exception> _onError;
+    private readonly Action<Exception, Socket?> _onError;
 
     private readonly SessionState _state;
     private readonly TransportOptions _options;
@@ -39,7 +39,7 @@ internal sealed class TcpFrameSender : IDisposable
         Func<Socket> getSocket,
         TransportOptions options,
         SessionState state,
-        Action<Exception> onError)
+        Action<Exception, Socket?> onError)
     {
         _sendLock = new(1, 1);
         _sequence = new SequenceCounter();
@@ -94,7 +94,7 @@ internal sealed class TcpFrameSender : IDisposable
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _onError?.Invoke(ex);
+            _onError?.Invoke(ex, _getSocket());
             return false;
         }
         finally

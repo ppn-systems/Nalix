@@ -21,12 +21,12 @@ internal sealed class WsFrameSender : IDisposable
     private readonly SequenceCounter _sequence;
     internal SequenceCounter Sequence => _sequence;
     private readonly TransportOptions _options;
-    private readonly Action<Exception> _onError;
+    private readonly Action<Exception, ClientWebSocket?> _onError;
     private readonly Func<ClientWebSocket> _getSocket;
 
     private int _disposed;
 
-    public WsFrameSender(Func<ClientWebSocket> getSocket, TransportOptions options, SessionState state, Action<Exception> onError)
+    public WsFrameSender(Func<ClientWebSocket> getSocket, TransportOptions options, SessionState state, Action<Exception, ClientWebSocket?> onError)
     {
         _sendLock = new(1, 1);
         _sequence = new SequenceCounter();
@@ -82,7 +82,7 @@ internal sealed class WsFrameSender : IDisposable
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _onError?.Invoke(ex);
+            _onError?.Invoke(ex, _getSocket());
             return false;
         }
         finally
@@ -112,7 +112,7 @@ internal sealed class WsFrameSender : IDisposable
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _onError?.Invoke(ex);
+            _onError?.Invoke(ex, socket);
             return false;
         }
         finally
@@ -137,7 +137,7 @@ internal sealed class WsFrameSender : IDisposable
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _onError?.Invoke(ex);
+            _onError?.Invoke(ex, socket);
             return false;
         }
         finally

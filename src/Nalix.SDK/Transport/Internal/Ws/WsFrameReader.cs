@@ -21,7 +21,7 @@ internal sealed class WsFrameReader : IDisposable
 {
     private static readonly SequenceOptions s_sequenceOptions = ConfigurationManager.Instance.Get<SequenceOptions>();
 
-    private readonly Action<Exception> _onError;
+    private readonly Action<Exception, ClientWebSocket?> _onError;
     private readonly Action<IBufferLease> _onMessage;
     private readonly Func<ClientWebSocket> _getSocket;
 
@@ -39,7 +39,7 @@ internal sealed class WsFrameReader : IDisposable
         SessionState state,
         WebSocketTransportOptions webSocketOptions,
         Action<IBufferLease> onMessage,
-        Action<Exception> onError)
+        Action<Exception, ClientWebSocket?> onError)
     {
         _sequence = new SequenceCounter();
         _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -100,11 +100,11 @@ internal sealed class WsFrameReader : IDisposable
             BufferLease.ByteArrayPool.Return(buffer);
             if (disconnectReason != null)
             {
-                _onError?.Invoke(disconnectReason);
+                _onError?.Invoke(disconnectReason, socket);
             }
             else if (!ct.IsCancellationRequested)
             {
-                _onError?.Invoke(new WebSocketException(WebSocketError.ConnectionClosedPrematurely, "The WebSocket session was disconnected."));
+                _onError?.Invoke(new WebSocketException(WebSocketError.ConnectionClosedPrematurely, "The WebSocket session was disconnected."), socket);
             }
         }
     }
@@ -191,7 +191,7 @@ internal sealed class WsFrameReader : IDisposable
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _onError?.Invoke(ex);
+            _onError?.Invoke(ex, _getSocket());
         }
         finally
         {

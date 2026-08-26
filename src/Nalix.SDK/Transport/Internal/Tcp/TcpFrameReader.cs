@@ -33,7 +33,7 @@ internal sealed class TcpFrameReader : IDisposable
     private readonly SequenceCounter _sequence;
     internal SequenceCounter Sequence => _sequence;
     private readonly TransportOptions _options;
-    private readonly Action<Exception> _onError;
+    private readonly Action<Exception, Socket?> _onError;
     private readonly Action<IBufferLease> _onMessage;
 
     private readonly FragmentAssembler _fragmentAssembler = new()
@@ -50,7 +50,7 @@ internal sealed class TcpFrameReader : IDisposable
         TransportOptions options,
         SessionState state,
         Action<IBufferLease> onMessage,
-        Action<Exception> onError)
+        Action<Exception, Socket?> onError)
     {
         _sequence = new SequenceCounter();
         _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -121,7 +121,7 @@ internal sealed class TcpFrameReader : IDisposable
                     }
                     catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex) && ex is not OperationCanceledException)
                     {
-                        _onError(ex);
+                        _onError(ex, s);
                         break;
                     }
                 }
@@ -134,7 +134,7 @@ internal sealed class TcpFrameReader : IDisposable
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _onError(ex);
+            _onError(ex, _getSocket());
         }
         finally
         {

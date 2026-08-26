@@ -28,14 +28,14 @@ internal sealed class UdpFrameSender : IDisposable
     private readonly Func<Socket> _getSocket;
     private readonly SequenceCounter _sequence;
     private readonly TransportOptions _options;
-    private readonly Action<Exception> _onError;
+    private readonly Action<Exception, Socket?> _onError;
     private readonly SemaphoreSlim _sendLock = new(1, 1);
 
     internal SequenceCounter Sequence => _sequence;
 
     private int _disposed;
 
-    public UdpFrameSender(Func<Socket> getSocket, TransportOptions options, SessionState state, Action<Exception> onError)
+    public UdpFrameSender(Func<Socket> getSocket, TransportOptions options, SessionState state, Action<Exception, Socket?> onError)
     {
         _sequence = new SequenceCounter();
         _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
@@ -107,7 +107,7 @@ internal sealed class UdpFrameSender : IDisposable
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _onError(ex);
+            _onError(ex, _getSocket());
             return false;
         }
         finally
@@ -132,7 +132,7 @@ internal sealed class UdpFrameSender : IDisposable
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _onError(ex);
+            _onError(ex, socket);
             return false;
         }
         finally
