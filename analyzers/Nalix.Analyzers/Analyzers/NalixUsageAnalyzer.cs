@@ -782,13 +782,39 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    // Single canonical handler shape, kept in sync with PacketHandlerGenerator's
-    // `Parameters.Length != 1` guard (PacketHandlerGenerator.cs) — only
-    // `IPacketContext<T>` (exactly one parameter) is a supported handler signature.
+    // Canonical handler shape: first parameter is IPacketContext<T>, optional trailing parameters must be annotated with [FromScope]
     private static bool HasSupportedParameterSignature(IMethodSymbol methodSymbol, SymbolSet symbols)
     {
         ImmutableArray<IParameterSymbol> parameters = methodSymbol.Parameters;
-        return parameters.Length == 1 && IsPacketContext(parameters[0].Type, symbols);
+        if (parameters.Length == 0 || !IsPacketContext(parameters[0].Type, symbols))
+        {
+            return false;
+        }
+
+        for (int i = 1; i < parameters.Length; i++)
+        {
+            IParameterSymbol param = parameters[i];
+            if (!param.Type.IsReferenceType)
+            {
+                return false;
+            }
+
+            if (symbols.FromScopeAttribute is not null && HasAttribute(param, symbols.FromScopeAttribute))
+            {
+                continue;
+            }
+
+            if (param.GetAttributes().Any(a =>
+                a.AttributeClass?.ToDisplayString() == "Nalix.Abstractions.Injection.FromScopeAttribute"
+                || (symbols.FromScopeAttribute is null && a.AttributeClass?.Name is "FromScope" or "FromScopeAttribute")))
+            {
+                continue;
+            }
+
+            return false;
+        }
+
+        return true;
     }
 
     private static bool HasSupportedReturnType(ITypeSymbol returnType, SymbolSet symbols)

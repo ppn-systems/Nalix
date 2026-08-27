@@ -337,7 +337,9 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
+#pragma warning disable CA1849 // Non-async rollback path
             context.Dispose();
+#pragma warning restore CA1849
             throw;
         }
 
@@ -352,7 +354,9 @@ public sealed partial class PacketDispatchOptions<TPacket>
             }
             finally
             {
+#pragma warning disable CA1849 // Synchronous fast-path cleanup without async state machine allocation
                 context.Dispose();
+#pragma warning restore CA1849
             }
 
             return ValueTask.CompletedTask;
@@ -362,7 +366,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         static async ValueTask AwaitAndDisposeAsync(ValueTask operation, PacketContext<TPacket> pooledContext)
         {
-            using (pooledContext)
+            await using (pooledContext.ConfigureAwait(false))
             {
                 await operation.ConfigureAwait(false);
             }

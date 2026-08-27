@@ -39,7 +39,8 @@ public static class PacketContextBridge
             baseContext.IsReliable,
             baseContext.EncryptedOnWire,
             ownsPacket: false,
-            baseContext.CancellationToken);
+            baseContext.CancellationToken,
+            scope: baseContext.Scope);
 
         return bridgeContext;
     }

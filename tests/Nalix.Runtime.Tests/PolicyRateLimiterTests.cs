@@ -146,6 +146,7 @@ public sealed class PolicyRateLimiterTests : IDisposable
                 transport: null);
 
         public IPacketSender Sender => null!;
+        public Nalix.Abstractions.Injection.IPacketScope Scope => null!;
         public CancellationToken CancellationToken => CancellationToken.None;
         public void ResetForPool() { }
     }

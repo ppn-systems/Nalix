@@ -5,8 +5,10 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Framework.Memory.Objects;
@@ -17,7 +19,7 @@ namespace Nalix.Runtime.Dispatching;
 /// executing. Instances are pooled so dispatch can reuse context objects without
 /// allocating on every packet.
 [DebuggerDisplay("IsInitialized={_isInitialized}")]
-public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable, IDisposable
+public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable, IDisposable, IAsyncDisposable
     where TPacket : IPacket
 {
     #region Static
@@ -98,6 +100,15 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
     }
 
     /// <inheritdoc/>
+    public IPacketScope Scope
+    {
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        get;
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        private set;
+    }
+
+    /// <inheritdoc/>
     public CancellationToken CancellationToken
     {
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -128,6 +139,7 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
         _state = (int)PacketContextState.Pooled;
 
         this.Sender = new PacketSender();
+        this.Scope = default!;
         this.Packet = default!;
         this.IsReliable = false;
         this.EncryptedOnWire = false;
@@ -149,6 +161,7 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
     /// <param name="encryptedOnWire">Whether the inbound frame arrived encrypted on the wire.</param>
     /// <param name="ownsPacket">Indicates whether the context owns the packet and is responsible for its disposal.</param>
     /// <param name="token">The cancellation token for the context.</param>
+    /// <param name="scope">An optional existing scope to attach (e.g. from a parent context during bridging).</param>
     /// <remarks>
     /// This method marks the pooled instance as in use before populating the
     /// packet-specific fields so the dispatcher can return it safely later.
@@ -157,7 +170,8 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void Initialize(
         TPacket packet, IConnection connection, PacketMetadata descriptor,
-        bool reliable, bool encryptedOnWire, bool ownsPacket = true, CancellationToken token = default)
+        bool reliable, bool encryptedOnWire, bool ownsPacket = true, CancellationToken token = default,
+        Nalix.Abstractions.Injection.IPacketScope? scope = null)
     {
         _ = Interlocked.Exchange(ref _state, (int)PacketContextState.InUse);
 
@@ -170,6 +184,7 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
         this.Connection = connection;
         this.Attributes = descriptor;
         this.CancellationToken = token;
+        this.Scope = scope ?? s_pool.Get<PacketScope>();
 
         this.Sender.Initialize(this);
 
@@ -217,6 +232,16 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
                 disposablePacket.Dispose();
             }
 
+            if (_ownsPacket && this.Scope is IDisposable disposableScope)
+            {
+                disposableScope.Dispose();
+                if (this.Scope is PacketScope pooledScope)
+                {
+                    s_pool.Return(pooledScope);
+                }
+            }
+
+            this.Scope = default!;
             this.Packet = default!;
             this.IsReliable = false;
             this.EncryptedOnWire = false;
@@ -233,11 +258,29 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
         _ = Interlocked.Exchange(ref _state, (int)PacketContextState.Pooled);
     }
 
-    /// <summary>
-    /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-    /// </summary>
+    /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose() => this.Return();
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public async ValueTask DisposeAsync()
+    {
+        if (_isInitialized)
+        {
+            if (_ownsPacket && this.Scope is IAsyncDisposable asyncScope)
+            {
+                await asyncScope.DisposeAsync().ConfigureAwait(false);
+                if (this.Scope is PacketScope pooledScope)
+                {
+                    s_pool.Return(pooledScope);
+                }
+                this.Scope = default!;
+            }
+        }
+
+        this.Return();
+    }
 
     #endregion IDisposable
 }

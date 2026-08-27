@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Injection;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
@@ -168,6 +169,44 @@ public sealed class PacketHandlerGeneratorBehaviorTests
 
         resolved.Should().BeFalse("a 2-parameter handler is not a supported shape and must not be registered; " +
             "NalixUsageAnalyzer reports NALIX003 for this signature at compile time");
+    }
+
+    [Fact]
+    public async Task FromScopeHandler_ResolvesServiceAndExecutesSuccessfully()
+    {
+        EchoController controller = new();
+        PacketDispatchOptions<EchoPacket> options = BuildDispatcher(controller);
+        FakeConnection connection = new();
+
+        TestScopedEchoService service = new();
+        ScopedServiceRegistry.Instance.RegisterScoped<IScopedEchoService>(_ => service);
+
+        _ = options.TryResolveHandler(EchoController.FromScopeOpCode, out PacketHandler<EchoPacket> descriptor);
+        await options.ExecuteResolvedHandlerAsync(descriptor, MakePacket(EchoController.FromScopeOpCode), connection, reliable: true, encryptedOnWire: false);
+
+        controller.FromScopeInvoked.Should().BeTrue();
+        controller.InjectedService.Should().BeSameAs(service);
+        connection.FakeTcp.SentMessages.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task MultipleFromScopeHandler_ResolvesAllServicesInOrder()
+    {
+        EchoController controller = new();
+        PacketDispatchOptions<EchoPacket> options = BuildDispatcher(controller);
+        FakeConnection connection = new();
+
+        TestScopedEchoService service1 = new();
+        TestScopedEchoService2 service2 = new();
+        ScopedServiceRegistry.Instance.RegisterScoped<IScopedEchoService>(_ => service1);
+        ScopedServiceRegistry.Instance.RegisterScoped<IScopedEchoService2>(_ => service2);
+
+        _ = options.TryResolveHandler(EchoController.MultipleFromScopeOpCode, out PacketHandler<EchoPacket> descriptor);
+        await options.ExecuteResolvedHandlerAsync(descriptor, MakePacket(EchoController.MultipleFromScopeOpCode), connection, reliable: true, encryptedOnWire: false);
+
+        controller.FromScopeInvoked.Should().BeTrue();
+        controller.InjectedService.Should().BeSameAs(service1);
+        controller.InjectedService2.Should().BeSameAs(service2);
     }
 
     private sealed class FakeSequenceCounter : ISequenceCounter
@@ -333,4 +372,54 @@ public sealed class EchoController
     // silently skips this — no diagnostic, no registration — per PacketHandlerGenerator.cs:243.
     [PacketOpcode(TwoParamOpCode)]
     public void HandleTwoParam(EchoPacket packet, IConnection connection) => VoidInvoked = true;
+
+    public const ushort FromScopeOpCode = 0x2109;
+    public const ushort MultipleFromScopeOpCode = 0x210A;
+
+    public bool FromScopeInvoked { get; private set; }
+    public IScopedEchoService? InjectedService { get; private set; }
+    public IScopedEchoService2? InjectedService2 { get; private set; }
+
+    [PacketOpcode(FromScopeOpCode)]
+    public async ValueTask<EchoPacket> HandleFromScope(
+        IPacketContext<EchoPacket> context,
+        [FromScope] IScopedEchoService service)
+    {
+        FromScopeInvoked = true;
+        InjectedService = service;
+        await Task.Yield();
+        return new EchoPacket { Header = new PacketHeader { OpCode = FromScopeOpCode, SequenceId = context.Packet.Header.SequenceId } };
+    }
+
+    [PacketOpcode(MultipleFromScopeOpCode)]
+    public async ValueTask HandleMultipleFromScope(
+        IPacketContext<EchoPacket> context,
+        [FromScope] IScopedEchoService service1,
+        [FromScope] IScopedEchoService2 service2)
+    {
+        FromScopeInvoked = true;
+        InjectedService = service1;
+        InjectedService2 = service2;
+        await Task.Yield();
+    }
+}
+
+public interface IScopedEchoService
+{
+    Guid Id { get; }
+}
+
+public sealed class TestScopedEchoService : IScopedEchoService
+{
+    public Guid Id { get; } = Guid.NewGuid();
+}
+
+public interface IScopedEchoService2
+{
+    Guid Id { get; }
+}
+
+public sealed class TestScopedEchoService2 : IScopedEchoService2
+{
+    public Guid Id { get; } = Guid.NewGuid();
 }
