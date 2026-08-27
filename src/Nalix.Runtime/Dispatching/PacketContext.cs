@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Injection;
@@ -18,7 +19,7 @@ namespace Nalix.Runtime.Dispatching;
 /// executing. Instances are pooled so dispatch can reuse context objects without
 /// allocating on every packet.
 [DebuggerDisplay("IsInitialized={_isInitialized}")]
-public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable, IDisposable
+public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable, IDisposable, IAsyncDisposable
     where TPacket : IPacket
 {
     #region Static
@@ -257,11 +258,29 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
         _ = Interlocked.Exchange(ref _state, (int)PacketContextState.Pooled);
     }
 
-    /// <summary>
-    /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-    /// </summary>
+    /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose() => this.Return();
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public async ValueTask DisposeAsync()
+    {
+        if (_isInitialized)
+        {
+            if (_ownsPacket && this.Scope is IAsyncDisposable asyncScope)
+            {
+                await asyncScope.DisposeAsync().ConfigureAwait(false);
+                if (this.Scope is PacketScope pooledScope)
+                {
+                    s_pool.Return(pooledScope);
+                }
+                this.Scope = default!;
+            }
+        }
+
+        this.Return();
+    }
 
     #endregion IDisposable
 }

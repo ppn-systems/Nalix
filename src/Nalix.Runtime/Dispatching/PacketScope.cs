@@ -26,11 +26,8 @@ public sealed class PacketScope : IPacketScope, IPoolable, IDisposable, IAsyncDi
     private (Type Type, object Instance)[] _resolved = new (Type, object)[InitialCapacity];
     private int _resolvedCount;
 
-    private IDisposable[] _disposables = new IDisposable[InitialDisposableCapacity];
+    private object[] _disposables = new object[InitialDisposableCapacity];
     private int _disposablesCount;
-
-    private IAsyncDisposable[] _asyncDisposables = new IAsyncDisposable[InitialDisposableCapacity];
-    private int _asyncDisposablesCount;
 
     private int _disposed;
 
@@ -130,12 +127,12 @@ public sealed class PacketScope : IPacketScope, IPoolable, IDisposable, IAsyncDi
             return;
         }
 
-        if (_asyncDisposablesCount >= _asyncDisposables.Length)
+        if (_disposablesCount >= _disposables.Length)
         {
-            Array.Resize(ref _asyncDisposables, _asyncDisposables.Length * 2);
+            Array.Resize(ref _disposables, _disposables.Length * 2);
         }
 
-        _asyncDisposables[_asyncDisposablesCount++] = asyncDisposable;
+        _disposables[_disposablesCount++] = asyncDisposable;
     }
 
     private void AddResolved(Type type, object instance)
@@ -156,42 +153,31 @@ public sealed class PacketScope : IPacketScope, IPoolable, IDisposable, IAsyncDi
             return;
         }
 
-        // 1. Dispose async disposables in LIFO order
-        for (int i = _asyncDisposablesCount - 1; i >= 0; i--)
+        // 1. Unwind single disposables stack in strict LIFO order
+        for (int i = _disposablesCount - 1; i >= 0; i--)
         {
+            object item = _disposables[i];
+            _disposables[i] = null!;
+
             try
             {
-                await _asyncDisposables[i].DisposeAsync().ConfigureAwait(false);
+                if (item is IAsyncDisposable asyncDisp)
+                {
+                    await asyncDisp.DisposeAsync().ConfigureAwait(false);
+                }
+                else if (item is IDisposable syncDisp)
+                {
+                    syncDisp.Dispose();
+                }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 // Preserve execution integrity
             }
-            finally
-            {
-                _asyncDisposables[i] = null!;
-            }
-        }
-        _asyncDisposablesCount = 0;
-
-        // 2. Dispose synchronous disposables in LIFO order
-        for (int i = _disposablesCount - 1; i >= 0; i--)
-        {
-            try
-            {
-                _disposables[i].Dispose();
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-            {
-            }
-            finally
-            {
-                _disposables[i] = null!;
-            }
         }
         _disposablesCount = 0;
 
-        // 3. Clear resolved references
+        // 2. Clear resolved references
         for (int i = 0; i < _resolvedCount; i++)
         {
             _resolved[i] = default;
@@ -207,48 +193,30 @@ public sealed class PacketScope : IPacketScope, IPoolable, IDisposable, IAsyncDi
             return;
         }
 
-        // 1. Dispose async disposables in LIFO order (prefer sync Dispose if implemented)
-        for (int i = _asyncDisposablesCount - 1; i >= 0; i--)
+        // 1. Unwind single disposables stack in strict LIFO order
+        for (int i = _disposablesCount - 1; i >= 0; i--)
         {
+            object item = _disposables[i];
+            _disposables[i] = null!;
+
             try
             {
-                if (_asyncDisposables[i] is IDisposable syncDisposable)
+                if (item is IDisposable syncDisposable)
                 {
                     syncDisposable.Dispose();
                 }
-                else
+                else if (item is IAsyncDisposable asyncDisp)
                 {
-                    _asyncDisposables[i].DisposeAsync().AsTask().GetAwaiter().GetResult();
+                    asyncDisp.DisposeAsync().AsTask().GetAwaiter().GetResult();
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-            }
-            finally
-            {
-                _asyncDisposables[i] = null!;
-            }
-        }
-        _asyncDisposablesCount = 0;
-
-        // 2. Dispose synchronous disposables in LIFO order
-        for (int i = _disposablesCount - 1; i >= 0; i--)
-        {
-            try
-            {
-                _disposables[i].Dispose();
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-            {
-            }
-            finally
-            {
-                _disposables[i] = null!;
             }
         }
         _disposablesCount = 0;
 
-        // 3. Clear resolved references
+        // 2. Clear resolved references
         for (int i = 0; i < _resolvedCount; i++)
         {
             _resolved[i] = default;

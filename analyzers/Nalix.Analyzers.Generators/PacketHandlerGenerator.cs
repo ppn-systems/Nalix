@@ -288,7 +288,9 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
 
             if (firstParam.Type is INamedTypeSymbol namedParam && namedParam.IsGenericType && namedParam.TypeArguments.Length == 1)
             {
-                if (namedParam.Name is "IPacketContext" or "PacketContext" || namedParam.ToDisplayString().Contains("IPacketContext"))
+                string originalDef = namedParam.OriginalDefinition.ToDisplayString();
+                if (originalDef is "Nalix.Abstractions.Networking.Packets.IPacketContext<TPacket>"
+                    or "Nalix.Runtime.Dispatching.PacketContext<TPacket>")
                 {
                     packetType = namedParam.TypeArguments[0] as INamedTypeSymbol;
                     isGenericContext = true;
@@ -303,6 +305,7 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
                 continue;
             }
 
+            bool allScopeParamsValid = true;
             ImmutableArray<ScopeParameterModel>.Builder scopeParams = ImmutableArray.CreateBuilder<ScopeParameterModel>();
             for (int i = 1; i < method.Parameters.Length; i++)
             {
@@ -311,10 +314,22 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
                     a.AttributeClass?.ToDisplayString() == KnownNames.FromScopeAttributeMetadataName
                     || a.AttributeClass?.Name is "FromScope" or "FromScopeAttribute");
 
+                // Trailing parameters MUST have [FromScope] AND must be reference types (class constraint)
+                if (!hasFromScope || !sp.Type.IsReferenceType)
+                {
+                    allScopeParamsValid = false;
+                    break;
+                }
+
                 string spTypeStr = sp.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                 bool isNullable = sp.NullableAnnotation == NullableAnnotation.Annotated;
 
                 scopeParams.Add(new ScopeParameterModel(sp.Name, spTypeStr, isNullable, hasFromScope));
+            }
+
+            if (!allScopeParamsValid)
+            {
+                continue;
             }
 
             string? pTypeStr = packetType?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);

@@ -794,12 +794,19 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         for (int i = 1; i < parameters.Length; i++)
         {
             IParameterSymbol param = parameters[i];
+            if (!param.Type.IsReferenceType)
+            {
+                return false;
+            }
+
             if (symbols.FromScopeAttribute is not null && HasAttribute(param, symbols.FromScopeAttribute))
             {
                 continue;
             }
 
-            if (param.GetAttributes().Any(a => a.AttributeClass?.Name is "FromScope" or "FromScopeAttribute"))
+            if (param.GetAttributes().Any(a =>
+                a.AttributeClass?.ToDisplayString() == "Nalix.Abstractions.Injection.FromScopeAttribute"
+                || (symbols.FromScopeAttribute is null && a.AttributeClass?.Name is "FromScope" or "FromScopeAttribute")))
             {
                 continue;
             }

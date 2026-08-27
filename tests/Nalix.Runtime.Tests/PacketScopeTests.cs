@@ -41,6 +41,19 @@ public sealed class PacketScopeTests
         }
     }
 
+    private sealed class SyncOnlyScopedService : IDisposable
+    {
+        public Guid Id { get; } = Guid.NewGuid();
+        public bool IsDisposedSync { get; private set; }
+        public List<string>? Log { get; set; }
+
+        public void Dispose()
+        {
+            this.IsDisposedSync = true;
+            this.Log?.Add($"Sync:{this.Id}");
+        }
+    }
+
     private sealed class SingletonService
     {
         public string Name { get; set; } = "Singleton";
@@ -165,6 +178,30 @@ public sealed class PacketScopeTests
 
         // LIFO order: s2 was registered last, so it must be disposed first
         disposalLog.Should().ContainInOrder($"Sync:{s2.Id}", $"Sync:{s1.Id}");
+    }
+
+    [Fact]
+    public async Task DisposeAsync_MixedSyncAndAsync_PreservesStrictLifoOrder()
+    {
+        ScopedServiceRegistry registry = new();
+        List<string> disposalLog = [];
+
+        TestScopedService s1Async = new() { Log = disposalLog };
+        SyncOnlyScopedService s2Sync = new() { Log = disposalLog };
+
+        PacketScope scope = new(registry);
+        // Register async first, sync second
+        scope.RegisterForDisposal((IAsyncDisposable)s1Async);
+        scope.RegisterForDisposal((IDisposable)s2Sync);
+
+        await scope.DisposeAsync();
+
+        s1Async.IsDisposedAsync.Should().BeTrue();
+        s2Sync.IsDisposedSync.Should().BeTrue();
+
+        // Strict LIFO: s2Sync was registered second, so it MUST be disposed first!
+        disposalLog[0].Should().Be($"Sync:{s2Sync.Id}");
+        disposalLog[1].Should().Be($"Async:{s1Async.Id}");
     }
 
     [Fact]
