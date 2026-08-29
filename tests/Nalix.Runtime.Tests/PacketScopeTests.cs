@@ -205,6 +205,79 @@ public sealed class PacketScopeTests
     }
 
     [Fact]
+    public void Connection_NotAttached_Throws()
+    {
+        ScopedServiceRegistry registry = new();
+        using PacketScope scope = new(registry);
+
+        Action act = () => _ = scope.Connection;
+
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void GetOrAdd_SameKey_ReturnsSameInstanceWithinScope()
+    {
+        ScopedServiceRegistry registry = new();
+        using PacketScope scope = new(registry);
+
+        int calls = 0;
+        SingletonService First() { calls++; return new SingletonService(); }
+
+        SingletonService first = scope.GetOrAdd(First);
+        SingletonService second = scope.GetOrAdd(First);
+
+        calls.Should().Be(1);
+        first.Should().BeSameAs(second);
+    }
+
+    [Fact]
+    public void GetOrAdd_DifferentScopes_ReturnsDifferentInstances()
+    {
+        ScopedServiceRegistry registry = new();
+        using PacketScope scope1 = new(registry);
+        using PacketScope scope2 = new(registry);
+
+        SingletonService first = scope1.GetOrAdd(() => new SingletonService());
+        SingletonService second = scope2.GetOrAdd(() => new SingletonService());
+
+        first.Should().NotBeSameAs(second);
+    }
+
+    [Fact]
+    public void GetOrAdd_DisposableInstance_DisposedWhenScopeDisposes()
+    {
+        ScopedServiceRegistry registry = new();
+        PacketScope scope = new(registry);
+
+        TestScopedService instance = scope.GetOrAdd(() => new TestScopedService());
+        scope.Dispose();
+
+        instance.IsDisposedSync.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GetRequiredService_StrictScopes_ThrowsInsteadOfFallingBackToSingleton()
+    {
+        ScopedServiceRegistry registry = new() { StrictScopes = true };
+        SingletonService singleton = new();
+        InstanceManager.Instance.Register<SingletonService>(singleton);
+
+        try
+        {
+            using PacketScope scope = new(registry);
+
+            Action act = () => scope.GetRequiredService<SingletonService>();
+
+            act.Should().Throw<InvalidOperationException>();
+        }
+        finally
+        {
+            _ = InstanceManager.Instance.RemoveInstance(typeof(SingletonService));
+        }
+    }
+
+    [Fact]
     public void ResetForPool_ClearsResolvedServicesAndAllowsReUse()
     {
         ScopedServiceRegistry registry = new();

@@ -140,12 +140,14 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
         public bool HasInjectedFields { get; }
         public ImmutableArray<string> InjectedMembersAssignments { get; }
         public ImmutableArray<HandlerMethodModel> Methods { get; }
+        public ImmutableArray<Diagnostic> Diagnostics { get; }
 
         public ControllerModel(
             string fullyQualifiedName, string name, bool isStatic, string namespaceName,
             string generatedNamespace, bool hasInjectedFields,
             ImmutableArray<string> injectedMembersAssignments,
-            ImmutableArray<HandlerMethodModel> methods)
+            ImmutableArray<HandlerMethodModel> methods,
+            ImmutableArray<Diagnostic> diagnostics)
         {
             this.FullyQualifiedName = fullyQualifiedName;
             this.Name = name;
@@ -155,6 +157,7 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
             this.HasInjectedFields = hasInjectedFields;
             this.InjectedMembersAssignments = injectedMembersAssignments;
             this.Methods = methods;
+            this.Diagnostics = diagnostics;
         }
 
         public bool Equals(ControllerModel other)
@@ -170,7 +173,8 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
             }
 
             return Internal.ModelEquality.SequenceEqual(this.InjectedMembersAssignments, other.InjectedMembersAssignments)
-                && Internal.ModelEquality.SequenceEqual(this.Methods, other.Methods);
+                && Internal.ModelEquality.SequenceEqual(this.Methods, other.Methods)
+                && Internal.ModelEquality.SequenceEqual(this.Diagnostics, other.Diagnostics);
         }
 
         public override bool Equals(object obj) => obj is ControllerModel other && this.Equals(other);
@@ -196,6 +200,14 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
                     foreach (HandlerMethodModel m in this.Methods)
                     {
                         hash = (hash * 23) + m.GetHashCode();
+                    }
+                }
+
+                if (!this.Diagnostics.IsDefaultOrEmpty)
+                {
+                    foreach (Diagnostic d in this.Diagnostics)
+                    {
+                        hash = (hash * 23) + (d?.GetHashCode() ?? 0);
                     }
                 }
 
@@ -254,6 +266,7 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
         }
 
         ImmutableArray<HandlerMethodModel>.Builder methods = ImmutableArray.CreateBuilder<HandlerMethodModel>();
+        ImmutableArray<Diagnostic>.Builder diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
         foreach (IMethodSymbol method in controller.GetMembers().OfType<IMethodSymbol>())
         {
             if (method.DeclaredAccessibility != Accessibility.Public && method.DeclaredAccessibility != Accessibility.Internal)
@@ -318,6 +331,10 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
                 if (!hasFromScope || !sp.Type.IsReferenceType)
                 {
                     allScopeParamsValid = false;
+                    diagnostics.Add(Diagnostic.Create(
+                        GeneratorDiagnosticDescriptors.InvalidScopeParameter,
+                        method.Locations.FirstOrDefault() ?? Location.None,
+                        method.Name, sp.Name, controller.Name));
                     break;
                 }
 
@@ -370,7 +387,8 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
 
         return new ControllerModel(
             classFullName, name, isStatic, namespaceName, generatedNamespace,
-            hasInjectedFields, injectedAssignments.ToImmutable(), methods.ToImmutable());
+            hasInjectedFields, injectedAssignments.ToImmutable(), methods.ToImmutable(),
+            diagnostics.ToImmutable());
     }
 
     private static void Execute(ImmutableArray<ControllerModel> targets, SourceProductionContext context)
@@ -381,6 +399,19 @@ public sealed class PacketHandlerGenerator : IIncrementalGenerator
             .Where(static p => p.FullyQualifiedName != null)
             .Where(p => seen.Add(p.FullyQualifiedName))
             .OrderBy(static p => p.FullyQualifiedName)];
+
+        foreach (ControllerModel controller in distinctControllers)
+        {
+            if (controller.Diagnostics.IsDefaultOrEmpty)
+            {
+                continue;
+            }
+
+            foreach (Diagnostic diagnostic in controller.Diagnostics)
+            {
+                context.ReportDiagnostic(diagnostic);
+            }
+        }
 
         if (distinctControllers.Count == 0)
         {

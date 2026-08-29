@@ -186,6 +186,11 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
         this.CancellationToken = token;
         this.Scope = scope ?? s_pool.Get<PacketScope>();
 
+        if (this.Scope is PacketScope packetScope)
+        {
+            packetScope.AttachConnection(connection);
+        }
+
         this.Sender.Initialize(this);
 
         _isInitialized = true;
