@@ -82,6 +82,13 @@ public static class DiagnosticsEvents
         /// This serves as a unified failure event.
         /// </summary>
         public const string Failure = "Configuration.Failure";
+
+        /// <summary>
+        /// Fired when a reload re-binds a configuration type from the INI file after it was
+        /// manually overridden via <c>NetworkApplicationBuilder.Configure&lt;TOptions&gt;</c>,
+        /// silently discarding the manual override.
+        /// </summary>
+        public const string ManualOverrideOverwritten = "Configuration.ManualOverrideOverwritten";
     }
 
     /// <summary>

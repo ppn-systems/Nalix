@@ -540,9 +540,9 @@ internal static class DiagnosticDescriptors
         title: "Packet context must not escape handler scope",
         messageFormat: "Pooled {0} must not escape the handler scope: {1}",
         category: "Correctness",
-        defaultSeverity: DiagnosticSeverity.Warning,
+        defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "IPacketContext<T> and its Packet are pooled and returned after the handler completes. Capturing them in a field, long-lived delegate, or offloaded task causes use-after-return bugs. Extract needed data into locals before offloading work.");
+        description: "IPacketContext<T> and its Packet are pooled and returned after the handler completes. Capturing them in a field, long-lived delegate, or offloaded task causes use-after-return bugs, including cross-packet/tenant data leaks. Extract needed data into locals before offloading work.");
 
     public static readonly DiagnosticDescriptor RpcServiceInvalidReturnType = new(
         id: "NALIX100",
