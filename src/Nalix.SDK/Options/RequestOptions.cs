@@ -59,7 +59,9 @@ public sealed record RequestOptions
     /// <para>
     /// <b>WARNING:</b> Configuring retries (value > 0) is safe only for idempotent requests.
     /// Because a timeout does not guarantee that the server did not receive or process the initial request,
-    /// retrying non-idempotent operations may duplicate side effects.
+    /// retrying non-idempotent operations may duplicate side effects. This is not enforced at runtime —
+    /// mark request/response packet types with <see cref="Nalix.Abstractions.Networking.Packets.PacketIdempotentAttribute"/>
+    /// as documentation of which packets are actually safe to retry.
     /// </para>
     /// </summary>
     public int RetryCount { get; init; }

@@ -151,6 +151,90 @@ public static class RequestExtensions
     }
 
     /// <summary>
+    /// Non-throwing counterpart to <see cref="RequestAsync{TResponse}"/>: classifies the outcome
+    /// instead of throwing, so UI-facing callers (e.g. Blazor) can branch without try/catch.
+    /// Retry/timeout/encryption semantics are identical to <see cref="RequestAsync{TResponse}"/>.
+    /// </summary>
+    /// <typeparam name="TResponse">Expected response packet type.</typeparam>
+    /// <param name="client">Connected client session.</param>
+    /// <param name="request">Packet to send. Must not be <see langword="null"/>.</param>
+    /// <param name="options">
+    /// Timeout, retry, and encryption settings. <see langword="null"/> falls back to <see cref="RequestOptions.Default"/>.
+    /// </param>
+    /// <param name="predicate">Optional response filter. <see langword="null"/> accepts the first matching packet.</param>
+    /// <param name="ct">Cancellation token for the entire operation (all attempts).</param>
+    /// <returns>
+    /// A <see cref="RequestOutcome{T}"/> describing success, timeout, disconnection, or another failure.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="request"/> is <see langword="null"/>.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="ct"/> was cancelled.</exception>
+    public static async ValueTask<RequestOutcome<TResponse>> TryRequestAsync<TResponse>(
+        this ITransportSession client,
+        IPacket request,
+        RequestOptions? options = null,
+        Func<TResponse, bool>? predicate = null,
+        CancellationToken ct = default)
+        where TResponse : class, IPacket, IPacketStaticOpcode
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(request);
+
+        options ??= RequestOptions.Default;
+        options.Validate();
+
+        if (!client.IsConnected)
+        {
+            try
+            {
+                await AwaitReadyOrThrowAsync(client, options.TimeoutMs, typeof(TResponse).Name, ct).ConfigureAwait(false);
+            }
+            catch (NetworkException ex)
+            {
+                return RequestOutcome<TResponse>.Fail(RequestOutcomeKind.NotConnected, ex);
+            }
+        }
+
+        Exception? lastException = null;
+        int totalAttempts = options.RetryCount + 1;
+        Func<TResponse, bool> effectivePredicate = predicate ?? (_ => true);
+
+        for (int attempt = 1; attempt <= totalAttempts; attempt++)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            try
+            {
+                TResponse result = await PacketAwaiter.AwaitAsync(
+                    client,
+                    predicate: effectivePredicate,
+                    timeoutMs: options.TimeoutMs,
+                    sendAsync: token => client.SendAsync(request, encrypt: options.Encrypt, token),
+                    ct).ConfigureAwait(false);
+
+                return RequestOutcome<TResponse>.Ok(result);
+            }
+            catch (TimeoutException tex) when (attempt < totalAttempts)
+            {
+                lastException = tex;
+            }
+            catch (TimeoutException tex)
+            {
+                return RequestOutcome<TResponse>.Fail(RequestOutcomeKind.TimedOut, tex);
+            }
+            catch (NetworkException nex)
+            {
+                return RequestOutcome<TResponse>.Fail(RequestOutcomeKind.Failed, nex);
+            }
+        }
+
+        return RequestOutcome<TResponse>.Fail(
+            RequestOutcomeKind.TimedOut,
+            new TimeoutException(
+                $"[SDK.TryRequestAsync<{typeof(TResponse).Name}>] No response after {totalAttempts} attempt(s) (timeout={options.TimeoutMs}ms each).",
+                lastException));
+    }
+
+    /// <summary>
     /// When the session is a <see cref="TransportSession"/> with auto-reconnect enabled, awaits
     /// the in-flight reconnect (bounded by <paramref name="timeoutMs"/>). Otherwise throws
     /// immediately, preserving the pre-existing "not connected" behavior.
