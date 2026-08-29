@@ -335,6 +335,10 @@ public sealed class IniConfig : IDisposable
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
     /// <returns>The string value, or an empty string if not found.</returns>
+    /// <remarks>
+    /// An environment variable named <c>NALIX_{section}_{key}</c> (uppercased) takes precedence
+    /// over the INI file when present, letting deployments override configuration without editing files.
+    /// </remarks>
     /// <exception cref="ArgumentNullException">Thrown when section or key is null.</exception>
     /// <exception cref="ArgumentException">Thrown when section or key is empty.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -353,6 +357,12 @@ public sealed class IniConfig : IDisposable
         if (string.IsNullOrWhiteSpace(section))
         {
             throw new ArgumentException("Configuration section cannot be empty or whitespace.", nameof(section));
+        }
+
+        string? envOverride = System.Environment.GetEnvironmentVariable($"NALIX_{section}_{key}".ToUpperInvariant());
+        if (envOverride is not null)
+        {
+            return envOverride;
         }
 
         // Check for file changes before reading

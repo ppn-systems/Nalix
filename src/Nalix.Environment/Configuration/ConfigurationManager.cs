@@ -86,6 +86,7 @@ public sealed class ConfigurationManager : IDisposable
     private readonly Lock _syncLock = new();
 
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, ConfigurationContext> _contextCache;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, byte> _manuallyConfiguredTypes = new();
     private volatile ConfigurationContext _currentContext;
 
     private const int MaxCachedContexts = 10;
@@ -476,6 +477,16 @@ public sealed class ConfigurationManager : IDisposable
             }
         }
     }
+
+    /// <summary>
+    /// Marks <typeparamref name="TClass"/> as manually overridden outside the INI file (e.g. via
+    /// <c>NetworkApplicationBuilder.Configure&lt;TOptions&gt;</c>), so a future reload that re-binds
+    /// it from disk emits <see cref="DiagnosticsEvents.Configuration.ManualOverrideOverwritten"/>
+    /// instead of silently discarding the override.
+    /// </summary>
+    /// <typeparam name="TClass">The configuration type that was manually configured.</typeparam>
+    public void MarkManuallyConfigured<TClass>() where TClass : ConfigurationLoader
+        => _manuallyConfiguredTypes[typeof(TClass)] = 0;
 
     /// <summary>
     /// Checks if a specific configuration type is loaded.
@@ -881,6 +892,13 @@ public sealed class ConfigurationManager : IDisposable
                 {
                     lazy.Value.Initialize(context.IniFile.Value);
                     successCount++;
+
+                    if (_manuallyConfiguredTypes.ContainsKey(lazy.Value.GetType()) &&
+                        Listener.IsEnabled(DiagnosticsEvents.Configuration.ManualOverrideOverwritten))
+                    {
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.ManualOverrideOverwritten,
+                            new DiagnosticLog("ENV.ConfigurationManager:Internal", $"manual-override-overwritten type={lazy.Value.GetType().Name}"));
+                    }
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {

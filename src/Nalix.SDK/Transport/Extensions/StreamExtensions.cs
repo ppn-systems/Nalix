@@ -27,18 +27,34 @@ public static class StreamExtensions
     /// <param name="request">The request packet initiating the stream.</param>
     /// <param name="options">Options for the request (e.g., encryption).</param>
     /// <param name="ct">The cancellation token to cancel the stream.</param>
+    /// <param name="inactivityTimeoutMs">
+    /// Milliseconds to wait for the next chunk before failing the stream with a <see cref="TimeoutException"/>.
+    /// <c>0</c> (default) disables this check, preserving prior behavior — a server that stops sending
+    /// chunks without disconnecting or sending a terminator hangs the enumeration indefinitely.
+    /// </param>
     /// <returns>An asynchronous enumerable stream of responses.</returns>
     /// <exception cref="ArgumentNullException">Thrown if client or request is null.</exception>
     /// <exception cref="NetworkException">Thrown if the client is not connected.</exception>
+    /// <exception cref="TimeoutException">
+    /// No chunk arrived within <paramref name="inactivityTimeoutMs"/> since the last one (or since the start).
+    /// </exception>
+#pragma warning disable CA1068 // ct must stay before the new trailing param to preserve existing named-arg call sites.
     public static async IAsyncEnumerable<TResponse> StreamAsync<TResponse>(
         this ITransportSession client,
         IPacket request,
         RequestOptions? options = null,
-        [EnumeratorCancellation] CancellationToken ct = default)
+        [EnumeratorCancellation] CancellationToken ct = default,
+        int inactivityTimeoutMs = 0)
+#pragma warning restore CA1068
         where TResponse : class, IPacket, IPacketStaticOpcode, IPacketStreamable
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(request);
+
+        if (inactivityTimeoutMs < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(inactivityTimeoutMs), inactivityTimeoutMs, $"{nameof(inactivityTimeoutMs)} must be >= 0.");
+        }
 
         options ??= RequestOptions.Default;
 
@@ -84,15 +100,44 @@ public static class StreamExtensions
         IDisposable msgSub = client.On<TResponse>(OnMessageReceived, disposeAfter: false);
         client.OnDisconnected += OnDisconnected;
 
+        using CancellationTokenSource? inactivityCts = inactivityTimeoutMs > 0 ? new CancellationTokenSource() : null;
+
         try
         {
             // Send the request
             await client.SendAsync(request, encrypt: options.Encrypt, ct: ct).ConfigureAwait(false);
 
+            inactivityCts?.CancelAfter(inactivityTimeoutMs);
+
             // Yield the stream elements as they arrive
-            await foreach (TResponse item in channel.Reader.ReadAllAsync(ct).ConfigureAwait(false))
+            IAsyncEnumerable<TResponse> reader = inactivityCts is null
+                ? channel.Reader.ReadAllAsync(ct)
+                : channel.Reader.ReadAllAsync(inactivityCts.Token);
+
+            IAsyncEnumerator<TResponse> enumerator = reader.GetAsyncEnumerator();
+            await using (enumerator.ConfigureAwait(false))
             {
-                yield return item;
+                while (true)
+                {
+                    bool hasNext;
+                    try
+                    {
+                        hasNext = await enumerator.MoveNextAsync().ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException) when (inactivityCts is not null && inactivityCts.IsCancellationRequested && !ct.IsCancellationRequested)
+                    {
+                        throw new TimeoutException(
+                            $"[SDK.StreamAsync<{typeof(TResponse).Name}>] Stream inactivity timeout — no chunk received within {inactivityTimeoutMs}ms.");
+                    }
+
+                    if (!hasNext)
+                    {
+                        yield break;
+                    }
+
+                    inactivityCts?.CancelAfter(inactivityTimeoutMs);
+                    yield return enumerator.Current;
+                }
             }
         }
         finally

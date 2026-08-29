@@ -86,4 +86,18 @@ internal static class GeneratorDiagnosticDescriptors
         category: "Nalix.SDK.Transport",
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  PacketHandlerGenerator
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// <summary>NALIX067: Trailing handler parameter is missing [FromScope] or is not a reference type; the method was dropped from the dispatch table.</summary>
+    public static readonly DiagnosticDescriptor InvalidScopeParameter = new(
+        id: "NALIX067",
+        title: "Handler method dropped from dispatch table",
+        messageFormat: "Method '{0}' has a trailing parameter '{1}' that is missing [FromScope] or is not a reference type; " +
+                       "the method was silently excluded from the generated dispatch table for [PacketHandler] controller '{2}'",
+        category: "Nalix.Runtime.Dispatching",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }

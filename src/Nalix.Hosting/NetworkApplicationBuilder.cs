@@ -63,6 +63,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                 {
                     validatable.Validate();
                 }
+
+                ConfigurationManager.Instance.MarkManuallyConfigured<TOptions>();
             }));
 
         return this;

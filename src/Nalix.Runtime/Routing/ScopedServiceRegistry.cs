@@ -22,6 +22,14 @@ public sealed class ScopedServiceRegistry
     private readonly ConcurrentDictionary<Type, Func<IPacketScope, object>> _factories = new();
 
     /// <summary>
+    /// When <see langword="true"/>, packet scopes resolved from this registry no longer fall back to
+    /// <see cref="Nalix.Framework.Injection.InstanceManager"/> singletons for types with no registered
+    /// scoped factory: <c>GetRequiredService</c> throws instead of silently returning a singleton.
+    /// Defaults to <see langword="false"/> to preserve existing fallback behavior.
+    /// </summary>
+    public bool StrictScopes { get; set; }
+
+    /// <summary>
     /// Registers a factory for a scoped service of type <typeparamref name="TService"/>.
     /// </summary>
     /// <typeparam name="TService">The service contract type.</typeparam>

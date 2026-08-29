@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.SDK.Options;
 
 namespace Nalix.SDK.Transport;
@@ -52,6 +53,7 @@ public abstract class TransportSession : IDisposable, ITransportSession
 
     private Internal.ReconnectSupervisor? _reconnectSupervisor;
     private int _intentionalDisconnect;
+    private int _outboundSeq;
 
     /// <summary>
     /// Gets the reconnect supervisor for this session, creating it lazily when
@@ -85,6 +87,23 @@ public abstract class TransportSession : IDisposable, ITransportSession
     /// raise should start a reconnect loop.
     /// </summary>
     internal bool ConsumeIntentionalDisconnect() => Interlocked.Exchange(ref _intentionalDisconnect, 0) == 1;
+
+    /// <summary>
+    /// Assigns an auto-incrementing <c>SequenceId</c> to <paramref name="packet"/> when the caller
+    /// left it unset (<c>0</c>). Packets with a caller-assigned SequenceId are never overwritten.
+    /// Called by concrete sessions from their <c>SendAsync(IPacket, ...)</c> override, before serialization.
+    /// </summary>
+    private protected void StampSequenceIdIfUnset(IPacket packet)
+    {
+        if (packet.Header.SequenceId != 0)
+        {
+            return;
+        }
+
+        PacketHeader header = packet.Header;
+        header.SequenceId = unchecked((ushort)Interlocked.Increment(ref _outboundSeq));
+        packet.Header = header;
+    }
 
     /// <summary>
     /// Awaits until the session is connected and, if a fresh handshake occurred, re-authenticated.

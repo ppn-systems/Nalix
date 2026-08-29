@@ -39,4 +39,18 @@ public interface IPacketSender : IPoolable
     /// A cancellation token that can cancel the send operation.
     /// </param>
     ValueTask SendAsync(IPacket packet, bool forceEncrypt, CancellationToken ct = default);
+
+    /// <summary>
+    /// Sends <paramref name="response"/> as a reply to the packet currently being processed,
+    /// automatically echoing its <c>SequenceId</c> so the client's request/response and
+    /// stream correlation logic can match the reply. Prefer this over <see cref="SendAsync(IPacket, CancellationToken)"/>
+    /// whenever the outgoing packet is a direct response to the handler's inbound packet.
+    /// </summary>
+    /// <param name="response">
+    /// The response packet instance to send.
+    /// </param>
+    /// <param name="ct">
+    /// A cancellation token that can cancel the send operation.
+    /// </param>
+    ValueTask ReplyAsync(IPacket response, CancellationToken ct = default);
 }
