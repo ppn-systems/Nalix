@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Options;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Memory;
@@ -30,6 +31,7 @@ public sealed class PacketSender : IPacketSender
     private IConnection? _connection;
     private PacketMetadata _attributes;
     private bool _isReliable;
+    private ushort _requestSequenceId;
 
     private static readonly CompressionOptions s_options = ConfigurationManager.Instance.Get<CompressionOptions>();
 
@@ -56,6 +58,7 @@ public sealed class PacketSender : IPacketSender
         _attributes = context.Attributes;
         _token = context.CancellationToken;
         _isReliable = context.IsReliable;
+        _requestSequenceId = context.Packet.Header.SequenceId;
     }
 
     /// <inheritdoc/>
@@ -65,6 +68,7 @@ public sealed class PacketSender : IPacketSender
         _connection = null;
         _attributes = default;
         _isReliable = false;
+        _requestSequenceId = 0;
     }
 
     /// <inheritdoc/>
@@ -92,6 +96,18 @@ public sealed class PacketSender : IPacketSender
         CancellationToken safeToken = ct == default ? _token : ct;
 
         return SEND_CORE_ASYNC(connection, transport, packet, forceEncrypt, safeToken);
+    }
+
+    /// <inheritdoc/>
+    public ValueTask ReplyAsync(IPacket response, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+
+        PacketHeader header = response.Header;
+        header.SequenceId = _requestSequenceId;
+        response.Header = header;
+
+        return this.SendAsync(response, ct);
     }
 
     #endregion APIs
